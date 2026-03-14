@@ -271,7 +271,7 @@ table{border-collapse:collapse}
 .cleg::before{content:'';width:10px;height:10px;border-radius:3px;display:inline-block}
 .cleg-blue::before{background:var(--ox)}
 .cleg-red::before{background:var(--red)}
-.bar-chart-wrap{position:relative}
+.bar-chart-wrap{position:relative;width:100%}
 canvas#chartEvolucion{width:100%!important}
 .trim-status-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;padding-top:8px}
 .trim-gauge{position:relative;display:flex;flex-direction:column;align-items:center}
