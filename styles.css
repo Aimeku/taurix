@@ -770,7 +770,7 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
 /* HERO: logo completo (toro+texto), grande */
 .lp-hero-logo { display:flex; justify-content:center; align-items:center; margin-bottom:16px; }
 .lp-hero-logo-img {
-  height: 200px;
+  height: 150px;
   width: auto;
   object-fit: contain;
   filter: drop-shadow(0 6px 36px rgba(249,115,22,.5));
