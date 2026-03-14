@@ -31,19 +31,37 @@ export async function exportFacturaPDF(facturaId) {
   const CR = isIncome?[26,86,219]:[185,28,28];
 
   // Cabecera
-  doc.setFillColor(...CR); doc.rect(0,0,pw,42,"F");
-  doc.setTextColor(255,255,255); doc.setFontSize(20); doc.setFont("helvetica","bold");
-  doc.text(pf?.nombre_razon_social||"TuGestor",m,16);
-  doc.setFontSize(8); doc.setFont("helvetica","normal");
-  if(pf?.nif) doc.text("NIF: "+pf.nif,m,23);
-  if(pf?.domicilio_fiscal) doc.text(pf.domicilio_fiscal.substring(0,50),m,29);
-  if(pf?.email) doc.text(pf.email,m,35);
+  doc.setFillColor(11,13,18); doc.rect(0,0,pw,42,"F");
+
+  // Logo empresa (si existe)
+  if (pf?.logo_url && pf.logo_url.startsWith("data:image")) {
+    try {
+      const ext = pf.logo_url.includes("image/png") ? "PNG"
+                : pf.logo_url.includes("image/svg") ? "SVG"
+                : "JPEG";
+      doc.addImage(pf.logo_url, ext, m, 6, 0, 28, "", "FAST");
+    } catch(e) {
+      // logo fallback: nombre empresa
+      doc.setTextColor(255,255,255); doc.setFontSize(20); doc.setFont("helvetica","bold");
+      doc.text(pf?.nombre_razon_social||"Taurix", m, 16);
+    }
+  } else {
+    doc.setTextColor(255,255,255); doc.setFontSize(20); doc.setFont("helvetica","bold");
+    doc.text(pf?.nombre_razon_social||"Taurix", m, 16);
+  }
+
+  doc.setTextColor(249,115,22); doc.setFontSize(9); doc.setFont("helvetica","normal");
+  if(pf?.nif) doc.text("NIF: "+pf.nif, m, 29);
+  if(pf?.domicilio_fiscal) doc.text(pf.domicilio_fiscal.substring(0,55), m, 35);
+  if(pf?.email) doc.text(pf.email, m, 39.5);
+
+  doc.setTextColor(255,255,255);
   doc.setFontSize(22); doc.setFont("helvetica","bold");
   doc.text("FACTURA",pw-m,16,{align:"right"});
-  doc.setFontSize(11); doc.setFont("helvetica","normal");
-  doc.text(f.numero_factura||"BORRADOR",pw-m,25,{align:"right"});
-  doc.setFontSize(9);
-  doc.text(`Fecha: ${f.fecha||"—"}`,pw-m,32,{align:"right"});
+  doc.setTextColor(249,115,22); doc.setFontSize(13); doc.setFont("helvetica","bold");
+  doc.text(f.numero_factura||"BORRADOR",pw-m,26,{align:"right"});
+  doc.setTextColor(180,180,180); doc.setFontSize(9); doc.setFont("helvetica","normal");
+  doc.text(`Fecha: ${f.fecha||"—"}`,pw-m,33,{align:"right"});
   if(f.fecha_emision&&f.fecha_emision!==f.fecha) doc.text(`Emisión: ${f.fecha_emision}`,pw-m,38,{align:"right"});
   doc.setTextColor(0,0,0); y=52;
 
@@ -144,7 +162,7 @@ export async function exportFacturaPDF(facturaId) {
   doc.setDrawColor(200); doc.setLineWidth(0.3); doc.line(m,ph-22,pw-m,ph-22);
   doc.setFontSize(7); doc.setTextColor(140); doc.setFont("helvetica","normal");
   doc.text(opLegal[f.tipo_operacion]||"",m,ph-16);
-  doc.text(`${pf?.nombre_razon_social||"TuGestor"} · NIF: ${pf?.nif||"—"} · Generado con TuGestor`,m,ph-10);
+  doc.text(`${pf?.nombre_razon_social||"Taurix"} · NIF: ${pf?.nif||"—"} · Generado con Taurix`,m,ph-10);
   doc.text(new Date().toLocaleDateString("es-ES"),pw-m,ph-10,{align:"right"});
 
   const fname=f.numero_factura?f.numero_factura.replace(/[\/\\]/g,"-"):"borrador";
@@ -295,7 +313,7 @@ function _addFooterPDF(doc, pf, year, trim) {
   for(let i=1;i<=pc;i++){
     doc.setPage(i); doc.setDrawColor(200); doc.line(m,ph-11,pw-m,ph-11);
     doc.setFontSize(7.5); doc.setTextColor(120);
-    doc.text(`TuGestor · ${pf.nif} · ${year} ${trim}`,m,ph-6);
+    doc.text(`Taurix · ${pf.nif} · ${year} ${trim}`,m,ph-6);
     doc.text(`Pág. ${i} de ${tpe}`,pw-30,ph-6);
   }
   if(typeof doc.putTotalPages==="function") doc.putTotalPages(tpe);
@@ -358,7 +376,7 @@ export async function exportClientesExcel() {
   const ws=window.XLSX.utils.json_to_sheet(rows);
   const wb=window.XLSX.utils.book_new();
   window.XLSX.utils.book_append_sheet(wb,ws,"Clientes");
-  window.XLSX.writeFile(wb,"clientes_tugestor.xlsx");
+  window.XLSX.writeFile(wb,"clientes_taurix.xlsx");
   toast("Clientes exportados","success");
 }
 
@@ -375,7 +393,7 @@ export async function exportFacturasPDF() {
   const doc=new jsPDF(); const pw=doc.internal.pageSize.width; const m=14; let y=18;
   doc.setFillColor(26,86,219); doc.rect(0,0,pw,28,"F");
   doc.setTextColor(255,255,255); doc.setFontSize(13); doc.setFont("helvetica","bold");
-  doc.text("REPORTE DE FACTURAS · TuGestor",pw/2,12,{align:"center"});
+  doc.text("REPORTE DE FACTURAS · Taurix",pw/2,12,{align:"center"});
   doc.setFontSize(9); doc.setFont("helvetica","normal");
   doc.text(`${TRIM_LABELS[trim]} ${year} · Exportado: ${new Date().toLocaleDateString("es-ES")}`,pw/2,21,{align:"center"});
   doc.setTextColor(0,0,0); y=36;
