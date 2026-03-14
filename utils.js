@@ -259,50 +259,12 @@ export function checkFiscalDeadlines() {
 }
 
 /* ══════════════════════════
-   ONBOARDING BANNER
+   ONBOARDING BANNER — desactivado
 ══════════════════════════ */
 export async function checkOnboarding() {
-  const { data: pf, error: e1 } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).single();
-  const { data: facs, error: e2 } = await supabase.from("facturas").select("id").eq("user_id", SESSION.user.id).limit(1);
-  if (e1 && e1.code !== "PGRST116") console.warn("onboarding perfil:", e1.message);
-  if (e2) console.warn("onboarding facturas:", e2.message);
-
-  const hasProfile = !!(pf?.nombre_razon_social && pf?.nif);
-  const hasFactura = facs && facs.length > 0;
-  const dismissed  = localStorage.getItem("tg_onboard_done") === "1";
-
-  if (hasProfile && hasFactura) { localStorage.setItem("tg_onboard_done","1"); return; }
-  if (dismissed) return;
-
-  const steps = [
-    { done: hasProfile, label:"Completa tu perfil fiscal", desc:"Añade tu NIF, nombre y domicilio fiscal", action:"window.showPerfilModal()", icon:"📋" },
-    { done: CLIENTES.length > 0, label:"Añade tu primer cliente", desc:"Crea al menos un cliente para facturar", action:"switchView('clientes')", icon:"👤" },
-    { done: hasFactura, label:"Emite tu primera factura", desc:"Crea una factura de prueba para empezar", action:"switchView('nueva-factura')", icon:"📄" },
-  ];
-  if (steps.every(s=>s.done)) return;
-
+  // Banner de onboarding eliminado — interfaz limpia desde el primer acceso
   const banner = document.getElementById("onboardingBanner");
-  if (!banner) return;
-  banner.innerHTML = `
-    <div class="onboard-banner">
-      <div class="onboard-header">
-        <span class="onboard-title">🚀 Empezando con Taurix — ${steps.filter(s=>s.done).length} de 3 pasos completados</span>
-        <button onclick="localStorage.setItem('tg_onboard_done','1');document.getElementById('onboardingBanner').style.display='none'" class="deadline-close">×</button>
-      </div>
-      <div class="onboard-steps">
-        ${steps.map((s,i)=>`
-          <div class="onboard-step ${s.done?"onboard-step--done":""}">
-            <div class="onboard-step-num">${s.done?"✓":i+1}</div>
-            <div class="onboard-step-body">
-              <div class="onboard-step-label">${s.icon} ${s.label}</div>
-              <div class="onboard-step-desc">${s.desc}</div>
-            </div>
-            ${!s.done?`<button class="btn-outline onboard-step-btn" onclick="${s.action}">Ir →</button>`:""}
-          </div>
-        `).join("")}
-      </div>
-    </div>`;
-  banner.style.display = "";
+  if (banner) banner.style.display = "none";
 }
 
 /* ══════════════════════════
@@ -311,11 +273,36 @@ export async function checkOnboarding() {
 export async function showPerfilModal() {
   const { data: p, error } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).single();
   if (error && error.code !== "PGRST116") console.warn("perfil load:", error.message);
+
+  const logoActual = p?.logo_url || "";
+
   openModal(`
-    <div class="modal">
+    <div class="modal" style="max-width:600px">
       <div class="modal-hd"><span class="modal-title">📋 Perfil Fiscal</span><button class="modal-x" onclick="window._cm()">×</button></div>
       <div class="modal-bd">
         <p class="modal-note">Estos datos aparecen en los libros oficiales y en el encabezado de tus facturas. Obligatorios para exportar.</p>
+
+        <!-- LOGO EMPRESA -->
+        <div class="modal-field">
+          <label>Logo de empresa <span style="font-weight:400;color:var(--t4)">(aparece en facturas y presupuestos PDF)</span></label>
+          <div id="pf_logo_area" style="display:flex;align-items:center;gap:16px;margin-top:6px">
+            <div id="pf_logo_preview" style="width:100px;height:60px;border:2px dashed var(--brd);border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--srf2);flex-shrink:0;cursor:pointer" onclick="document.getElementById('pf_logo_input').click()">
+              ${logoActual
+                ? `<img src="${logoActual}" style="max-width:96px;max-height:56px;object-fit:contain" id="pf_logo_img"/>`
+                : `<span style="font-size:11px;color:var(--t4);text-align:center;padding:8px">Click para<br>subir logo</span>`
+              }
+            </div>
+            <div style="flex:1">
+              <input type="file" id="pf_logo_input" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none"/>
+              <button type="button" onclick="document.getElementById('pf_logo_input').click()" class="btn-outline" style="font-size:12px;padding:7px 14px;margin-bottom:8px">
+                📁 ${logoActual ? "Cambiar logo" : "Subir logo"}
+              </button>
+              ${logoActual ? `<button type="button" id="pf_logo_remove" class="btn-outline" style="font-size:12px;padding:7px 14px;margin-left:6px;color:var(--red);border-color:var(--red-mid)">🗑️ Quitar</button>` : ""}
+              <div style="font-size:11.5px;color:var(--t4);line-height:1.5">PNG, JPG o SVG · Máx. 500KB<br>Recomendado: fondo transparente</div>
+            </div>
+          </div>
+        </div>
+
         <div class="modal-grid2">
           <div class="modal-field"><label>Nombre o Razón Social *</label><input id="pf_nombre" value="${p?.nombre_razon_social||""}"/></div>
           <div class="modal-field"><label>NIF / CIF *</label><input id="pf_nif" value="${p?.nif||""}"/></div>
@@ -343,7 +330,35 @@ export async function showPerfilModal() {
     </div>
   `);
 
-  document.getElementById("pf_delete_account").onclick = () => {
+  // ── Logo upload handling ──
+  let _logoBase64 = logoActual; // starts with existing or empty
+
+  const logoInput = document.getElementById("pf_logo_input");
+  const logoPreview = document.getElementById("pf_logo_preview");
+
+  if (logoInput) {
+    logoInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 500 * 1024) { toast("El logo no puede superar 500KB", "error"); return; }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        _logoBase64 = ev.target.result; // base64 data URL
+        logoPreview.innerHTML = `<img src="${_logoBase64}" style="max-width:96px;max-height:56px;object-fit:contain" id="pf_logo_img"/>`;
+        toast("Logo cargado — guarda el perfil para aplicarlo", "info");
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const removeBtn = document.getElementById("pf_logo_remove");
+  if (removeBtn) {
+    removeBtn.addEventListener("click", () => {
+      _logoBase64 = "";
+      logoPreview.innerHTML = `<span style="font-size:11px;color:var(--t4);text-align:center;padding:8px">Click para<br>subir logo</span>`;
+      toast("Logo eliminado — guarda para confirmar", "info");
+    });
+  }
     closeModal();
     openModal(`
       <div class="modal">
@@ -402,6 +417,7 @@ export async function showPerfilModal() {
       domicilio_fiscal:document.getElementById("pf_dir").value.trim(),
       telefono:        document.getElementById("pf_tel").value.trim(),
       email:           document.getElementById("pf_email").value.trim(),
+      logo_url:        _logoBase64,
       regime, updated_at: new Date().toISOString()
     }, { onConflict:"user_id" });
     if (ue) { toast("Error guardando perfil: "+ue.message,"error"); return; }
