@@ -1,1537 +1,761 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8"/>
-  <title>Taurix · Gestión fiscal profesional</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script type="module" src="main.js" defer></script>
-</head>
-<body>
-
-<!-- ═══════════════════════════════════════
-     LANDING PAGE
-═══════════════════════════════════════ -->
-<div id="landingPage">
-  <header class="lp-nav">
-    <div class="lp-logo">
-      <img src="Logo_Taurix_transparent.png" alt="Taurix" class="lp-logo-img"/>
-    </div>
-    <nav class="lp-links">
-      <a href="#">Funciones</a>
-      <a href="#">Precios</a>
-      <a href="#">Legal</a>
-    </nav>
-    <button id="ctaNavBtn" class="lp-cta-btn">Acceder →</button>
-  </header>
-
-  <section class="lp-hero">
-    <div class="lp-hero-logo">
-      <img src="Logo_Sin_Texto_transparent.png" alt="Taurix" class="lp-hero-logo-img"/>
-    </div>
-    <div class="lp-hero-badge">
-      <span class="lp-badge-dot"></span>
-      Cumplimiento total con la AEAT · España 🇪🇸
-    </div>
-    <h1 class="lp-h1">La gestión fiscal<br><em>que mereces</em></h1>
-    <p class="lp-hero-sub">Facturas, clientes, IVA, IRPF, libros oficiales y declaraciones.<br>Todo en un solo lugar. Sin gestorías caras. Sin líos.</p>
-    <div class="lp-hero-actions">
-      <button id="ctaHeroBtn" class="lp-btn-primary">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15.003 3.5H19a1.5 1.5 0 011.5 1.5v14a1.5 1.5 0 01-1.5 1.5H5A1.5 1.5 0 013.5 19V5A1.5 1.5 0 015 3.5h3.997" stroke="white" stroke-width="1.8"/><path d="M12 3v9m0 0l-3-3m3 3l3-3" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
-        Empezar gratis con Google
-      </button>
-      <span class="lp-note">Sin tarjeta · Para autónomos y pymes · España</span>
-    </div>
-    <div class="lp-stats">
-      <div class="lp-stat"><strong>100%</strong><span>Legal AEAT</span></div>
-      <div class="lp-stat-div"></div>
-      <div class="lp-stat"><strong>Modelo 303</strong><span>y 130 automático</span></div>
-      <div class="lp-stat-div"></div>
-      <div class="lp-stat"><strong>PDF + Excel</strong><span>Exportación completa</span></div>
-    </div>
-  </section>
-
-  <section class="lp-features">
-    <div class="lp-feat">
-      <div class="lp-feat-icon lp-feat-icon--blue">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-      </div>
-      <h3>Facturación completa</h3>
-      <p>Emite facturas nacionales, intracomunitarias, exportaciones e importaciones. Numeración legal automática.</p>
-    </div>
-    <div class="lp-feat">
-      <div class="lp-feat-icon lp-feat-icon--green">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-      </div>
-      <h3>Gestión de clientes</h3>
-      <p>CRM básico integrado. Crea y gestiona tu cartera de clientes con NIF validado y acceso al historial.</p>
-    </div>
-    <div class="lp-feat">
-      <div class="lp-feat-icon lp-feat-icon--amber">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      </div>
-      <h3>IVA e IRPF en tiempo real</h3>
-      <p>Modelos 303 y 130 calculados automáticamente. Cierre trimestral con bloqueo de datos.</p>
-    </div>
-    <div class="lp-feat">
-      <div class="lp-feat-icon lp-feat-icon--red">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-      </div>
-      <h3>Libros oficiales AEAT</h3>
-      <p>Libro de ingresos y gastos conforme al Art. 68 del Reglamento del IRPF. Exportación en PDF.</p>
-    </div>
-    <div class="lp-feat">
-      <div class="lp-feat-icon lp-feat-icon--indigo">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-      </div>
-      <h3>Exportar PDF y Excel</h3>
-      <p>Descarga tus facturas, libros y resúmenes en PDF o Excel. Compatible con cualquier gestor.</p>
-    </div>
-    <div class="lp-feat">
-      <div class="lp-feat-icon lp-feat-icon--purple">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-      </div>
-      <h3>Perfil autónomo o empresa</h3>
-      <p>Configura tu régimen fiscal: módulos IRPF, IVA trimestral, régimen simplificado o general.</p>
-    </div>
-  </section>
-
-  <!-- ── SECCIÓN PRECIOS ── -->
-  <section class="lp-precios" id="precios">
-    <div class="lp-section-badge">Precios</div>
-    <h2 class="lp-section-h2">Simple y transparente.<br>Sin sorpresas.</h2>
-    <p class="lp-section-sub">Empieza gratis, actualiza cuando lo necesites. Sin permanencia.</p>
-    <div class="lp-planes">
-
-      <!-- PLAN GRATIS -->
-      <div class="lp-plan">
-        <div class="lp-plan-header">
-          <div class="lp-plan-name">Gratuito</div>
-          <div class="lp-plan-price"><span class="lp-plan-eur">0€</span><span class="lp-plan-per">/mes</span></div>
-          <div class="lp-plan-desc">Para empezar y probar sin riesgo</div>
-        </div>
-        <ul class="lp-plan-features">
-          <li><span class="lp-check">✓</span> Hasta <strong>10 facturas al mes</strong></li>
-          <li><span class="lp-check">✓</span> Hasta <strong>3 clientes</strong></li>
-          <li><span class="lp-check">✓</span> Dashboard IVA e IRPF</li>
-          <li><span class="lp-check">✓</span> Modelos 303 y 130</li>
-          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">PDF individual de facturas</span></li>
-          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Exportación Excel</span></li>
-          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Libros oficiales AEAT</span></li>
-          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Clientes ilimitados</span></li>
-        </ul>
-        <button class="lp-plan-btn lp-plan-btn--outline" id="ctaPlanGratisBtn">Empezar gratis →</button>
-      </div>
-
-      <!-- PLAN PRO -->
-      <div class="lp-plan lp-plan--pro">
-        <div class="lp-plan-badge">Más popular</div>
-        <div class="lp-plan-header">
-          <div class="lp-plan-name">Pro</div>
-          <div class="lp-plan-price"><span class="lp-plan-eur">9€</span><span class="lp-plan-per">/mes</span></div>
-          <div class="lp-plan-desc">Todo lo que necesita un autónomo serio</div>
-        </div>
-        <ul class="lp-plan-features">
-          <li><span class="lp-check lp-check--pro">✓</span> <strong>Facturas ilimitadas</strong></li>
-          <li><span class="lp-check lp-check--pro">✓</span> <strong>Clientes ilimitados</strong></li>
-          <li><span class="lp-check lp-check--pro">✓</span> PDF profesional por factura</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Exportación Excel completa</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Libros oficiales AEAT</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Modelos 303 y 130</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Recordatorios trimestrales</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Soporte prioritario</li>
-        </ul>
-        <button class="lp-plan-btn lp-plan-btn--pro" id="ctaPlanProBtn">Empezar con Pro →</button>
-        <div class="lp-plan-note">Sin permanencia · Cancela cuando quieras</div>
-      </div>
-
-    </div>
-    <p class="lp-precios-nota">¿Tienes una gestoría o asesoría? <a href="/cdn-cgi/l/email-protection#41206f2c2432202a0128222d2e34256f222e2c">Contacta para precios especiales</a></p>
-  </section>
-
-  <!-- ── TESTIMONIOS ── -->
-  <section class="lp-testimonios">
-    <div class="lp-section-badge">Testimonios</div>
-    <h2 class="lp-section-h2">Autónomos que ya<br>usan Taurix</h2>
-    <div class="lp-testi-grid">
-      <div class="lp-testi">
-        <div class="lp-testi-stars">★★★★★</div>
-        <p class="lp-testi-text">"Por fin una herramienta que entiende cómo trabaja un autónomo en España. El cálculo del 303 me ahorra dos horas cada trimestre."</p>
-        <div class="lp-testi-author">
-          <div class="lp-testi-avatar" style="background:#6366f1">M</div>
-          <div>
-            <div class="lp-testi-name">María G.</div>
-            <div class="lp-testi-role">Diseñadora freelance · Madrid</div>
-          </div>
-        </div>
-      </div>
-      <div class="lp-testi">
-        <div class="lp-testi-stars">★★★★★</div>
-        <p class="lp-testi-text">"Llevo 3 años con otro software de facturación y en una tarde migré todo a Taurix. Los libros oficiales salen solos, es increíble."</p>
-        <div class="lp-testi-author">
-          <div class="lp-testi-avatar" style="background:#0ea5e9">C</div>
-          <div>
-            <div class="lp-testi-name">Carlos P.</div>
-            <div class="lp-testi-role">Consultor IT · Barcelona</div>
-          </div>
-        </div>
-      </div>
-      <div class="lp-testi">
-        <div class="lp-testi-stars">★★★★★</div>
-        <p class="lp-testi-text">"Mi gestor me pedía 80€/mes solo para llevar las facturas. Con Taurix lo hago yo misma en 10 minutos. El ahorro es brutal."</p>
-        <div class="lp-testi-author">
-          <div class="lp-testi-avatar" style="background:#10b981">A</div>
-          <div>
-            <div class="lp-testi-name">Ana R.</div>
-            <div class="lp-testi-role">Nutricionista · Sevilla</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── FAQ ── -->
-  <section class="lp-faq" id="faq">
-    <div class="lp-section-badge">Preguntas frecuentes</div>
-    <h2 class="lp-section-h2">Todo lo que necesitas saber</h2>
-    <div class="lp-faq-list">
-      <details class="lp-faq-item">
-        <summary>¿Taurix sustituye a un gestor o asesor fiscal?</summary>
-        <p>No exactamente. Taurix te da las herramientas para llevar tu contabilidad de forma ordenada y calcular tus impuestos automáticamente. Para casos complejos (inicio de actividad, cambio de régimen, inspecciones) siempre recomendamos consultar con un asesor. Piensa en Taurix como el copiloto que hace el trabajo rutinario para que tú o tu gestor se centren en lo que importa.</p>
-      </details>
-      <details class="lp-faq-item">
-        <summary>¿Los cálculos de IVA e IRPF son legalmente válidos?</summary>
-        <p>Los cálculos siguen estrictamente la normativa española vigente (Ley 37/1992 del IVA y Reglamento del IRPF). Sin embargo, Taurix es una herramienta de apoyo: la responsabilidad de presentar declaraciones correctas ante la AEAT recae en el autónomo o su representante legal. Siempre revisa los importes antes de presentar.</p>
-      </details>
-      <details class="lp-faq-item">
-        <summary>¿Puedo exportar mis datos si decido irme?</summary>
-        <p>Sí, siempre. Puedes exportar todas tus facturas en PDF y Excel en cualquier momento desde la sección de Libros y Facturas. Tus datos son tuyos y nunca quedarán atrapados en Taurix.</p>
-      </details>
-      <details class="lp-faq-item">
-        <summary>¿Cómo se guardan mis datos fiscales? ¿Son seguros?</summary>
-        <p>Tus datos se guardan en Supabase (infraestructura europea, cifrado en tránsito y en reposo). Cada usuario solo puede ver sus propios datos gracias a Row Level Security. Nunca compartimos ni vendemos tus datos. Puedes leer nuestra Política de Privacidad completa en el footer.</p>
-      </details>
-      <details class="lp-faq-item">
-        <summary>¿Funciona para autónomos en módulos (estimación objetiva)?</summary>
-        <p>Taurix está pensado principalmente para autónomos en estimación directa (normal y simplificada). Si estás en módulos, puedes usar la app para registrar facturas y clientes, pero los cálculos de IRPF no aplicarán a tu régimen. Estamos trabajando en el soporte completo para módulos.</p>
-      </details>
-    </div>
-  </section>
-
-  <!-- ── CTA FINAL ── -->
-  <section class="lp-cta-final">
-    <h2>¿Listo para simplificar tu fiscal?</h2>
-    <p>Únete a los autónomos que ya gestionan su contabilidad sin estrés.<br>Empieza gratis hoy, sin tarjeta de crédito.</p>
-    <button class="lp-btn-primary" id="ctaFinalBtn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15.003 3.5H19a1.5 1.5 0 011.5 1.5v14a1.5 1.5 0 01-1.5 1.5H5A1.5 1.5 0 013.5 19V5A1.5 1.5 0 015 3.5h3.997" stroke="white" stroke-width="1.8"/><path d="M12 3v9m0 0l-3-3m3 3l3-3" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
-      Empezar gratis con Google
-    </button>
-    <span class="lp-note" style="display:block;margin-top:12px">Sin tarjeta · Cancela cuando quieras · Datos en Europa 🇪🇺</span>
-  </section>
-
-  <!-- FOOTER LEGAL -->
-  <footer class="lp-footer">
-    <div class="lp-footer-inner">
-      <div class="lp-footer-brand">
-        <div class="lp-footer-logo"><img src="Logo_Sin_Texto_transparent.png" alt="Taurix" class="lp-footer-logo-img"/></div>
-        <p class="lp-footer-desc">Gestión fiscal para autónomos y pymes españolas.<br>Cumplimiento total con la AEAT.</p>
-      </div>
-      <div class="lp-footer-links">
-        <div class="lp-footer-col">
-          <div class="lp-footer-col-title">Legal</div>
-          <a href="#" id="openPrivacidad">Política de privacidad</a>
-          <a href="#" id="openTerminos">Términos de uso</a>
-          <a href="#" id="openCookies">Política de cookies</a>
-        </div>
-        <div class="lp-footer-col">
-          <div class="lp-footer-col-title">Contacto</div>
-          <a href="/cdn-cgi/l/email-protection#a3c28dcec6d0c2c8e3cac0cfccd6c78dc0ccce"><span class="__cf_email__" data-cfemail="ccade2a1a9bfada78ca5afa0a3b9a8e2afa3a1">[email&#160;protected]</span></a>
-          <span>España 🇪🇸</span>
-        </div>
-      </div>
-    </div>
-    <div class="lp-footer-bottom">
-      <span>© 2025 Taurix · Todos los derechos reservados</span>
-      <span>Desarrollado con ❤️ para autónomos españoles</span>
-    </div>
-  </footer>
-</div>
-
-<!-- ═══════════════════════════════════════
-     MODALES LEGALES
-═══════════════════════════════════════ -->
-<div id="modalPrivacidad" class="legal-modal-overlay" style="display:none">
-  <div class="legal-modal">
-    <div class="legal-modal-header">
-      <h2>Política de Privacidad</h2>
-      <button class="legal-modal-close" onclick="document.getElementById('modalPrivacidad').style.display='none'">×</button>
-    </div>
-    <div class="legal-modal-body">
-      <p class="legal-updated">Última actualización: marzo 2025</p>
-
-      <h3>1. Responsable del tratamiento</h3>
-      <p>Taurix es una aplicación web de gestión fiscal para autónomos y pymes españolas. El responsable del tratamiento de los datos personales es el titular del proyecto, con domicilio en España. Para cualquier consulta relacionada con privacidad, puedes contactar en <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5b3a75363e283a301b323837342e3f75383436">[email&#160;protected]</a></strong>.</p>
-
-      <h3>2. Datos que recogemos</h3>
-      <p>Recogemos únicamente los datos necesarios para el funcionamiento del servicio:</p>
-      <ul>
-        <li><strong>Datos de cuenta:</strong> nombre y dirección de correo electrónico, proporcionados a través de Google OAuth al registrarte.</li>
-        <li><strong>Datos fiscales:</strong> nombre o razón social, NIF/CIF, domicilio fiscal, actividad económica y régimen fiscal que introduces en tu perfil.</li>
-        <li><strong>Datos de facturación:</strong> facturas, clientes, importes, fechas y demás datos que introduces para gestionar tu actividad.</li>
-        <li><strong>Datos técnicos:</strong> preferencias de la aplicación (modo oscuro, onboarding) almacenadas en tu navegador (localStorage).</li>
-      </ul>
-
-      <h3>3. Finalidad del tratamiento</h3>
-      <p>Tus datos se utilizan exclusivamente para:</p>
-      <ul>
-        <li>Prestarte el servicio de gestión fiscal (facturas, cálculo de IVA e IRPF, libros oficiales).</li>
-        <li>Identificarte y autenticarte en la aplicación.</li>
-        <li>Mejorar el funcionamiento del servicio.</li>
-      </ul>
-      <p>No utilizamos tus datos para publicidad, no los vendemos ni los cedemos a terceros.</p>
-
-      <h3>4. Base legal</h3>
-      <p>El tratamiento se basa en la ejecución del contrato de servicio (art. 6.1.b RGPD) y, en su caso, en el consentimiento explícito otorgado al registrarte (art. 6.1.a RGPD).</p>
-
-      <h3>5. Almacenamiento y seguridad</h3>
-      <p>Tus datos se almacenan en <strong>Supabase</strong> (infraestructura en la Unión Europea), con cifrado en tránsito (HTTPS/TLS) y en reposo. El acceso está protegido mediante Row Level Security (RLS): ningún usuario puede acceder a los datos de otro.</p>
-
-      <h3>6. Conservación de datos</h3>
-      <p>Conservamos tus datos mientras mantengas una cuenta activa. Si eliminas tu cuenta, tus datos se borran en un plazo máximo de 30 días, salvo obligación legal de conservación (p. ej., datos fiscales sujetos al plazo de prescripción tributaria de 4 años).</p>
-
-      <h3>7. Tus derechos (RGPD)</h3>
-      <p>Tienes derecho a acceder, rectificar, suprimir, portar y oponerte al tratamiento de tus datos. Para ejercerlos, contacta en <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f998d7949c8a9892b9909a95968c9dd79a9694">[email&#160;protected]</a></strong>. También puedes reclamar ante la <strong>Agencia Española de Protección de Datos (AEPD)</strong> en <a href="https://www.aepd.es" target="_blank">www.aepd.es</a>.</p>
-
-      <h3>8. Cookies</h3>
-      <p>Taurix no utiliza cookies de rastreo ni publicidad. Solo usamos almacenamiento local del navegador (localStorage) para guardar preferencias de uso como el modo oscuro. Consulta nuestra Política de Cookies para más información.</p>
-
-      <h3>9. Cambios en esta política</h3>
-      <p>Podemos actualizar esta política ocasionalmente. Te notificaremos los cambios relevantes a través de la propia aplicación.</p>
-    </div>
-  </div>
-</div>
-
-<div id="modalTerminos" class="legal-modal-overlay" style="display:none">
-  <div class="legal-modal">
-    <div class="legal-modal-header">
-      <h2>Términos de Uso</h2>
-      <button class="legal-modal-close" onclick="document.getElementById('modalTerminos').style.display='none'">×</button>
-    </div>
-    <div class="legal-modal-body">
-      <p class="legal-updated">Última actualización: marzo 2025</p>
-
-      <h3>1. Aceptación de los términos</h3>
-      <p>Al acceder y usar Taurix, aceptas estos Términos de Uso en su totalidad. Si no estás de acuerdo, no utilices el servicio.</p>
-
-      <h3>2. Descripción del servicio</h3>
-      <p>Taurix es una herramienta de apoyo a la gestión fiscal para autónomos y pymes españolas. Facilita la creación de facturas, el cálculo orientativo de IVA e IRPF y la generación de libros de registro. <strong>Taurix no es un servicio de asesoría fiscal ni legal.</strong> Los cálculos son orientativos y no sustituyen el criterio de un profesional habilitado.</p>
-
-      <h3>3. Uso permitido</h3>
-      <p>El servicio está destinado a uso profesional legítimo. Queda prohibido:</p>
-      <ul>
-        <li>Usar la plataforma para emitir facturas falsas o fraudulentas.</li>
-        <li>Intentar acceder a datos de otros usuarios.</li>
-        <li>Realizar ingeniería inversa, scraping o uso automatizado no autorizado.</li>
-        <li>Usar el servicio para actividades ilegales.</li>
-      </ul>
-
-      <h3>4. Responsabilidad del usuario</h3>
-      <p>Eres responsable de la exactitud de los datos que introduces (NIF, importes, fechas, etc.) y de presentar tus declaraciones fiscales en tiempo y forma ante la AEAT. Taurix proporciona herramientas de cálculo y organización, pero la responsabilidad fiscal recae íntegramente en el usuario.</p>
-
-      <h3>5. Limitación de responsabilidad</h3>
-      <p>Taurix no se hace responsable de errores en los cálculos derivados de datos incorrectos introducidos por el usuario, cambios normativos no reflejados en la aplicación, pérdidas económicas derivadas de declaraciones incorrectas, ni interrupciones del servicio por causas ajenas a nuestro control.</p>
-
-      <h3>6. Propiedad intelectual</h3>
-      <p>El código, diseño y contenidos de Taurix son propiedad de sus creadores. Los datos que introduces son tuyos y puedes exportarlos en cualquier momento.</p>
-
-      <h3>7. Modificaciones del servicio</h3>
-      <p>Nos reservamos el derecho de modificar, suspender o interrumpir el servicio con previo aviso razonable. En caso de cambios en las condiciones de precio, se notificará con al menos 30 días de antelación.</p>
-
-      <h3>8. Ley aplicable</h3>
-      <p>Estos términos se rigen por la legislación española. Para cualquier controversia, las partes se someten a los juzgados y tribunales españoles.</p>
-
-      <h3>9. Contacto</h3>
-      <p>Para cualquier consulta sobre estos términos: <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="badb94d7dfc9dbd1fad3d9d6d5cfde94d9d5d7">[email&#160;protected]</a></strong></p>
-    </div>
-  </div>
-</div>
-
-<div id="modalCookies" class="legal-modal-overlay" style="display:none">
-  <div class="legal-modal">
-    <div class="legal-modal-header">
-      <h2>Política de Cookies</h2>
-      <button class="legal-modal-close" onclick="document.getElementById('modalCookies').style.display='none'">×</button>
-    </div>
-    <div class="legal-modal-body">
-      <p class="legal-updated">Última actualización: marzo 2025</p>
-
-      <h3>Taurix no utiliza cookies de rastreo</h3>
-      <p>Taurix está diseñado con privacidad por defecto. No instalamos cookies de publicidad, analítica de terceros ni rastreo de comportamiento.</p>
-
-      <h3>Lo que sí usamos</h3>
-      <p>Utilizamos <strong>almacenamiento local del navegador (localStorage)</strong>, que es técnicamente diferente a las cookies pero cumple una función similar de guardar preferencias:</p>
-      <ul>
-        <li><strong>tg_dark:</strong> recuerda si has activado el modo oscuro.</li>
-        <li><strong>tg_onboard_done:</strong> recuerda si has completado el proceso de bienvenida.</li>
-        <li><strong>Sesión de Supabase:</strong> token de autenticación necesario para mantenerte conectado.</li>
-      </ul>
-      <p>Estos datos no se envían a terceros y puedes borrarlos en cualquier momento limpiando el almacenamiento de tu navegador.</p>
-
-      <h3>Servicios de terceros</h3>
-      <p><strong>Google OAuth:</strong> cuando inicias sesión con Google, Google puede establecer sus propias cookies según su política de privacidad (<a href="https://policies.google.com/privacy" target="_blank">policies.google.com/privacy</a>).</p>
-      <p><strong>Supabase:</strong> nuestra base de datos establece un token de sesión seguro para autenticarte. No se usa para rastreo.</p>
-
-      <h3>¿Necesito aceptar cookies?</h3>
-      <p>No mostramos un banner de cookies porque no utilizamos cookies que requieran consentimiento bajo la normativa española (LSSI) ni bajo el RGPD. El almacenamiento local que usamos es estrictamente necesario para el funcionamiento del servicio.</p>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════
-     APP (POST-LOGIN)
-═══════════════════════════════════════ -->
-<div id="appShell" class="hidden">
-  <!-- TOPBAR -->
-  <header class="app-topbar">
-    <div class="app-logo">
-      <img src="Logo_Sin_Texto_transparent.png" alt="Taurix" class="app-logo-img"/>
-    </div>
-
-    <div class="topbar-period-pill">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <select id="yearSelect" class="period-sel"></select>
-      <span class="period-sep">·</span>
-      <select id="trimestreSelect" class="period-sel">
-        <option value="T1">T1 Ene–Mar</option>
-        <option value="T2">T2 Abr–Jun</option>
-        <option value="T3">T3 Jul–Sep</option>
-        <option value="T4">T4 Oct–Dic</option>
-      </select>
-      <button id="cerrarTrimestreBtn" class="btn-lock-trim" title="Cerrar trimestre">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-      </button>
-    </div>
-
-    <div class="topbar-right">
-      <button id="darkModeBtn" class="topbar-icon-btn" title="Modo oscuro">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-      </button>
-      <button id="perfilFiscalBtn" class="topbar-icon-btn" title="Perfil fiscal">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-      </button>
-      <div class="topbar-avatar" id="topbarAvatar">U</div>
-      <button id="logoutBtn" class="topbar-icon-btn" title="Salir">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-      </button>
-    </div>
-  </header>
-
-  <!-- DEADLINE & ONBOARDING BANNERS -->
-  <div id="fiscalDeadlineBanner" style="display:none"></div>
-  <div id="onboardingBanner" style="display:none"></div>
-
-  <!-- LAYOUT -->
-  <div class="app-layout">
-
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-      <nav class="sidebar-nav">
-        <button class="sn-item active" data-view="dashboard">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
-          <span>Dashboard</span>
-        </button>
-
-        <div class="sn-separator"></div>
-        <div class="sn-section-label">Comercial</div>
-
-        <button class="sn-item" data-view="clientes">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.87"/></svg>
-          <span>Clientes</span>
-        </button>
-        <button class="sn-item" data-view="presupuestos">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="10" y1="17" x2="8" y2="17"/></svg>
-          <span>Presupuestos</span>
-          <span class="sn-badge sn-badge--amber" id="snBadgePres" style="display:none">0</span>
-        </button>
-        <button class="sn-item" data-view="facturas">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-          <span>Facturas</span>
-          <span class="sn-badge" id="snBadgeBorradores" style="display:none">0</span>
-        </button>
-        <button class="sn-item" data-view="nueva-factura">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-          <span>Nueva factura</span>
-        </button>
-
-        <div class="sn-separator"></div>
-        <div class="sn-section-label">Gastos</div>
-
-        <button class="sn-item sn-item--accent" id="gastoRapidoBtn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          <span>Gasto rápido</span>
-        </button>
-        <button class="sn-item" data-view="gastos">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="2"/></svg>
-          <span>Proveedores y recurrentes</span>
-          <span class="sn-badge sn-badge--red" id="snBadgeVencidos" style="display:none">0</span>
-        </button>
-
-        <div class="sn-separator"></div>
-        <div class="sn-section-label">Catálogo</div>
-
-        <button class="sn-item" data-view="productos">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/></svg>
-          <span>Productos / Servicios</span>
-        </button>
-
-        <div class="sn-separator"></div>
-        <div class="sn-section-label">Fiscal</div>
-
-        <button class="sn-item" data-view="iva">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-          <span>IVA · Modelo 303</span>
-        </button>
-        <button class="sn-item" data-view="irpf">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-          <span>IRPF · Modelo 130</span>
-        </button>
-        <button class="sn-item" data-view="libros">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-          <span>Libros oficiales</span>
-        </button>
-
-        <div class="sn-separator"></div>
-        <div class="sn-section-label">Análisis</div>
-
-        <button class="sn-item" data-view="historico">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          <span>Análisis anual</span>
-        </button>
-        <button class="sn-item" data-view="cobros">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-          <span>Cobros y vencimientos</span>
-          <span class="sn-badge sn-badge--red" id="snBadgeCobros" style="display:none">0</span>
-        </button>
-      </nav>
-
-      <div class="sidebar-footer">
-        <div class="sf-regime" id="sfRegime">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span id="sfRegimeTxt">Autónomo · IRPF</span>
-        </div>
-        <div class="sf-user">
-          <div class="sf-avatar" id="sfAvatar">U</div>
-          <div class="sf-meta">
-            <span class="sf-name" id="sfName">—</span>
-            <span class="sf-email" id="sfEmail">—</span>
-          </div>
-        </div>
-        <button id="deleteAccountBtn" class="sf-delete-account" title="Eliminar mi cuenta (RGPD)">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-          Eliminar mi cuenta
-        </button>
-      </div>
-    </aside>
-
-    <!-- VIEWS -->
-    <main class="app-main">
-
-      <!-- ═══ VIEW: DASHBOARD ═══ -->
-      <div class="view active" id="view-dashboard">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">Dashboard</h1>
-            <p class="view-sub" id="dashPeriodoLabel">Cargando…</p>
-          </div>
-          <div class="view-actions">
-            <button class="btn-outline" id="dashExportBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Exportar resumen
-            </button>
-          </div>
-        </div>
-
-        <!-- KPI Row -->
-        <div class="kpi-row">
-          <div class="kpi-card kpi-blue">
-            <div class="kpi-top">
-              <span class="kpi-lbl">Ingresos netos</span>
-              <div class="kpi-icon kpi-icon--blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg></div>
-            </div>
-            <div class="kpi-val" id="kpiIngresos">—</div>
-            <div class="kpi-sub">Base imponible facturas emitidas</div>
-          </div>
-          <div class="kpi-card kpi-red">
-            <div class="kpi-top">
-              <span class="kpi-lbl">Gastos deducibles</span>
-              <div class="kpi-icon kpi-icon--red"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/></svg></div>
-            </div>
-            <div class="kpi-val" id="kpiGastos">—</div>
-            <div class="kpi-sub">Base imponible facturas recibidas</div>
-          </div>
-          <div class="kpi-card kpi-green">
-            <div class="kpi-top">
-              <span class="kpi-lbl">Beneficio bruto</span>
-              <div class="kpi-icon kpi-icon--green"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
-            </div>
-            <div class="kpi-val" id="kpiBeneficio">—</div>
-            <div class="kpi-sub">Ingresos − gastos</div>
-          </div>
-          <div class="kpi-card kpi-amber">
-            <div class="kpi-top">
-              <span class="kpi-lbl">IVA a liquidar</span>
-              <div class="kpi-icon kpi-icon--amber"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-            </div>
-            <div class="kpi-val" id="kpiIVA">—</div>
-            <div class="kpi-sub">Resultado Modelo 303</div>
-          </div>
-          <div class="kpi-card kpi-indigo">
-            <div class="kpi-top">
-              <span class="kpi-lbl">IRPF a ingresar</span>
-              <div class="kpi-icon kpi-icon--indigo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg></div>
-            </div>
-            <div class="kpi-val" id="kpiIRPF">—</div>
-            <div class="kpi-sub">Estimación Modelo 130</div>
-          </div>
-          <div class="kpi-card kpi-rose">
-            <div class="kpi-top">
-              <span class="kpi-lbl">Pendiente de cobro</span>
-              <div class="kpi-icon kpi-icon--rose"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
-            </div>
-            <div class="kpi-val" id="kpiCobroPendiente">—</div>
-            <div class="kpi-sub">Facturas emitidas sin cobrar</div>
-          </div>
-        </div>
-
-        <!-- Recordatorios banner -->
-        <div id="recordatoriosBanner"></div>
-
-        <!-- Accesos rápidos -->
-        <div class="quick-actions-row">
-          <div class="qa-card" onclick="window._switchView('nueva-factura')">
-            <div class="qa-icon qa-icon--blue">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
-            </div>
-            <div class="qa-text"><div class="qa-label">Nueva factura</div><div class="qa-sub">Emitir o registrar</div></div>
-          </div>
-          <div class="qa-card" onclick="window._switchView('presupuestos')">
-            <div class="qa-icon qa-icon--green">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="10" y1="17" x2="8" y2="17"/></svg>
-            </div>
-            <div class="qa-text"><div class="qa-label">Nuevo presupuesto</div><div class="qa-sub">Crear oferta</div></div>
-          </div>
-          <div class="qa-card" id="qaGastoRapido">
-            <div class="qa-icon qa-icon--amber">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-            </div>
-            <div class="qa-text"><div class="qa-label">Gasto rápido</div><div class="qa-sub">Registrar en segundos</div></div>
-          </div>
-          <div class="qa-card" onclick="window._switchView('cobros')">
-            <div class="qa-icon qa-icon--purple">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-            </div>
-            <div class="qa-text"><div class="qa-label">Cobros pendientes</div><div class="qa-sub">Ver y gestionar</div></div>
-          </div>
-        </div>
-
-        <!-- Charts row -->
-        <div class="charts-row">
-          <div class="chart-card chart-card--wide">
-            <div class="chart-header">
-              <span class="chart-title">Evolución mensual del periodo</span>
-              <div class="chart-legend">
-                <span class="cleg cleg-blue">Ingresos</span>
-                <span class="cleg cleg-red">Gastos</span>
-              </div>
-            </div>
-            <div class="bar-chart-wrap">
-              <canvas id="chartEvolucion" height="180"></canvas>
-            </div>
-          </div>
-          <div class="chart-card">
-            <div class="chart-header"><span class="chart-title">Estado del trimestre</span></div>
-            <div class="trim-status-wrap" id="trimStatusWrap">
-              <div class="trim-gauge" id="trimGauge">
-                <svg viewBox="0 0 120 70" width="160">
-                  <path d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke="#e5e7eb" stroke-width="10" stroke-linecap="round"/>
-                  <path id="gaugePath" d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke="#2563eb" stroke-width="10" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="157"/>
-                </svg>
-                <div class="gauge-label" id="gaugeLabel">—</div>
-                <div class="gauge-sub" id="gaugeSub">Margen fiscal</div>
-              </div>
-              <div class="trim-meta">
-                <div class="trim-row"><span>Facturas emitidas</span><strong id="tCountEmit">—</strong></div>
-                <div class="trim-row"><span>Facturas recibidas</span><strong id="tCountRecib">—</strong></div>
-                <div class="trim-row"><span>Clientes activos</span><strong id="tCountClientes">—</strong></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Recent invoices -->
-        <div class="section-card">
-          <div class="sc-header">
-            <span class="sc-title">Últimas facturas</span>
-            <button class="btn-link" data-view="facturas">Ver todas →</button>
-          </div>
-          <table class="data-table" id="recentFacturasTable">
-            <thead><tr><th>Fecha</th><th>Nº</th><th>Concepto</th><th>Cliente</th><th>Importe</th><th>Tipo</th><th>Estado</th></tr></thead>
-            <tbody id="recentFacturasBody"><tr class="dt-empty"><td colspan="7">Cargando…</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- ═══ VIEW: CLIENTES ═══ -->
-      <div class="view" id="view-clientes">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">Clientes</h1>
-            <p class="view-sub" id="clientesCount">—</p>
-          </div>
-          <div class="view-actions">
-            <button class="btn-outline" id="exportClientesBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Exportar
-            </button>
-            <button class="btn-primary" id="nuevoClienteBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Nuevo cliente
-            </button>
-          </div>
-        </div>
-
-        <div class="search-bar-wrap">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="clienteSearch" class="search-input" placeholder="Buscar por nombre, NIF o email…"/>
-        </div>
-
-        <div class="section-card no-pad">
-          <table class="data-table" id="clientesTable">
-            <thead><tr><th>Nombre / Razón social</th><th>NIF / CIF</th><th>Email</th><th>Teléfono</th><th>País</th><th>Tipo</th><th>Facturas</th><th>Total facturado</th><th></th></tr></thead>
-            <tbody id="clientesBody"><tr class="dt-empty"><td colspan="9">Cargando clientes…</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- ═══ VIEW: FACTURAS ═══ -->
-      <div class="view" id="view-facturas">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">Facturas</h1>
-            <p class="view-sub" id="facturasCount">— facturas en el periodo</p>
-          </div>
-          <div class="view-actions">
-            <button class="btn-outline" id="exportFacturasExcelBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-              Excel
-            </button>
-            <button class="btn-outline" id="exportFacturasPdfBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              PDF
-            </button>
-            <button class="btn-primary" id="irNuevaFacturaBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Nueva factura
-            </button>
-          </div>
-        </div>
-
-        <!-- Filtros -->
-        <div class="filter-bar">
-          <input type="text" id="facturasSearch" class="search-input" placeholder="Buscar concepto, cliente, número…" style="min-width:220px"/>
-          <select id="filterTipo" class="filter-sel">
-            <option value="">Todas</option>
-            <option value="emitida">📤 Emitidas</option>
-            <option value="recibida">📥 Recibidas</option>
-          </select>
-          <select id="filterEstado" class="filter-sel">
-            <option value="">Todos los estados</option>
-            <option value="borrador">Borrador</option>
-            <option value="emitida">Emitida</option>
-          </select>
-          <select id="filterOp" class="filter-sel">
-            <option value="">Todas las operaciones</option>
-            <option value="nacional">Nacional</option>
-            <option value="intracomunitaria">Intracomunitaria</option>
-            <option value="exportacion">Exportación</option>
-            <option value="importacion">Importación</option>
-            <option value="inversion_sujeto_pasivo">Inv. sujeto pasivo</option>
-          </select>
-        </div>
-        <div class="filter-bar filter-bar--secondary">
-          <span class="filter-lbl">Fecha:</span>
-          <input type="date" id="filterFechaFrom" class="filter-date" title="Desde"/>
-          <span class="filter-sep">—</span>
-          <input type="date" id="filterFechaTo" class="filter-date" title="Hasta"/>
-          <span class="filter-lbl" style="margin-left:16px">Importe (€):</span>
-          <input type="number" id="filterImporteMin" class="filter-amt" placeholder="Mín" step="0.01"/>
-          <span class="filter-sep">—</span>
-          <input type="number" id="filterImporteMax" class="filter-amt" placeholder="Máx" step="0.01"/>
-        </div>
-
-        <div class="section-card no-pad">
-          <table class="data-table" id="facturasTable">
-            <thead>
-              <tr>
-                <th>Fecha</th><th>Nº Factura</th><th>Concepto</th><th>Cliente/Proveedor</th>
-                <th>Operación</th><th>Base</th><th>IVA</th><th>Total</th>
-                <th>Tipo</th><th>Estado</th><th>Cobro</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="facturasBody"><tr class="dt-empty"><td colspan="12">Cargando facturas…</td></tr></tbody>
-          </table>
-        </div>
-        <div id="facturasPaginacion" class="paginacion-bar"></div>
-      </div>
-
-      <!-- ═══ VIEW: NUEVA FACTURA ═══ -->
-      <div class="view" id="view-nueva-factura">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title" id="nfTitulo">Nueva factura</h1>
-            <p class="view-sub">Vista previa en tiempo real · Líneas ilimitadas · PDF profesional</p>
-          </div>
-        </div>
-        <div class="nf-layout">
-
-          <!-- ── COLUMNA FORMULARIO ── -->
-          <div class="nf-form-col">
-
-            <!-- TIPO DE OPERACIÓN -->
-            <div class="form-block">
-              <div class="fb-title">Tipo de operación</div>
-              <div class="op-type-grid" id="opTypeGrid">
-                <button class="op-type-btn active" data-op="nacional"><span class="op-flag">🇪🇸</span><span class="op-lbl">Nacional</span></button>
-                <button class="op-type-btn" data-op="intracomunitaria"><span class="op-flag">🇪🇺</span><span class="op-lbl">Intracomunitaria</span></button>
-                <button class="op-type-btn" data-op="exportacion"><span class="op-flag">🌍</span><span class="op-lbl">Exportación</span></button>
-                <button class="op-type-btn" data-op="importacion"><span class="op-flag">📦</span><span class="op-lbl">Importación</span></button>
-                <button class="op-type-btn" data-op="inversion_sujeto_pasivo"><span class="op-flag">🔄</span><span class="op-lbl">Inv. Sujeto Pasivo</span></button>
-              </div>
-              <div class="op-info-banner" id="opInfoBanner"></div>
-            </div>
-
-            <!-- DATOS GENERALES -->
-            <div class="form-block">
-              <div class="fb-title">Datos de la factura</div>
-              <div class="ff-grid3">
-                <div class="ff-field">
-                  <label>Tipo</label>
-                  <select id="nfTipo" class="ff-select">
-                    <option value="emitida">📤 Emitida (ingreso)</option>
-                    <option value="recibida">📥 Recibida (gasto)</option>
-                  </select>
-                </div>
-                <div class="ff-field">
-                  <label>Fecha *</label>
-                  <input type="date" id="nfFecha" class="ff-input"/>
-                </div>
-                <div class="ff-field">
-                  <label>IRPF retención</label>
-                  <select id="nfIrpf" class="ff-select">
-                    <option value="0">Sin retención</option>
-                    <option value="7">7% — Inicio actividad</option>
-                    <option value="15" selected>15% — General</option>
-                    <option value="19">19% — Profesionales</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <!-- CLIENTE -->
-            <div class="form-block">
-              <div class="fb-title">Cliente / Proveedor</div>
-              <div class="cliente-search-wrap" id="clienteSearchWrap">
-                <div class="csc-input-wrap">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  <input type="text" id="clienteSearchInput" class="csc-input" placeholder="Buscar cliente guardado o escribe uno nuevo…" autocomplete="off"/>
-                  <button id="clienteLimpiarBtn" class="csc-clear" style="display:none" title="Limpiar">×</button>
-                </div>
-                <div id="clienteDropdown" class="csc-dropdown" style="display:none"></div>
-              </div>
-              <div id="nfClientePanel" class="cliente-panel">
-                <div class="ff-grid2">
-                  <div class="ff-field">
-                    <label>Nombre o razón social *</label>
-                    <input type="text" id="nfNombre" class="ff-input" placeholder="Ej: Empresa XYZ S.L."/>
-                  </div>
-                  <div class="ff-field">
-                    <label>NIF / CIF / VAT <span id="nifNote" class="ff-note"></span></label>
-                    <input type="text" id="nfNif" class="ff-input" placeholder="Ej: B12345678"/>
-                  </div>
-                </div>
-                <div class="ff-grid3">
-                  <div class="ff-field">
-                    <label>Tipo</label>
-                    <select id="nfTipoCliente" class="ff-select">
-                      <option value="empresa">Empresa / Autónomo</option>
-                      <option value="particular">Particular</option>
-                    </select>
-                  </div>
-                  <div class="ff-field">
-                    <label>País</label>
-                    <select id="nfPais" class="ff-select">
-                      <option value="ES">🇪🇸 España</option>
-                      <option value="DE">🇩🇪 Alemania</option>
-                      <option value="FR">🇫🇷 Francia</option>
-                      <option value="IT">🇮🇹 Italia</option>
-                      <option value="PT">🇵🇹 Portugal</option>
-                      <option value="NL">🇳🇱 Países Bajos</option>
-                      <option value="BE">🇧🇪 Bélgica</option>
-                      <option value="US">🇺🇸 EE.UU.</option>
-                      <option value="GB">🇬🇧 Reino Unido</option>
-                      <option value="MX">🇲🇽 México</option>
-                      <option value="OTHER">🌍 Otro</option>
-                    </select>
-                  </div>
-                  <div class="ff-field" style="justify-content:flex-end;padding-top:18px">
-                    <label style="flex-direction:row;align-items:center;gap:6px;cursor:pointer">
-                      <input type="checkbox" id="nfGuardarCliente"/>
-                      <span style="font-size:12px;font-weight:500">Guardar cliente</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- LÍNEAS DE FACTURA -->
-            <div class="form-block">
-              <div class="fb-title-row">
-                <div class="fb-title">Líneas de factura</div>
-                <button id="addLineaBtn" class="btn-add-linea">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  Añadir línea
-                </button>
-              </div>
-              <div class="lineas-header">
-                <div class="lh-desc">Descripción</div>
-                <div class="lh-qty">Cant.</div>
-                <div class="lh-price">P. unitario</div>
-                <div class="lh-iva">IVA</div>
-                <div class="lh-total">Total</div>
-                <div class="lh-del"></div>
-              </div>
-              <div id="lineasContainer"></div>
-              <div class="lineas-totales">
-                <div class="lt-row"><span>Base imponible</span><strong id="ltBase">0,00 €</strong></div>
-                <div id="ltIvaRows"></div>
-                <div class="lt-row lt-irpf" id="ltIrpfRow" style="display:none"><span id="ltIrpfLbl">IRPF (−15%)</span><strong id="ltIrpf" style="color:#dc2626">0,00 €</strong></div>
-                <div class="lt-row lt-total"><span>TOTAL FACTURA</span><strong id="ltTotal">0,00 €</strong></div>
-              </div>
-            </div>
-
-            <!-- NOTAS -->
-            <div class="form-block">
-              <div class="fb-title">Notas y condiciones (opcional)</div>
-              <textarea id="nfNotas" class="ff-input ff-textarea" placeholder="Condiciones de pago · Referencia de proyecto · Datos bancarios · Cualquier nota para el cliente…"></textarea>
-            </div>
-
-          </div>
-
-          <!-- ── COLUMNA PREVIEW ── -->
-          <div class="nf-preview-col">
-            <div class="nf-preview-card" id="facturaPreviewCard">
-              <div class="fpv-top">
-                <div class="fpv-emisor">
-                  <div id="pvEmisorLogo"></div>
-                  <div class="fpv-emisor-name" id="pvEmisorNombre">Tu nombre / empresa</div>
-                  <div class="fpv-emisor-nif" id="pvEmisorNif">NIF: —</div>
-                  <div class="fpv-emisor-dir" id="pvEmisorDir"></div>
-                </div>
-                <div class="fpv-header-right">
-                  <div class="fpv-factura-label">FACTURA</div>
-                  <div class="fpv-num" id="pvNumero">Borrador</div>
-                  <div class="fpv-fecha" id="pvFecha">—</div>
-                </div>
-              </div>
-              <div class="fpv-divider"></div>
-              <div class="fpv-cliente">
-                <div class="fpv-section-lbl">FACTURAR A</div>
-                <div class="fpv-cliente-name" id="pvCliente">—</div>
-                <div class="fpv-cliente-nif" id="pvNif">—</div>
-                <div class="fpv-op-badge" id="pvOp">🇪🇸 Nacional</div>
-              </div>
-              <div class="fpv-divider"></div>
-              <div class="fpv-lineas-wrap">
-                <div class="fpv-lineas-head">
-                  <span class="fpvl-desc">Concepto</span>
-                  <span class="fpvl-qty">Cant.</span>
-                  <span class="fpvl-price">P. unit.</span>
-                  <span class="fpvl-total">Total</span>
-                </div>
-                <div id="pvLineas"><div class="fpv-lineas-empty">Las líneas aparecerán aquí…</div></div>
-              </div>
-              <div class="fpv-divider"></div>
-              <div class="fpv-totales">
-                <div class="fpvt-row"><span>Base imponible</span><span id="pvBase">—</span></div>
-                <div id="pvIvaDesglose"></div>
-                <div class="fpvt-row fpvt-irpf" id="pvIrpfRow" style="display:none">
-                  <span id="pvIrpfLbl">IRPF (−15%)</span>
-                  <span id="pvIrpfAmt" style="color:#dc2626">—</span>
-                </div>
-                <div class="fpvt-total"><span>TOTAL</span><span id="pvTotal">— €</span></div>
-              </div>
-              <div class="fpv-notas" id="pvNotas" style="display:none"></div>
-              <div class="fpv-pie" id="pvOpNote"></div>
-            </div>
-            <div class="nf-actions-col">
-              <button id="nfGuardarBtn" class="btn-primary btn-lg-block">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
-                Guardar como borrador
-              </button>
-              <button id="nfEmitirBtn" class="btn-outline btn-lg-block" style="margin-top:10px">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                Guardar y emitir directamente
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══ VIEW: IVA ═══ -->
-      <div class="view" id="view-iva">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">IVA · Modelo 303</h1>
-            <p class="view-sub" id="ivaPeriodoLabel">—</p>
-          </div>
-          <div class="view-actions">
-            <button class="btn-outline" id="exportIvaBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Exportar 303
-            </button>
-          </div>
-        </div>
-
-        <div class="modelo-layout">
-          <div class="modelo-left">
-            <div class="modelo-card">
-              <div class="mc-header mc-header--blue">
-                <span>IVA Repercutido (cuotas devengadas)</span>
-              </div>
-              <div class="mc-body">
-                <div class="mc-row"><span>Operaciones interiores al tipo 21%</span><strong id="iva21Rep">0,00 €</strong></div>
-                <div class="mc-row"><span>Operaciones interiores al tipo 10%</span><strong id="iva10Rep">0,00 €</strong></div>
-                <div class="mc-row"><span>Operaciones interiores al tipo 4%</span><strong id="iva4Rep">0,00 €</strong></div>
-                <div class="mc-row mc-row--total"><span>Total IVA repercutido</span><strong id="ivaTotalRep">0,00 €</strong></div>
-              </div>
-            </div>
-
-            <div class="modelo-card" style="margin-top:16px">
-              <div class="mc-header mc-header--green">
-                <span>IVA Soportado (cuotas deducibles)</span>
-              </div>
-              <div class="mc-body">
-                <div class="mc-row"><span>Cuotas soportadas en operaciones interiores</span><strong id="ivaSoportadoInt">0,00 €</strong></div>
-                <div class="mc-row"><span>Cuotas en importaciones / adquisiciones</span><strong id="ivaSoportadoImp">0,00 €</strong></div>
-                <div class="mc-row mc-row--total"><span>Total IVA deducible</span><strong id="ivaTotalSop">0,00 €</strong></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="modelo-right">
-            <div class="modelo-resultado-card" id="ivaResultadoCard">
-              <div class="mrc-label">RESULTADO MODELO 303</div>
-              <div class="mrc-value" id="ivaResultado303">—</div>
-              <div class="mrc-status" id="ivaEstado303">—</div>
-              <div class="mrc-info">
-                <div class="mri-row"><span>IVA repercutido</span><span id="ivaRepSumary">—</span></div>
-                <div class="mri-row"><span>IVA deducible</span><span id="ivaSopSumary">—</span></div>
-              </div>
-              <div class="mrc-deadline">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span id="ivaDeadline">Plazo: —</span>
-              </div>
-            </div>
-
-            <div class="modelo-card" style="margin-top:16px">
-              <div class="mc-header mc-header--gray"><span>Desglose por tipo de operación</span></div>
-              <div class="mc-body">
-                <div class="mc-row"><span>🇪🇸 Operaciones nacionales</span><strong id="ivaOpNac">—</strong></div>
-                <div class="mc-row"><span>🇪🇺 Adquisiciones intracomunitarias</span><strong id="ivaOpIC">—</strong></div>
-                <div class="mc-row"><span>🌍 Exportaciones / Exentas</span><strong id="ivaOpExp">—</strong></div>
-                <div class="mc-row"><span>🔄 Inversión sujeto pasivo</span><strong id="ivaOpISP">—</strong></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══ VIEW: IRPF ═══ -->
-      <div class="view" id="view-irpf">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">IRPF · Modelo 130</h1>
-            <p class="view-sub" id="irpfPeriodoLabel">—</p>
-          </div>
-          <div class="view-actions">
-            <button class="btn-outline" id="exportIrpfBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Exportar 130
-            </button>
-          </div>
-        </div>
-
-        <div class="modelo-layout">
-          <div class="modelo-left">
-            <div class="modelo-card">
-              <div class="mc-header mc-header--indigo"><span>Ingresos de la actividad económica</span></div>
-              <div class="mc-body">
-                <div class="mc-row"><span>Ingresos íntegros del periodo</span><strong id="irpfIngBrutos">—</strong></div>
-                <div class="mc-row"><span>Acumulado trimestres anteriores</span><strong id="irpfIngAcum">—</strong></div>
-                <div class="mc-row mc-row--total"><span>Total ingresos acumulados año</span><strong id="irpfIngTotal">—</strong></div>
-              </div>
-            </div>
-
-            <div class="modelo-card" style="margin-top:16px">
-              <div class="mc-header mc-header--gray"><span>Gastos deducibles de la actividad</span></div>
-              <div class="mc-body">
-                <div class="mc-row"><span>Gastos del periodo</span><strong id="irpfGstPeriodo">—</strong></div>
-                <div class="mc-row"><span>Gastos acumulados anteriores</span><strong id="irpfGstAcum">—</strong></div>
-                <div class="mc-row mc-row--total"><span>Total gastos deducibles</span><strong id="irpfGstTotal">—</strong></div>
-              </div>
-            </div>
-
-            <div class="modelo-card" style="margin-top:16px">
-              <div class="mc-header mc-header--gray"><span>Retenciones soportadas</span></div>
-              <div class="mc-body">
-                <div class="mc-row"><span>Retenciones del periodo</span><strong id="irpfRetPeriodo">—</strong></div>
-                <div class="mc-row"><span>Retenciones acumuladas</span><strong id="irpfRetAcum">—</strong></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="modelo-right">
-            <div class="modelo-resultado-card" id="irpfResultadoCard" style="border-top-color:#4f46e5">
-              <div class="mrc-label">RESULTADO MODELO 130</div>
-              <div class="mrc-value" id="irpfResultado130">—</div>
-              <div class="mrc-status" id="irpfEstado130">—</div>
-              <div class="mrc-info">
-                <div class="mri-row"><span>Rendimiento neto (ing − gst)</span><span id="irpfRendNeto">—</span></div>
-                <div class="mri-row"><span>20% de pago fraccionado</span><span id="irpfPagoFrac">—</span></div>
-                <div class="mri-row"><span>Menos retenciones soportadas</span><span id="irpfMenosRet">—</span></div>
-                <div class="mri-row"><span>Menos pagos anteriores</span><span id="irpfMenosPagAnt">0,00 €</span></div>
-              </div>
-              <div class="mrc-deadline">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span id="irpfDeadline">Plazo: —</span>
-              </div>
-            </div>
-
-            <div class="modelo-card" style="margin-top:16px">
-              <div class="mc-header mc-header--gray"><span>Proyección anual estimada</span></div>
-              <div class="mc-body">
-                <div class="mc-row"><span>Cuota estimada año completo</span><strong id="irpfProyAnual">—</strong></div>
-                <div class="mc-row"><span>Tipo efectivo estimado</span><strong id="irpfTipoEf">—</strong></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══ VIEW: LIBROS ═══ -->
-      <div class="view" id="view-libros">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">Libros oficiales AEAT</h1>
-            <p class="view-sub">Conforme al Art. 68 Reglamento IRPF · RD 439/2007</p>
-          </div>
-        </div>
-
-        <div class="libros-grid">
-          <div class="libro-card libro-card--ingresos">
-            <div class="libro-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-            </div>
-            <h3>Libro de Ingresos</h3>
-            <p>Registro cronológico de todas las facturas emitidas con numeración legal. Obligatorio para autónomos en estimación directa.</p>
-            <div class="libro-legal-ref">📋 Art. 68.1 Reglamento IRPF</div>
-            <div class="libro-actions">
-              <button class="btn-primary" id="exportLibroIngBtn">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Exportar PDF oficial
-              </button>
-              <button class="btn-outline" id="exportLibroIngExcelBtn">Excel</button>
-            </div>
-          </div>
-
-          <div class="libro-card libro-card--gastos">
-            <div class="libro-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
-            </div>
-            <h3>Libro de Gastos</h3>
-            <p>Registro de todas las facturas recibidas y gastos deducibles. Incluye desglose de IVA soportado deducible.</p>
-            <div class="libro-legal-ref">📋 Art. 68.2 Reglamento IRPF</div>
-            <div class="libro-actions">
-              <button class="btn-primary" id="exportLibroGstBtn">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Exportar PDF oficial
-              </button>
-              <button class="btn-outline" id="exportLibroGstExcelBtn">Excel</button>
-            </div>
-          </div>
-
-          <div class="libro-card libro-card--bienes">
-            <div class="libro-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
-            </div>
-            <h3>Libro de Bienes de Inversión</h3>
-            <p>Registro de activos afectos a la actividad. Requerido para la regularización del IVA de bienes de inversión.</p>
-            <div class="libro-legal-ref">📋 Art. 104-110 LIVA</div>
-            <div class="libro-actions">
-              <button class="btn-outline" id="exportLibroBienesBtn">Exportar PDF</button>
-            </div>
-          </div>
-
-          <div class="libro-card libro-card--provision">
-            <div class="libro-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            </div>
-            <h3>Provisiones y Suplidos</h3>
-            <p>Registro de provisiones de fondos y suplidos. Necesario para actividades profesionales con cobros a cuenta.</p>
-            <div class="libro-legal-ref">📋 Art. 68.3 Reglamento IRPF</div>
-            <div class="libro-actions">
-              <button class="btn-outline" id="exportLibroProvBtn">Exportar PDF</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="legal-disclaimer">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <p>Los libros registros generados cumplen con los requisitos formales establecidos en el artículo 68 del Reglamento del IRPF (RD 439/2007) y en el artículo 62 del Reglamento del IVA (RD 1624/1992). Se recomienda su conservación durante al menos 4 años (plazo de prescripción tributaria). Este software no sustituye el asesoramiento de un profesional tributario.</p>
-        </div>
-      </div>
-
-      <!-- ═══ VIEW: HISTORICO ═══ -->
-      <div class="view" id="view-historico">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">Análisis anual</h1>
-            <p class="view-sub" id="histYearLabel">—</p>
-          </div>
-          <div class="view-actions">
-            <button class="btn-outline" id="exportHistExcelBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-              Exportar Excel
-            </button>
-          </div>
-        </div>
-
-        <div class="kpi-row" style="margin-bottom:28px">
-          <div class="kpi-card kpi-blue">
-            <div class="kpi-top"><span class="kpi-lbl">Ingresos anuales</span></div>
-            <div class="kpi-val" id="histIngAnual">—</div>
-          </div>
-          <div class="kpi-card kpi-red">
-            <div class="kpi-top"><span class="kpi-lbl">Gastos anuales</span></div>
-            <div class="kpi-val" id="histGstAnual">—</div>
-          </div>
-          <div class="kpi-card kpi-green">
-            <div class="kpi-top"><span class="kpi-lbl">Beneficio anual</span></div>
-            <div class="kpi-val" id="histBenAnual">—</div>
-          </div>
-          <div class="kpi-card kpi-amber">
-            <div class="kpi-top"><span class="kpi-lbl">IVA total año</span></div>
-            <div class="kpi-val" id="histIvaAnual">—</div>
-          </div>
-          <div class="kpi-card kpi-indigo">
-            <div class="kpi-top"><span class="kpi-lbl">IRPF total año</span></div>
-            <div class="kpi-val" id="histIrpfAnual">—</div>
-          </div>
-        </div>
-
-        <div class="section-card" style="margin-bottom:24px">
-          <div class="sc-header"><span class="sc-title">Comparativa trimestral IVA</span></div>
-          <table class="data-table" id="histIvaTable">
-            <thead><tr><th>Trimestre</th><th>IVA Repercutido</th><th>IVA Deducible</th><th>Resultado 303</th><th>Estado</th></tr></thead>
-            <tbody id="histIvaBody"><tr class="dt-empty"><td colspan="5">Cargando…</td></tr></tbody>
-          </table>
-        </div>
-
-        <div class="section-card">
-          <div class="sc-header"><span class="sc-title">Comparativa trimestral IRPF</span></div>
-          <table class="data-table" id="histIrpfTable">
-            <thead><tr><th>Trimestre</th><th>Ingresos</th><th>Gastos</th><th>Rendimiento neto</th><th>Retenciones</th><th>Resultado 130</th></tr></thead>
-            <tbody id="histIrpfBody"><tr class="dt-empty"><td colspan="6">Cargando…</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- ═══ VIEW: PRESUPUESTOS ═══ -->
-      <div class="view" id="view-presupuestos">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">Presupuestos</h1>
-            <p class="view-sub" id="presCount">— presupuestos en el periodo</p>
-          </div>
-          <div class="view-actions">
-            <button class="btn-primary" id="nuevoPresBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Nuevo presupuesto
-            </button>
-          </div>
-        </div>
-
-        <!-- KPIs presupuestos -->
-        <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
-          <div class="kpi-card kpi-blue">
-            <div class="kpi-top"><span class="kpi-lbl">Total presupuestado</span></div>
-            <div class="kpi-val" id="presKpiTotal">—</div>
-          </div>
-          <div class="kpi-card kpi-green">
-            <div class="kpi-top"><span class="kpi-lbl">Aceptados</span></div>
-            <div class="kpi-val" id="presKpiAceptados">—</div>
-          </div>
-          <div class="kpi-card kpi-amber">
-            <div class="kpi-top"><span class="kpi-lbl">Pendientes de respuesta</span></div>
-            <div class="kpi-val" id="presKpiPendientes">—</div>
-          </div>
-          <div class="kpi-card kpi-indigo">
-            <div class="kpi-top"><span class="kpi-lbl">Tasa de conversión</span></div>
-            <div class="kpi-val" id="presKpiTasa">—</div>
-          </div>
-        </div>
-
-        <div class="filter-bar">
-          <input type="text" id="presSearch" class="search-input" placeholder="Buscar por concepto, número, cliente…" style="min-width:220px"/>
-          <select id="presFilterEstado" class="filter-sel">
-            <option value="">Todos los estados</option>
-            <option value="borrador">Borrador</option>
-            <option value="enviado">Enviado</option>
-            <option value="aceptado">Aceptado</option>
-            <option value="rechazado">Rechazado</option>
-          </select>
-        </div>
-
-        <div class="section-card no-pad">
-          <table class="data-table" id="presTable">
-            <thead>
-              <tr>
-                <th>Fecha</th><th>Nº</th><th>Concepto</th><th>Cliente</th>
-                <th>Importe</th><th>Estado</th><th>Válido hasta</th><th>Aceptado</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="presBody"><tr class="dt-empty"><td colspan="9">Cargando presupuestos…</td></tr></tbody>
-          </table>
-        </div>
-
-        <div class="pres-info-bar">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          Los presupuestos aceptados se convierten automáticamente en facturas con un clic. El presupuesto queda archivado y vinculado a la factura.
-        </div>
-      </div>
-
-      <!-- ═══ VIEW: GASTOS (Proveedores + Recurrentes) ═══ -->
-      <div class="view" id="view-gastos">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">Proveedores y Gastos Recurrentes</h1>
-            <p class="view-sub">Gestiona tus proveedores habituales y automatiza los gastos periódicos</p>
-          </div>
-        </div>
-
-        <!-- Tabs -->
-        <div class="gastos-tabs">
-          <button class="gastos-tab active" data-tab="proveedores">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-            Proveedores
-          </button>
-          <button class="gastos-tab" data-tab="recurrentes">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
-            Gastos Recurrentes
-          </button>
-        </div>
-
-        <!-- Panel proveedores -->
-        <div class="gastos-panel active" id="gastosPanel_proveedores">
-          <div class="panel-toolbar">
-            <div class="search-bar-wrap">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" id="provSearch" class="search-input" placeholder="Buscar proveedor por nombre o NIF…"/>
-            </div>
-            <button class="btn-primary" id="nuevoProvBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Nuevo proveedor
-            </button>
-          </div>
-          <p id="provCount" style="font-size:12px;color:var(--t3);margin:0 0 12px">—</p>
-          <div class="section-card no-pad">
-            <table class="data-table">
-              <thead><tr><th>Nombre</th><th>NIF</th><th>Email</th><th>Teléfono</th><th>Categoría</th><th>Estado</th><th></th></tr></thead>
-              <tbody id="provBody"><tr class="dt-empty"><td colspan="7">Cargando…</td></tr></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Panel recurrentes -->
-        <div class="gastos-panel" id="gastosPanel_recurrentes">
-          <div class="panel-toolbar">
-            <div style="font-size:13px;color:var(--t2)">Gastos que se repiten periódicamente — regístralos con un clic cuando vencen</div>
-            <button class="btn-primary" id="nuevoGastoRecBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Nuevo gasto recurrente
-            </button>
-          </div>
-          <div class="section-card no-pad" style="margin-top:16px">
-            <table class="data-table">
-              <thead><tr><th>Nombre</th><th>Proveedor</th><th>Importe</th><th>Frecuencia</th><th>Próxima fecha</th><th>Estado</th><th>Acciones</th></tr></thead>
-              <tbody id="gastosRecBody"><tr class="dt-empty"><td colspan="7">Cargando…</td></tr></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══ VIEW: PRODUCTOS / CATÁLOGO ═══ -->
-      <div class="view" id="view-productos">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">Productos y Servicios</h1>
-            <p class="view-sub" id="prodCount">— productos en catálogo</p>
-          </div>
-          <div class="view-actions">
-            <button class="btn-primary" id="nuevoProdBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Nuevo producto / servicio
-            </button>
-          </div>
-        </div>
-
-        <div class="filter-bar">
-          <div class="search-bar-wrap" style="flex:1">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="prodSearch" class="search-input" placeholder="Buscar por nombre, referencia o descripción…"/>
-          </div>
-          <select id="prodFilterTipo" class="filter-sel">
-            <option value="">Todos los tipos</option>
-            <option value="servicio">Servicios</option>
-            <option value="producto">Productos físicos</option>
-            <option value="suscripcion">Suscripciones</option>
-          </select>
-        </div>
-
-        <div class="section-card no-pad">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Nombre / Referencia</th><th>Descripción</th><th>Tipo</th>
-                <th>Precio base</th><th>IVA</th><th>Total c/IVA</th><th>Estado</th><th></th>
-              </tr>
-            </thead>
-            <tbody id="prodBody"><tr class="dt-empty"><td colspan="8">Cargando catálogo…</td></tr></tbody>
-          </table>
-        </div>
-
-        <div class="pres-info-bar" style="margin-top:16px">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          Los productos del catálogo aparecen como sugerencias al añadir líneas en facturas y presupuestos, agilizando la creación.
-        </div>
-      </div>
-
-      <!-- ═══ VIEW: COBROS Y VENCIMIENTOS ═══ -->
-      <div class="view" id="view-cobros">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">Cobros y Vencimientos</h1>
-            <p class="view-sub">Control de facturas pendientes de cobro y gastos por vencer</p>
-          </div>
-          <div class="view-actions">
-            <button class="btn-outline" id="cobrosRefreshBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-              Actualizar
-            </button>
-          </div>
-        </div>
-
-        <!-- KPIs cobros -->
-        <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
-          <div class="kpi-card kpi-red">
-            <div class="kpi-top">
-              <span class="kpi-lbl">Pendiente de cobro</span>
-              <div class="kpi-icon kpi-icon--red"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-            </div>
-            <div class="kpi-val" id="cobrosPendiente">—</div>
-            <div class="kpi-sub">Facturas emitidas sin cobrar</div>
-          </div>
-          <div class="kpi-card kpi-amber">
-            <div class="kpi-top">
-              <span class="kpi-lbl">Vencidas (+30 días)</span>
-            </div>
-            <div class="kpi-val" id="cobrosVencidas">—</div>
-            <div class="kpi-sub">Requieren atención inmediata</div>
-          </div>
-          <div class="kpi-card kpi-green">
-            <div class="kpi-top">
-              <span class="kpi-lbl">Cobrado este trimestre</span>
-            </div>
-            <div class="kpi-val" id="cobrosCobrado">—</div>
-            <div class="kpi-sub">Facturas marcadas como cobradas</div>
-          </div>
-          <div class="kpi-card kpi-blue">
-            <div class="kpi-top">
-              <span class="kpi-lbl">Media días de cobro</span>
-            </div>
-            <div class="kpi-val" id="cobrosMedia">—</div>
-            <div class="kpi-sub">Periodo medio de maduración</div>
-          </div>
-        </div>
-
-        <!-- Facturas pendientes de cobro -->
-        <div class="section-card" style="margin-bottom:20px">
-          <div class="sc-header">
-            <span class="sc-title">⏳ Facturas pendientes de cobro</span>
-            <span style="font-size:12px;color:var(--t3)" id="cobrosPendCount"></span>
-          </div>
-          <table class="data-table" id="cobrosTable">
-            <thead>
-              <tr>
-                <th>Fecha</th><th>Nº Factura</th><th>Cliente</th><th>Importe</th>
-                <th>Días pendiente</th><th>Estado</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="cobrosBody"><tr class="dt-empty"><td colspan="7">Cargando…</td></tr></tbody>
-          </table>
-        </div>
-
-        <!-- Gastos por vencer -->
-        <div class="section-card">
-          <div class="sc-header">
-            <span class="sc-title">📅 Gastos recurrentes próximos</span>
-          </div>
-          <table class="data-table" id="gastosVencenTable">
-            <thead>
-              <tr><th>Gasto</th><th>Proveedor</th><th>Importe</th><th>Próximo vencimiento</th><th>Días restantes</th><th>Acción</th></tr>
-            </thead>
-            <tbody id="gastosVencenBody"><tr class="dt-empty"><td colspan="6">Cargando…</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-
-    </main>
-  </div>
-</div>
-
-<!-- TOAST & MODAL -->
-<div id="toastEl" class="toast-container"></div>
-<div id="modalEl"></div>
-
-
-<!-- COOKIE BANNER -->
-<div id="cookieBanner" class="cookie-banner" style="display:none">
-  <div class="cookie-banner-inner">
-    <div class="cookie-banner-text">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px;color:#60a5fa"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <span>Usamos almacenamiento local para guardar tus preferencias (modo oscuro, sesión). Sin cookies de publicidad ni rastreo. <a href="#" id="cookieLeerMas">Leer más</a></span>
-    </div>
-    <div class="cookie-banner-actions">
-      <button class="cookie-btn-outline" id="cookieRechazar">Solo esenciales</button>
-      <button class="cookie-btn-solid" id="cookieAceptar">Aceptar</button>
-    </div>
-  </div>
-</div>
-
-</body>
-</html>
+/* ═══════════════════════════════════════════════════════════
+   TAURIX · Premium Fiscal SaaS — Complete Design System v2
+   Brand: #F97316 orange · #0B0D12 near-black
+   Font: Cabinet Grotesk (display) · Satoshi (body)
+   ═══════════════════════════════════════════════════════════ */
+
+@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800,900&f[]=satoshi@400,500,700&display=swap');
+
+:root {
+  --ox: #F97316; --ox-d: #EA6700; --ox-dd: #C25500;
+  --ox-lt: #FFF7ED; --ox-mid: #FED7AA; --ox-glow: rgba(249,115,22,.2);
+  --bg: #F2F3F7; --bg2: #E8EAF0; --srf: #FFFFFF; --srf2: #F7F8FC;
+  --sb: #0B0D12; --sb2: #111318; --sb3: #181B24;
+  --sb-t: #7A849A; --sb-ta: #FFFFFF; --sb-act: rgba(249,115,22,.1);
+  --sb-brd: rgba(255,255,255,.055); --sb-w: 232px; --top-h: 60px;
+  --brd: #E0E3EE; --brd2: #C8CBD8;
+  --t1: #0D0F16; --t2: #343A4F; --t3: #6B7394; --t4: #9BA3BC;
+  --green: #059669; --green-lt: #ECFDF5; --green-mid: #6EE7B7;
+  --red: #DC2626; --red-lt: #FEF2F2; --red-mid: #FCA5A5;
+  --amber: #D97706; --amber-lt: #FFFBEB; --amber-mid: #FCD34D;
+  --indigo: #4F46E5; --indigo-lt: #EEF2FF; --indigo-mid: #A5B4FC;
+  --teal: #0D9488; --teal-lt: #F0FDFA;
+  --r: 10px; --r-lg: 14px; --r-xl: 20px;
+  --sh-sm: 0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --sh: 0 4px 20px rgba(0,0,0,.08); --sh-lg: 0 12px 48px rgba(0,0,0,.12);
+  --sh-ox: 0 4px 24px rgba(249,115,22,.28);
+  --font: 'Satoshi', system-ui, -apple-system, sans-serif;
+  --font-hd: 'Cabinet Grotesk', system-ui, -apple-system, sans-serif;
+  --font-mono: 'SF Mono','Fira Code','Courier New',monospace;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px;scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--t1);-webkit-font-smoothing:antialiased;line-height:1.6}
+button{font-family:var(--font);cursor:pointer}
+input,select,textarea{font-family:var(--font)}
+a{text-decoration:none;color:var(--ox)}
+table{border-collapse:collapse}
+
+/* ── NAV ── */
+.lp-nav{position:fixed;top:0;left:0;right:0;height:70px;display:flex;align-items:center;justify-content:space-between;padding:0 48px;background:rgba(242,243,247,.93);backdrop-filter:blur(24px) saturate(200%);border-bottom:1px solid rgba(224,227,238,.5);z-index:200}
+.lp-logo{display:flex;align-items:center}
+.lp-logo-img{height:46px;width:auto;object-fit:contain}
+.lp-links{display:flex;gap:40px;align-items:center}
+.lp-links a{font-size:14px;font-weight:500;color:var(--t3);transition:color .15s}
+.lp-links a:hover{color:var(--t1)}
+.lp-cta-btn{padding:10px 24px;background:var(--t1);color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:700;letter-spacing:-.01em;transition:all .15s;box-shadow:0 2px 10px rgba(0,0,0,.14)}
+.lp-cta-btn:hover{background:#1a2035;transform:translateY(-1px);box-shadow:0 4px 18px rgba(0,0,0,.2)}
+
+/* ── LANDING WRAPPER ── */
+#landingPage{min-height:100vh;background:radial-gradient(ellipse 75% 60% at 85% 5%,rgba(249,115,22,.08) 0%,transparent 55%),radial-gradient(ellipse 55% 45% at 10% 95%,rgba(249,115,22,.05) 0%,transparent 50%),var(--bg)}
+
+/* ── HERO ── */
+.lp-hero{max-width:860px;margin:0 auto;padding:158px 32px 96px;text-align:center}
+.lp-hero-badge{display:inline-flex;align-items:center;gap:9px;padding:7px 20px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:100px;font-size:12.5px;font-weight:700;color:var(--ox-dd);letter-spacing:.2px;margin-bottom:40px}
+.lp-badge-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:badge-pulse 2.4s infinite}
+@keyframes badge-pulse{0%,100%{box-shadow:0 0 0 0 rgba(5,150,105,.4)}50%{box-shadow:0 0 0 5px rgba(5,150,105,0)}}
+.lp-h1{font-family:var(--font-hd);font-size:clamp(44px,6.5vw,76px);font-weight:900;letter-spacing:-3px;line-height:1.02;color:var(--t1);margin-bottom:28px}
+.lp-h1 em{font-style:normal;background:linear-gradient(120deg,var(--ox) 0%,#FBBF24 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.lp-hero-sub{font-size:18px;line-height:1.7;color:var(--t3);max-width:620px;margin:0 auto 48px}
+.lp-hero-actions{display:flex;flex-direction:column;align-items:center;gap:14px;margin-bottom:60px}
+.lp-btn-primary{display:inline-flex;align-items:center;gap:10px;padding:17px 40px;background:linear-gradient(135deg,var(--ox) 0%,#FB923C 100%);color:#fff;border:none;border-radius:16px;font-size:16.5px;font-weight:700;letter-spacing:-.02em;box-shadow:var(--sh-ox),0 1px 0 rgba(255,255,255,.15) inset;transition:transform .15s,box-shadow .15s}
+.lp-btn-primary:hover{transform:translateY(-3px);box-shadow:0 10px 40px rgba(249,115,22,.5),0 1px 0 rgba(255,255,255,.15) inset}
+.lp-note{font-size:13px;color:var(--t4)}
+.lp-stats{display:flex;align-items:center;justify-content:center;gap:40px;padding:22px 40px;background:var(--srf);border:1px solid var(--brd);border-radius:18px;box-shadow:var(--sh-sm);max-width:580px;margin:0 auto}
+.lp-stat{display:flex;flex-direction:column;gap:3px}
+.lp-stat strong{font-family:var(--font-hd);font-size:20px;font-weight:900;color:var(--t1);letter-spacing:-.03em}
+.lp-stat span{font-size:12px;color:var(--t3)}
+.lp-stat-div{width:1px;height:40px;background:var(--brd)}
+
+/* ── FEATURES ── */
+.lp-features{max-width:1140px;margin:0 auto;padding:0 32px 108px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.lp-feat{background:var(--srf);border:1px solid var(--brd);border-radius:22px;padding:32px;position:relative;overflow:hidden;transition:box-shadow .2s,transform .2s,border-color .2s}
+.lp-feat::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent 0%,var(--ox) 50%,transparent 100%);opacity:0;transition:opacity .25s}
+.lp-feat:hover{box-shadow:0 10px 36px rgba(0,0,0,.09);transform:translateY(-5px);border-color:var(--ox-mid)}
+.lp-feat:hover::after{opacity:1}
+.lp-feat-icon{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;margin-bottom:22px}
+.lp-feat-icon--blue{background:var(--ox-lt);color:var(--ox)}
+.lp-feat-icon--green{background:var(--green-lt);color:var(--green)}
+.lp-feat-icon--amber{background:var(--amber-lt);color:var(--amber)}
+.lp-feat-icon--red{background:var(--red-lt);color:var(--red)}
+.lp-feat-icon--indigo{background:var(--indigo-lt);color:var(--indigo)}
+.lp-feat-icon--purple{background:#f5f3ff;color:#7c3aed}
+.lp-feat h3{font-family:var(--font-hd);font-size:16px;font-weight:800;color:var(--t1);margin-bottom:10px;letter-spacing:-.02em}
+.lp-feat p{font-size:13.5px;color:var(--t3);line-height:1.65}
+
+/* ── SECTION COMMONS ── */
+.lp-section-badge{display:inline-flex;align-items:center;padding:5px 16px;margin-bottom:18px;background:var(--ox-lt);border:1px solid var(--ox-mid);border-radius:100px;font-size:11.5px;font-weight:800;color:var(--ox-dd);text-transform:uppercase;letter-spacing:.6px}
+.lp-section-h2{font-family:var(--font-hd);font-size:clamp(30px,4.5vw,48px);font-weight:900;letter-spacing:-2px;line-height:1.08;color:var(--t1);margin-bottom:16px}
+.lp-section-sub{font-size:16px;color:var(--t3);margin-bottom:52px}
+
+/* ── PRICING ── */
+.lp-precios{max-width:940px;margin:0 auto;padding:88px 32px;text-align:center}
+.lp-planes{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:700px;margin:0 auto}
+.lp-plan{background:var(--srf);border:1.5px solid var(--brd);border-radius:24px;padding:34px 30px;text-align:left;position:relative;transition:box-shadow .2s,transform .15s}
+.lp-plan:hover{box-shadow:var(--sh);transform:translateY(-2px)}
+.lp-plan--pro{border-color:var(--ox);background:linear-gradient(155deg,#FFF7ED 0%,#FFFFFF 45%);box-shadow:0 4px 36px rgba(249,115,22,.14)}
+.lp-plan-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--ox) 0%,#FBBF24 100%);color:#fff;font-size:11px;font-weight:900;padding:4px 18px;border-radius:100px;letter-spacing:.3px;white-space:nowrap;box-shadow:var(--sh-ox)}
+.lp-plan-name{font-family:var(--font-hd);font-size:22px;font-weight:900;color:var(--t1);letter-spacing:-.04em;margin-bottom:10px}
+.lp-plan-price{display:flex;align-items:baseline;gap:2px;margin-bottom:8px}
+.lp-plan-eur{font-family:var(--font-hd);font-size:46px;font-weight:900;color:var(--t1);letter-spacing:-3px}
+.lp-plan--pro .lp-plan-eur{color:var(--ox)}
+.lp-plan-per{font-size:14px;color:var(--t3);font-weight:500}
+.lp-plan-desc{font-size:13px;color:var(--t3);margin-bottom:26px}
+.lp-plan-features{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:30px}
+.lp-plan-features li{display:flex;align-items:flex-start;gap:9px;font-size:13.5px}
+.lp-check{color:var(--green);font-weight:900;font-size:13px;flex-shrink:0}
+.lp-check--pro{color:var(--ox)}
+.lp-cross{color:var(--t4);font-size:12px;flex-shrink:0}
+.lp-feat-off{color:var(--t4)}
+.lp-plan-btn{width:100%;padding:14px;border-radius:14px;font-size:15px;font-weight:800;font-family:var(--font);cursor:pointer;transition:all .15s;letter-spacing:-.01em}
+.lp-plan-btn--outline{background:none;border:1.5px solid var(--brd);color:var(--t1)}
+.lp-plan-btn--outline:hover{background:var(--bg);border-color:var(--brd2)}
+.lp-plan-btn--pro{background:linear-gradient(135deg,var(--ox) 0%,#FB923C 100%);border:none;color:#fff;box-shadow:var(--sh-ox)}
+.lp-plan-btn--pro:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(249,115,22,.45)}
+.lp-plan-note{font-size:11.5px;color:var(--t4);text-align:center;margin-top:12px}
+.lp-precios-nota{font-size:14px;color:var(--t3);margin-top:36px}
+.lp-precios-nota a{color:var(--ox);font-weight:700}
+
+/* ── TESTIMONIOS ── */
+.lp-testimonios{background:var(--srf);border-top:1px solid var(--brd);border-bottom:1px solid var(--brd);padding:96px 32px;text-align:center}
+.lp-testi-grid{max-width:1060px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.lp-testi{background:var(--bg);border:1px solid var(--brd);border-radius:20px;padding:28px;text-align:left;transition:box-shadow .2s,transform .2s}
+.lp-testi:hover{box-shadow:var(--sh);transform:translateY(-4px)}
+.lp-testi-stars{color:var(--ox);font-size:16px;margin-bottom:14px;letter-spacing:2px}
+.lp-testi-text{font-size:14px;color:var(--t2);line-height:1.7;margin-bottom:22px}
+.lp-testi-author{display:flex;align-items:center;gap:11px}
+.lp-testi-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;flex-shrink:0}
+.lp-testi-name{font-size:13.5px;font-weight:700;color:var(--t1)}
+.lp-testi-role{font-size:12px;color:var(--t3)}
+
+/* ── FAQ ── */
+.lp-faq{max-width:740px;margin:0 auto;padding:96px 32px;text-align:center}
+.lp-faq-list{margin-top:44px;text-align:left;display:flex;flex-direction:column;gap:10px}
+.lp-faq-item{background:var(--srf);border:1px solid var(--brd);border-radius:16px;overflow:hidden;transition:box-shadow .15s}
+.lp-faq-item:hover{box-shadow:var(--sh-sm)}
+.lp-faq-item summary{padding:20px 24px;font-size:15px;font-weight:700;color:var(--t1);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;font-family:var(--font-hd);letter-spacing:-.01em}
+.lp-faq-item summary::after{content:'+';font-size:22px;font-weight:300;color:var(--t3);flex-shrink:0}
+.lp-faq-item[open] summary::after{content:'−';color:var(--ox)}
+.lp-faq-item p{padding:0 24px 20px;font-size:13.5px;color:var(--t3);line-height:1.72;border-top:1px solid var(--brd);padding-top:18px}
+
+/* ── CTA FINAL ── */
+.lp-cta-final{background:var(--sb);padding:108px 32px;text-align:center;position:relative;overflow:hidden}
+.lp-cta-final::before{content:'';position:absolute;top:-50%;left:50%;transform:translateX(-50%);width:800px;height:500px;background:radial-gradient(ellipse,rgba(249,115,22,.14) 0%,transparent 65%);pointer-events:none}
+.lp-cta-final h2{font-family:var(--font-hd);font-size:clamp(30px,5vw,56px);font-weight:900;letter-spacing:-2px;color:#fff;margin-bottom:18px;position:relative}
+.lp-cta-final p{font-size:17px;color:rgba(255,255,255,.45);margin-bottom:40px;line-height:1.7;position:relative}
+
+/* ── FOOTER ── */
+.lp-footer{background:#060709;padding:60px 48px 32px;border-top:1px solid rgba(255,255,255,.05)}
+.lp-footer-inner{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;gap:60px;margin-bottom:48px}
+.lp-footer-brand{max-width:280px}
+.lp-footer-logo img{height:38px;filter:brightness(0) invert(1);opacity:.65}
+.lp-footer-desc{font-size:13px;color:rgba(255,255,255,.3);line-height:1.7;margin-top:16px}
+.lp-footer-links{display:flex;gap:64px}
+.lp-footer-col{display:flex;flex-direction:column;gap:10px}
+.lp-footer-col-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.3);margin-bottom:6px}
+.lp-footer-col a,.lp-footer-col span{font-size:13.5px;color:rgba(255,255,255,.45);transition:color .15s}
+.lp-footer-col a:hover{color:var(--ox)}
+.lp-footer-bottom{max-width:1100px;margin:0 auto;border-top:1px solid rgba(255,255,255,.05);padding-top:24px;display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:rgba(255,255,255,.2)}
+
+/* ══ APP TOPBAR ══ */
+.app-topbar{position:fixed;top:0;left:0;right:0;height:var(--top-h);background:var(--srf);border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;padding:0 20px 0 0;z-index:200}
+.app-logo{width:var(--sb-w);display:flex;align-items:center;padding:0 22px;background:var(--sb);height:100%;border-right:1px solid var(--sb-brd);flex-shrink:0}
+.app-logo-img{height:34px;width:auto;object-fit:contain;filter:brightness(0) invert(1)}
+.topbar-period-pill{display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--srf2);border:1px solid var(--brd);border-radius:10px;margin-left:20px}
+.topbar-period-pill svg{color:var(--t3);flex-shrink:0}
+.period-sel{border:none;background:transparent;font-size:13.5px;font-weight:700;color:var(--t1);font-family:var(--font);cursor:pointer;padding:0;min-width:84px}
+.period-sel:focus{outline:none}
+.period-sep{color:var(--t4);font-size:12px}
+.btn-lock-trim{width:26px;height:26px;background:var(--red-lt);border:1px solid var(--red-mid);border-radius:7px;color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.btn-lock-trim:hover{background:#fee2e2}
+.btn-lock-trim:disabled{opacity:.4;cursor:not-allowed}
+.topbar-right{display:flex;align-items:center;gap:8px;margin-left:auto}
+.topbar-icon-btn{width:36px;height:36px;background:none;border:1px solid var(--brd);border-radius:10px;color:var(--t3);display:flex;align-items:center;justify-content:center;transition:all .12s}
+.topbar-icon-btn:hover{background:var(--srf2);color:var(--t1);border-color:var(--brd2)}
+.topbar-avatar{width:34px;height:34px;background:linear-gradient(135deg,var(--ox) 0%,#FBBF24 100%);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;box-shadow:0 2px 10px rgba(249,115,22,.35)}
+
+/* ══ LAYOUT ══ */
+.app-layout{display:flex;padding-top:var(--top-h);min-height:100vh}
+
+/* ══ SIDEBAR ══ */
+.sidebar{width:var(--sb-w);background:var(--sb);border-right:1px solid var(--sb-brd);position:fixed;top:var(--top-h);bottom:0;left:0;overflow-y:auto;z-index:100;display:flex;flex-direction:column;scrollbar-width:none}
+.sidebar::-webkit-scrollbar{display:none}
+.sidebar-nav{flex:1;padding:16px 10px}
+.sn-item{display:flex;align-items:center;gap:9px;width:100%;padding:9px 12px;background:none;border:none;border-radius:10px;color:var(--sb-t);font-size:13.5px;font-weight:500;text-align:left;cursor:pointer;transition:all .12s;position:relative;letter-spacing:-.01em}
+.sn-item svg{flex-shrink:0;opacity:.8}
+.sn-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.8)}
+.sn-item.active{background:var(--sb-act);color:#FFAD70;font-weight:700}
+.sn-item.active svg{opacity:1}
+.sn-item.active::before{content:'';position:absolute;left:0;top:5px;bottom:5px;width:3px;border-radius:0 3px 3px 0;background:var(--ox)}
+.sn-badge{margin-left:auto;background:var(--ox);color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:100px}
+.sn-badge--amber{background:var(--amber)}
+.sn-badge--red{background:var(--red)}
+.sn-separator{height:1px;background:var(--sb-brd);margin:10px 0}
+.sn-section-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.18);padding:4px 12px 8px}
+.sidebar-footer{border-top:1px solid var(--sb-brd);padding:16px}
+.sf-regime{display:flex;align-items:center;gap:6px;padding:7px 10px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.18);border-radius:9px;font-size:11.5px;color:#FFAD70;font-weight:600;margin-bottom:14px}
+.sf-user{display:flex;align-items:center;gap:10px}
+.sf-avatar{width:34px;height:34px;flex-shrink:0;background:linear-gradient(135deg,var(--ox) 0%,#FBBF24 100%);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff}
+.sf-meta{display:flex;flex-direction:column;gap:1px;overflow:hidden}
+.sf-name{font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sf-email{font-size:11px;color:rgba(255,255,255,.28);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sf-delete-account{display:flex;align-items:center;gap:5px;margin-top:10px;padding:5px 8px;background:none;border:none;border-radius:6px;font-size:11px;color:rgba(255,255,255,.18);cursor:pointer;transition:all .15s}
+.sf-delete-account:hover{color:#fca5a5;background:rgba(220,38,38,.1)}
+.sn-item--accent{background:rgba(249,115,22,.08)!important;color:#FFAD70!important;border:1px solid rgba(249,115,22,.18);margin:4px 8px;width:calc(100% - 16px)}
+.sn-item--accent:hover{background:rgba(249,115,22,.14)!important;color:#FFD4A3!important}
+
+/* ══ MAIN ══ */
+.app-main{margin-left:var(--sb-w);flex:1;padding:28px 32px;max-width:calc(100vw - var(--sb-w))}
+.view{display:none}
+.view.active{display:block}
+.view-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px}
+.view-title{font-family:var(--font-hd);font-size:24px;font-weight:900;letter-spacing:-.5px;color:var(--t1);line-height:1.2}
+.view-sub{font-size:13px;color:var(--t3);margin-top:4px}
+.view-actions{display:flex;gap:9px;align-items:center}
+
+/* ══ BUTTONS ══ */
+.btn-primary{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:linear-gradient(135deg,var(--ox) 0%,#FB923C 100%);color:#fff;border:none;border-radius:var(--r);font-size:13.5px;font-weight:700;font-family:var(--font);letter-spacing:-.01em;transition:transform .15s,box-shadow .15s;cursor:pointer;box-shadow:0 2px 10px rgba(249,115,22,.25)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(249,115,22,.38)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-outline{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;background:var(--srf);color:var(--t2);border:1px solid var(--brd);border-radius:var(--r);font-size:13px;font-weight:500;font-family:var(--font);transition:all .12s;cursor:pointer}
+.btn-outline:hover{background:var(--srf2);border-color:var(--brd2);color:var(--t1)}
+.btn-link{background:none;border:none;font-size:13px;font-weight:700;color:var(--ox);cursor:pointer;font-family:var(--font)}
+.btn-link:hover{text-decoration:underline}
+.btn-lg-block{width:100%;justify-content:center;padding:14px;font-size:15px}
+
+/* ══ KPI ══ */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:24px}
+.kpi-row.kpi-row--small{grid-template-columns:repeat(4,1fr)}
+.kpi-card{background:var(--srf);border:1px solid var(--brd);border-radius:var(--r-lg);padding:18px 20px;position:relative;overflow:hidden;transition:box-shadow .15s,transform .15s}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r-lg) var(--r-lg) 0 0}
+.kpi-card:hover{box-shadow:var(--sh);transform:translateY(-2px)}
+.kpi-blue::before{background:linear-gradient(90deg,var(--ox),#FBBF24)}
+.kpi-red::before{background:var(--red)}
+.kpi-green::before{background:var(--green)}
+.kpi-amber::before{background:var(--amber)}
+.kpi-indigo::before{background:var(--indigo)}
+.kpi-rose::before{background:#e11d48}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.kpi-lbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--t3)}
+.kpi-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.kpi-icon--blue{background:var(--ox-lt);color:var(--ox)}
+.kpi-icon--red{background:var(--red-lt);color:var(--red)}
+.kpi-icon--green{background:var(--green-lt);color:var(--green)}
+.kpi-icon--amber{background:var(--amber-lt);color:var(--amber)}
+.kpi-icon--indigo{background:var(--indigo-lt);color:var(--indigo)}
+.kpi-icon--rose{background:#fff1f2;color:#e11d48}
+.kpi-val{font-family:var(--font-hd);font-size:24px;font-weight:900;letter-spacing:-.5px;color:var(--t1);margin-bottom:4px;line-height:1.2}
+.kpi-sub{font-size:11px;color:var(--t4)}
+
+/* ══ QUICK ACTIONS ══ */
+.quick-actions-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.qa-card{background:var(--srf);border:1px solid var(--brd);border-radius:var(--r-lg);padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .15s}
+.qa-card:hover{box-shadow:var(--sh);transform:translateY(-2px);border-color:var(--ox-mid)}
+.qa-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qa-icon--blue{background:var(--ox-lt);color:var(--ox)}
+.qa-icon--green{background:var(--green-lt);color:var(--green)}
+.qa-icon--amber{background:var(--amber-lt);color:var(--amber)}
+.qa-icon--purple{background:var(--indigo-lt);color:var(--indigo)}
+.qa-label{font-size:13.5px;font-weight:700;color:var(--t1);letter-spacing:-.01em}
+.qa-sub{font-size:11.5px;color:var(--t3);margin-top:2px}
+
+/* ══ CHARTS ══ */
+.charts-row{display:grid;grid-template-columns:1fr 340px;gap:14px;margin-bottom:24px}
+.chart-card{background:var(--srf);border:1px solid var(--brd);border-radius:var(--r-lg);padding:20px}
+.chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.chart-title{font-size:14px;font-weight:700;color:var(--t1);letter-spacing:-.01em;font-family:var(--font-hd)}
+.chart-legend{display:flex;gap:14px}
+.cleg{font-size:11.5px;font-weight:600;display:flex;align-items:center;gap:5px;color:var(--t3)}
+.cleg::before{content:'';width:10px;height:10px;border-radius:3px;display:inline-block}
+.cleg-blue::before{background:var(--ox)}
+.cleg-red::before{background:var(--red)}
+.bar-chart-wrap{position:relative}
+canvas#chartEvolucion{width:100%!important}
+.trim-status-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;padding-top:8px}
+.trim-gauge{position:relative;display:flex;flex-direction:column;align-items:center}
+.gauge-label{font-family:var(--font-hd);font-size:24px;font-weight:900;color:var(--t1);margin-top:-10px}
+.gauge-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.trim-meta{width:100%}
+.trim-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--brd);font-size:13px}
+.trim-row:last-child{border-bottom:none}
+.trim-row span{color:var(--t3)}
+.trim-row strong{font-weight:700;color:var(--t1)}
+
+/* ══ SECTION CARD ══ */
+.section-card{background:var(--srf);border:1px solid var(--brd);border-radius:var(--r-lg);padding:20px;margin-bottom:20px}
+.section-card.no-pad{padding:0;overflow:hidden}
+.sc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sc-title{font-size:14px;font-weight:800;color:var(--t1);font-family:var(--font-hd);letter-spacing:-.01em}
+
+/* ══ TABLE ══ */
+.data-table{width:100%;font-size:13px}
+.data-table thead{background:#FAFAFD}
+.data-table th{padding:11px 14px;text-align:left;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);white-space:nowrap;border-bottom:1px solid var(--brd)}
+.data-table td{padding:12px 14px;border-bottom:1px solid var(--brd);color:var(--t2);vertical-align:middle}
+.data-table tbody tr:last-child td{border-bottom:none}
+.data-table tbody tr:hover td{background:#FFF8F2}
+.dt-empty td{text-align:center;padding:44px;color:var(--t4);font-size:14px}
+
+/* ══ BADGES ══ */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:800}
+.b-draft{background:var(--amber-lt);color:var(--amber);border:1px solid var(--amber-mid)}
+.b-emit{background:var(--green-lt);color:var(--green);border:1px solid var(--green-mid)}
+.b-income{background:var(--ox-lt);color:var(--ox-dd);border:1px solid var(--ox-mid)}
+.b-expense{background:var(--red-lt);color:var(--red);border:1px solid var(--red-mid)}
+.b-nac{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0}
+.b-ic{background:var(--indigo-lt);color:var(--indigo);border:1px solid var(--indigo-mid)}
+.b-exp{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
+.b-imp{background:#fdf4ff;color:#9333ea;border:1px solid #e9d5ff}
+.b-isp{background:var(--teal-lt);color:var(--teal);border:1px solid #99f6e4}
+.b-pagar{background:var(--red-lt);color:var(--red);border:1px solid var(--red-mid);font-size:13px;padding:5px 13px}
+.b-compen{background:var(--green-lt);color:var(--green);border:1px solid var(--green-mid);font-size:13px;padding:5px 13px}
+.b-cobrada{background:#d1fae5;color:#065f46}
+.b-pendiente{background:#fef3c7;color:#92400e}
+
+/* ══ TABLE ACTIONS ══ */
+.tbl-act{display:flex;gap:5px}
+.ta-btn{padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;font-family:var(--font);cursor:pointer;border:1px solid var(--brd);background:var(--srf);color:var(--t2);transition:all .12s}
+.ta-btn:hover{background:var(--srf2)}
+.ta-emit{border-color:var(--ox-mid);background:var(--ox-lt);color:var(--ox-dd)}
+.ta-emit:hover{background:#fed7aa}
+.ta-del{border-color:var(--red-mid);background:var(--red-lt);color:var(--red)}
+.ta-del:hover{background:#fee2e2}
+.ta-locked{font-size:11px;color:var(--t4);white-space:nowrap}
+.ta-cobrada{color:var(--green)}
+.ta-pendiente{color:var(--amber)}
+
+/* ══ SEARCH/FILTER ══ */
+.search-bar-wrap{position:relative;margin-bottom:16px}
+.search-bar-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--t3);pointer-events:none}
+.search-input{width:100%;padding:10px 12px 10px 36px;border:1px solid var(--brd);border-radius:var(--r);font-size:14px;color:var(--t1);background:var(--srf);transition:border-color .15s,box-shadow .15s}
+.search-input:focus{outline:none;border-color:var(--ox);box-shadow:0 0 0 3px rgba(249,115,22,.1)}
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.filter-sel{padding:8px 28px 8px 10px;border:1px solid var(--brd);border-radius:var(--r);font-size:13px;color:var(--t1);background:var(--srf);font-family:var(--font);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center}
+.filter-sel:focus{outline:none;border-color:var(--ox)}
+.filter-bar--secondary{display:flex;align-items:center;gap:8px;padding:8px 0 4px;flex-wrap:wrap}
+.filter-lbl{font-size:12px;color:var(--t3);font-weight:500;white-space:nowrap}
+.filter-sep{color:var(--t4);font-size:12px}
+.filter-date{border:1px solid var(--brd);border-radius:7px;padding:5px 10px;font-size:12px;color:var(--t2);background:var(--srf);outline:none}
+.filter-date:focus{border-color:var(--ox)}
+.filter-amt{width:80px;border:1px solid var(--brd);border-radius:7px;padding:5px 10px;font-size:12px;color:var(--t2);background:var(--srf);outline:none}
+.filter-amt:focus{border-color:var(--ox)}
+.paginacion-bar{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:18px}
+
+/* ══ NUEVA FACTURA ══ */
+.nf-layout{display:grid;grid-template-columns:1fr 390px;gap:24px;align-items:start}
+.nf-form-col{display:flex;flex-direction:column;gap:16px}
+.form-block{background:var(--srf);border:1px solid var(--brd);border-radius:var(--r-lg);padding:24px}
+.fb-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.9px;color:var(--t3);margin-bottom:18px}
+.fb-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.fb-title-row .fb-title{margin-bottom:0}
+.op-type-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
+.op-type-btn{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 6px;background:var(--srf2);border:1.5px solid var(--brd);border-radius:11px;cursor:pointer;transition:all .15s}
+.op-type-btn:hover{border-color:var(--ox-mid);background:var(--ox-lt)}
+.op-type-btn.active{border-color:var(--ox);background:var(--ox-lt)}
+.op-flag{font-size:20px}
+.op-lbl{font-size:10.5px;font-weight:700;color:var(--t2);text-align:center;line-height:1.2}
+.op-type-btn.active .op-lbl{color:var(--ox-dd)}
+.op-info-banner{padding:10px 14px;background:var(--ox-lt);border:1px solid var(--ox-mid);border-radius:9px;font-size:12.5px;color:var(--t2);line-height:1.55;display:none}
+.op-info-banner.visible{display:block}
+.ff-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.ff-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.ff-field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.ff-field:last-child{margin-bottom:0}
+.ff-field label{font-size:12px;font-weight:700;color:var(--t2)}
+.ff-input{padding:9px 12px;border:1px solid var(--brd);border-radius:9px;font-size:14px;color:var(--t1);background:var(--srf);transition:border-color .15s,box-shadow .15s;width:100%}
+.ff-input:focus{outline:none;border-color:var(--ox);box-shadow:0 0 0 3px rgba(249,115,22,.1)}
+.ff-textarea{min-height:80px;resize:vertical}
+.ff-select{padding:9px 28px 9px 12px;border:1px solid var(--brd);border-radius:9px;font-size:14px;color:var(--t1);background:var(--srf);font-family:var(--font);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;transition:border-color .15s,box-shadow .15s;width:100%}
+.ff-select:focus{outline:none;border-color:var(--ox);box-shadow:0 0 0 3px rgba(249,115,22,.1)}
+.ff-addon-wrap{position:relative}
+.ff-addon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--t3);pointer-events:none;font-weight:700}
+.ff-has-addon{padding-left:24px!important}
+.ff-note{font-size:11px;color:var(--ox);font-weight:700}
+
+/* ── INVOICE PREVIEW ── */
+.nf-preview-col{position:sticky;top:84px}
+.nf-preview-card{background:white;border-radius:14px;border:1px solid #E0E3EE;box-shadow:0 4px 24px rgba(0,0,0,.07);overflow:hidden;margin-bottom:14px}
+.fpv-top{display:flex;justify-content:space-between;align-items:flex-start;padding:24px 24px 18px;background:var(--sb)}
+.fpv-emisor-name{font-size:14px;font-weight:900;color:#fff;margin-bottom:3px;font-family:var(--font-hd)}
+.fpv-emisor-nif{font-size:11px;color:rgba(255,255,255,.38)}
+.fpv-emisor-dir{font-size:11px;color:rgba(255,255,255,.28);margin-top:2px}
+.fpv-header-right{text-align:right}
+.fpv-factura-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.3)}
+.fpv-num{font-size:22px;font-weight:900;color:var(--ox);letter-spacing:-.03em;font-family:var(--font-hd)}
+.fpv-fecha{font-size:11px;color:rgba(255,255,255,.38);margin-top:2px}
+.fpv-divider{height:1px;background:var(--brd)}
+.fpv-cliente{padding:16px 24px}
+.fpv-section-lbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--t4);margin-bottom:5px}
+.fpv-cliente-name{font-size:15px;font-weight:800;color:var(--t1);font-family:var(--font-hd)}
+.fpv-cliente-nif{font-size:12px;color:var(--t3)}
+.fpv-op-badge{display:inline-flex;margin-top:5px;font-size:11px;font-weight:600;color:var(--t3)}
+.fpv-lineas-wrap{padding:0 24px}
+.fpv-lineas-head{display:grid;grid-template-columns:1fr 50px 70px 70px;gap:8px;padding:9px 0;border-bottom:1.5px solid var(--brd);margin-bottom:4px}
+.fpv-lineas-head span{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--t4)}
+.fpvl-qty,.fpvl-price,.fpvl-total{text-align:right}
+.fpv-linea-row{display:grid;grid-template-columns:1fr 50px 70px 70px;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6;align-items:center}
+.fpv-linea-row span{font-size:12.5px;color:var(--t2)}
+.fpv-linea-row .fpvl-qty,.fpv-linea-row .fpvl-price,.fpv-linea-row .fpvl-total{text-align:right}
+.fpv-linea-row .fpvl-total{font-weight:800;color:var(--t1)}
+.fpv-lineas-empty{padding:16px 0;color:var(--t4);font-size:13px;text-align:center}
+.fpv-totales{padding:16px 24px;background:#FAFBFF}
+.fpvt-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--t3);padding:3px 0}
+.fpvt-irpf span:last-child{color:var(--red);font-weight:700}
+.fpvt-total{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:12px;border-top:2px solid var(--sb);font-size:18px;font-weight:900;color:var(--t1);font-family:var(--font-hd)}
+.fpvt-total span:last-child{color:var(--ox)}
+.fpv-notas{padding:12px 24px;background:#fffdf8;border-top:1px solid #fde68a;font-size:11.5px;color:#78350f;line-height:1.5}
+.fpv-pie{padding:10px 24px;font-size:11px;color:var(--t4)}
+.nf-actions-col{display:flex;flex-direction:column;gap:10px}
+
+/* ── CLIENTE SEARCH ── */
+.cliente-search-wrap{position:relative;margin-bottom:14px}
+.csc-input-wrap{display:flex;align-items:center;gap:8px;border:1.5px solid var(--brd);border-radius:10px;padding:9px 12px;background:var(--srf);transition:border-color .15s}
+.csc-input-wrap:focus-within{border-color:var(--ox);box-shadow:0 0 0 3px rgba(249,115,22,.1)}
+.csc-input{flex:1;border:none;outline:none;font-size:13.5px;background:transparent;color:var(--t1)}
+.csc-clear{background:none;border:none;cursor:pointer;font-size:18px;color:var(--t3);line-height:1;padding:0}
+.csc-clear:hover{color:var(--t1)}
+.csc-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--srf);border:1px solid var(--brd);border-radius:12px;box-shadow:0 10px 32px rgba(0,0,0,.12);z-index:100;overflow:hidden;max-height:260px;overflow-y:auto}
+.csd-item{padding:10px 14px;cursor:pointer;transition:background .1s}
+.csd-item:hover{background:var(--ox-lt)}
+.csd-name{font-size:13.5px;font-weight:700;color:var(--t1)}
+.csd-meta{font-size:12px;color:var(--t3);margin-top:2px}
+.csd-empty{padding:12px 14px;font-size:13px;color:var(--t3);font-style:italic}
+.cliente-panel{padding-top:4px}
+
+/* ── LINEAS ── */
+.btn-add-linea{display:flex;align-items:center;gap:5px;padding:6px 14px;border-radius:8px;font-size:12.5px;font-weight:700;border:1.5px dashed var(--ox-mid);color:var(--ox);background:var(--ox-lt);cursor:pointer;transition:all .15s}
+.btn-add-linea:hover{background:var(--ox);color:white;border-style:solid;border-color:var(--ox)}
+.lineas-header{display:grid;grid-template-columns:1fr 60px 100px 60px 80px 32px;gap:6px;padding:6px 4px;border-bottom:1px solid var(--brd);margin-bottom:4px}
+.lineas-header>div{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--t4)}
+.linea-row{display:grid;grid-template-columns:1fr 60px 100px 60px 80px 32px;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--brd);animation:fadeInRow .15s ease}
+@keyframes fadeInRow{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.linea-row .ff-input{padding:7px 8px;font-size:13px;margin-bottom:0}
+.linea-price-wrap{position:relative}
+.linea-euro{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--t3);pointer-events:none;font-weight:700}
+.linea-price{padding-left:20px!important}
+.linea-total{font-size:13px;font-weight:800;color:var(--t1);text-align:right;padding-right:4px}
+.linea-del{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;background:none;border:1px solid transparent;cursor:pointer;color:var(--t4);transition:all .15s}
+.linea-del:hover{background:#fef2f2;border-color:#fca5a5;color:var(--red)}
+.lineas-totales{margin-top:12px;border-top:2px solid var(--brd);padding-top:10px;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.lt-row{display:flex;gap:32px;justify-content:flex-end;font-size:13px;color:var(--t2);min-width:260px}
+.lt-row span:first-child{flex:1;text-align:right}
+.lt-row strong{min-width:90px;text-align:right}
+.lt-irpf strong{color:var(--red)}
+.lt-total{font-size:16px;font-weight:900;color:var(--t1);padding-top:8px;border-top:2px solid var(--brd);margin-top:4px;font-family:var(--font-hd)}
+
+/* ══ MODELO FISCAL ══ */
+.modelo-layout{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start}
+.modelo-card{background:var(--srf);border:1px solid var(--brd);border-radius:var(--r-lg);overflow:hidden}
+.mc-header{padding:12px 18px;font-size:12px;font-weight:800;color:#fff;letter-spacing:-.01em}
+.mc-header--blue{background:linear-gradient(135deg,var(--ox) 0%,#FB923C 100%)}
+.mc-header--green{background:var(--green)}
+.mc-header--indigo{background:var(--indigo)}
+.mc-header--gray{background:var(--t2)}
+.mc-body{padding:4px 0}
+.mc-row{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-bottom:1px solid var(--brd);font-size:13px}
+.mc-row:last-child{border-bottom:none}
+.mc-row span{color:var(--t2)}
+.mc-row strong{font-weight:800;color:var(--t1);font-size:14px;font-family:var(--font-hd)}
+.mc-row--total{background:var(--srf2)}
+.mc-row--total span{font-weight:700;color:var(--t1)}
+.mc-row--total strong{font-size:16px}
+.modelo-resultado-card{background:var(--srf);border:1px solid var(--brd);border-radius:var(--r-lg);padding:24px;border-top:4px solid var(--ox);text-align:center}
+.mrc-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.9px;color:var(--t4);margin-bottom:8px}
+.mrc-value{font-family:var(--font-hd);font-size:36px;font-weight:900;color:var(--t1);letter-spacing:-1.5px;margin-bottom:8px}
+.mrc-status{margin-bottom:20px}
+.mrc-info{text-align:left;border-top:1px solid var(--brd);padding-top:14px;margin-bottom:14px}
+.mri-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--t3);padding:4px 0}
+.mri-row span:last-child{font-weight:800;color:var(--t1)}
+.mrc-deadline{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t3);background:var(--srf2);border-radius:8px;padding:8px 12px;margin-top:4px}
+
+/* ══ LIBROS ══ */
+.libros-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.libro-card{background:var(--srf);border:1px solid var(--brd);border-radius:var(--r-xl);padding:30px;display:flex;flex-direction:column;gap:14px;border-top:4px solid transparent;transition:box-shadow .2s,transform .2s}
+.libro-card:hover{box-shadow:var(--sh);transform:translateY(-4px)}
+.libro-card--ingresos{border-top-color:var(--ox)}
+.libro-card--gastos{border-top-color:var(--red)}
+.libro-card--bienes{border-top-color:var(--amber)}
+.libro-card--provision{border-top-color:var(--indigo)}
+.libro-icon{color:var(--t3)}
+.libro-card--ingresos .libro-icon{color:var(--ox)}
+.libro-card--gastos .libro-icon{color:var(--red)}
+.libro-card--bienes .libro-icon{color:var(--amber)}
+.libro-card h3{font-family:var(--font-hd);font-size:17px;font-weight:900;color:var(--t1);letter-spacing:-.03em}
+.libro-card p{font-size:13px;color:var(--t3);line-height:1.65}
+.libro-legal-ref{font-size:11.5px;font-weight:700;color:var(--t3);background:var(--srf2);border-radius:7px;padding:5px 10px;display:inline-block}
+.libro-actions{display:flex;gap:8px;margin-top:auto}
+.legal-disclaimer{display:flex;gap:12px;align-items:flex-start;background:var(--amber-lt);border:1px solid var(--amber-mid);border-radius:var(--r-lg);padding:16px 18px}
+.legal-disclaimer svg{flex-shrink:0;margin-top:2px;color:var(--amber)}
+.legal-disclaimer p{font-size:12.5px;color:#78350f;line-height:1.6}
+
+/* ══ MODAL ══ */
+.modal-overlay{position:fixed;inset:0;background:rgba(11,13,18,.65);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(10px);animation:mover-in .15s ease}
+@keyframes mover-in{from{opacity:0}to{opacity:1}}
+.modal{background:var(--srf);border:1px solid var(--brd);border-radius:var(--r-xl);width:90%;max-width:560px;max-height:88vh;overflow-y:auto;box-shadow:0 28px 70px rgba(0,0,0,.2);animation:modal-pop .18s ease}
+@keyframes modal-pop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid var(--brd)}
+.modal-title{font-family:var(--font-hd);font-size:17px;font-weight:900;color:var(--t1);letter-spacing:-.03em}
+.modal-x{width:30px;height:30px;background:var(--srf2);border:none;border-radius:8px;font-size:17px;color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.modal-x:hover{background:var(--brd);color:var(--t1)}
+.modal-bd{padding:22px 24px}
+.modal-ft{padding:14px 24px;border-top:1px solid var(--brd);display:flex;justify-content:flex-end;gap:10px}
+.modal-field{margin-bottom:16px}
+.modal-field label{display:block;font-size:12px;font-weight:700;color:var(--t2);margin-bottom:5px}
+.modal-field input,.modal-field select,.modal-field textarea{width:100%;padding:9px 12px;border:1px solid var(--brd);border-radius:9px;font-size:14px;font-family:var(--font);color:var(--t1)}
+.modal-field textarea{min-height:80px;resize:vertical}
+.modal-field input:focus,.modal-field select:focus,.modal-field textarea:focus{outline:2px solid var(--ox);outline-offset:-2px}
+.modal-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.modal-note{background:var(--srf2);border-radius:9px;padding:10px 14px;font-size:12.5px;color:var(--t3);margin-bottom:18px;line-height:1.5}
+.modal-warn{background:var(--red-lt);border:1px solid var(--red-mid);border-radius:9px;padding:12px 14px;font-size:13px;color:#991b1b;margin-bottom:16px;line-height:1.55}
+.btn-modal-cancel{padding:9px 16px;background:var(--srf);border:1px solid var(--brd);border-radius:var(--r);font-size:13.5px;font-weight:500;font-family:var(--font);color:var(--t2);cursor:pointer}
+.btn-modal-save{padding:9px 20px;background:linear-gradient(135deg,var(--ox) 0%,#FB923C 100%);color:#fff;border:none;border-radius:var(--r);font-size:13.5px;font-weight:800;font-family:var(--font);cursor:pointer;box-shadow:0 2px 10px rgba(249,115,22,.3)}
+.btn-modal-danger{padding:9px 20px;background:var(--red);color:#fff;border:none;border-radius:var(--r);font-size:13.5px;font-weight:800;font-family:var(--font);cursor:pointer}
+
+/* ══ TOAST ══ */
+.toast-container{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:10px;z-index:2000}
+.toast{display:flex;align-items:center;gap:10px;padding:13px 18px;border-radius:var(--r);font-size:13.5px;font-weight:600;box-shadow:var(--sh-lg);animation:toast-slide .22s ease;max-width:380px}
+@keyframes toast-slide{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+.t-success{background:#052e16;color:#86efac}
+.t-error{background:#450a0a;color:#fca5a5}
+.t-info{background:var(--sb);color:#e5e7eb}
+.t-warn{background:#431407;color:#fdba74}
+
+/* ══ SPINNER / UTILS ══ */
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hidden{display:none!important}
+.mono{font-family:var(--font-mono);font-size:12.5px}
+.fw7{font-weight:700}
+.c-green{color:var(--green)}
+.c-red{color:var(--red)}
+.c-blue{color:var(--ox)}
+
+/* ══ GASTOS TABS ══ */
+.gastos-tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--brd)}
+.gastos-tab{display:flex;align-items:center;gap:7px;padding:10px 18px;background:none;border:none;border-radius:9px 9px 0 0;font-size:13.5px;font-weight:700;color:var(--t3);cursor:pointer;transition:all .15s;border-bottom:2px solid transparent;margin-bottom:-1px}
+.gastos-tab:hover{color:var(--t1)}
+.gastos-tab.active{color:var(--ox);border-bottom-color:var(--ox)}
+.gastos-panel{display:none}
+.gastos-panel.active{display:block}
+.panel-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.pres-info-bar{display:flex;align-items:flex-start;gap:8px;background:var(--ox-lt);border:1px solid var(--ox-mid);border-radius:var(--r);padding:12px 16px;font-size:12.5px;color:var(--ox-dd);line-height:1.55}
+.pres-info-bar svg{flex-shrink:0;margin-top:2px;color:var(--ox)}
+
+/* ══ BANNERS ══ */
+.deadline-banner{display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;font-weight:600;border-left:4px solid}
+.deadline-banner--warn{background:#fffbeb;color:#92400e;border-color:#f59e0b}
+.deadline-banner--urgent{background:#fef2f2;color:#991b1b;border-color:var(--red);animation:pulse-border 2s infinite}
+@keyframes pulse-border{0%,100%{border-color:var(--red)}50%{border-color:#f87171}}
+.deadline-close{margin-left:auto;background:none;border:none;cursor:pointer;font-size:18px;opacity:.5;padding:0 4px;line-height:1}
+.deadline-close:hover{opacity:1}
+.onboard-banner{background:linear-gradient(135deg,#fff7ed 0%,#fffbeb 100%);border:1px solid var(--ox-mid);border-radius:14px;margin:16px 20px 0;padding:18px 22px}
+.onboard-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.onboard-title{font-size:13px;font-weight:800;color:var(--ox-dd);font-family:var(--font-hd)}
+.onboard-steps{display:flex;gap:12px;flex-wrap:wrap}
+.onboard-step{flex:1;min-width:200px;display:flex;align-items:flex-start;gap:10px;background:white;border:1px solid var(--ox-mid);border-radius:9px;padding:13px}
+.onboard-step--done{opacity:.55}
+.onboard-step--done .onboard-step-num{background:var(--green)!important}
+.onboard-step-num{width:22px;height:22px;border-radius:50%;background:var(--ox);color:white;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.onboard-step-label{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:2px}
+.onboard-step-desc{font-size:11px;color:var(--t3)}
+.onboard-step-btn{font-size:12px;padding:4px 10px;margin-left:auto;flex-shrink:0}
+#recordatoriosBanner .rec-banner{background:var(--amber-lt);border:1px solid var(--amber-mid);border-radius:11px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#92400e;display:flex;align-items:center;gap:10px}
+
+/* ══ AUTH MODAL — PREMIUM ══ */
+.auth-overlay{position:fixed;inset:0;background:rgba(11,13,18,.78);display:flex;align-items:center;justify-content:center;z-index:3000;backdrop-filter:blur(16px) saturate(150%);animation:mover-in .2s ease}
+.auth-card{background:var(--srf);border:1px solid var(--brd);border-radius:24px;width:90%;max-width:420px;padding:0;position:relative;box-shadow:0 40px 100px rgba(0,0,0,.3);animation:modal-pop .2s ease;overflow:hidden}
+.auth-card::before{content:'';display:block;height:4px;background:linear-gradient(90deg,var(--ox) 0%,#FBBF24 100%)}
+.auth-header{text-align:center;padding:32px 32px 24px}
+.auth-logo{width:58px;height:58px;margin:0 auto 18px;background:var(--sb);border-radius:18px;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.auth-logo img{height:36px;width:auto;object-fit:contain;filter:brightness(0) invert(1)}
+.auth-title{font-family:var(--font-hd);font-size:24px;font-weight:900;color:var(--t1);letter-spacing:-.04em;margin-bottom:7px}
+.auth-sub{font-size:14px;color:var(--t3)}
+.auth-tabs{display:flex;gap:4px;padding:4px;background:var(--bg);border-radius:12px;margin:0 32px 24px}
+.auth-tab{flex:1;padding:9px;border:none;border-radius:9px;background:none;font-size:14px;font-weight:700;color:var(--t3);cursor:pointer;transition:all .15s;font-family:var(--font);letter-spacing:-.01em}
+.auth-tab.active{background:var(--srf);color:var(--t1);box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.auth-panel{padding:0 32px 32px}
+.auth-error{background:#450a0a;color:#fca5a5;border:1px solid rgba(252,165,165,.15);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px}
+.auth-success{background:#052e16;color:#86efac;border:1px solid rgba(134,239,172,.15);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px}
+.auth-google-btn{width:100%;padding:12px 18px;border-radius:12px;border:1.5px solid var(--brd);background:var(--srf);display:flex;align-items:center;justify-content:center;gap:10px;font-size:14.5px;font-weight:700;color:var(--t1);cursor:pointer;font-family:var(--font);transition:all .15s;letter-spacing:-.01em;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.auth-google-btn:hover{background:var(--srf2);border-color:var(--brd2);box-shadow:0 3px 10px rgba(0,0,0,.09)}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:18px 0;font-size:12px;color:var(--t4);font-weight:600}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--brd)}
+.auth-field{margin-bottom:14px}
+.auth-field label{display:block;font-size:12.5px;font-weight:700;color:var(--t2);margin-bottom:6px}
+.auth-field input{width:100%;padding:11px 14px;border:1.5px solid var(--brd);border-radius:11px;font-size:14px;color:var(--t1);background:var(--srf);font-family:var(--font);transition:border-color .15s,box-shadow .15s}
+.auth-field input:focus{outline:none;border-color:var(--ox);box-shadow:0 0 0 3px rgba(249,115,22,.12)}
+.auth-pw-wrap{position:relative}
+.auth-pw-wrap input{padding-right:44px}
+.auth-pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:14px;padding:0;line-height:1}
+.auth-forgot{background:none;border:none;font-size:13px;font-weight:700;color:var(--ox);cursor:pointer;padding:0;margin-bottom:16px;display:block;font-family:var(--font)}
+.auth-forgot:hover{text-decoration:underline}
+.auth-submit{width:100%;padding:13px;border-radius:13px;border:none;background:linear-gradient(135deg,var(--ox) 0%,#FB923C 100%);color:#fff;font-size:15.5px;font-weight:800;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s,box-shadow .15s;letter-spacing:-.01em;box-shadow:var(--sh-ox)}
+.auth-submit:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(249,115,22,.45)}
+.auth-submit:disabled{opacity:.65;cursor:not-allowed;transform:none}
+.auth-spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+.auth-switch{font-size:13px;color:var(--t3);margin-top:18px;text-align:center}
+.auth-link{background:none;border:none;color:var(--ox);font-weight:800;cursor:pointer;font-size:13px;font-family:var(--font)}
+.auth-link:hover{text-decoration:underline}
+.auth-close{position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:9px;background:var(--srf2);border:1px solid var(--brd);font-size:16px;color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.auth-close:hover{background:var(--brd);color:var(--t1)}
+
+/* ══ LEGAL MODALS ══ */
+.legal-modal-overlay{position:fixed;inset:0;background:rgba(11,13,18,.65);display:flex;align-items:center;justify-content:center;z-index:2000;backdrop-filter:blur(10px)}
+.legal-modal{background:var(--srf);border:1px solid var(--brd);border-radius:22px;width:90%;max-width:680px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 28px 70px rgba(0,0,0,.2)}
+.legal-modal-header{display:flex;align-items:center;justify-content:space-between;padding:22px 28px 18px;border-bottom:1px solid var(--brd)}
+.legal-modal-header h2{font-family:var(--font-hd);font-size:19px;font-weight:900;letter-spacing:-.03em;color:var(--t1)}
+.legal-modal-close{background:none;border:1px solid var(--brd);border-radius:9px;width:30px;height:30px;font-size:18px;cursor:pointer;color:var(--t3);display:flex;align-items:center;justify-content:center}
+.legal-modal-close:hover{background:var(--srf2);color:var(--t1)}
+.legal-modal-body{padding:24px 28px;overflow-y:auto}
+.legal-modal-body h3{font-family:var(--font-hd);font-size:15px;font-weight:800;color:var(--t1);margin:22px 0 8px;letter-spacing:-.02em}
+.legal-modal-body h3:first-child{margin-top:0}
+.legal-modal-body p{font-size:13.5px;color:var(--t2);line-height:1.72;margin-bottom:8px}
+.legal-modal-body ul{padding-left:20px;margin-bottom:8px}
+.legal-modal-body li{font-size:13.5px;color:var(--t2);line-height:1.65;margin-bottom:4px}
+.legal-updated{font-size:12px;color:var(--t4);font-style:italic;margin-bottom:16px!important}
+
+/* ══ COOKIE BANNER ══ */
+.cookie-banner{position:fixed;bottom:20px;left:20px;right:20px;max-width:700px;z-index:9999;background:var(--sb);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.cookie-banner-inner{display:flex;align-items:center;gap:16px;padding:18px 22px;flex-wrap:wrap}
+.cookie-banner-text{display:flex;align-items:flex-start;gap:10px;flex:1;font-size:13px;color:rgba(255,255,255,.6);line-height:1.55}
+.cookie-banner-text a{color:var(--ox)}
+.cookie-banner-actions{display:flex;gap:8px}
+.cookie-btn-outline{padding:8px 16px;border:1px solid rgba(255,255,255,.12);border-radius:9px;background:none;color:rgba(255,255,255,.55);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .15s}
+.cookie-btn-outline:hover{background:rgba(255,255,255,.06)}
+.cookie-btn-solid{padding:8px 18px;border:none;border-radius:9px;background:linear-gradient(135deg,var(--ox) 0%,#FB923C 100%);color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font)}
+
+/* ══ RESPONSIVE ══ */
+@media(max-width:1280px){.kpi-row{grid-template-columns:repeat(3,1fr)}.charts-row{grid-template-columns:1fr}.nf-layout{grid-template-columns:1fr}.modelo-layout{grid-template-columns:1fr}.libros-grid{grid-template-columns:1fr}}
+@media(max-width:1024px){.kpi-row{grid-template-columns:repeat(2,1fr)}.quick-actions-row{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){:root{--sb-w:0px}.sidebar{display:none}.app-main{margin-left:0;max-width:100vw;padding:20px 16px}.app-logo{display:none}.lp-features{grid-template-columns:1fr 1fr}.op-type-grid{grid-template-columns:repeat(3,1fr)}.lp-planes{grid-template-columns:1fr;max-width:380px}.lp-testi-grid{grid-template-columns:1fr}}
+@media(max-width:640px){.kpi-row{grid-template-columns:1fr}.quick-actions-row{grid-template-columns:1fr}.lp-features{grid-template-columns:1fr}.ff-grid2,.ff-grid3{grid-template-columns:1fr}.lp-nav{padding:0 20px}.lp-links{display:none}}
+
+/* ══ DARK MODE ══ */
+html.dark{--bg:#0D0F16;--bg2:#111520;--srf:#161A26;--srf2:#1D2236;--brd:#262C42;--brd2:#343C58;--t1:#F1F5F9;--t2:#CBD5E1;--t3:#94A3B8;--t4:#64748B}
+html.dark body{background:var(--bg)}
+html.dark .app-topbar{background:var(--srf);border-color:var(--brd)}
+html.dark .app-main{background:var(--bg)}
+html.dark .kpi-card,html.dark .chart-card,html.dark .section-card,html.dark .form-block{background:var(--srf);border-color:var(--brd)}
+html.dark .data-table thead{background:var(--srf2)}
+html.dark .data-table th{color:var(--t3);border-color:var(--brd)}
+html.dark .data-table td{border-color:var(--brd);color:var(--t1)}
+html.dark .data-table tbody tr:hover td{background:rgba(249,115,22,.04)}
+html.dark .ff-input,html.dark .ff-select,html.dark .ff-textarea{background:var(--srf2);border-color:var(--brd);color:var(--t1)}
+html.dark .filter-bar .search-input,html.dark .filter-bar .filter-sel,html.dark .filter-bar .filter-date,html.dark .filter-bar .filter-amt{background:var(--srf2);border-color:var(--brd);color:var(--t1)}
+html.dark .search-bar-wrap .search-input{background:var(--srf2);border-color:var(--brd);color:var(--t1)}
+html.dark .nf-preview-card{border-color:var(--brd)}
+html.dark .fpv-totales{background:rgba(255,255,255,.02)}
+html.dark .fpv-linea-row{border-color:var(--brd)}
+html.dark .modelo-card,html.dark .modelo-resultado-card,html.dark .libro-card{background:var(--srf);border-color:var(--brd)}
+html.dark .mc-row{border-color:var(--brd)}
+html.dark .mc-row--total{background:var(--srf2)}
+html.dark .mrc-info{border-color:var(--brd)}
+html.dark .mrc-deadline{background:var(--srf2)}
+html.dark .trim-row{border-color:var(--brd)}
+html.dark .modal{background:var(--srf);border-color:var(--brd)}
+html.dark .modal-hd,html.dark .modal-ft{border-color:var(--brd)}
+html.dark .modal-field input,html.dark .modal-field select,html.dark .modal-field textarea{background:var(--srf2);border-color:var(--brd);color:var(--t1)}
+html.dark .btn-outline{background:var(--srf);border-color:var(--brd);color:var(--t2)}
+html.dark .btn-outline:hover{background:var(--srf2)}
+html.dark .ta-btn{background:var(--srf2);border-color:var(--brd);color:var(--t2)}
+html.dark .qa-card{background:var(--srf);border-color:var(--brd)}
+html.dark .csc-input-wrap{background:var(--srf2);border-color:var(--brd)}
+html.dark .csc-dropdown{background:var(--srf);border-color:var(--brd)}
+html.dark .csd-item:hover{background:rgba(249,115,22,.08)}
+html.dark .op-type-btn{background:var(--srf2);border-color:var(--brd)}
+html.dark .op-type-btn.active,html.dark .op-type-btn:hover{background:rgba(249,115,22,.1);border-color:rgba(249,115,22,.4)}
+html.dark .lp-nav{background:rgba(13,15,22,.95);border-color:rgba(255,255,255,.06)}
+html.dark #landingPage{background:radial-gradient(ellipse 75% 60% at 85% 5%,rgba(249,115,22,.06) 0%,transparent 55%),#0D0F16}
+html.dark .lp-feat,html.dark .lp-plan,html.dark .lp-testi,html.dark .lp-faq-item{background:var(--srf);border-color:var(--brd)}
+html.dark .lp-stats{background:var(--srf);border-color:var(--brd)}
+html.dark .lp-stat-div{background:var(--brd)}
+html.dark .lp-plan--pro{background:linear-gradient(160deg,rgba(249,115,22,.08) 0%,var(--srf) 50%)}
+html.dark .auth-card{background:var(--srf);border-color:var(--brd)}
+html.dark .auth-tabs{background:var(--bg)}
+html.dark .auth-tab.active{background:var(--srf2)}
+html.dark .auth-google-btn{background:var(--srf2);border-color:var(--brd);color:var(--t1)}
+html.dark .auth-field input{background:var(--srf2);border-color:var(--brd);color:var(--t1)}
+html.dark .deadline-banner--warn{background:rgba(245,158,11,.08);color:#fcd34d}
+html.dark .deadline-banner--urgent{background:rgba(220,38,38,.08);color:#fca5a5}
+html.dark .sn-item--accent{background:rgba(249,115,22,.08)!important}
+html.dark .topbar-period-pill{background:var(--srf2);border-color:var(--brd)}
+html.dark .period-sel{background:transparent;color:var(--t1)}
+html.dark .topbar-icon-btn{color:var(--t3);border-color:var(--brd)}
+html.dark .libro-legal-ref{background:var(--srf2)}
+html.dark .filter-sel{background:var(--srf2);border-color:var(--brd);color:var(--t1)}
+html.dark .legal-modal{background:var(--srf);border-color:var(--brd)}
+html.dark .legal-modal-header{border-color:var(--brd)}
+html.dark .modal-x,html.dark .auth-close{background:var(--srf2);border-color:var(--brd)}
+html.dark .badge.b-cobrada{background:#064e3b;color:#6ee7b7}
+html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
+
+/* Email button in presupuestos table */
+.ta-email{border-color:#bae6fd;background:#f0f9ff;color:#0284c7}
+.ta-email:hover{background:#bae6fd}
+
+/* ── LOGOS TAURIX ── */
+
+/* Nav landing: logo completo (toro+texto), pequeño */
+.lp-logo-img {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Hero landing: toro solo, grande */
+.lp-hero-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 40px;
+}
+.lp-hero-logo-img {
+  height: 200px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 36px rgba(249,115,22,.5));
+  animation: hero-logo-in .8s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes hero-logo-in {
+  from { opacity:0; transform:translateY(-22px) scale(.85); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+/* Sidebar app: toro solo */
+.app-logo-img {
+  height: 38px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Footer: toro solo */
+.lp-footer-logo-img {
+  height: 70px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  margin-bottom: 10px;
+}
+
+/* Auth modal: toro solo */
+.auth-logo {
+  width: 88px;
+  height: 88px;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+  box-shadow: none;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.auth-logo-bull {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 18px rgba(249,115,22,.4));
+}
