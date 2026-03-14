@@ -820,3 +820,22 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
   z-index: 1;
   filter: drop-shadow(0 2px 8px rgba(249,115,22,.4));
 }
+
+/* ── SIDEBAR LOGO — cajita clara sobre fondo oscuro ── */
+.app-logo {
+  padding: 0 14px !important;
+  justify-content: center !important;
+}
+.app-logo-img {
+  height: 28px !important;
+  width: auto !important;
+  object-fit: contain !important;
+  background: #FFFFFF !important;
+  border-radius: 10px !important;
+  padding: 6px 14px !important;
+  box-shadow:
+    0 0 0 1px rgba(249,115,22,.2),
+    0 4px 18px rgba(0,0,0,.4),
+    0 0 24px rgba(249,115,22,.1) !important;
+  filter: none !important;
+}
