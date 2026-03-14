@@ -280,25 +280,23 @@ export async function showPerfilModal() {
     <div class="modal" style="max-width:600px">
       <div class="modal-hd"><span class="modal-title">📋 Perfil Fiscal</span><button class="modal-x" onclick="window._cm()">×</button></div>
       <div class="modal-bd">
-        <p class="modal-note">Estos datos aparecen en los libros oficiales y en el encabezado de tus facturas. Obligatorios para exportar.</p>
+        <p class="modal-note">Estos datos aparecen en los libros oficiales y en el encabezado de tus facturas.</p>
 
-        <!-- LOGO EMPRESA -->
         <div class="modal-field">
           <label>Logo de empresa <span style="font-weight:400;color:var(--t4)">(aparece en facturas y presupuestos PDF)</span></label>
-          <div id="pf_logo_area" style="display:flex;align-items:center;gap:16px;margin-top:6px">
+          <div style="display:flex;align-items:center;gap:16px;margin-top:6px">
             <div id="pf_logo_preview" style="width:100px;height:60px;border:2px dashed var(--brd);border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--srf2);flex-shrink:0;cursor:pointer" onclick="document.getElementById('pf_logo_input').click()">
               ${logoActual
-                ? `<img src="${logoActual}" style="max-width:96px;max-height:56px;object-fit:contain" id="pf_logo_img"/>`
-                : `<span style="font-size:11px;color:var(--t4);text-align:center;padding:8px">Click para<br>subir logo</span>`
-              }
+                ? `<img src="${logoActual}" style="max-width:96px;max-height:56px;object-fit:contain"/>`
+                : `<span style="font-size:11px;color:var(--t4);text-align:center;padding:8px">Click para<br>subir logo</span>`}
             </div>
-            <div style="flex:1">
+            <div>
               <input type="file" id="pf_logo_input" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none"/>
-              <button type="button" onclick="document.getElementById('pf_logo_input').click()" class="btn-outline" style="font-size:12px;padding:7px 14px;margin-bottom:8px">
+              <button type="button" id="pf_logo_upload_btn" class="btn-outline" style="font-size:12px;padding:7px 14px;margin-bottom:8px">
                 📁 ${logoActual ? "Cambiar logo" : "Subir logo"}
               </button>
               ${logoActual ? `<button type="button" id="pf_logo_remove" class="btn-outline" style="font-size:12px;padding:7px 14px;margin-left:6px;color:var(--red);border-color:var(--red-mid)">🗑️ Quitar</button>` : ""}
-              <div style="font-size:11.5px;color:var(--t4);line-height:1.5">PNG, JPG o SVG · Máx. 500KB<br>Recomendado: fondo transparente</div>
+              <div style="font-size:11.5px;color:var(--t4);line-height:1.5;margin-top:4px">PNG, JPG o SVG · Máx. 500KB</div>
             </div>
           </div>
         </div>
@@ -330,35 +328,34 @@ export async function showPerfilModal() {
     </div>
   `);
 
-  // ── Logo upload handling ──
-  let _logoBase64 = logoActual; // starts with existing or empty
-
-  const logoInput = document.getElementById("pf_logo_input");
+  // ── Logo handling ──
+  let _logoBase64 = logoActual;
   const logoPreview = document.getElementById("pf_logo_preview");
+  const logoInput   = document.getElementById("pf_logo_input");
 
-  if (logoInput) {
-    logoInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      if (file.size > 500 * 1024) { toast("El logo no puede superar 500KB", "error"); return; }
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        _logoBase64 = ev.target.result; // base64 data URL
-        logoPreview.innerHTML = `<img src="${_logoBase64}" style="max-width:96px;max-height:56px;object-fit:contain" id="pf_logo_img"/>`;
-        toast("Logo cargado — guarda el perfil para aplicarlo", "info");
-      };
-      reader.readAsDataURL(file);
-    });
-  }
+  document.getElementById("pf_logo_upload_btn")?.addEventListener("click", () => logoInput?.click());
 
-  const removeBtn = document.getElementById("pf_logo_remove");
-  if (removeBtn) {
-    removeBtn.addEventListener("click", () => {
-      _logoBase64 = "";
-      logoPreview.innerHTML = `<span style="font-size:11px;color:var(--t4);text-align:center;padding:8px">Click para<br>subir logo</span>`;
-      toast("Logo eliminado — guarda para confirmar", "info");
-    });
-  }
+  logoInput?.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 500 * 1024) { toast("El logo no puede superar 500KB", "error"); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      _logoBase64 = ev.target.result;
+      logoPreview.innerHTML = `<img src="${_logoBase64}" style="max-width:96px;max-height:56px;object-fit:contain"/>`;
+      toast("Logo cargado — guarda el perfil para aplicarlo", "info");
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById("pf_logo_remove")?.addEventListener("click", () => {
+    _logoBase64 = "";
+    logoPreview.innerHTML = `<span style="font-size:11px;color:var(--t4);text-align:center;padding:8px">Click para<br>subir logo</span>`;
+    toast("Logo eliminado — guarda para confirmar", "info");
+  });
+
+  // ── Eliminar cuenta ──
+  document.getElementById("pf_delete_account").onclick = () => {
     closeModal();
     openModal(`
       <div class="modal">
@@ -384,7 +381,6 @@ export async function showPerfilModal() {
       const btn = document.getElementById("confirm_delete_btn");
       btn.disabled = true; btn.textContent = "Eliminando...";
       try {
-        // Eliminar todos los datos del usuario
         const uid = SESSION.user.id;
         await Promise.all([
           supabase.from("facturas").delete().eq("user_id", uid),
@@ -393,9 +389,8 @@ export async function showPerfilModal() {
           supabase.from("perfil_fiscal").delete().eq("user_id", uid),
           supabase.from("productos").delete().eq("user_id", uid),
         ]);
-        // Eliminar cuenta de auth
-        const { error } = await supabase.rpc("delete_user");
-        if (error) throw new Error(error.message);
+        const { error: de } = await supabase.rpc("delete_user");
+        if (de) throw new Error(de.message);
         await supabase.auth.signOut();
         window.location.reload();
       } catch(e) {
@@ -405,6 +400,7 @@ export async function showPerfilModal() {
     };
   };
 
+  // ── Guardar perfil ──
   document.getElementById("pf_save").onclick = async () => {
     const n   = document.getElementById("pf_nombre").value.trim();
     const nif = document.getElementById("pf_nif").value.trim();
@@ -413,18 +409,19 @@ export async function showPerfilModal() {
     const { error: ue } = await supabase.from("perfil_fiscal").upsert({
       user_id: SESSION.user.id,
       nombre_razon_social: n, nif,
-      actividad:       document.getElementById("pf_act").value.trim(),
-      domicilio_fiscal:document.getElementById("pf_dir").value.trim(),
-      telefono:        document.getElementById("pf_tel").value.trim(),
-      email:           document.getElementById("pf_email").value.trim(),
-      logo_url:        _logoBase64,
+      actividad:        document.getElementById("pf_act").value.trim(),
+      domicilio_fiscal: document.getElementById("pf_dir").value.trim(),
+      telefono:         document.getElementById("pf_tel").value.trim(),
+      email:            document.getElementById("pf_email").value.trim(),
+      logo_url:         _logoBase64,
       regime, updated_at: new Date().toISOString()
     }, { onConflict:"user_id" });
     if (ue) { toast("Error guardando perfil: "+ue.message,"error"); return; }
     const sfr = document.getElementById("sfRegimeTxt");
     const labels = {autonomo_ed:"Autónomo · Est. Directa",autonomo_es:"Autónomo · Est. Simplificada",sociedad:"Sociedad",autonomo_mod:"Autónomo · Módulos"};
     if (sfr) sfr.textContent = labels[regime]||"Autónomo";
-    closeModal(); toast("Perfil fiscal guardado","success");
+    closeModal();
+    toast("Perfil fiscal guardado ✅","success");
   };
 }
 window.showPerfilModal = showPerfilModal;
