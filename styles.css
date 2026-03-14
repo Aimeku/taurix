@@ -713,7 +713,7 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
   margin-bottom: 40px;
 }
 .lp-hero-logo-img {
-  height: 200px;
+  height: 400px;
   width: auto;
   object-fit: contain;
   filter: drop-shadow(0 6px 36px rgba(249,115,22,.5));
@@ -733,7 +733,7 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
 
 /* Footer: toro solo */
 .lp-footer-logo-img {
-  height: 70px;
+  height: 140px;
   width: auto;
   object-fit: contain;
   display: block;
