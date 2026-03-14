@@ -787,3 +787,36 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
 /* AUTH MODAL: toro solo, sin contenedor */
 .auth-logo { width:160px; height:160px; border-radius:0; background:transparent; overflow:visible; box-shadow:none; margin:0 auto 20px; display:flex; align-items:center; justify-content:center; }
 .auth-logo-bull { width:160px; height:160px; object-fit:contain; filter:drop-shadow(0 3px 14px rgba(249,115,22,.4)); }
+
+/* ── AUTH MODAL LOGO — toro en pill oscura ── */
+.auth-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 18px;
+  background: #0B0D12;
+  border-radius: 22px;
+  box-shadow:
+    0 0 0 1px rgba(249,115,22,.3),
+    0 8px 32px rgba(0,0,0,.5),
+    0 0 40px rgba(249,115,22,.12);
+  overflow: hidden;
+  position: relative;
+}
+.auth-logo-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 80%, rgba(249,115,22,.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+.auth-logo-bull {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 2px 8px rgba(249,115,22,.4));
+}
