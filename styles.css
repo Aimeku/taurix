@@ -858,3 +858,21 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
   box-shadow: none !important;
   filter: none !important;
 }
+
+/* ── SIDEBAR LOGO — fondo oscuro original, logo horizontal ── */
+.app-logo {
+  background: var(--sb) !important;
+  border-right: 1px solid var(--sb-brd) !important;
+  padding: 0 16px !important;
+  justify-content: flex-start !important;
+}
+.app-logo-img {
+  height: 34px !important;
+  width: auto !important;
+  object-fit: contain !important;
+  background: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
