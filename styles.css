@@ -161,7 +161,7 @@ table{border-collapse:collapse}
 /* ══ APP TOPBAR ══ */
 .app-topbar{position:fixed;top:0;left:0;right:0;height:var(--top-h);background:var(--srf);border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;padding:0 20px 0 0;z-index:200}
 .app-logo{width:var(--sb-w);display:flex;align-items:center;padding:0 22px;background:var(--sb);height:100%;border-right:1px solid var(--sb-brd);flex-shrink:0}
-.app-logo-img{height:34px;width:auto;object-fit:contain;filter:brightness(0) invert(1)}
+.app-logo-img{height:34px;width:auto;object-fit:contain;filter:none}
 .topbar-period-pill{display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--srf2);border:1px solid var(--brd);border-radius:10px;margin-left:20px}
 .topbar-period-pill svg{color:var(--t3);flex-shrink:0}
 .period-sel{border:none;background:transparent;font-size:13.5px;font-weight:700;color:var(--t1);font-family:var(--font);cursor:pointer;padding:0;min-width:84px}
@@ -781,7 +781,7 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
   to   { opacity:1; transform:translateY(0) scale(1); }
 }
 /* SIDEBAR APP: toro solo */
-.app-logo-img { height:76px; width:auto; object-fit:contain; }
+.app-logo-img { height:36px; width:auto; object-fit:contain; }
 /* FOOTER: toro solo */
 .lp-footer-logo-img { height:120px; width:auto; object-fit:contain; display:block; margin-bottom:10px; }
 /* AUTH MODAL: toro solo, sin contenedor */
