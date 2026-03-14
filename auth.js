@@ -82,7 +82,7 @@ export function showAuthModal() {
       <div class="auth-card">
         <div class="auth-header">
           <div class="auth-logo">
-            <img src="Logo_Sin_Texto.png" alt="Taurix" class="auth-logo-bull"/>
+            <img src="Logo_Sin_Texto_transparent.png" alt="Taurix" class="auth-logo-bull"/>
           </div>
           <h2 class="auth-title" id="authTitle">Accede a Taurix</h2>
           <p class="auth-sub" id="authSub">La herramienta fiscal que mereces</p>
