@@ -89,8 +89,8 @@ export function showAuthModal() {
               <line x1="16" y1="17" x2="8" y2="17"/>
             </svg>
           </div>
-          <h2 class="auth-title" id="authTitle">Accede a TuGestor</h2>
-          <p class="auth-sub" id="authSub">Gestiona tus facturas e impuestos en un clic</p>
+          <h2 class="auth-title" id="authTitle">Accede a Taurix</h2>
+          <p class="auth-sub" id="authSub">La herramienta fiscal que mereces</p>
         </div>
         <div class="auth-tabs" id="authTabs">
           <button class="auth-tab active" data-tab="login">Entrar</button>
@@ -170,7 +170,7 @@ export function showAuthModal() {
     });
     document.getElementById("authTabs").style.display = tab==="forgot"?"none":"";
     showError(""); showSuccess("");
-    const titles={login:"Accede a TuGestor",register:"Crea tu cuenta gratis",forgot:"Recuperar contraseña"};
+    const titles={login:"Accede a Taurix",register:"Crea tu cuenta gratis",forgot:"Recuperar contraseña"};
     document.getElementById("authTitle").textContent=titles[tab];
   };
 
