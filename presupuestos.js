@@ -80,8 +80,6 @@ export async function refreshPresupuestos() {
         <td>
           <div class="tbl-act">
             ${p.estado !== "aceptado" ? `<button class="ta-btn ta-emit" onclick="window._presTofact('${p.id}')" title="Convertir a factura">📄→🧾</button>` : ""}
-            <button class="ta-btn ta-email" onclick="window._presEmail('${p.id}')" title="Enviar por email">📧</button>
-            <button class="ta-btn" onclick="window._presPDF('${p.id}')" title="Descargar PDF">📄</button>
             <button class="ta-btn" onclick="window._editPres('${p.id}')" title="Editar">✏️</button>
             <button class="ta-btn" onclick="window._dupPres('${p.id}')" title="Duplicar">📋</button>
             <button class="ta-btn ta-del" onclick="window._delPres('${p.id}')" title="Eliminar">🗑️</button>
@@ -396,247 +394,246 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
   const { jsPDF } = window.jspdf || window;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
 
-  const PW = 210, PH = 297, ML = 15, MR = 15, W = PW - ML - MR;
-  const BRAND=[249,115,22], DARK=[11,13,18], GRAY=[107,114,128], LIGHT=[243,244,246], WHITE=[255,255,255];
+  const PW = 210, PH = 297, ML = 14, MR = 14, W = PW - ML - MR;
+  const OX    = [249,115,22];
+  const DARK  = [11,13,18];
+  const DARK2 = [30,35,50];
+  const GRAY  = [107,114,128];
+  const LGRAY = [200,203,214];
+  const LIGHT = [248,249,252];
+  const WHITE = [255,255,255];
+  const OXLT  = [255,247,237];
 
-  doc.setFillColor(...BRAND);
-  doc.rect(0, 0, PW, 42, "F");
+  // Cabecera negra con franja naranja
+  doc.setFillColor(...DARK); doc.rect(0, 0, PW, 48, "F");
+  doc.setFillColor(...OX);   doc.rect(0, 45, PW, 3, "F");
 
+  // Logo empresa
   let logoB64 = perfil.logo_url ? await logoToBase64(perfil.logo_url) : null;
   if (logoB64) {
     try {
       const mime = logoB64.split(";")[0].split(":")[1];
       const fmt2 = mime.includes("png") ? "PNG" : "JPEG";
-      doc.addImage(logoB64, fmt2, ML, 7, 44, 20, undefined, "FAST");
-    } catch(e) { console.warn("Logo:", e); }
+      doc.addImage(logoB64, fmt2, ML, 8, 0, 28, "", "FAST");
+    } catch(e) {
+      doc.setFont("helvetica","bold"); doc.setFontSize(16); doc.setTextColor(...WHITE);
+      doc.text(perfil.nombre_razon_social||"Taurix", ML, 22);
+    }
   } else {
-    doc.setFont("helvetica","bold"); doc.setFontSize(17); doc.setTextColor(...WHITE);
-    doc.text(perfil.nombre_razon_social||"Taurix", ML, 23);
+    doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.setTextColor(...WHITE);
+    doc.text(perfil.nombre_razon_social||"Taurix", ML, 24);
+    doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(...LGRAY);
+    if(perfil.nif) doc.text("NIF: "+perfil.nif, ML, 31);
   }
 
-  doc.setFont("helvetica","bold"); doc.setFontSize(24); doc.setTextColor(...WHITE);
-  doc.text("PRESUPUESTO", PW-MR, 18, {align:"right"});
-  doc.setFontSize(11); doc.setFont("helvetica","normal");
+  // PRESUPUESTO label + número
+  doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...LGRAY);
+  doc.text("PRESUPUESTO", PW-MR, 15, {align:"right"});
+  doc.setFont("helvetica","bold"); doc.setFontSize(20); doc.setTextColor(...OX);
   doc.text(p.numero||"S/N", PW-MR, 26, {align:"right"});
   const estadoLabel = {borrador:"Borrador",enviado:"Enviado",aceptado:"Aceptado",rechazado:"Rechazado"}[p.estado]||"";
-  doc.setFontSize(9); doc.text(estadoLabel, PW-MR, 33, {align:"right"});
+  const estadoColor = p.estado==="aceptado" ? [5,150,105] : p.estado==="rechazado" ? [220,38,38] : [249,115,22];
+  doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...estadoColor);
+  doc.text(estadoLabel.toUpperCase(), PW-MR, 35, {align:"right"});
 
-  let y = 52;
+  let y = 58;
 
-  doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...GRAY);
-  doc.text("EMITIDO POR", ML, y); y += 5;
-  doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...DARK);
-  doc.text(perfil.nombre_razon_social||"—", ML, y); y += 5;
-  doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...GRAY);
-  if (perfil.nif)              { doc.text(`NIF: ${perfil.nif}`, ML, y); y += 4.5; }
-  if (perfil.domicilio_fiscal) { const ls=doc.splitTextToSize(perfil.domicilio_fiscal,88); doc.text(ls,ML,y); y+=ls.length*4.5; }
-  if (perfil.telefono)         { doc.text(`Tel: ${perfil.telefono}`, ML, y); y += 4.5; }
-  if (perfil.email)            { doc.text(perfil.email, ML, y); }
+  // Emisor + Cliente en dos columnas
+  const COL1 = ML, COL2 = PW/2 + 4, colW = W/2 - 6;
+  doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(...OX);
+  doc.text("DE", COL1, y); doc.text("PARA", COL2, y); y += 4;
+  doc.setDrawColor(...OX); doc.setLineWidth(0.4);
+  doc.line(COL1, y, COL1+colW, y); doc.line(COL2, y, COL2+colW, y); y += 5;
 
-  const RX = PW/2 + 5; let ry = 52;
-  doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...GRAY);
-  doc.text("PRESUPUESTO PARA", RX, ry); ry += 5;
-  doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...DARK);
-  doc.text(p.cliente_nombre||"—", RX, ry); ry += 5;
-  doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...GRAY);
-  if (p.cliente_nif)       { doc.text(`NIF: ${p.cliente_nif}`, RX, ry); ry += 4.5; }
-  if (p.cliente_direccion) { doc.text(p.cliente_direccion, RX, ry); ry += 4.5; }
-  if (p.cliente_email)     { doc.text(p.cliente_email, RX, ry); }
+  const yTop = y;
+  doc.setFont("helvetica","bold"); doc.setFontSize(9.5); doc.setTextColor(...DARK);
+  doc.text(perfil.nombre_razon_social||"—", COL1, y); y += 5;
+  doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...GRAY);
+  if(perfil.nif)              { doc.text("NIF: "+perfil.nif, COL1, y); y+=4; }
+  if(perfil.domicilio_fiscal) { const ls=doc.splitTextToSize(perfil.domicilio_fiscal,colW); doc.text(ls,COL1,y); y+=ls.length*4; }
+  if(perfil.telefono)         { doc.text("Tel: "+perfil.telefono, COL1, y); y+=4; }
+  if(perfil.email)            { doc.text(perfil.email, COL1, y); }
 
+  let ry = yTop;
+  doc.setFont("helvetica","bold"); doc.setFontSize(9.5); doc.setTextColor(...DARK);
+  doc.text(p.cliente_nombre||"—", COL2, ry); ry += 5;
+  doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...GRAY);
+  if(p.cliente_nif)       { doc.text("NIF: "+p.cliente_nif, COL2, ry); ry+=4; }
+  if(p.cliente_direccion) { const ls=doc.splitTextToSize(p.cliente_direccion,colW); doc.text(ls,COL2,ry); ry+=ls.length*4; }
+  if(p.cliente_email)     { doc.text(p.cliente_email, COL2, ry); }
   y = Math.max(y, ry) + 10;
-  doc.setDrawColor(229,231,235); doc.setLineWidth(0.3);
-  doc.line(ML, y, PW-MR, y); y += 7;
 
+  // Metadata pill
+  doc.setFillColor(...LIGHT); doc.roundedRect(ML, y, W, 14, 2, 2, "F");
+  doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2); doc.roundedRect(ML, y, W, 14, 2, 2, "S");
   const meta = [
-    { label:"Fecha emisión",  value: p.fecha ? new Date(p.fecha).toLocaleDateString("es-ES") : "—" },
-    { label:"Válido hasta",   value: p.fecha_validez ? new Date(p.fecha_validez).toLocaleDateString("es-ES") : "—" },
-    { label:"Referencia",     value: p.numero||"S/N" },
-    { label:"Estado",         value: estadoLabel },
+    { label:"Fecha emisión", value: p.fecha ? new Date(p.fecha).toLocaleDateString("es-ES") : "—" },
+    { label:"Válido hasta",  value: p.fecha_validez ? new Date(p.fecha_validez).toLocaleDateString("es-ES") : "—" },
+    { label:"Referencia",    value: p.numero||"S/N" },
+    { label:"Estado",        value: estadoLabel },
   ];
   const mW = W / meta.length;
   meta.forEach((m, i) => {
-    const x = ML + i*mW;
-    doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
-    doc.text(m.label.toUpperCase(), x, y);
-    doc.setFont("helvetica","bold"); doc.setFontSize(9.5); doc.setTextColor(...DARK);
-    doc.text(m.value, x, y+5.5);
+    const x = ML + i*mW + 4;
+    if(i>0) { doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2); doc.line(ML+i*mW, y+2, ML+i*mW, y+12); }
+    doc.setFont("helvetica","normal"); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
+    doc.text(m.label.toUpperCase(), x, y+5.5);
+    doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+    doc.text(m.value, x, y+11);
   });
-  y += 14;
+  y += 20;
 
-  if (p.concepto) {
-    doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(...DARK);
-    doc.text(p.concepto, ML, y); y += 9;
+  // Concepto
+  if(p.concepto) {
+    doc.setFont("helvetica","bold"); doc.setFontSize(14); doc.setTextColor(...DARK);
+    doc.text(p.concepto, ML, y); y += 10;
   }
 
-  doc.setFillColor(...BRAND);
-  doc.rect(ML, y, W, 8, "F");
-  doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...WHITE);
-  const COL = { desc:ML+2, cant:ML+99, price:ML+119, iva:ML+145, total:PW-MR };
-  doc.text("DESCRIPCIÓN", COL.desc,  y+5.2);
-  doc.text("CANT.",        COL.cant,  y+5.2);
-  doc.text("P. UNITARIO",  COL.price, y+5.2);
-  doc.text("IVA",          COL.iva,   y+5.2);
-  doc.text("TOTAL",        COL.total, y+5.2, {align:"right"});
-  y += 8;
+  // Tabla líneas — header negro
+  doc.setFillColor(...DARK); doc.rect(ML, y, W, 9, "F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
+  const C = { desc:ML+3, cant:ML+100, price:ML+120, iva:ML+146, total:PW-MR-2 };
+  doc.text("DESCRIPCIÓN", C.desc, y+5.8);
+  doc.text("CANT.", C.cant, y+5.8);
+  doc.text("P. UNIT.", C.price, y+5.8);
+  doc.text("IVA", C.iva, y+5.8);
+  doc.text("TOTAL", C.total, y+5.8, {align:"right"});
+  y += 9;
 
   let baseTotal = 0; const ivaMap = {};
   lineas.forEach((l, idx) => {
     const sub = (l.cantidad||0)*(l.precio||0);
-    baseTotal += sub; ivaMap[l.iva] = (ivaMap[l.iva]||0)+sub*l.iva/100;
-    const rH = 7.5;
-    if (idx%2===0) { doc.setFillColor(...LIGHT); doc.rect(ML, y, W, rH, "F"); }
-    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...DARK);
-    doc.text((l.descripcion||"—").slice(0,60), COL.desc, y+5);
-    doc.text(String(l.cantidad||0), COL.cant, y+5);
-    doc.text(fmt(l.precio||0), COL.price, y+5);
-    doc.text((l.iva||0)+"%", COL.iva, y+5);
-    doc.setFont("helvetica","bold");
-    doc.text(fmt(sub), COL.total, y+5, {align:"right"});
-    doc.setDrawColor(229,231,235); doc.setLineWidth(0.15);
-    doc.line(ML, y+rH, PW-MR, y+rH);
+    baseTotal += sub; ivaMap[l.iva] = (ivaMap[l.iva]||0)+sub*(l.iva||0)/100;
+    const rH = 8;
+    if(idx%2===0) { doc.setFillColor(250,251,254); doc.rect(ML, y, W, rH, "F"); }
+    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.1); doc.line(ML, y+rH, ML+W, y+rH);
+    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...DARK2);
+    doc.text((l.descripcion||"—").slice(0,55), C.desc, y+5.5);
+    doc.setTextColor(...GRAY);
+    doc.text(String(l.cantidad||1), C.cant, y+5.5);
+    doc.text(fmt(l.precio||0), C.price, y+5.5);
+    doc.text((l.iva||0)+"%", C.iva, y+5.5);
+    doc.setFont("helvetica","bold"); doc.setTextColor(...DARK);
+    doc.text(fmt(sub), C.total, y+5.5, {align:"right"});
     y += rH;
   });
+  y += 8;
 
-  y += 7;
-  const ivaTotal = Object.values(ivaMap).reduce((a,b)=>a+b,0);
-  const totalFinal = baseTotal + ivaTotal;
-  const TX = PW - MR - 72;
-
-  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...GRAY);
+  // Totales
+  const TX = PW - MR - 75;
+  doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2); doc.line(TX, y-2, PW-MR, y-2);
+  doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...GRAY);
   doc.text("Base imponible", TX, y);
   doc.setTextColor(...DARK); doc.text(fmt(baseTotal), PW-MR, y, {align:"right"}); y += 6;
-
   Object.entries(ivaMap).filter(([,v])=>v>0).forEach(([pct,amt]) => {
-    doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...GRAY);
-    doc.text(`IVA ${pct}%`, TX, y);
+    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...GRAY);
+    doc.text("IVA "+pct+"%", TX, y);
     doc.setTextColor(...DARK); doc.text(fmt(amt), PW-MR, y, {align:"right"}); y += 6;
   });
+  doc.setFillColor(...OX); doc.roundedRect(TX-4, y-1, PW-MR-TX+4, 12, 2, 2, "F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(...WHITE);
+  doc.text("TOTAL", TX, y+7.5);
+  doc.setFontSize(11); doc.text(fmt(baseTotal+Object.values(ivaMap).reduce((a,b)=>a+b,0)), PW-MR-2, y+7.5, {align:"right"});
+  y += 20;
 
-  doc.setFillColor(...BRAND);
-  doc.roundedRect(TX-4, y-2, PW-MR-TX+4, 11, 2, 2, "F");
-  doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(...WHITE);
-  doc.text("TOTAL", TX, y+6);
-  doc.text(fmt(totalFinal), PW-MR, y+6, {align:"right"});
-  y += 18;
-
-  if (p.notas && y < PH-40) {
-    doc.setFillColor(239,246,255);
-    const notaLines = doc.splitTextToSize(p.notas, W-20);
+  // Notas
+  if(p.notas && y < PH-50) {
+    doc.setFillColor(...OXLT); doc.setDrawColor(...OX); doc.setLineWidth(0.3);
+    const notaLines = doc.splitTextToSize(p.notas, W-22);
     const notaH = notaLines.length*4.5+16;
-    doc.roundedRect(ML, y, W, notaH, 3, 3, "F");
-    doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(...BRAND);
-    doc.text("NOTAS Y CONDICIONES", ML+6, y+8);
-    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...DARK);
-    doc.text(notaLines, ML+6, y+14);
+    doc.roundedRect(ML, y, W, notaH, 2, 2, "F"); doc.roundedRect(ML, y, W, notaH, 2, 2, "S");
+    doc.setFillColor(...OX); doc.rect(ML, y, 2.5, notaH, "F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...OX);
+    doc.text("NOTAS Y CONDICIONES", ML+6, y+7);
+    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...DARK2);
+    doc.text(notaLines, ML+6, y+13);
     y += notaH+8;
   }
 
-  doc.setFillColor(...LIGHT);
-  doc.rect(0, PH-14, PW, 14, "F");
-  doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...GRAY);
-  const pie = [perfil.nombre_razon_social, perfil.nif?"NIF "+perfil.nif:null, perfil.domicilio_fiscal, perfil.email].filter(Boolean).join(" · ");
-  doc.text(pie||"Generado con Taurix", PW/2, PH-6, {align:"center", maxWidth:W});
+  // Pie de página
+  doc.setFillColor(...DARK); doc.rect(0, PH-16, PW, 16, "F");
+  doc.setFillColor(...OX);   doc.rect(0, PH-16, PW, 1.5, "F");
+  doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...LGRAY);
+  const pie = [perfil.nombre_razon_social, perfil.nif?"NIF "+perfil.nif:null, perfil.email||"taurixsupport@gmail.com"].filter(Boolean).join("  ·  ");
+  doc.text(pie, PW/2, PH-7, {align:"center", maxWidth:W});
 
   const filename = `presupuesto_${(p.numero||p.id.slice(0,8)).replace(/\//g,"-")}.pdf`;
-  if (descargar) { doc.save(filename); toast("📄 PDF descargado","success"); return null; }
+  if(descargar) { doc.save(filename); toast("📄 PDF descargado","success"); return null; }
   return { blob: doc.output("blob"), filename, dataUri: doc.output("datauristring") };
+
 }
 
 /* ══════════════════════════════════════════════════
-   MODAL ENVIAR PRESUPUESTO POR EMAIL
-   — Genera el PDF, lo descarga automáticamente,
-     y abre el cliente de email con todo prellenado
+   MODAL ENVIAR EMAIL VIA GMAIL
 ══════════════════════════════════════════════════ */
 export async function showEnviarEmailModal(presId) {
   const { data: p, error } = await supabase.from("presupuestos")
     .select("*").eq("id", presId).single();
-  if (error || !p) { toast("Error cargando presupuesto", "error"); return; }
+  if (error||!p) { toast("Error cargando presupuesto","error"); return; }
 
   const perfil  = await cargarPerfil();
-  const cliente = CLIENTES.find(c => c.id === p.cliente_id);
+  const cliente = CLIENTES.find(c=>c.id===p.cliente_id);
   const emailTo = cliente?.email || p.cliente_email || "";
-  const emailDe = perfil.email || "";
-  const totalFmt = fmt(p.base + p.base * p.iva / 100);
-  const validez  = p.fecha_validez
-    ? new Date(p.fecha_validez).toLocaleDateString("es-ES") : "";
-
-  const bodyDefecto = `Estimado/a ${p.cliente_nombre || "cliente"},
-
-Adjunto encontrará el presupuesto ${p.numero || ""} correspondiente a: ${p.concepto || "los servicios solicitados"}.
-
-Importe total: ${totalFmt}${validez ? "\nVálido hasta: " + validez : ""}
-
-Para aceptar el presupuesto o resolver cualquier duda, puede responder a este correo.
-
-Un saludo,
-${perfil.nombre_razon_social || ""}${perfil.telefono ? "\n" + perfil.telefono : ""}`;
 
   openModal(`
-    <div class="modal" style="max-width:580px">
+    <div class="modal modal--wide">
       <div class="modal-hd">
         <span class="modal-title">📧 Enviar presupuesto por email</span>
         <button class="modal-x" onclick="window._cm()">×</button>
       </div>
       <div class="modal-bd">
 
-        <!-- Resumen del presupuesto -->
-        <div style="background:var(--srf2);border:1px solid var(--brd);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:14px">
-          <div style="width:44px;height:44px;background:var(--ox-lt);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📋</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-family:var(--font-hd);font-weight:800;font-size:14px;color:var(--t1)">${p.numero || "S/N"} · ${p.cliente_nombre || "—"}</div>
-            <div style="font-size:12px;color:var(--t3);margin-top:2px">${p.concepto || "—"}</div>
+        <div class="email-taurix-badge">
+          <img src="Logo_Taurix.png" alt="Taurix" style="height:20px"/>
+          <span>Enviado desde <strong>presupuestos@taurix.es</strong> en nombre tuyo</span>
+        </div>
+
+        <div class="email-pres-preview">
+          <div class="epp-num">${p.numero||"S/N"}</div>
+          <div class="epp-datos">
+            <span><strong>${p.cliente_nombre||"—"}</strong></span>
+            <span class="mono fw7" style="color:var(--brand)">${fmt(p.base+p.base*p.iva/100)}</span>
+            ${p.fecha_validez?`<span style="color:var(--t3);font-size:12px">Válido hasta ${new Date(p.fecha_validez).toLocaleDateString("es-ES")}</span>`:""}
           </div>
-          <div style="font-family:var(--font-hd);font-weight:900;font-size:18px;color:var(--ox);white-space:nowrap">${totalFmt}</div>
         </div>
 
         <div class="modal-grid2">
           <div class="modal-field">
-            <label>Tu email (remitente) *</label>
-            <input id="em_de" class="ff-input" type="email" value="${emailDe}" placeholder="tu@empresa.com"/>
-          </div>
-          <div class="modal-field">
-            <label>Email del cliente (destinatario) *</label>
+            <label>Email del cliente *</label>
             <input id="em_to" class="ff-input" type="email" value="${emailTo}" placeholder="cliente@empresa.com"/>
           </div>
+          <div class="modal-field">
+            <label>CC (opcional)</label>
+            <input id="em_cc" class="ff-input" type="email" placeholder="copia@tuempresa.com"/>
+          </div>
         </div>
 
         <div class="modal-field">
-          <label>CC (con copia, opcional)</label>
-          <input id="em_cc" class="ff-input" type="email" placeholder="otro@empresa.com"/>
-        </div>
-
-        <div class="modal-field">
-          <label>Asunto del email</label>
-          <input id="em_subject" class="ff-input" value="Presupuesto ${p.numero || ""} — ${p.concepto || ""}"/>
+          <label>Asunto</label>
+          <input id="em_subject" class="ff-input" value="Presupuesto ${p.numero||""} — ${p.concepto||""}"/>
         </div>
 
         <div class="modal-field">
           <label>Mensaje</label>
-          <textarea id="em_body" class="ff-input ff-textarea" style="min-height:150px;font-size:13px;line-height:1.6">${bodyDefecto}</textarea>
+          <textarea id="em_body" class="ff-input ff-textarea" style="min-height:120px">${_defaultEmailBody(p, perfil)}</textarea>
         </div>
 
-        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
-          <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13.5px;color:var(--t2)">
-            <input type="checkbox" id="em_adjuntar" checked style="width:16px;height:16px;accent-color:var(--ox)"/>
-            <span>📎 Descargar automáticamente el PDF para adjuntarlo</span>
+        <div class="email-options-row">
+          <label class="email-check-lbl">
+            <input type="checkbox" id="em_adjuntar" checked/>
+            <span>📎 Adjuntar PDF del presupuesto</span>
           </label>
-          <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13.5px;color:var(--t2)">
-            <input type="checkbox" id="em_marcar" checked style="width:16px;height:16px;accent-color:var(--ox)"/>
-            <span>📤 Marcar presupuesto como "Enviado" al enviar</span>
+          <label class="email-check-lbl">
+            <input type="checkbox" id="em_marcar_enviado" checked/>
+            <span>📤 Marcar como "Enviado"</span>
           </label>
-        </div>
-
-        <div style="background:var(--ox-lt);border:1px solid var(--ox-mid);border-radius:9px;padding:11px 14px;margin-top:18px;font-size:12.5px;color:var(--ox-dd);display:flex;gap:10px;align-items:flex-start;line-height:1.5">
-          <span style="font-size:16px;flex-shrink:0">💡</span>
-          <span>El botón abrirá tu cliente de correo (Gmail, Outlook…) con todo prellenado. Solo tendrás que adjuntar el PDF descargado y pulsar Enviar.</span>
         </div>
       </div>
-
       <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
-        <button class="btn-modal-save" id="em_send" style="gap:8px">
+        <button class="btn-modal-save btn-send-email" id="em_send">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          Preparar y enviar
+          Enviar presupuesto
         </button>
       </div>
     </div>
@@ -644,71 +641,99 @@ ${perfil.nombre_razon_social || ""}${perfil.telefono ? "\n" + perfil.telefono : 
 
   document.getElementById("em_send")?.addEventListener("click", async () => {
     const to      = document.getElementById("em_to").value.trim();
-    const de      = document.getElementById("em_de").value.trim();
-    const cc      = document.getElementById("em_cc").value.trim();
     const subject = document.getElementById("em_subject").value.trim();
     const body    = document.getElementById("em_body").value.trim();
-    const adjuntar  = document.getElementById("em_adjuntar").checked;
-    const marcarEnv = document.getElementById("em_marcar").checked;
+    const cc      = document.getElementById("em_cc").value.trim();
+    const adjuntar    = document.getElementById("em_adjuntar").checked;
+    const marcarEnv   = document.getElementById("em_marcar_enviado").checked;
 
-    if (!to)      { toast("Introduce el email del cliente", "error"); return; }
-    if (!subject) { toast("Introduce el asunto", "error"); return; }
+    if (!to)      { toast("Introduce el email del cliente","error"); return; }
+    if (!subject) { toast("Introduce el asunto","error"); return; }
 
     const btn = document.getElementById("em_send");
     btn.disabled = true;
-    btn.innerHTML = `<span class="spin"></span> Preparando…`;
+    btn.innerHTML = `<span class="spin"></span> Generando PDF…`;
 
     try {
-      // 1. Descargar PDF si está marcado
+      let pdfBase64 = null, pdfFilename = null;
       if (adjuntar) {
-        btn.innerHTML = `<span class="spin"></span> Generando PDF…`;
-        await generarPDFPresupuesto(presId, true);
-        // Pequeña pausa para que el navegador procese la descarga
-        await new Promise(r => setTimeout(r, 400));
+        const result = await generarPDFPresupuesto(presId, false);
+        if (result) {
+          pdfBase64 = await new Promise((res,rej) => {
+            const reader = new FileReader();
+            reader.onload  = () => res(reader.result.split(",")[1]);
+            reader.onerror = rej;
+            reader.readAsDataURL(result.blob);
+          });
+          pdfFilename = result.filename;
+        }
       }
 
-      // 2. Marcar como enviado si está marcado
+      btn.innerHTML = `<span class="spin"></span> Enviando…`;
+
+      const { data: resp, error: fnErr } = await supabase.functions.invoke("send-presupuesto", {
+        body: {
+          to, cc: cc||null,
+          from_name:   perfil.nombre_razon_social || "Taurix",
+          from_email:  "presupuestos@taurix.es",
+          subject,
+          body_text: body,
+          body_html: _bodyToHtml(body, p, perfil),
+          pdf_base64:  pdfBase64,
+          pdf_filename: pdfFilename,
+        }
+      });
+
+      if (fnErr) throw new Error(fnErr.message);
+      if (resp?.error) throw new Error(resp.error);
+
       if (marcarEnv && p.estado === "borrador") {
         await supabase.from("presupuestos").update({
           estado: "enviado",
-          fecha_envio: new Date().toISOString().slice(0, 10)
+          fecha_envio: new Date().toISOString().slice(0,10)
         }).eq("id", presId);
       }
 
-      // 3. Construir mailto y abrir cliente de correo
-      const mailtoParams = new URLSearchParams();
-      if (cc) mailtoParams.set("cc", cc);
-      mailtoParams.set("subject", subject);
-      mailtoParams.set("body", body);
-
-      // URLSearchParams codifica + en vez de %20, corregimos
-      const mailtoStr = `mailto:${encodeURIComponent(to)}?${mailtoParams.toString().replace(/\+/g, "%20")}`;
-
-      // También añadir "from" hint si el cliente lo soporta
-      const mailtoFull = de ? mailtoStr.replace("mailto:", `mailto:`) : mailtoStr;
-
-      window.location.href = mailtoFull;
-
       closeModal();
-      toast(`📧 Cliente de correo abierto — adjunta el PDF descargado y envía`, "success", 6000);
+      toast(`✅ Presupuesto enviado a ${to}`, "success", 5000);
       await refreshPresupuestos();
 
     } catch(e) {
-      toast("Error: " + e.message, "error");
+      toast("❌ Error: "+e.message,"error",7000);
       btn.disabled = false;
-      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Preparar y enviar`;
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar desde Gmail`;
     }
   });
 }
 
 function _defaultEmailBody(p, perfil) {
-  // kept for backwards compat — not used in new flow
-  return "";
+  const nom   = perfil.nombre_razon_social || "nosotros";
+  const valid = p.fecha_validez ? `\n\nEste presupuesto es válido hasta el ${new Date(p.fecha_validez).toLocaleDateString("es-ES")}.` : "";
+  return `Estimado/a ${p.cliente_nombre||"cliente"},\n\nAdjunto encontrará el presupuesto ${p.numero||""} correspondiente a: ${p.concepto||"los servicios solicitados"}.\n\nImporte total: ${fmt(p.base+p.base*p.iva/100)}${valid}\n\nPara aceptar el presupuesto o si tiene cualquier consulta, no dude en contactarnos.\n\nUn saludo,\n${nom}`;
 }
 
 function _bodyToHtml(text, p, perfil) {
-  // kept for backwards compat — not used in new flow
-  return "";
+  const esc  = text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const body = esc.split("\n\n").map(b=>`<p style="margin:0 0 14px;line-height:1.6">${b.replace(/\n/g,"<br/>")}</p>`).join("");
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:system-ui,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 0"><tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
+<tr><td style="background:#1a56db;padding:28px 36px">
+  <h1 style="margin:0;color:#fff;font-size:22px;font-weight:800">Presupuesto ${p.numero||""}</h1>
+  <p style="margin:6px 0 0;color:rgba(255,255,255,.8);font-size:14px">${p.concepto||""}</p>
+</td></tr>
+<tr><td style="background:#eff6ff;padding:20px 36px;border-bottom:2px solid #dbeafe">
+  <span style="font-size:11px;color:#6b7280;text-transform:uppercase">Importe total</span><br/>
+  <span style="font-size:28px;font-weight:800;color:#1a56db">${fmt(p.base+p.base*p.iva/100)}</span>
+</td></tr>
+<tr><td style="padding:32px 36px;font-size:15px;color:#374151">${body}</td></tr>
+<tr><td style="background:#f9fafb;padding:18px 36px;border-top:1px solid #e5e7eb">
+  <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center">
+    ${perfil.nombre_razon_social||""}${perfil.nif?" · NIF "+perfil.nif:""}
+  </p>
+</td></tr>
+</table></td></tr></table></body></html>`;
 }
 
 window._logoutAndReconnect = async () => {
