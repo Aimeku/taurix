@@ -847,3 +847,88 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
   opacity: .7 !important;
   filter: none !important;
 }
+
+/* ═══════════════════════════════════════════════════════
+   TAURIX LOGOS — mix-blend-mode: screen elimina el negro
+   Negro puro (0,0,0) = transparente con screen blend mode
+   Solo queda el toro naranja brillante sobre cualquier fondo
+═══════════════════════════════════════════════════════ */
+
+/* ── NAV top-left: toro+texto, negro desaparece ── */
+.lp-logo-img {
+  height: 48px !important;
+  width: auto !important;
+  object-fit: contain !important;
+  mix-blend-mode: screen !important;
+  background: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  filter: none !important;
+}
+
+/* ── HERO: logo completo grande y centrado ── */
+.lp-hero-logo {
+  margin-bottom: 36px !important;
+}
+.lp-hero-logo-img {
+  height: 180px !important;
+  width: auto !important;
+  object-fit: contain !important;
+  mix-blend-mode: screen !important;
+  background: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  filter: drop-shadow(0 0 32px rgba(249,115,22,.45)) !important;
+  animation: hero-logo-in .8s cubic-bezier(.16,1,.3,1) both !important;
+  box-shadow: none !important;
+}
+@keyframes hero-logo-in {
+  from { opacity:0; transform:translateY(-24px) scale(.85); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+/* ── FOOTER: logo completo más grande ── */
+.lp-footer-logo-img {
+  height: 72px !important;
+  width: auto !important;
+  object-fit: contain !important;
+  mix-blend-mode: screen !important;
+  background: none !important;
+  filter: none !important;
+  display: block !important;
+  margin-bottom: 8px !important;
+}
+
+/* ── APP SIDEBAR: toro+texto sobre fondo negro del sidebar ── */
+.app-logo-img {
+  height: 38px !important;
+  width: auto !important;
+  object-fit: contain !important;
+  mix-blend-mode: screen !important;
+  background: none !important;
+  filter: none !important;
+}
+
+/* ── AUTH MODAL: solo el toro, sin fondo ── */
+.auth-logo {
+  width: 80px !important;
+  height: 80px !important;
+  border-radius: 20px !important;
+  background: #0B0D12 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 6px 32px rgba(249,115,22,.3), 0 0 0 1px rgba(249,115,22,.2) !important;
+  margin: 0 auto 20px !important;
+}
+.auth-logo-bull {
+  /* Logo 1280x640 — toro centrado, aplicamos mix-blend sobre fondo oscuro */
+  width: 120px !important;
+  height: 120px !important;
+  object-fit: cover !important;
+  object-position: center 40% !important;
+  margin: 0 !important;
+  mix-blend-mode: screen !important;
+  flex-shrink: 0 !important;
+}
