@@ -314,6 +314,16 @@ async function loadPerfilForPreview() {
   set("pvEmisorNombre", pf?.nombre_razon_social||"Tu nombre / empresa");
   set("pvEmisorNif",    pf?.nif?"NIF: "+pf.nif:"");
   set("pvEmisorDir",    pf?.domicilio_fiscal||"");
+
+  // Logo en preview
+  const logoWrap = document.getElementById("pvEmisorLogo");
+  if (logoWrap) {
+    if (pf?.logo_url) {
+      logoWrap.innerHTML = `<img src="${pf.logo_url}" style="max-height:40px;max-width:120px;object-fit:contain;margin-bottom:4px"/>`;
+    } else {
+      logoWrap.innerHTML = "";
+    }
+  }
 }
 
 /* ══════════════════════════
