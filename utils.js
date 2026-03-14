@@ -286,7 +286,7 @@ export async function checkOnboarding() {
   banner.innerHTML = `
     <div class="onboard-banner">
       <div class="onboard-header">
-        <span class="onboard-title">🚀 Empezando con TuGestor — ${steps.filter(s=>s.done).length} de 3 pasos completados</span>
+        <span class="onboard-title">🚀 Empezando con Taurix — ${steps.filter(s=>s.done).length} de 3 pasos completados</span>
         <button onclick="localStorage.setItem('tg_onboard_done','1');document.getElementById('onboardingBanner').style.display='none'" class="deadline-close">×</button>
       </div>
       <div class="onboard-steps">
