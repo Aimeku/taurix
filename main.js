@@ -184,6 +184,8 @@ async function refreshCobros() {
   }
 }
 window._refreshCobros = refreshCobros;
+
+/* ══════════════════════════
    Muestra una notificación en el dashboard
    si el trimestre actual está próximo a cerrar
    y hay borradores sin emitir.
