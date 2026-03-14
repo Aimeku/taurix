@@ -81,7 +81,7 @@ export function showAuthModal() {
     <div class="auth-overlay" id="authOverlay">
       <div class="auth-card">
         <div class="auth-header">
-          <div class="auth-logo">
+          <div class="auth-logo-wrap">
             <img src="Logo_Sin_Texto_transparent.png" alt="Taurix" class="auth-logo-bull"/>
           </div>
           <h2 class="auth-title" id="authTitle">Accede a Taurix</h2>
