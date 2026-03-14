@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Taurix · Gestión fiscal profesional</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script type="module" src="main.js" defer></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     LANDING PAGE
+═══════════════════════════════════════ -->
+<div id="landingPage">
+  <header class="lp-nav">
+    <div class="lp-logo">
+      <img src="Logo_Taurix.png" alt="Taurix" class="lp-logo-img"/>
+    </div>
+    <nav class="lp-links">
+      <a href="#">Funciones</a>
+      <a href="#">Precios</a>
+      <a href="#">Legal</a>
+    </nav>
+    <button id="ctaNavBtn" class="lp-cta-btn">Acceder →</button>
+  </header>
+
+  <section class="lp-hero">
+    <div class="lp-hero-badge">
+      <span class="lp-badge-dot"></span>
+      Cumplimiento total con la AEAT · España 🇪🇸
+    </div>
+    <h1 class="lp-h1">La gestión fiscal<br><em>que mereces</em></h1>
+    <p class="lp-hero-sub">Facturas, clientes, IVA, IRPF, libros oficiales y declaraciones.<br>Todo en un solo lugar. Sin gestorías caras. Sin líos.</p>
+    <div class="lp-hero-actions">
+      <button id="ctaHeroBtn" class="lp-btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15.003 3.5H19a1.5 1.5 0 011.5 1.5v14a1.5 1.5 0 01-1.5 1.5H5A1.5 1.5 0 013.5 19V5A1.5 1.5 0 015 3.5h3.997" stroke="white" stroke-width="1.8"/><path d="M12 3v9m0 0l-3-3m3 3l3-3" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Empezar gratis con Google
+      </button>
+      <span class="lp-note">Sin tarjeta · Para autónomos y pymes · España</span>
+    </div>
+    <div class="lp-stats">
+      <div class="lp-stat"><strong>100%</strong><span>Legal AEAT</span></div>
+      <div class="lp-stat-div"></div>
+      <div class="lp-stat"><strong>Modelo 303</strong><span>y 130 automático</span></div>
+      <div class="lp-stat-div"></div>
+      <div class="lp-stat"><strong>PDF + Excel</strong><span>Exportación completa</span></div>
+    </div>
+  </section>
+
+  <section class="lp-features">
+    <div class="lp-feat">
+      <div class="lp-feat-icon lp-feat-icon--blue">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </div>
+      <h3>Facturación completa</h3>
+      <p>Emite facturas nacionales, intracomunitarias, exportaciones e importaciones. Numeración legal automática.</p>
+    </div>
+    <div class="lp-feat">
+      <div class="lp-feat-icon lp-feat-icon--green">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </div>
+      <h3>Gestión de clientes</h3>
+      <p>CRM básico integrado. Crea y gestiona tu cartera de clientes con NIF validado y acceso al historial.</p>
+    </div>
+    <div class="lp-feat">
+      <div class="lp-feat-icon lp-feat-icon--amber">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <h3>IVA e IRPF en tiempo real</h3>
+      <p>Modelos 303 y 130 calculados automáticamente. Cierre trimestral con bloqueo de datos.</p>
+    </div>
+    <div class="lp-feat">
+      <div class="lp-feat-icon lp-feat-icon--red">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      </div>
+      <h3>Libros oficiales AEAT</h3>
+      <p>Libro de ingresos y gastos conforme al Art. 68 del Reglamento del IRPF. Exportación en PDF.</p>
+    </div>
+    <div class="lp-feat">
+      <div class="lp-feat-icon lp-feat-icon--indigo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      </div>
+      <h3>Exportar PDF y Excel</h3>
+      <p>Descarga tus facturas, libros y resúmenes en PDF o Excel. Compatible con cualquier gestor.</p>
+    </div>
+    <div class="lp-feat">
+      <div class="lp-feat-icon lp-feat-icon--purple">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </div>
+      <h3>Perfil autónomo o empresa</h3>
+      <p>Configura tu régimen fiscal: módulos IRPF, IVA trimestral, régimen simplificado o general.</p>
+    </div>
+  </section>
+
+  <!-- ── SECCIÓN PRECIOS ── -->
+  <section class="lp-precios" id="precios">
+    <div class="lp-section-badge">Precios</div>
+    <h2 class="lp-section-h2">Simple y transparente.<br>Sin sorpresas.</h2>
+    <p class="lp-section-sub">Empieza gratis, actualiza cuando lo necesites. Sin permanencia.</p>
+    <div class="lp-planes">
+
+      <!-- PLAN GRATIS -->
+      <div class="lp-plan">
+        <div class="lp-plan-header">
+          <div class="lp-plan-name">Gratuito</div>
+          <div class="lp-plan-price"><span class="lp-plan-eur">0€</span><span class="lp-plan-per">/mes</span></div>
+          <div class="lp-plan-desc">Para empezar y probar sin riesgo</div>
+        </div>
+        <ul class="lp-plan-features">
+          <li><span class="lp-check">✓</span> Hasta <strong>10 facturas al mes</strong></li>
+          <li><span class="lp-check">✓</span> Hasta <strong>3 clientes</strong></li>
+          <li><span class="lp-check">✓</span> Dashboard IVA e IRPF</li>
+          <li><span class="lp-check">✓</span> Modelos 303 y 130</li>
+          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">PDF individual de facturas</span></li>
+          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Exportación Excel</span></li>
+          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Libros oficiales AEAT</span></li>
+          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Clientes ilimitados</span></li>
+        </ul>
+        <button class="lp-plan-btn lp-plan-btn--outline" id="ctaPlanGratisBtn">Empezar gratis →</button>
+      </div>
+
+      <!-- PLAN PRO -->
+      <div class="lp-plan lp-plan--pro">
+        <div class="lp-plan-badge">Más popular</div>
+        <div class="lp-plan-header">
+          <div class="lp-plan-name">Pro</div>
+          <div class="lp-plan-price"><span class="lp-plan-eur">9€</span><span class="lp-plan-per">/mes</span></div>
+          <div class="lp-plan-desc">Todo lo que necesita un autónomo serio</div>
+        </div>
+        <ul class="lp-plan-features">
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>Facturas ilimitadas</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>Clientes ilimitados</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> PDF profesional por factura</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Exportación Excel completa</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Libros oficiales AEAT</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Modelos 303 y 130</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Recordatorios trimestrales</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Soporte prioritario</li>
+        </ul>
+        <button class="lp-plan-btn lp-plan-btn--pro" id="ctaPlanProBtn">Empezar con Pro →</button>
+        <div class="lp-plan-note">Sin permanencia · Cancela cuando quieras</div>
+      </div>
+
+    </div>
+    <p class="lp-precios-nota">¿Tienes una gestoría o asesoría? <a href="/cdn-cgi/l/email-protection#41206f2c2432202a0128222d2e34256f222e2c">Contacta para precios especiales</a></p>
+  </section>
+
+  <!-- ── TESTIMONIOS ── -->
+  <section class="lp-testimonios">
+    <div class="lp-section-badge">Testimonios</div>
+    <h2 class="lp-section-h2">Autónomos que ya<br>usan TuGestor</h2>
+    <div class="lp-testi-grid">
+      <div class="lp-testi">
+        <div class="lp-testi-stars">★★★★★</div>
+        <p class="lp-testi-text">"Por fin una herramienta que entiende cómo trabaja un autónomo en España. El cálculo del 303 me ahorra dos horas cada trimestre."</p>
+        <div class="lp-testi-author">
+          <div class="lp-testi-avatar" style="background:#6366f1">M</div>
+          <div>
+            <div class="lp-testi-name">María G.</div>
+            <div class="lp-testi-role">Diseñadora freelance · Madrid</div>
+          </div>
+        </div>
+      </div>
+      <div class="lp-testi">
+        <div class="lp-testi-stars">★★★★★</div>
+        <p class="lp-testi-text">"Llevo 3 años con otro software de facturación y en una tarde migré todo a TuGestor. Los libros oficiales salen solos, es increíble."</p>
+        <div class="lp-testi-author">
+          <div class="lp-testi-avatar" style="background:#0ea5e9">C</div>
+          <div>
+            <div class="lp-testi-name">Carlos P.</div>
+            <div class="lp-testi-role">Consultor IT · Barcelona</div>
+          </div>
+        </div>
+      </div>
+      <div class="lp-testi">
+        <div class="lp-testi-stars">★★★★★</div>
+        <p class="lp-testi-text">"Mi gestor me pedía 80€/mes solo para llevar las facturas. Con TuGestor lo hago yo misma en 10 minutos. El ahorro es brutal."</p>
+        <div class="lp-testi-author">
+          <div class="lp-testi-avatar" style="background:#10b981">A</div>
+          <div>
+            <div class="lp-testi-name">Ana R.</div>
+            <div class="lp-testi-role">Nutricionista · Sevilla</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FAQ ── -->
+  <section class="lp-faq" id="faq">
+    <div class="lp-section-badge">Preguntas frecuentes</div>
+    <h2 class="lp-section-h2">Todo lo que necesitas saber</h2>
+    <div class="lp-faq-list">
+      <details class="lp-faq-item">
+        <summary>¿TuGestor sustituye a un gestor o asesor fiscal?</summary>
+        <p>No exactamente. TuGestor te da las herramientas para llevar tu contabilidad de forma ordenada y calcular tus impuestos automáticamente. Para casos complejos (inicio de actividad, cambio de régimen, inspecciones) siempre recomendamos consultar con un asesor. Piensa en TuGestor como el copiloto que hace el trabajo rutinario para que tú o tu gestor se centren en lo que importa.</p>
+      </details>
+      <details class="lp-faq-item">
+        <summary>¿Los cálculos de IVA e IRPF son legalmente válidos?</summary>
+        <p>Los cálculos siguen estrictamente la normativa española vigente (Ley 37/1992 del IVA y Reglamento del IRPF). Sin embargo, TuGestor es una herramienta de apoyo: la responsabilidad de presentar declaraciones correctas ante la AEAT recae en el autónomo o su representante legal. Siempre revisa los importes antes de presentar.</p>
+      </details>
+      <details class="lp-faq-item">
+        <summary>¿Puedo exportar mis datos si decido irme?</summary>
+        <p>Sí, siempre. Puedes exportar todas tus facturas en PDF y Excel en cualquier momento desde la sección de Libros y Facturas. Tus datos son tuyos y nunca quedarán atrapados en TuGestor.</p>
+      </details>
+      <details class="lp-faq-item">
+        <summary>¿Cómo se guardan mis datos fiscales? ¿Son seguros?</summary>
+        <p>Tus datos se guardan en Supabase (infraestructura europea, cifrado en tránsito y en reposo). Cada usuario solo puede ver sus propios datos gracias a Row Level Security. Nunca compartimos ni vendemos tus datos. Puedes leer nuestra Política de Privacidad completa en el footer.</p>
+      </details>
+      <details class="lp-faq-item">
+        <summary>¿Funciona para autónomos en módulos (estimación objetiva)?</summary>
+        <p>TuGestor está pensado principalmente para autónomos en estimación directa (normal y simplificada). Si estás en módulos, puedes usar la app para registrar facturas y clientes, pero los cálculos de IRPF no aplicarán a tu régimen. Estamos trabajando en el soporte completo para módulos.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- ── CTA FINAL ── -->
+  <section class="lp-cta-final">
+    <h2>¿Listo para simplificar tu fiscal?</h2>
+    <p>Únete a los autónomos que ya gestionan su contabilidad sin estrés.<br>Empieza gratis hoy, sin tarjeta de crédito.</p>
+    <button class="lp-btn-primary" id="ctaFinalBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15.003 3.5H19a1.5 1.5 0 011.5 1.5v14a1.5 1.5 0 01-1.5 1.5H5A1.5 1.5 0 013.5 19V5A1.5 1.5 0 015 3.5h3.997" stroke="white" stroke-width="1.8"/><path d="M12 3v9m0 0l-3-3m3 3l3-3" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Empezar gratis con Google
+    </button>
+    <span class="lp-note" style="display:block;margin-top:12px">Sin tarjeta · Cancela cuando quieras · Datos en Europa 🇪🇺</span>
+  </section>
+
+  <!-- FOOTER LEGAL -->
+  <footer class="lp-footer">
+    <div class="lp-footer-inner">
+      <div class="lp-footer-brand">
+        <div class="lp-footer-logo"><img src="Logo_Taurix.png" alt="Taurix" style="height:28px"/></div>
+        <p class="lp-footer-desc">Gestión fiscal para autónomos y pymes españolas.<br>Cumplimiento total con la AEAT.</p>
+      </div>
+      <div class="lp-footer-links">
+        <div class="lp-footer-col">
+          <div class="lp-footer-col-title">Legal</div>
+          <a href="#" id="openPrivacidad">Política de privacidad</a>
+          <a href="#" id="openTerminos">Términos de uso</a>
+          <a href="#" id="openCookies">Política de cookies</a>
+        </div>
+        <div class="lp-footer-col">
+          <div class="lp-footer-col-title">Contacto</div>
+          <a href="/cdn-cgi/l/email-protection#a3c28dcec6d0c2c8e3cac0cfccd6c78dc0ccce"><span class="__cf_email__" data-cfemail="ccade2a1a9bfada78ca5afa0a3b9a8e2afa3a1">[email&#160;protected]</span></a>
+          <span>España 🇪🇸</span>
+        </div>
+      </div>
+    </div>
+    <div class="lp-footer-bottom">
+      <span>© 2025 TuGestor · Todos los derechos reservados</span>
+      <span>Desarrollado con ❤️ para autónomos españoles</span>
+    </div>
+  </footer>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MODALES LEGALES
+═══════════════════════════════════════ -->
+<div id="modalPrivacidad" class="legal-modal-overlay" style="display:none">
+  <div class="legal-modal">
+    <div class="legal-modal-header">
+      <h2>Política de Privacidad</h2>
+      <button class="legal-modal-close" onclick="document.getElementById('modalPrivacidad').style.display='none'">×</button>
+    </div>
+    <div class="legal-modal-body">
+      <p class="legal-updated">Última actualización: marzo 2025</p>
+
+      <h3>1. Responsable del tratamiento</h3>
+      <p>TuGestor es una aplicación web de gestión fiscal para autónomos y pymes españolas. El responsable del tratamiento de los datos personales es el titular del proyecto, con domicilio en España. Para cualquier consulta relacionada con privacidad, puedes contactar en <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5b3a75363e283a301b323837342e3f75383436">[email&#160;protected]</a></strong>.</p>
+
+      <h3>2. Datos que recogemos</h3>
+      <p>Recogemos únicamente los datos necesarios para el funcionamiento del servicio:</p>
+      <ul>
+        <li><strong>Datos de cuenta:</strong> nombre y dirección de correo electrónico, proporcionados a través de Google OAuth al registrarte.</li>
+        <li><strong>Datos fiscales:</strong> nombre o razón social, NIF/CIF, domicilio fiscal, actividad económica y régimen fiscal que introduces en tu perfil.</li>
+        <li><strong>Datos de facturación:</strong> facturas, clientes, importes, fechas y demás datos que introduces para gestionar tu actividad.</li>
+        <li><strong>Datos técnicos:</strong> preferencias de la aplicación (modo oscuro, onboarding) almacenadas en tu navegador (localStorage).</li>
+      </ul>
+
+      <h3>3. Finalidad del tratamiento</h3>
+      <p>Tus datos se utilizan exclusivamente para:</p>
+      <ul>
+        <li>Prestarte el servicio de gestión fiscal (facturas, cálculo de IVA e IRPF, libros oficiales).</li>
+        <li>Identificarte y autenticarte en la aplicación.</li>
+        <li>Mejorar el funcionamiento del servicio.</li>
+      </ul>
+      <p>No utilizamos tus datos para publicidad, no los vendemos ni los cedemos a terceros.</p>
+
+      <h3>4. Base legal</h3>
+      <p>El tratamiento se basa en la ejecución del contrato de servicio (art. 6.1.b RGPD) y, en su caso, en el consentimiento explícito otorgado al registrarte (art. 6.1.a RGPD).</p>
+
+      <h3>5. Almacenamiento y seguridad</h3>
+      <p>Tus datos se almacenan en <strong>Supabase</strong> (infraestructura en la Unión Europea), con cifrado en tránsito (HTTPS/TLS) y en reposo. El acceso está protegido mediante Row Level Security (RLS): ningún usuario puede acceder a los datos de otro.</p>
+
+      <h3>6. Conservación de datos</h3>
+      <p>Conservamos tus datos mientras mantengas una cuenta activa. Si eliminas tu cuenta, tus datos se borran en un plazo máximo de 30 días, salvo obligación legal de conservación (p. ej., datos fiscales sujetos al plazo de prescripción tributaria de 4 años).</p>
+
+      <h3>7. Tus derechos (RGPD)</h3>
+      <p>Tienes derecho a acceder, rectificar, suprimir, portar y oponerte al tratamiento de tus datos. Para ejercerlos, contacta en <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f998d7949c8a9892b9909a95968c9dd79a9694">[email&#160;protected]</a></strong>. También puedes reclamar ante la <strong>Agencia Española de Protección de Datos (AEPD)</strong> en <a href="https://www.aepd.es" target="_blank">www.aepd.es</a>.</p>
+
+      <h3>8. Cookies</h3>
+      <p>TuGestor no utiliza cookies de rastreo ni publicidad. Solo usamos almacenamiento local del navegador (localStorage) para guardar preferencias de uso como el modo oscuro. Consulta nuestra Política de Cookies para más información.</p>
+
+      <h3>9. Cambios en esta política</h3>
+      <p>Podemos actualizar esta política ocasionalmente. Te notificaremos los cambios relevantes a través de la propia aplicación.</p>
+    </div>
+  </div>
+</div>
+
+<div id="modalTerminos" class="legal-modal-overlay" style="display:none">
+  <div class="legal-modal">
+    <div class="legal-modal-header">
+      <h2>Términos de Uso</h2>
+      <button class="legal-modal-close" onclick="document.getElementById('modalTerminos').style.display='none'">×</button>
+    </div>
+    <div class="legal-modal-body">
+      <p class="legal-updated">Última actualización: marzo 2025</p>
+
+      <h3>1. Aceptación de los términos</h3>
+      <p>Al acceder y usar TuGestor, aceptas estos Términos de Uso en su totalidad. Si no estás de acuerdo, no utilices el servicio.</p>
+
+      <h3>2. Descripción del servicio</h3>
+      <p>TuGestor es una herramienta de apoyo a la gestión fiscal para autónomos y pymes españolas. Facilita la creación de facturas, el cálculo orientativo de IVA e IRPF y la generación de libros de registro. <strong>TuGestor no es un servicio de asesoría fiscal ni legal.</strong> Los cálculos son orientativos y no sustituyen el criterio de un profesional habilitado.</p>
+
+      <h3>3. Uso permitido</h3>
+      <p>El servicio está destinado a uso profesional legítimo. Queda prohibido:</p>
+      <ul>
+        <li>Usar la plataforma para emitir facturas falsas o fraudulentas.</li>
+        <li>Intentar acceder a datos de otros usuarios.</li>
+        <li>Realizar ingeniería inversa, scraping o uso automatizado no autorizado.</li>
+        <li>Usar el servicio para actividades ilegales.</li>
+      </ul>
+
+      <h3>4. Responsabilidad del usuario</h3>
+      <p>Eres responsable de la exactitud de los datos que introduces (NIF, importes, fechas, etc.) y de presentar tus declaraciones fiscales en tiempo y forma ante la AEAT. TuGestor proporciona herramientas de cálculo y organización, pero la responsabilidad fiscal recae íntegramente en el usuario.</p>
+
+      <h3>5. Limitación de responsabilidad</h3>
+      <p>TuGestor no se hace responsable de errores en los cálculos derivados de datos incorrectos introducidos por el usuario, cambios normativos no reflejados en la aplicación, pérdidas económicas derivadas de declaraciones incorrectas, ni interrupciones del servicio por causas ajenas a nuestro control.</p>
+
+      <h3>6. Propiedad intelectual</h3>
+      <p>El código, diseño y contenidos de TuGestor son propiedad de sus creadores. Los datos que introduces son tuyos y puedes exportarlos en cualquier momento.</p>
+
+      <h3>7. Modificaciones del servicio</h3>
+      <p>Nos reservamos el derecho de modificar, suspender o interrumpir el servicio con previo aviso razonable. En caso de cambios en las condiciones de precio, se notificará con al menos 30 días de antelación.</p>
+
+      <h3>8. Ley aplicable</h3>
+      <p>Estos términos se rigen por la legislación española. Para cualquier controversia, las partes se someten a los juzgados y tribunales españoles.</p>
+
+      <h3>9. Contacto</h3>
+      <p>Para cualquier consulta sobre estos términos: <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="badb94d7dfc9dbd1fad3d9d6d5cfde94d9d5d7">[email&#160;protected]</a></strong></p>
+    </div>
+  </div>
+</div>
+
+<div id="modalCookies" class="legal-modal-overlay" style="display:none">
+  <div class="legal-modal">
+    <div class="legal-modal-header">
+      <h2>Política de Cookies</h2>
+      <button class="legal-modal-close" onclick="document.getElementById('modalCookies').style.display='none'">×</button>
+    </div>
+    <div class="legal-modal-body">
+      <p class="legal-updated">Última actualización: marzo 2025</p>
+
+      <h3>TuGestor no utiliza cookies de rastreo</h3>
+      <p>TuGestor está diseñado con privacidad por defecto. No instalamos cookies de publicidad, analítica de terceros ni rastreo de comportamiento.</p>
+
+      <h3>Lo que sí usamos</h3>
+      <p>Utilizamos <strong>almacenamiento local del navegador (localStorage)</strong>, que es técnicamente diferente a las cookies pero cumple una función similar de guardar preferencias:</p>
+      <ul>
+        <li><strong>tg_dark:</strong> recuerda si has activado el modo oscuro.</li>
+        <li><strong>tg_onboard_done:</strong> recuerda si has completado el proceso de bienvenida.</li>
+        <li><strong>Sesión de Supabase:</strong> token de autenticación necesario para mantenerte conectado.</li>
+      </ul>
+      <p>Estos datos no se envían a terceros y puedes borrarlos en cualquier momento limpiando el almacenamiento de tu navegador.</p>
+
+      <h3>Servicios de terceros</h3>
+      <p><strong>Google OAuth:</strong> cuando inicias sesión con Google, Google puede establecer sus propias cookies según su política de privacidad (<a href="https://policies.google.com/privacy" target="_blank">policies.google.com/privacy</a>).</p>
+      <p><strong>Supabase:</strong> nuestra base de datos establece un token de sesión seguro para autenticarte. No se usa para rastreo.</p>
+
+      <h3>¿Necesito aceptar cookies?</h3>
+      <p>No mostramos un banner de cookies porque no utilizamos cookies que requieran consentimiento bajo la normativa española (LSSI) ni bajo el RGPD. El almacenamiento local que usamos es estrictamente necesario para el funcionamiento del servicio.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     APP (POST-LOGIN)
+═══════════════════════════════════════ -->
+<div id="appShell" class="hidden">
+  <!-- TOPBAR -->
+  <header class="app-topbar">
+    <div class="app-logo">
+      <img src="Logo_Taurix.png" alt="Taurix" class="app-logo-img"/>
+    </div>
+
+    <div class="topbar-period-pill">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <select id="yearSelect" class="period-sel"></select>
+      <span class="period-sep">·</span>
+      <select id="trimestreSelect" class="period-sel">
+        <option value="T1">T1 Ene–Mar</option>
+        <option value="T2">T2 Abr–Jun</option>
+        <option value="T3">T3 Jul–Sep</option>
+        <option value="T4">T4 Oct–Dic</option>
+      </select>
+      <button id="cerrarTrimestreBtn" class="btn-lock-trim" title="Cerrar trimestre">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      </button>
+    </div>
+
+    <div class="topbar-right">
+      <button id="darkModeBtn" class="topbar-icon-btn" title="Modo oscuro">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
+      <button id="perfilFiscalBtn" class="topbar-icon-btn" title="Perfil fiscal">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </button>
+      <div class="topbar-avatar" id="topbarAvatar">U</div>
+      <button id="logoutBtn" class="topbar-icon-btn" title="Salir">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- DEADLINE & ONBOARDING BANNERS -->
+  <div id="fiscalDeadlineBanner" style="display:none"></div>
+  <div id="onboardingBanner" style="display:none"></div>
+
+  <!-- LAYOUT -->
+  <div class="app-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        <button class="sn-item active" data-view="dashboard">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+          <span>Dashboard</span>
+        </button>
+
+        <div class="sn-separator"></div>
+        <div class="sn-section-label">Comercial</div>
+
+        <button class="sn-item" data-view="clientes">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.87"/></svg>
+          <span>Clientes</span>
+        </button>
+        <button class="sn-item" data-view="presupuestos">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="10" y1="17" x2="8" y2="17"/></svg>
+          <span>Presupuestos</span>
+          <span class="sn-badge sn-badge--amber" id="snBadgePres" style="display:none">0</span>
+        </button>
+        <button class="sn-item" data-view="facturas">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+          <span>Facturas</span>
+          <span class="sn-badge" id="snBadgeBorradores" style="display:none">0</span>
+        </button>
+        <button class="sn-item" data-view="nueva-factura">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          <span>Nueva factura</span>
+        </button>
+
+        <div class="sn-separator"></div>
+        <div class="sn-section-label">Gastos</div>
+
+        <button class="sn-item sn-item--accent" id="gastoRapidoBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span>Gasto rápido</span>
+        </button>
+        <button class="sn-item" data-view="gastos">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="2"/></svg>
+          <span>Proveedores y recurrentes</span>
+          <span class="sn-badge sn-badge--red" id="snBadgeVencidos" style="display:none">0</span>
+        </button>
+
+        <div class="sn-separator"></div>
+        <div class="sn-section-label">Catálogo</div>
+
+        <button class="sn-item" data-view="productos">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/></svg>
+          <span>Productos / Servicios</span>
+        </button>
+
+        <div class="sn-separator"></div>
+        <div class="sn-section-label">Fiscal</div>
+
+        <button class="sn-item" data-view="iva">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          <span>IVA · Modelo 303</span>
+        </button>
+        <button class="sn-item" data-view="irpf">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          <span>IRPF · Modelo 130</span>
+        </button>
+        <button class="sn-item" data-view="libros">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+          <span>Libros oficiales</span>
+        </button>
+
+        <div class="sn-separator"></div>
+        <div class="sn-section-label">Análisis</div>
+
+        <button class="sn-item" data-view="historico">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span>Análisis anual</span>
+        </button>
+        <button class="sn-item" data-view="cobros">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          <span>Cobros y vencimientos</span>
+          <span class="sn-badge sn-badge--red" id="snBadgeCobros" style="display:none">0</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sf-regime" id="sfRegime">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="sfRegimeTxt">Autónomo · IRPF</span>
+        </div>
+        <div class="sf-user">
+          <div class="sf-avatar" id="sfAvatar">U</div>
+          <div class="sf-meta">
+            <span class="sf-name" id="sfName">—</span>
+            <span class="sf-email" id="sfEmail">—</span>
+          </div>
+        </div>
+        <button id="deleteAccountBtn" class="sf-delete-account" title="Eliminar mi cuenta (RGPD)">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          Eliminar mi cuenta
+        </button>
+      </div>
+    </aside>
+
+    <!-- VIEWS -->
+    <main class="app-main">
+
+      <!-- ═══ VIEW: DASHBOARD ═══ -->
+      <div class="view active" id="view-dashboard">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Dashboard</h1>
+            <p class="view-sub" id="dashPeriodoLabel">Cargando…</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-outline" id="dashExportBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar resumen
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="kpi-row">
+          <div class="kpi-card kpi-blue">
+            <div class="kpi-top">
+              <span class="kpi-lbl">Ingresos netos</span>
+              <div class="kpi-icon kpi-icon--blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg></div>
+            </div>
+            <div class="kpi-val" id="kpiIngresos">—</div>
+            <div class="kpi-sub">Base imponible facturas emitidas</div>
+          </div>
+          <div class="kpi-card kpi-red">
+            <div class="kpi-top">
+              <span class="kpi-lbl">Gastos deducibles</span>
+              <div class="kpi-icon kpi-icon--red"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/></svg></div>
+            </div>
+            <div class="kpi-val" id="kpiGastos">—</div>
+            <div class="kpi-sub">Base imponible facturas recibidas</div>
+          </div>
+          <div class="kpi-card kpi-green">
+            <div class="kpi-top">
+              <span class="kpi-lbl">Beneficio bruto</span>
+              <div class="kpi-icon kpi-icon--green"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+            </div>
+            <div class="kpi-val" id="kpiBeneficio">—</div>
+            <div class="kpi-sub">Ingresos − gastos</div>
+          </div>
+          <div class="kpi-card kpi-amber">
+            <div class="kpi-top">
+              <span class="kpi-lbl">IVA a liquidar</span>
+              <div class="kpi-icon kpi-icon--amber"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+            </div>
+            <div class="kpi-val" id="kpiIVA">—</div>
+            <div class="kpi-sub">Resultado Modelo 303</div>
+          </div>
+          <div class="kpi-card kpi-indigo">
+            <div class="kpi-top">
+              <span class="kpi-lbl">IRPF a ingresar</span>
+              <div class="kpi-icon kpi-icon--indigo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg></div>
+            </div>
+            <div class="kpi-val" id="kpiIRPF">—</div>
+            <div class="kpi-sub">Estimación Modelo 130</div>
+          </div>
+          <div class="kpi-card kpi-rose">
+            <div class="kpi-top">
+              <span class="kpi-lbl">Pendiente de cobro</span>
+              <div class="kpi-icon kpi-icon--rose"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+            </div>
+            <div class="kpi-val" id="kpiCobroPendiente">—</div>
+            <div class="kpi-sub">Facturas emitidas sin cobrar</div>
+          </div>
+        </div>
+
+        <!-- Recordatorios banner -->
+        <div id="recordatoriosBanner"></div>
+
+        <!-- Accesos rápidos -->
+        <div class="quick-actions-row">
+          <div class="qa-card" onclick="window._switchView('nueva-factura')">
+            <div class="qa-icon qa-icon--blue">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+            </div>
+            <div class="qa-text"><div class="qa-label">Nueva factura</div><div class="qa-sub">Emitir o registrar</div></div>
+          </div>
+          <div class="qa-card" onclick="window._switchView('presupuestos')">
+            <div class="qa-icon qa-icon--green">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="10" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <div class="qa-text"><div class="qa-label">Nuevo presupuesto</div><div class="qa-sub">Crear oferta</div></div>
+          </div>
+          <div class="qa-card" id="qaGastoRapido">
+            <div class="qa-icon qa-icon--amber">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <div class="qa-text"><div class="qa-label">Gasto rápido</div><div class="qa-sub">Registrar en segundos</div></div>
+          </div>
+          <div class="qa-card" onclick="window._switchView('cobros')">
+            <div class="qa-icon qa-icon--purple">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            </div>
+            <div class="qa-text"><div class="qa-label">Cobros pendientes</div><div class="qa-sub">Ver y gestionar</div></div>
+          </div>
+        </div>
+
+        <!-- Charts row -->
+        <div class="charts-row">
+          <div class="chart-card chart-card--wide">
+            <div class="chart-header">
+              <span class="chart-title">Evolución mensual del periodo</span>
+              <div class="chart-legend">
+                <span class="cleg cleg-blue">Ingresos</span>
+                <span class="cleg cleg-red">Gastos</span>
+              </div>
+            </div>
+            <div class="bar-chart-wrap">
+              <canvas id="chartEvolucion" height="180"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header"><span class="chart-title">Estado del trimestre</span></div>
+            <div class="trim-status-wrap" id="trimStatusWrap">
+              <div class="trim-gauge" id="trimGauge">
+                <svg viewBox="0 0 120 70" width="160">
+                  <path d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke="#e5e7eb" stroke-width="10" stroke-linecap="round"/>
+                  <path id="gaugePath" d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke="#2563eb" stroke-width="10" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="157"/>
+                </svg>
+                <div class="gauge-label" id="gaugeLabel">—</div>
+                <div class="gauge-sub" id="gaugeSub">Margen fiscal</div>
+              </div>
+              <div class="trim-meta">
+                <div class="trim-row"><span>Facturas emitidas</span><strong id="tCountEmit">—</strong></div>
+                <div class="trim-row"><span>Facturas recibidas</span><strong id="tCountRecib">—</strong></div>
+                <div class="trim-row"><span>Clientes activos</span><strong id="tCountClientes">—</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent invoices -->
+        <div class="section-card">
+          <div class="sc-header">
+            <span class="sc-title">Últimas facturas</span>
+            <button class="btn-link" data-view="facturas">Ver todas →</button>
+          </div>
+          <table class="data-table" id="recentFacturasTable">
+            <thead><tr><th>Fecha</th><th>Nº</th><th>Concepto</th><th>Cliente</th><th>Importe</th><th>Tipo</th><th>Estado</th></tr></thead>
+            <tbody id="recentFacturasBody"><tr class="dt-empty"><td colspan="7">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: CLIENTES ═══ -->
+      <div class="view" id="view-clientes">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Clientes</h1>
+            <p class="view-sub" id="clientesCount">—</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-outline" id="exportClientesBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar
+            </button>
+            <button class="btn-primary" id="nuevoClienteBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nuevo cliente
+            </button>
+          </div>
+        </div>
+
+        <div class="search-bar-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="clienteSearch" class="search-input" placeholder="Buscar por nombre, NIF o email…"/>
+        </div>
+
+        <div class="section-card no-pad">
+          <table class="data-table" id="clientesTable">
+            <thead><tr><th>Nombre / Razón social</th><th>NIF / CIF</th><th>Email</th><th>Teléfono</th><th>País</th><th>Tipo</th><th>Facturas</th><th>Total facturado</th><th></th></tr></thead>
+            <tbody id="clientesBody"><tr class="dt-empty"><td colspan="9">Cargando clientes…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: FACTURAS ═══ -->
+      <div class="view" id="view-facturas">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Facturas</h1>
+            <p class="view-sub" id="facturasCount">— facturas en el periodo</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-outline" id="exportFacturasExcelBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+              Excel
+            </button>
+            <button class="btn-outline" id="exportFacturasPdfBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              PDF
+            </button>
+            <button class="btn-primary" id="irNuevaFacturaBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nueva factura
+            </button>
+          </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filter-bar">
+          <input type="text" id="facturasSearch" class="search-input" placeholder="Buscar concepto, cliente, número…" style="min-width:220px"/>
+          <select id="filterTipo" class="filter-sel">
+            <option value="">Todas</option>
+            <option value="emitida">📤 Emitidas</option>
+            <option value="recibida">📥 Recibidas</option>
+          </select>
+          <select id="filterEstado" class="filter-sel">
+            <option value="">Todos los estados</option>
+            <option value="borrador">Borrador</option>
+            <option value="emitida">Emitida</option>
+          </select>
+          <select id="filterOp" class="filter-sel">
+            <option value="">Todas las operaciones</option>
+            <option value="nacional">Nacional</option>
+            <option value="intracomunitaria">Intracomunitaria</option>
+            <option value="exportacion">Exportación</option>
+            <option value="importacion">Importación</option>
+            <option value="inversion_sujeto_pasivo">Inv. sujeto pasivo</option>
+          </select>
+        </div>
+        <div class="filter-bar filter-bar--secondary">
+          <span class="filter-lbl">Fecha:</span>
+          <input type="date" id="filterFechaFrom" class="filter-date" title="Desde"/>
+          <span class="filter-sep">—</span>
+          <input type="date" id="filterFechaTo" class="filter-date" title="Hasta"/>
+          <span class="filter-lbl" style="margin-left:16px">Importe (€):</span>
+          <input type="number" id="filterImporteMin" class="filter-amt" placeholder="Mín" step="0.01"/>
+          <span class="filter-sep">—</span>
+          <input type="number" id="filterImporteMax" class="filter-amt" placeholder="Máx" step="0.01"/>
+        </div>
+
+        <div class="section-card no-pad">
+          <table class="data-table" id="facturasTable">
+            <thead>
+              <tr>
+                <th>Fecha</th><th>Nº Factura</th><th>Concepto</th><th>Cliente/Proveedor</th>
+                <th>Operación</th><th>Base</th><th>IVA</th><th>Total</th>
+                <th>Tipo</th><th>Estado</th><th>Cobro</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="facturasBody"><tr class="dt-empty"><td colspan="12">Cargando facturas…</td></tr></tbody>
+          </table>
+        </div>
+        <div id="facturasPaginacion" class="paginacion-bar"></div>
+      </div>
+
+      <!-- ═══ VIEW: NUEVA FACTURA ═══ -->
+      <div class="view" id="view-nueva-factura">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title" id="nfTitulo">Nueva factura</h1>
+            <p class="view-sub">Vista previa en tiempo real · Líneas ilimitadas · PDF profesional</p>
+          </div>
+        </div>
+        <div class="nf-layout">
+
+          <!-- ── COLUMNA FORMULARIO ── -->
+          <div class="nf-form-col">
+
+            <!-- TIPO DE OPERACIÓN -->
+            <div class="form-block">
+              <div class="fb-title">Tipo de operación</div>
+              <div class="op-type-grid" id="opTypeGrid">
+                <button class="op-type-btn active" data-op="nacional"><span class="op-flag">🇪🇸</span><span class="op-lbl">Nacional</span></button>
+                <button class="op-type-btn" data-op="intracomunitaria"><span class="op-flag">🇪🇺</span><span class="op-lbl">Intracomunitaria</span></button>
+                <button class="op-type-btn" data-op="exportacion"><span class="op-flag">🌍</span><span class="op-lbl">Exportación</span></button>
+                <button class="op-type-btn" data-op="importacion"><span class="op-flag">📦</span><span class="op-lbl">Importación</span></button>
+                <button class="op-type-btn" data-op="inversion_sujeto_pasivo"><span class="op-flag">🔄</span><span class="op-lbl">Inv. Sujeto Pasivo</span></button>
+              </div>
+              <div class="op-info-banner" id="opInfoBanner"></div>
+            </div>
+
+            <!-- DATOS GENERALES -->
+            <div class="form-block">
+              <div class="fb-title">Datos de la factura</div>
+              <div class="ff-grid3">
+                <div class="ff-field">
+                  <label>Tipo</label>
+                  <select id="nfTipo" class="ff-select">
+                    <option value="emitida">📤 Emitida (ingreso)</option>
+                    <option value="recibida">📥 Recibida (gasto)</option>
+                  </select>
+                </div>
+                <div class="ff-field">
+                  <label>Fecha *</label>
+                  <input type="date" id="nfFecha" class="ff-input"/>
+                </div>
+                <div class="ff-field">
+                  <label>IRPF retención</label>
+                  <select id="nfIrpf" class="ff-select">
+                    <option value="0">Sin retención</option>
+                    <option value="7">7% — Inicio actividad</option>
+                    <option value="15" selected>15% — General</option>
+                    <option value="19">19% — Profesionales</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- CLIENTE -->
+            <div class="form-block">
+              <div class="fb-title">Cliente / Proveedor</div>
+              <div class="cliente-search-wrap" id="clienteSearchWrap">
+                <div class="csc-input-wrap">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input type="text" id="clienteSearchInput" class="csc-input" placeholder="Buscar cliente guardado o escribe uno nuevo…" autocomplete="off"/>
+                  <button id="clienteLimpiarBtn" class="csc-clear" style="display:none" title="Limpiar">×</button>
+                </div>
+                <div id="clienteDropdown" class="csc-dropdown" style="display:none"></div>
+              </div>
+              <div id="nfClientePanel" class="cliente-panel">
+                <div class="ff-grid2">
+                  <div class="ff-field">
+                    <label>Nombre o razón social *</label>
+                    <input type="text" id="nfNombre" class="ff-input" placeholder="Ej: Empresa XYZ S.L."/>
+                  </div>
+                  <div class="ff-field">
+                    <label>NIF / CIF / VAT <span id="nifNote" class="ff-note"></span></label>
+                    <input type="text" id="nfNif" class="ff-input" placeholder="Ej: B12345678"/>
+                  </div>
+                </div>
+                <div class="ff-grid3">
+                  <div class="ff-field">
+                    <label>Tipo</label>
+                    <select id="nfTipoCliente" class="ff-select">
+                      <option value="empresa">Empresa / Autónomo</option>
+                      <option value="particular">Particular</option>
+                    </select>
+                  </div>
+                  <div class="ff-field">
+                    <label>País</label>
+                    <select id="nfPais" class="ff-select">
+                      <option value="ES">🇪🇸 España</option>
+                      <option value="DE">🇩🇪 Alemania</option>
+                      <option value="FR">🇫🇷 Francia</option>
+                      <option value="IT">🇮🇹 Italia</option>
+                      <option value="PT">🇵🇹 Portugal</option>
+                      <option value="NL">🇳🇱 Países Bajos</option>
+                      <option value="BE">🇧🇪 Bélgica</option>
+                      <option value="US">🇺🇸 EE.UU.</option>
+                      <option value="GB">🇬🇧 Reino Unido</option>
+                      <option value="MX">🇲🇽 México</option>
+                      <option value="OTHER">🌍 Otro</option>
+                    </select>
+                  </div>
+                  <div class="ff-field" style="justify-content:flex-end;padding-top:18px">
+                    <label style="flex-direction:row;align-items:center;gap:6px;cursor:pointer">
+                      <input type="checkbox" id="nfGuardarCliente"/>
+                      <span style="font-size:12px;font-weight:500">Guardar cliente</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- LÍNEAS DE FACTURA -->
+            <div class="form-block">
+              <div class="fb-title-row">
+                <div class="fb-title">Líneas de factura</div>
+                <button id="addLineaBtn" class="btn-add-linea">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Añadir línea
+                </button>
+              </div>
+              <div class="lineas-header">
+                <div class="lh-desc">Descripción</div>
+                <div class="lh-qty">Cant.</div>
+                <div class="lh-price">P. unitario</div>
+                <div class="lh-iva">IVA</div>
+                <div class="lh-total">Total</div>
+                <div class="lh-del"></div>
+              </div>
+              <div id="lineasContainer"></div>
+              <div class="lineas-totales">
+                <div class="lt-row"><span>Base imponible</span><strong id="ltBase">0,00 €</strong></div>
+                <div id="ltIvaRows"></div>
+                <div class="lt-row lt-irpf" id="ltIrpfRow" style="display:none"><span id="ltIrpfLbl">IRPF (−15%)</span><strong id="ltIrpf" style="color:#dc2626">0,00 €</strong></div>
+                <div class="lt-row lt-total"><span>TOTAL FACTURA</span><strong id="ltTotal">0,00 €</strong></div>
+              </div>
+            </div>
+
+            <!-- NOTAS -->
+            <div class="form-block">
+              <div class="fb-title">Notas y condiciones (opcional)</div>
+              <textarea id="nfNotas" class="ff-input ff-textarea" placeholder="Condiciones de pago · Referencia de proyecto · Datos bancarios · Cualquier nota para el cliente…"></textarea>
+            </div>
+
+          </div>
+
+          <!-- ── COLUMNA PREVIEW ── -->
+          <div class="nf-preview-col">
+            <div class="nf-preview-card" id="facturaPreviewCard">
+              <div class="fpv-top">
+                <div class="fpv-emisor">
+                  <div class="fpv-emisor-name" id="pvEmisorNombre">Tu nombre / empresa</div>
+                  <div class="fpv-emisor-nif" id="pvEmisorNif">NIF: —</div>
+                  <div class="fpv-emisor-dir" id="pvEmisorDir"></div>
+                </div>
+                <div class="fpv-header-right">
+                  <div class="fpv-factura-label">FACTURA</div>
+                  <div class="fpv-num" id="pvNumero">Borrador</div>
+                  <div class="fpv-fecha" id="pvFecha">—</div>
+                </div>
+              </div>
+              <div class="fpv-divider"></div>
+              <div class="fpv-cliente">
+                <div class="fpv-section-lbl">FACTURAR A</div>
+                <div class="fpv-cliente-name" id="pvCliente">—</div>
+                <div class="fpv-cliente-nif" id="pvNif">—</div>
+                <div class="fpv-op-badge" id="pvOp">🇪🇸 Nacional</div>
+              </div>
+              <div class="fpv-divider"></div>
+              <div class="fpv-lineas-wrap">
+                <div class="fpv-lineas-head">
+                  <span class="fpvl-desc">Concepto</span>
+                  <span class="fpvl-qty">Cant.</span>
+                  <span class="fpvl-price">P. unit.</span>
+                  <span class="fpvl-total">Total</span>
+                </div>
+                <div id="pvLineas"><div class="fpv-lineas-empty">Las líneas aparecerán aquí…</div></div>
+              </div>
+              <div class="fpv-divider"></div>
+              <div class="fpv-totales">
+                <div class="fpvt-row"><span>Base imponible</span><span id="pvBase">—</span></div>
+                <div id="pvIvaDesglose"></div>
+                <div class="fpvt-row fpvt-irpf" id="pvIrpfRow" style="display:none">
+                  <span id="pvIrpfLbl">IRPF (−15%)</span>
+                  <span id="pvIrpfAmt" style="color:#dc2626">—</span>
+                </div>
+                <div class="fpvt-total"><span>TOTAL</span><span id="pvTotal">— €</span></div>
+              </div>
+              <div class="fpv-notas" id="pvNotas" style="display:none"></div>
+              <div class="fpv-pie" id="pvOpNote"></div>
+            </div>
+            <div class="nf-actions-col">
+              <button id="nfGuardarBtn" class="btn-primary btn-lg-block">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+                Guardar como borrador
+              </button>
+              <button id="nfEmitirBtn" class="btn-outline btn-lg-block" style="margin-top:10px">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                Guardar y emitir directamente
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: IVA ═══ -->
+      <div class="view" id="view-iva">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">IVA · Modelo 303</h1>
+            <p class="view-sub" id="ivaPeriodoLabel">—</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-outline" id="exportIvaBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar 303
+            </button>
+          </div>
+        </div>
+
+        <div class="modelo-layout">
+          <div class="modelo-left">
+            <div class="modelo-card">
+              <div class="mc-header mc-header--blue">
+                <span>IVA Repercutido (cuotas devengadas)</span>
+              </div>
+              <div class="mc-body">
+                <div class="mc-row"><span>Operaciones interiores al tipo 21%</span><strong id="iva21Rep">0,00 €</strong></div>
+                <div class="mc-row"><span>Operaciones interiores al tipo 10%</span><strong id="iva10Rep">0,00 €</strong></div>
+                <div class="mc-row"><span>Operaciones interiores al tipo 4%</span><strong id="iva4Rep">0,00 €</strong></div>
+                <div class="mc-row mc-row--total"><span>Total IVA repercutido</span><strong id="ivaTotalRep">0,00 €</strong></div>
+              </div>
+            </div>
+
+            <div class="modelo-card" style="margin-top:16px">
+              <div class="mc-header mc-header--green">
+                <span>IVA Soportado (cuotas deducibles)</span>
+              </div>
+              <div class="mc-body">
+                <div class="mc-row"><span>Cuotas soportadas en operaciones interiores</span><strong id="ivaSoportadoInt">0,00 €</strong></div>
+                <div class="mc-row"><span>Cuotas en importaciones / adquisiciones</span><strong id="ivaSoportadoImp">0,00 €</strong></div>
+                <div class="mc-row mc-row--total"><span>Total IVA deducible</span><strong id="ivaTotalSop">0,00 €</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modelo-right">
+            <div class="modelo-resultado-card" id="ivaResultadoCard">
+              <div class="mrc-label">RESULTADO MODELO 303</div>
+              <div class="mrc-value" id="ivaResultado303">—</div>
+              <div class="mrc-status" id="ivaEstado303">—</div>
+              <div class="mrc-info">
+                <div class="mri-row"><span>IVA repercutido</span><span id="ivaRepSumary">—</span></div>
+                <div class="mri-row"><span>IVA deducible</span><span id="ivaSopSumary">—</span></div>
+              </div>
+              <div class="mrc-deadline">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span id="ivaDeadline">Plazo: —</span>
+              </div>
+            </div>
+
+            <div class="modelo-card" style="margin-top:16px">
+              <div class="mc-header mc-header--gray"><span>Desglose por tipo de operación</span></div>
+              <div class="mc-body">
+                <div class="mc-row"><span>🇪🇸 Operaciones nacionales</span><strong id="ivaOpNac">—</strong></div>
+                <div class="mc-row"><span>🇪🇺 Adquisiciones intracomunitarias</span><strong id="ivaOpIC">—</strong></div>
+                <div class="mc-row"><span>🌍 Exportaciones / Exentas</span><strong id="ivaOpExp">—</strong></div>
+                <div class="mc-row"><span>🔄 Inversión sujeto pasivo</span><strong id="ivaOpISP">—</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: IRPF ═══ -->
+      <div class="view" id="view-irpf">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">IRPF · Modelo 130</h1>
+            <p class="view-sub" id="irpfPeriodoLabel">—</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-outline" id="exportIrpfBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar 130
+            </button>
+          </div>
+        </div>
+
+        <div class="modelo-layout">
+          <div class="modelo-left">
+            <div class="modelo-card">
+              <div class="mc-header mc-header--indigo"><span>Ingresos de la actividad económica</span></div>
+              <div class="mc-body">
+                <div class="mc-row"><span>Ingresos íntegros del periodo</span><strong id="irpfIngBrutos">—</strong></div>
+                <div class="mc-row"><span>Acumulado trimestres anteriores</span><strong id="irpfIngAcum">—</strong></div>
+                <div class="mc-row mc-row--total"><span>Total ingresos acumulados año</span><strong id="irpfIngTotal">—</strong></div>
+              </div>
+            </div>
+
+            <div class="modelo-card" style="margin-top:16px">
+              <div class="mc-header mc-header--gray"><span>Gastos deducibles de la actividad</span></div>
+              <div class="mc-body">
+                <div class="mc-row"><span>Gastos del periodo</span><strong id="irpfGstPeriodo">—</strong></div>
+                <div class="mc-row"><span>Gastos acumulados anteriores</span><strong id="irpfGstAcum">—</strong></div>
+                <div class="mc-row mc-row--total"><span>Total gastos deducibles</span><strong id="irpfGstTotal">—</strong></div>
+              </div>
+            </div>
+
+            <div class="modelo-card" style="margin-top:16px">
+              <div class="mc-header mc-header--gray"><span>Retenciones soportadas</span></div>
+              <div class="mc-body">
+                <div class="mc-row"><span>Retenciones del periodo</span><strong id="irpfRetPeriodo">—</strong></div>
+                <div class="mc-row"><span>Retenciones acumuladas</span><strong id="irpfRetAcum">—</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modelo-right">
+            <div class="modelo-resultado-card" id="irpfResultadoCard" style="border-top-color:#4f46e5">
+              <div class="mrc-label">RESULTADO MODELO 130</div>
+              <div class="mrc-value" id="irpfResultado130">—</div>
+              <div class="mrc-status" id="irpfEstado130">—</div>
+              <div class="mrc-info">
+                <div class="mri-row"><span>Rendimiento neto (ing − gst)</span><span id="irpfRendNeto">—</span></div>
+                <div class="mri-row"><span>20% de pago fraccionado</span><span id="irpfPagoFrac">—</span></div>
+                <div class="mri-row"><span>Menos retenciones soportadas</span><span id="irpfMenosRet">—</span></div>
+                <div class="mri-row"><span>Menos pagos anteriores</span><span id="irpfMenosPagAnt">0,00 €</span></div>
+              </div>
+              <div class="mrc-deadline">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span id="irpfDeadline">Plazo: —</span>
+              </div>
+            </div>
+
+            <div class="modelo-card" style="margin-top:16px">
+              <div class="mc-header mc-header--gray"><span>Proyección anual estimada</span></div>
+              <div class="mc-body">
+                <div class="mc-row"><span>Cuota estimada año completo</span><strong id="irpfProyAnual">—</strong></div>
+                <div class="mc-row"><span>Tipo efectivo estimado</span><strong id="irpfTipoEf">—</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: LIBROS ═══ -->
+      <div class="view" id="view-libros">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Libros oficiales AEAT</h1>
+            <p class="view-sub">Conforme al Art. 68 Reglamento IRPF · RD 439/2007</p>
+          </div>
+        </div>
+
+        <div class="libros-grid">
+          <div class="libro-card libro-card--ingresos">
+            <div class="libro-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+            </div>
+            <h3>Libro de Ingresos</h3>
+            <p>Registro cronológico de todas las facturas emitidas con numeración legal. Obligatorio para autónomos en estimación directa.</p>
+            <div class="libro-legal-ref">📋 Art. 68.1 Reglamento IRPF</div>
+            <div class="libro-actions">
+              <button class="btn-primary" id="exportLibroIngBtn">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Exportar PDF oficial
+              </button>
+              <button class="btn-outline" id="exportLibroIngExcelBtn">Excel</button>
+            </div>
+          </div>
+
+          <div class="libro-card libro-card--gastos">
+            <div class="libro-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+            </div>
+            <h3>Libro de Gastos</h3>
+            <p>Registro de todas las facturas recibidas y gastos deducibles. Incluye desglose de IVA soportado deducible.</p>
+            <div class="libro-legal-ref">📋 Art. 68.2 Reglamento IRPF</div>
+            <div class="libro-actions">
+              <button class="btn-primary" id="exportLibroGstBtn">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Exportar PDF oficial
+              </button>
+              <button class="btn-outline" id="exportLibroGstExcelBtn">Excel</button>
+            </div>
+          </div>
+
+          <div class="libro-card libro-card--bienes">
+            <div class="libro-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+            </div>
+            <h3>Libro de Bienes de Inversión</h3>
+            <p>Registro de activos afectos a la actividad. Requerido para la regularización del IVA de bienes de inversión.</p>
+            <div class="libro-legal-ref">📋 Art. 104-110 LIVA</div>
+            <div class="libro-actions">
+              <button class="btn-outline" id="exportLibroBienesBtn">Exportar PDF</button>
+            </div>
+          </div>
+
+          <div class="libro-card libro-card--provision">
+            <div class="libro-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <h3>Provisiones y Suplidos</h3>
+            <p>Registro de provisiones de fondos y suplidos. Necesario para actividades profesionales con cobros a cuenta.</p>
+            <div class="libro-legal-ref">📋 Art. 68.3 Reglamento IRPF</div>
+            <div class="libro-actions">
+              <button class="btn-outline" id="exportLibroProvBtn">Exportar PDF</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="legal-disclaimer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <p>Los libros registros generados cumplen con los requisitos formales establecidos en el artículo 68 del Reglamento del IRPF (RD 439/2007) y en el artículo 62 del Reglamento del IVA (RD 1624/1992). Se recomienda su conservación durante al menos 4 años (plazo de prescripción tributaria). Este software no sustituye el asesoramiento de un profesional tributario.</p>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: HISTORICO ═══ -->
+      <div class="view" id="view-historico">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Análisis anual</h1>
+            <p class="view-sub" id="histYearLabel">—</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-outline" id="exportHistExcelBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+              Exportar Excel
+            </button>
+          </div>
+        </div>
+
+        <div class="kpi-row" style="margin-bottom:28px">
+          <div class="kpi-card kpi-blue">
+            <div class="kpi-top"><span class="kpi-lbl">Ingresos anuales</span></div>
+            <div class="kpi-val" id="histIngAnual">—</div>
+          </div>
+          <div class="kpi-card kpi-red">
+            <div class="kpi-top"><span class="kpi-lbl">Gastos anuales</span></div>
+            <div class="kpi-val" id="histGstAnual">—</div>
+          </div>
+          <div class="kpi-card kpi-green">
+            <div class="kpi-top"><span class="kpi-lbl">Beneficio anual</span></div>
+            <div class="kpi-val" id="histBenAnual">—</div>
+          </div>
+          <div class="kpi-card kpi-amber">
+            <div class="kpi-top"><span class="kpi-lbl">IVA total año</span></div>
+            <div class="kpi-val" id="histIvaAnual">—</div>
+          </div>
+          <div class="kpi-card kpi-indigo">
+            <div class="kpi-top"><span class="kpi-lbl">IRPF total año</span></div>
+            <div class="kpi-val" id="histIrpfAnual">—</div>
+          </div>
+        </div>
+
+        <div class="section-card" style="margin-bottom:24px">
+          <div class="sc-header"><span class="sc-title">Comparativa trimestral IVA</span></div>
+          <table class="data-table" id="histIvaTable">
+            <thead><tr><th>Trimestre</th><th>IVA Repercutido</th><th>IVA Deducible</th><th>Resultado 303</th><th>Estado</th></tr></thead>
+            <tbody id="histIvaBody"><tr class="dt-empty"><td colspan="5">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="section-card">
+          <div class="sc-header"><span class="sc-title">Comparativa trimestral IRPF</span></div>
+          <table class="data-table" id="histIrpfTable">
+            <thead><tr><th>Trimestre</th><th>Ingresos</th><th>Gastos</th><th>Rendimiento neto</th><th>Retenciones</th><th>Resultado 130</th></tr></thead>
+            <tbody id="histIrpfBody"><tr class="dt-empty"><td colspan="6">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: PRESUPUESTOS ═══ -->
+      <div class="view" id="view-presupuestos">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Presupuestos</h1>
+            <p class="view-sub" id="presCount">— presupuestos en el periodo</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-primary" id="nuevoPresBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nuevo presupuesto
+            </button>
+          </div>
+        </div>
+
+        <!-- KPIs presupuestos -->
+        <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
+          <div class="kpi-card kpi-blue">
+            <div class="kpi-top"><span class="kpi-lbl">Total presupuestado</span></div>
+            <div class="kpi-val" id="presKpiTotal">—</div>
+          </div>
+          <div class="kpi-card kpi-green">
+            <div class="kpi-top"><span class="kpi-lbl">Aceptados</span></div>
+            <div class="kpi-val" id="presKpiAceptados">—</div>
+          </div>
+          <div class="kpi-card kpi-amber">
+            <div class="kpi-top"><span class="kpi-lbl">Pendientes de respuesta</span></div>
+            <div class="kpi-val" id="presKpiPendientes">—</div>
+          </div>
+          <div class="kpi-card kpi-indigo">
+            <div class="kpi-top"><span class="kpi-lbl">Tasa de conversión</span></div>
+            <div class="kpi-val" id="presKpiTasa">—</div>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <input type="text" id="presSearch" class="search-input" placeholder="Buscar por concepto, número, cliente…" style="min-width:220px"/>
+          <select id="presFilterEstado" class="filter-sel">
+            <option value="">Todos los estados</option>
+            <option value="borrador">Borrador</option>
+            <option value="enviado">Enviado</option>
+            <option value="aceptado">Aceptado</option>
+            <option value="rechazado">Rechazado</option>
+          </select>
+        </div>
+
+        <div class="section-card no-pad">
+          <table class="data-table" id="presTable">
+            <thead>
+              <tr>
+                <th>Fecha</th><th>Nº</th><th>Concepto</th><th>Cliente</th>
+                <th>Importe</th><th>Estado</th><th>Válido hasta</th><th>Aceptado</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="presBody"><tr class="dt-empty"><td colspan="9">Cargando presupuestos…</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="pres-info-bar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Los presupuestos aceptados se convierten automáticamente en facturas con un clic. El presupuesto queda archivado y vinculado a la factura.
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: GASTOS (Proveedores + Recurrentes) ═══ -->
+      <div class="view" id="view-gastos">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Proveedores y Gastos Recurrentes</h1>
+            <p class="view-sub">Gestiona tus proveedores habituales y automatiza los gastos periódicos</p>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="gastos-tabs">
+          <button class="gastos-tab active" data-tab="proveedores">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+            Proveedores
+          </button>
+          <button class="gastos-tab" data-tab="recurrentes">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+            Gastos Recurrentes
+          </button>
+        </div>
+
+        <!-- Panel proveedores -->
+        <div class="gastos-panel active" id="gastosPanel_proveedores">
+          <div class="panel-toolbar">
+            <div class="search-bar-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="provSearch" class="search-input" placeholder="Buscar proveedor por nombre o NIF…"/>
+            </div>
+            <button class="btn-primary" id="nuevoProvBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nuevo proveedor
+            </button>
+          </div>
+          <p id="provCount" style="font-size:12px;color:var(--t3);margin:0 0 12px">—</p>
+          <div class="section-card no-pad">
+            <table class="data-table">
+              <thead><tr><th>Nombre</th><th>NIF</th><th>Email</th><th>Teléfono</th><th>Categoría</th><th>Estado</th><th></th></tr></thead>
+              <tbody id="provBody"><tr class="dt-empty"><td colspan="7">Cargando…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Panel recurrentes -->
+        <div class="gastos-panel" id="gastosPanel_recurrentes">
+          <div class="panel-toolbar">
+            <div style="font-size:13px;color:var(--t2)">Gastos que se repiten periódicamente — regístralos con un clic cuando vencen</div>
+            <button class="btn-primary" id="nuevoGastoRecBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nuevo gasto recurrente
+            </button>
+          </div>
+          <div class="section-card no-pad" style="margin-top:16px">
+            <table class="data-table">
+              <thead><tr><th>Nombre</th><th>Proveedor</th><th>Importe</th><th>Frecuencia</th><th>Próxima fecha</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <tbody id="gastosRecBody"><tr class="dt-empty"><td colspan="7">Cargando…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: PRODUCTOS / CATÁLOGO ═══ -->
+      <div class="view" id="view-productos">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Productos y Servicios</h1>
+            <p class="view-sub" id="prodCount">— productos en catálogo</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-primary" id="nuevoProdBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nuevo producto / servicio
+            </button>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <div class="search-bar-wrap" style="flex:1">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="prodSearch" class="search-input" placeholder="Buscar por nombre, referencia o descripción…"/>
+          </div>
+          <select id="prodFilterTipo" class="filter-sel">
+            <option value="">Todos los tipos</option>
+            <option value="servicio">Servicios</option>
+            <option value="producto">Productos físicos</option>
+            <option value="suscripcion">Suscripciones</option>
+          </select>
+        </div>
+
+        <div class="section-card no-pad">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nombre / Referencia</th><th>Descripción</th><th>Tipo</th>
+                <th>Precio base</th><th>IVA</th><th>Total c/IVA</th><th>Estado</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="prodBody"><tr class="dt-empty"><td colspan="8">Cargando catálogo…</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="pres-info-bar" style="margin-top:16px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Los productos del catálogo aparecen como sugerencias al añadir líneas en facturas y presupuestos, agilizando la creación.
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: COBROS Y VENCIMIENTOS ═══ -->
+      <div class="view" id="view-cobros">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Cobros y Vencimientos</h1>
+            <p class="view-sub">Control de facturas pendientes de cobro y gastos por vencer</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-outline" id="cobrosRefreshBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+              Actualizar
+            </button>
+          </div>
+        </div>
+
+        <!-- KPIs cobros -->
+        <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
+          <div class="kpi-card kpi-red">
+            <div class="kpi-top">
+              <span class="kpi-lbl">Pendiente de cobro</span>
+              <div class="kpi-icon kpi-icon--red"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+            </div>
+            <div class="kpi-val" id="cobrosPendiente">—</div>
+            <div class="kpi-sub">Facturas emitidas sin cobrar</div>
+          </div>
+          <div class="kpi-card kpi-amber">
+            <div class="kpi-top">
+              <span class="kpi-lbl">Vencidas (+30 días)</span>
+            </div>
+            <div class="kpi-val" id="cobrosVencidas">—</div>
+            <div class="kpi-sub">Requieren atención inmediata</div>
+          </div>
+          <div class="kpi-card kpi-green">
+            <div class="kpi-top">
+              <span class="kpi-lbl">Cobrado este trimestre</span>
+            </div>
+            <div class="kpi-val" id="cobrosCobrado">—</div>
+            <div class="kpi-sub">Facturas marcadas como cobradas</div>
+          </div>
+          <div class="kpi-card kpi-blue">
+            <div class="kpi-top">
+              <span class="kpi-lbl">Media días de cobro</span>
+            </div>
+            <div class="kpi-val" id="cobrosMedia">—</div>
+            <div class="kpi-sub">Periodo medio de maduración</div>
+          </div>
+        </div>
+
+        <!-- Facturas pendientes de cobro -->
+        <div class="section-card" style="margin-bottom:20px">
+          <div class="sc-header">
+            <span class="sc-title">⏳ Facturas pendientes de cobro</span>
+            <span style="font-size:12px;color:var(--t3)" id="cobrosPendCount"></span>
+          </div>
+          <table class="data-table" id="cobrosTable">
+            <thead>
+              <tr>
+                <th>Fecha</th><th>Nº Factura</th><th>Cliente</th><th>Importe</th>
+                <th>Días pendiente</th><th>Estado</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="cobrosBody"><tr class="dt-empty"><td colspan="7">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+
+        <!-- Gastos por vencer -->
+        <div class="section-card">
+          <div class="sc-header">
+            <span class="sc-title">📅 Gastos recurrentes próximos</span>
+          </div>
+          <table class="data-table" id="gastosVencenTable">
+            <thead>
+              <tr><th>Gasto</th><th>Proveedor</th><th>Importe</th><th>Próximo vencimiento</th><th>Días restantes</th><th>Acción</th></tr>
+            </thead>
+            <tbody id="gastosVencenBody"><tr class="dt-empty"><td colspan="6">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- TOAST & MODAL -->
+<div id="toastEl" class="toast-container"></div>
+<div id="modalEl"></div>
+
+
+<!-- COOKIE BANNER -->
+<div id="cookieBanner" class="cookie-banner" style="display:none">
+  <div class="cookie-banner-inner">
+    <div class="cookie-banner-text">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px;color:#60a5fa"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>Usamos almacenamiento local para guardar tus preferencias (modo oscuro, sesión). Sin cookies de publicidad ni rastreo. <a href="#" id="cookieLeerMas">Leer más</a></span>
+    </div>
+    <div class="cookie-banner-actions">
+      <button class="cookie-btn-outline" id="cookieRechazar">Solo esenciales</button>
+      <button class="cookie-btn-solid" id="cookieAceptar">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
