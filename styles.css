@@ -785,3 +785,65 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
   margin-left: -30px;
   margin-top: -30px;
 }
+
+/* ══════════════════════════════════════════════
+   TAURIX LOGO — Transparent bull version
+   Logo_Sin_Texto.png = bull only, black bg (needs dark container)
+   Logo_Taurix-Photoroom.png = bull + text, black bg
+══════════════════════════════════════════════ */
+
+/* AUTH MODAL — toro solo, centrado, sin fondo */
+.auth-logo {
+  width: 80px !important;
+  height: 80px !important;
+  border-radius: 20px !important;
+  background: #0B0D12 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 4px 28px rgba(249,115,22,.25), 0 0 0 1px rgba(249,115,22,.2) !important;
+  margin: 0 auto 20px !important;
+}
+.auth-logo-bull {
+  /* Image 1280x640 — bull centered in the frame with black bg */
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  margin: 0 !important;
+  filter: none !important;
+}
+
+/* NAV — logo con texto, necesita fondo oscuro */
+.lp-logo-img {
+  height: 44px !important;
+  background: #0B0D12 !important;
+  border-radius: 10px !important;
+  padding: 6px 14px !important;
+  object-fit: contain !important;
+}
+
+/* HERO — logo grande centrado con fondo oscuro */
+.lp-hero-logo-img {
+  height: 150px !important;
+  background: #0B0D12 !important;
+  border-radius: 20px !important;
+  padding: 16px 40px !important;
+  object-fit: contain !important;
+  box-shadow: 0 12px 56px rgba(249,115,22,.28), 0 2px 0 rgba(249,115,22,.1) inset !important;
+}
+
+/* SIDEBAR APP */
+.app-logo-img {
+  height: 36px !important;
+  object-fit: contain !important;
+  filter: none !important;
+}
+
+/* FOOTER */
+.lp-footer-logo img {
+  height: 34px !important;
+  opacity: .7 !important;
+  filter: none !important;
+}
