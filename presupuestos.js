@@ -80,6 +80,8 @@ export async function refreshPresupuestos() {
         <td>
           <div class="tbl-act">
             ${p.estado !== "aceptado" ? `<button class="ta-btn ta-emit" onclick="window._presTofact('${p.id}')" title="Convertir a factura">📄→🧾</button>` : ""}
+            <button class="ta-btn ta-email" onclick="window._presEmail('${p.id}')" title="Enviar por email">📧</button>
+            <button class="ta-btn" onclick="window._presPDF('${p.id}')" title="Descargar PDF">📄</button>
             <button class="ta-btn" onclick="window._editPres('${p.id}')" title="Editar">✏️</button>
             <button class="ta-btn" onclick="window._dupPres('${p.id}')" title="Duplicar">📋</button>
             <button class="ta-btn ta-del" onclick="window._delPres('${p.id}')" title="Eliminar">🗑️</button>
@@ -395,7 +397,7 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
 
   const PW = 210, PH = 297, ML = 15, MR = 15, W = PW - ML - MR;
-  const BRAND=[26,86,219], DARK=[17,24,39], GRAY=[107,114,128], LIGHT=[243,244,246], WHITE=[255,255,255];
+  const BRAND=[249,115,22], DARK=[11,13,18], GRAY=[107,114,128], LIGHT=[243,244,246], WHITE=[255,255,255];
 
   doc.setFillColor(...BRAND);
   doc.rect(0, 0, PW, 42, "F");
@@ -409,7 +411,7 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
     } catch(e) { console.warn("Logo:", e); }
   } else {
     doc.setFont("helvetica","bold"); doc.setFontSize(17); doc.setTextColor(...WHITE);
-    doc.text(perfil.nombre_razon_social||"TuGestor", ML, 23);
+    doc.text(perfil.nombre_razon_social||"Taurix", ML, 23);
   }
 
   doc.setFont("helvetica","bold"); doc.setFontSize(24); doc.setTextColor(...WHITE);
@@ -533,7 +535,7 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
   doc.rect(0, PH-14, PW, 14, "F");
   doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...GRAY);
   const pie = [perfil.nombre_razon_social, perfil.nif?"NIF "+perfil.nif:null, perfil.domicilio_fiscal, perfil.email].filter(Boolean).join(" · ");
-  doc.text(pie||"Generado con TuGestor", PW/2, PH-6, {align:"center", maxWidth:W});
+  doc.text(pie||"Generado con Taurix", PW/2, PH-6, {align:"center", maxWidth:W});
 
   const filename = `presupuesto_${(p.numero||p.id.slice(0,8)).replace(/\//g,"-")}.pdf`;
   if (descargar) { doc.save(filename); toast("📄 PDF descargado","success"); return null; }
@@ -541,76 +543,100 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
 }
 
 /* ══════════════════════════════════════════════════
-   MODAL ENVIAR EMAIL VIA GMAIL
+   MODAL ENVIAR PRESUPUESTO POR EMAIL
+   — Genera el PDF, lo descarga automáticamente,
+     y abre el cliente de email con todo prellenado
 ══════════════════════════════════════════════════ */
 export async function showEnviarEmailModal(presId) {
   const { data: p, error } = await supabase.from("presupuestos")
     .select("*").eq("id", presId).single();
-  if (error||!p) { toast("Error cargando presupuesto","error"); return; }
+  if (error || !p) { toast("Error cargando presupuesto", "error"); return; }
 
   const perfil  = await cargarPerfil();
-  const cliente = CLIENTES.find(c=>c.id===p.cliente_id);
+  const cliente = CLIENTES.find(c => c.id === p.cliente_id);
   const emailTo = cliente?.email || p.cliente_email || "";
+  const emailDe = perfil.email || "";
+  const totalFmt = fmt(p.base + p.base * p.iva / 100);
+  const validez  = p.fecha_validez
+    ? new Date(p.fecha_validez).toLocaleDateString("es-ES") : "";
+
+  const bodyDefecto = `Estimado/a ${p.cliente_nombre || "cliente"},
+
+Adjunto encontrará el presupuesto ${p.numero || ""} correspondiente a: ${p.concepto || "los servicios solicitados"}.
+
+Importe total: ${totalFmt}${validez ? "\nVálido hasta: " + validez : ""}
+
+Para aceptar el presupuesto o resolver cualquier duda, puede responder a este correo.
+
+Un saludo,
+${perfil.nombre_razon_social || ""}${perfil.telefono ? "\n" + perfil.telefono : ""}`;
 
   openModal(`
-    <div class="modal modal--wide">
+    <div class="modal" style="max-width:580px">
       <div class="modal-hd">
         <span class="modal-title">📧 Enviar presupuesto por email</span>
         <button class="modal-x" onclick="window._cm()">×</button>
       </div>
       <div class="modal-bd">
 
-        <div class="email-taurix-badge">
-          <img src="Logo_Taurix.png" alt="Taurix" style="height:20px"/>
-          <span>Enviado desde <strong>presupuestos@taurix.es</strong> en nombre tuyo</span>
-        </div>
-
-        <div class="email-pres-preview">
-          <div class="epp-num">${p.numero||"S/N"}</div>
-          <div class="epp-datos">
-            <span><strong>${p.cliente_nombre||"—"}</strong></span>
-            <span class="mono fw7" style="color:var(--brand)">${fmt(p.base+p.base*p.iva/100)}</span>
-            ${p.fecha_validez?`<span style="color:var(--t3);font-size:12px">Válido hasta ${new Date(p.fecha_validez).toLocaleDateString("es-ES")}</span>`:""}
+        <!-- Resumen del presupuesto -->
+        <div style="background:var(--srf2);border:1px solid var(--brd);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:14px">
+          <div style="width:44px;height:44px;background:var(--ox-lt);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📋</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:var(--font-hd);font-weight:800;font-size:14px;color:var(--t1)">${p.numero || "S/N"} · ${p.cliente_nombre || "—"}</div>
+            <div style="font-size:12px;color:var(--t3);margin-top:2px">${p.concepto || "—"}</div>
           </div>
+          <div style="font-family:var(--font-hd);font-weight:900;font-size:18px;color:var(--ox);white-space:nowrap">${totalFmt}</div>
         </div>
 
         <div class="modal-grid2">
           <div class="modal-field">
-            <label>Email del cliente *</label>
-            <input id="em_to" class="ff-input" type="email" value="${emailTo}" placeholder="cliente@empresa.com"/>
+            <label>Tu email (remitente) *</label>
+            <input id="em_de" class="ff-input" type="email" value="${emailDe}" placeholder="tu@empresa.com"/>
           </div>
           <div class="modal-field">
-            <label>CC (opcional)</label>
-            <input id="em_cc" class="ff-input" type="email" placeholder="copia@tuempresa.com"/>
+            <label>Email del cliente (destinatario) *</label>
+            <input id="em_to" class="ff-input" type="email" value="${emailTo}" placeholder="cliente@empresa.com"/>
           </div>
         </div>
 
         <div class="modal-field">
-          <label>Asunto</label>
-          <input id="em_subject" class="ff-input" value="Presupuesto ${p.numero||""} — ${p.concepto||""}"/>
+          <label>CC (con copia, opcional)</label>
+          <input id="em_cc" class="ff-input" type="email" placeholder="otro@empresa.com"/>
+        </div>
+
+        <div class="modal-field">
+          <label>Asunto del email</label>
+          <input id="em_subject" class="ff-input" value="Presupuesto ${p.numero || ""} — ${p.concepto || ""}"/>
         </div>
 
         <div class="modal-field">
           <label>Mensaje</label>
-          <textarea id="em_body" class="ff-input ff-textarea" style="min-height:120px">${_defaultEmailBody(p, perfil)}</textarea>
+          <textarea id="em_body" class="ff-input ff-textarea" style="min-height:150px;font-size:13px;line-height:1.6">${bodyDefecto}</textarea>
         </div>
 
-        <div class="email-options-row">
-          <label class="email-check-lbl">
-            <input type="checkbox" id="em_adjuntar" checked/>
-            <span>📎 Adjuntar PDF del presupuesto</span>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13.5px;color:var(--t2)">
+            <input type="checkbox" id="em_adjuntar" checked style="width:16px;height:16px;accent-color:var(--ox)"/>
+            <span>📎 Descargar automáticamente el PDF para adjuntarlo</span>
           </label>
-          <label class="email-check-lbl">
-            <input type="checkbox" id="em_marcar_enviado" checked/>
-            <span>📤 Marcar como "Enviado"</span>
+          <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13.5px;color:var(--t2)">
+            <input type="checkbox" id="em_marcar" checked style="width:16px;height:16px;accent-color:var(--ox)"/>
+            <span>📤 Marcar presupuesto como "Enviado" al enviar</span>
           </label>
         </div>
+
+        <div style="background:var(--ox-lt);border:1px solid var(--ox-mid);border-radius:9px;padding:11px 14px;margin-top:18px;font-size:12.5px;color:var(--ox-dd);display:flex;gap:10px;align-items:flex-start;line-height:1.5">
+          <span style="font-size:16px;flex-shrink:0">💡</span>
+          <span>El botón abrirá tu cliente de correo (Gmail, Outlook…) con todo prellenado. Solo tendrás que adjuntar el PDF descargado y pulsar Enviar.</span>
+        </div>
       </div>
+
       <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
-        <button class="btn-modal-save btn-send-email" id="em_send">
+        <button class="btn-modal-save" id="em_send" style="gap:8px">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          Enviar presupuesto
+          Preparar y enviar
         </button>
       </div>
     </div>
@@ -618,99 +644,71 @@ export async function showEnviarEmailModal(presId) {
 
   document.getElementById("em_send")?.addEventListener("click", async () => {
     const to      = document.getElementById("em_to").value.trim();
+    const de      = document.getElementById("em_de").value.trim();
+    const cc      = document.getElementById("em_cc").value.trim();
     const subject = document.getElementById("em_subject").value.trim();
     const body    = document.getElementById("em_body").value.trim();
-    const cc      = document.getElementById("em_cc").value.trim();
-    const adjuntar    = document.getElementById("em_adjuntar").checked;
-    const marcarEnv   = document.getElementById("em_marcar_enviado").checked;
+    const adjuntar  = document.getElementById("em_adjuntar").checked;
+    const marcarEnv = document.getElementById("em_marcar").checked;
 
-    if (!to)      { toast("Introduce el email del cliente","error"); return; }
-    if (!subject) { toast("Introduce el asunto","error"); return; }
+    if (!to)      { toast("Introduce el email del cliente", "error"); return; }
+    if (!subject) { toast("Introduce el asunto", "error"); return; }
 
     const btn = document.getElementById("em_send");
     btn.disabled = true;
-    btn.innerHTML = `<span class="spin"></span> Generando PDF…`;
+    btn.innerHTML = `<span class="spin"></span> Preparando…`;
 
     try {
-      let pdfBase64 = null, pdfFilename = null;
+      // 1. Descargar PDF si está marcado
       if (adjuntar) {
-        const result = await generarPDFPresupuesto(presId, false);
-        if (result) {
-          pdfBase64 = await new Promise((res,rej) => {
-            const reader = new FileReader();
-            reader.onload  = () => res(reader.result.split(",")[1]);
-            reader.onerror = rej;
-            reader.readAsDataURL(result.blob);
-          });
-          pdfFilename = result.filename;
-        }
+        btn.innerHTML = `<span class="spin"></span> Generando PDF…`;
+        await generarPDFPresupuesto(presId, true);
+        // Pequeña pausa para que el navegador procese la descarga
+        await new Promise(r => setTimeout(r, 400));
       }
 
-      btn.innerHTML = `<span class="spin"></span> Enviando…`;
-
-      const { data: resp, error: fnErr } = await supabase.functions.invoke("send-presupuesto", {
-        body: {
-          to, cc: cc||null,
-          from_name:   perfil.nombre_razon_social || "Taurix",
-          from_email:  "presupuestos@taurix.es",
-          subject,
-          body_text: body,
-          body_html: _bodyToHtml(body, p, perfil),
-          pdf_base64:  pdfBase64,
-          pdf_filename: pdfFilename,
-        }
-      });
-
-      if (fnErr) throw new Error(fnErr.message);
-      if (resp?.error) throw new Error(resp.error);
-
+      // 2. Marcar como enviado si está marcado
       if (marcarEnv && p.estado === "borrador") {
         await supabase.from("presupuestos").update({
           estado: "enviado",
-          fecha_envio: new Date().toISOString().slice(0,10)
+          fecha_envio: new Date().toISOString().slice(0, 10)
         }).eq("id", presId);
       }
 
+      // 3. Construir mailto y abrir cliente de correo
+      const mailtoParams = new URLSearchParams();
+      if (cc) mailtoParams.set("cc", cc);
+      mailtoParams.set("subject", subject);
+      mailtoParams.set("body", body);
+
+      // URLSearchParams codifica + en vez de %20, corregimos
+      const mailtoStr = `mailto:${encodeURIComponent(to)}?${mailtoParams.toString().replace(/\+/g, "%20")}`;
+
+      // También añadir "from" hint si el cliente lo soporta
+      const mailtoFull = de ? mailtoStr.replace("mailto:", `mailto:`) : mailtoStr;
+
+      window.location.href = mailtoFull;
+
       closeModal();
-      toast(`✅ Presupuesto enviado a ${to}`, "success", 5000);
+      toast(`📧 Cliente de correo abierto — adjunta el PDF descargado y envía`, "success", 6000);
       await refreshPresupuestos();
 
     } catch(e) {
-      toast("❌ Error: "+e.message,"error",7000);
+      toast("Error: " + e.message, "error");
       btn.disabled = false;
-      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar desde Gmail`;
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Preparar y enviar`;
     }
   });
 }
 
 function _defaultEmailBody(p, perfil) {
-  const nom   = perfil.nombre_razon_social || "nosotros";
-  const valid = p.fecha_validez ? `\n\nEste presupuesto es válido hasta el ${new Date(p.fecha_validez).toLocaleDateString("es-ES")}.` : "";
-  return `Estimado/a ${p.cliente_nombre||"cliente"},\n\nAdjunto encontrará el presupuesto ${p.numero||""} correspondiente a: ${p.concepto||"los servicios solicitados"}.\n\nImporte total: ${fmt(p.base+p.base*p.iva/100)}${valid}\n\nPara aceptar el presupuesto o si tiene cualquier consulta, no dude en contactarnos.\n\nUn saludo,\n${nom}`;
+  // kept for backwards compat — not used in new flow
+  return "";
 }
 
 function _bodyToHtml(text, p, perfil) {
-  const esc  = text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  const body = esc.split("\n\n").map(b=>`<p style="margin:0 0 14px;line-height:1.6">${b.replace(/\n/g,"<br/>")}</p>`).join("");
-  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/></head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:system-ui,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 0"><tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
-<tr><td style="background:#1a56db;padding:28px 36px">
-  <h1 style="margin:0;color:#fff;font-size:22px;font-weight:800">Presupuesto ${p.numero||""}</h1>
-  <p style="margin:6px 0 0;color:rgba(255,255,255,.8);font-size:14px">${p.concepto||""}</p>
-</td></tr>
-<tr><td style="background:#eff6ff;padding:20px 36px;border-bottom:2px solid #dbeafe">
-  <span style="font-size:11px;color:#6b7280;text-transform:uppercase">Importe total</span><br/>
-  <span style="font-size:28px;font-weight:800;color:#1a56db">${fmt(p.base+p.base*p.iva/100)}</span>
-</td></tr>
-<tr><td style="padding:32px 36px;font-size:15px;color:#374151">${body}</td></tr>
-<tr><td style="background:#f9fafb;padding:18px 36px;border-top:1px solid #e5e7eb">
-  <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center">
-    ${perfil.nombre_razon_social||""}${perfil.nif?" · NIF "+perfil.nif:""}
-  </p>
-</td></tr>
-</table></td></tr></table></body></html>`;
+  // kept for backwards compat — not used in new flow
+  return "";
 }
 
 window._logoutAndReconnect = async () => {
