@@ -691,3 +691,7 @@ html.dark .legal-modal-header{border-color:var(--brd)}
 html.dark .modal-x,html.dark .auth-close{background:var(--srf2);border-color:var(--brd)}
 html.dark .badge.b-cobrada{background:#064e3b;color:#6ee7b7}
 html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
+
+/* Email button in presupuestos table */
+.ta-email{border-color:#bae6fd;background:#f0f9ff;color:#0284c7}
+.ta-email:hover{background:#bae6fd}
