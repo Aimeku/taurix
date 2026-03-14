@@ -713,7 +713,7 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
   margin-bottom: 40px;
 }
 .lp-hero-logo-img {
-  height: 400px;
+  height: 200px;
   width: auto;
   object-fit: contain;
   filter: drop-shadow(0 6px 36px rgba(249,115,22,.5));
@@ -733,7 +733,7 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
 
 /* Footer: toro solo */
 .lp-footer-logo-img {
-  height: 140px;
+  height: 70px;
   width: auto;
   object-fit: contain;
   display: block;
@@ -763,14 +763,14 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
 /* ── LOGOS FINALES ── */
 /* NAV: toro solo, pequeño */
 .lp-logo-img {
-  height: 42px;
+  height: 84px;
   width: auto;
   object-fit: contain;
 }
 /* HERO: logo completo (toro+texto), grande */
 .lp-hero-logo { display:flex; justify-content:center; align-items:center; margin-bottom:40px; }
 .lp-hero-logo-img {
-  height: 200px;
+  height: 400px;
   width: auto;
   object-fit: contain;
   filter: drop-shadow(0 6px 36px rgba(249,115,22,.5));
@@ -781,9 +781,9 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
   to   { opacity:1; transform:translateY(0) scale(1); }
 }
 /* SIDEBAR APP: toro solo */
-.app-logo-img { height:38px; width:auto; object-fit:contain; }
+.app-logo-img { height:76px; width:auto; object-fit:contain; }
 /* FOOTER: toro solo */
-.lp-footer-logo-img { height:60px; width:auto; object-fit:contain; display:block; margin-bottom:10px; }
+.lp-footer-logo-img { height:120px; width:auto; object-fit:contain; display:block; margin-bottom:10px; }
 /* AUTH MODAL: toro solo, sin contenedor */
-.auth-logo { width:80px; height:80px; border-radius:0; background:transparent; overflow:visible; box-shadow:none; margin:0 auto 20px; display:flex; align-items:center; justify-content:center; }
-.auth-logo-bull { width:80px; height:80px; object-fit:contain; filter:drop-shadow(0 3px 14px rgba(249,115,22,.4)); }
+.auth-logo { width:160px; height:160px; border-radius:0; background:transparent; overflow:visible; box-shadow:none; margin:0 auto 20px; display:flex; align-items:center; justify-content:center; }
+.auth-logo-bull { width:160px; height:160px; object-fit:contain; filter:drop-shadow(0 3px 14px rgba(249,115,22,.4)); }
