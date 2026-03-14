@@ -297,6 +297,10 @@ export async function showPerfilModal() {
               </button>
               ${logoActual ? `<button type="button" id="pf_logo_remove" class="btn-outline" style="font-size:12px;padding:7px 14px;margin-left:6px;color:var(--red);border-color:var(--red-mid)">🗑️ Quitar</button>` : ""}
               <div style="font-size:11.5px;color:var(--t4);line-height:1.5;margin-top:4px">PNG, JPG o SVG · Máx. 500KB</div>
+              <div style="display:flex;align-items:center;gap:5px;margin-top:6px;padding:5px 8px;background:var(--ox-lt);border:1px solid var(--ox-mid);border-radius:6px;font-size:11px;color:var(--ox-dd);line-height:1.4">
+                <span style="font-size:13px">💡</span>
+                <span>Mejor con <strong>fondo transparente</strong> (PNG sin fondo) — queda perfecto en los PDFs</span>
+              </div>
             </div>
           </div>
         </div>
