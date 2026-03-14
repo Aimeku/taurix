@@ -763,7 +763,7 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
 /* ── LOGOS FINALES ── */
 /* NAV: toro solo, pequeño */
 .lp-logo-img {
-  height: 84px;
+  height: 42px;
   width: auto;
   object-fit: contain;
 }
