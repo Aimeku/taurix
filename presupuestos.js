@@ -80,6 +80,8 @@ export async function refreshPresupuestos() {
         <td>
           <div class="tbl-act">
             ${p.estado !== "aceptado" ? `<button class="ta-btn ta-emit" onclick="window._presTofact('${p.id}')" title="Convertir a factura">📄→🧾</button>` : ""}
+            <button class="ta-btn ta-email" onclick="window._presEmail('${p.id}')" title="Enviar por email">📧</button>
+            <button class="ta-btn" onclick="window._presPDF('${p.id}')" title="Descargar PDF">📄</button>
             <button class="ta-btn" onclick="window._editPres('${p.id}')" title="Editar">✏️</button>
             <button class="ta-btn" onclick="window._dupPres('${p.id}')" title="Duplicar">📋</button>
             <button class="ta-btn ta-del" onclick="window._delPres('${p.id}')" title="Eliminar">🗑️</button>
