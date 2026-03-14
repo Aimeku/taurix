@@ -839,3 +839,22 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
     0 0 24px rgba(249,115,22,.1) !important;
   filter: none !important;
 }
+
+/* ── APP LOGO CONTAINER — cajita blanca, logo pegado izquierda ── */
+.app-logo {
+  background: #FFFFFF !important;
+  border-right: 1px solid #E0E3EE !important;
+  padding: 0 18px !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+}
+.app-logo-img {
+  height: 30px !important;
+  width: auto !important;
+  object-fit: contain !important;
+  background: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
