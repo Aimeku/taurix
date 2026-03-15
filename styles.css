@@ -879,3 +879,6 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
 
 /* ── Quitar línea entre logo y sidebar ── */
 .app-logo { border-right: none !important; }
+
+/* ── Quitar línea naranja/borde derecho del sidebar ── */
+.sidebar { border-right: none !important; }
