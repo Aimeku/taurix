@@ -446,12 +446,12 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
   doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...INK);
   doc.text((p.cliente_nombre||"—").substring(0,32), COL2, yBlock);
 
-  y=Math.max(y+5, yBlock+12)+14;
+  y=Math.max(y+5, yBlock+12)+4;
 
   /* ── CONCEPTO ── */
   if(p.concepto){
     doc.setFont("helvetica","bold"); doc.setFontSize(14); doc.setTextColor(...INK);
-    doc.text(p.concepto, ML, y); y+=12;
+    doc.text(p.concepto, ML, y); y+=2;
   }
 
   /* ── TABLA 4 COLUMNAS balanceadas ──
