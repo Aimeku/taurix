@@ -468,10 +468,10 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
   // Cabecera tabla
   doc.setFillColor(...INK); doc.roundedRect(ML, y, W, 10, 1, 1, "F");
   doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
-  doc.text("DESCRIPTION",       tDesc,  y+5.8);
-  doc.text("CANT. / QTY",       tQty,   y+5.8, {align:"center"});
-  doc.text("PRECIO / UNIT PRICE", tPrice, y+5.8, {align:"center"});
-  doc.text("TOTAL",             tTotal, y+5.8, {align:"center"});
+  doc.text("DESCRIPCIÓN / DESCRIPTION", tDesc,  y+5.8);
+  doc.text("CANTIDAD / QTY",            tQty,   y+5.8, {align:"center"});
+  doc.text("PRECIO / UNIT PRICE",       tPrice, y+5.8, {align:"center"});
+  doc.text("TOTAL",                     tTotal, y+5.8, {align:"center"});
   y+=10;
 
   let baseTotal=0; const ivaMap={};
