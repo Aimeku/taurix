@@ -110,7 +110,6 @@ export function openModal(html) {
   const c = document.getElementById("modalEl");
   c.innerHTML = `<div class="modal-overlay" id="_mo">${html}</div>`;
 }
-}
 export function closeModal() { document.getElementById("modalEl").innerHTML = ""; }
 window._cm = closeModal;
 
