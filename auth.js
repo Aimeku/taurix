@@ -8,7 +8,7 @@ export async function login() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "https://aimeku.github.io/tugestor/",
+        redirectTo: "https://taurix.es/",
         queryParams: { prompt: "consent", access_type: "offline" },
       },
     });
@@ -34,7 +34,7 @@ export async function loginEmail(email, password) {
 export async function registerEmail(email, password) {
   const { data, error } = await supabase.auth.signUp({
     email, password,
-    options: { emailRedirectTo: "https://aimeku.github.io/tugestor/" },
+    options: { emailRedirectTo: "https://taurix.es/" },
   });
   if (error) {
     if (error.message.includes("already registered") || error.message.includes("User already registered"))
@@ -48,7 +48,7 @@ export async function registerEmail(email, password) {
 
 export async function resetPassword(email) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: "https://aimeku.github.io/tugestor/",
+    redirectTo: "https://taurix.es/",
   });
   if (error) throw new Error(error.message);
 }
