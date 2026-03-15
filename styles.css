@@ -709,3 +709,12 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
 .auth-logo-wrap { width:80px; height:80px; border-radius:20px; background:#0B0D12; overflow:hidden; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 1px rgba(249,115,22,.3),0 8px 32px rgba(0,0,0,.5); margin:0 auto 20px; position:relative; }
 .auth-logo-wrap::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 80%,rgba(249,115,22,.15) 0%,transparent 70%); pointer-events:none; }
 .auth-logo-bull { width:72px; height:72px; object-fit:contain; position:relative; z-index:1; filter:drop-shadow(0 2px 8px rgba(249,115,22,.4)); }
+
+/* ── Cookie banner fix ── */
+.cookie-banner {
+  background: #0B0D12 !important;
+  border: 1px solid rgba(249,115,22,.2) !important;
+}
+.cookie-banner-text { color: rgba(255,255,255,.7) !important; }
+.cookie-btn-outline { color: rgba(255,255,255,.7) !important; border-color: rgba(255,255,255,.2) !important; }
+.cookie-btn-solid { background: linear-gradient(135deg,#F97316,#FB923C) !important; color:#fff !important; }
