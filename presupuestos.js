@@ -415,7 +415,7 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
   if(logoB64){
     try{
       const mime=logoB64.split(";")[0].split(":")[1];
-      doc.addImage(logoB64, mime.includes("png")?"PNG":"JPEG", PW-MR-40, 10, 40, 26, "", "FAST");
+      doc.addImage(logoB64, mime.includes("png")?"PNG":"JPEG", PW-MR-42, 8, 42, 28, "", "FAST");
       logoOk=true;
     }catch(e){}
   }
@@ -435,7 +435,6 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
   doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
   doc.text("DE / FROM", COL1, y); doc.text("PARA / TO", COL2, y); y+=5;
 
-  /* Emisor — nombre + NIF + dirección */
   const yBlock=y;
   doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...INK);
   doc.text((perfil.nombre_razon_social||"—").substring(0,32), COL1, y); y+=5.5;
@@ -455,33 +454,53 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
     doc.text(p.concepto, ML, y); y+=12;
   }
 
-  /* ── TABLA 4 COLUMNAS (sin IVA) ── */
-  const cDesc=ML+2, cQty=ML+108, cPrice=ML+126, cTotal=PW-MR;
+  /* ── TABLA 4 COLUMNAS balanceadas ──
+     Descripción: ML+2 → ~118mm de ancho
+     Cant:        posición 130
+     P.Unit:      posición 155
+     Total:       PW-MR (alineado a la derecha)
+  */
+  const tDesc  = ML+2;
+  const tQty   = 130;
+  const tPrice = 155;
+  const tTotal = PW-MR;
+
+  // Cabecera tabla
   doc.setFillColor(...INK); doc.roundedRect(ML, y, W, 10, 1, 1, "F");
   doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
-  doc.text("DESCRIPCIÓN / DESCRIPTION", cDesc, y+5.8);
-  doc.text("CANT. / QTY",               cQty,  y+5.8);
-  doc.text("P. UNIT. / UNIT PRICE",     cPrice,y+5.8);
-  doc.text("TOTAL",                     cTotal,y+5.8, {align:"right"});
+  doc.text("DESCRIPCIÓN / DESCRIPTION", tDesc,  y+5.8);
+  doc.text("CANT.",                     tQty,   y+5.8, {align:"center"});
+  doc.text("P. UNIT.",                  tPrice, y+5.8, {align:"center"});
+  doc.text("TOTAL",                     tTotal, y+5.8, {align:"right"});
   y+=10;
 
   let baseTotal=0; const ivaMap={};
   lineas.forEach((l,idx)=>{
-    const qty=l.cantidad||1, precio=l.precio||0, sub=qty*precio;
-    baseTotal+=sub; ivaMap[l.iva]=(ivaMap[l.iva]||0)+sub*(l.iva||0)/100;
+    const qty    = l.cantidad||1;
+    const precio = l.precio||0;
+    const sub    = qty*precio;
+    // Ignorar líneas donde la descripción parece ser el número de presupuesto
+    const desc   = (l.descripcion||"").trim();
+    baseTotal+=sub;
+    ivaMap[l.iva]=(ivaMap[l.iva]||0)+sub*(l.iva||0)/100;
+
     const rH=9;
     doc.setFillColor(idx%2===0?249:255,idx%2===0?250:255,idx%2===0?251:255);
     doc.rect(ML,y,W,rH,"F");
     doc.setDrawColor(...BORDER); doc.setLineWidth(0.1); doc.line(ML,y+rH,ML+W,y+rH);
-    const dl=doc.splitTextToSize(l.descripcion||"—",100);
+
+    // Descripción — hasta 2 líneas, ancho ~118mm
+    const dl=doc.splitTextToSize(desc||"—", 112);
     doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...INK);
-    doc.text(dl[0],cDesc,y+5.8);
-    if(dl.length>1){doc.setFontSize(7.5);doc.setTextColor(...MUTED);doc.text(dl[1],cDesc,y+9.5);}
+    doc.text(dl[0], tDesc, y+5.8);
+    if(dl.length>1){ doc.setFontSize(7.5); doc.setTextColor(...MUTED); doc.text(dl[1],tDesc,y+9.5); }
+
+    // Cant y precio centrados en su columna
     doc.setFontSize(8.5); doc.setTextColor(...MUTED);
-    doc.text(String(qty),cQty,y+5.8);
-    doc.text(precio.toFixed(2)+" €",cPrice,y+5.8);
+    doc.text(String(qty),              tQty,   y+5.8, {align:"center"});
+    doc.text(precio.toFixed(2)+" €",   tPrice, y+5.8, {align:"center"});
     doc.setFont("helvetica","bold"); doc.setTextColor(...INK);
-    doc.text(sub.toFixed(2)+" €",cTotal,y+5.8,{align:"right"});
+    doc.text(sub.toFixed(2)+" €",      tTotal, y+5.8, {align:"right"});
     y+=rH;
     if(y>PH-80){doc.addPage();y=20;}
   });
@@ -489,21 +508,24 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
   doc.setDrawColor(...BORDER); doc.setLineWidth(0.4); doc.line(ML,y,PW-MR,y); y+=10;
 
   /* ── TOTALES ── */
-  const xTL=PW-MR-88, xTV=PW-MR;
+  const xTL=PW-MR-80, xTV=PW-MR;
   const ivaTotal=Object.values(ivaMap).reduce((a,b)=>a+b,0);
+
   doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
-  doc.text("Subtotal",xTL,y); doc.setTextColor(...INK);
-  doc.text(baseTotal.toFixed(2)+" €",xTV,y,{align:"right"}); y+=7;
+  doc.text("Subtotal", xTL, y);
+  doc.setTextColor(...INK); doc.text(baseTotal.toFixed(2)+" €",xTV,y,{align:"right"}); y+=7;
+
   Object.entries(ivaMap).filter(([,v])=>v>0).sort(([a],[b])=>Number(b)-Number(a)).forEach(([pct,amt])=>{
     doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
-    doc.text("IVA / VAT "+pct+"%",xTL,y);
+    doc.text("IVA / VAT "+pct+"%", xTL, y);
     doc.setTextColor(...INK); doc.text(amt.toFixed(2)+" €",xTV,y,{align:"right"}); y+=7;
   });
+
   doc.setDrawColor(...BORDER); doc.setLineWidth(0.3); doc.line(xTL,y,xTV,y); y+=4;
   doc.setFillColor(...INK); doc.roundedRect(xTL-4,y-2,xTV-xTL+8,13,1.5,1.5,"F");
   doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(...WHITE);
-  doc.text("TOTAL",xTL,y+7);
-  doc.text((baseTotal+ivaTotal).toFixed(2)+" €",xTV,y+7,{align:"right"});
+  doc.text("TOTAL", xTL, y+7);
+  doc.text((baseTotal+ivaTotal).toFixed(2)+" €", xTV, y+7, {align:"right"});
   y+=22;
 
   /* ── NOTAS ── */
@@ -518,12 +540,12 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
     doc.text(nl,ML+5,y+11.5);
   }
 
-  /* ── PIE — solo nombre y NIF del emisor ── */
+  /* ── PIE ── */
   doc.setDrawColor(...BORDER); doc.setLineWidth(0.4); doc.line(ML,PH-16,PW-MR,PH-16);
   doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
   const pie=[perfil.nombre_razon_social,perfil.nif?"NIF "+perfil.nif:null].filter(Boolean).join("  ·  ");
-  doc.text(pie,ML,PH-10);
-  doc.text(new Date().toLocaleDateString("es-ES"),PW-MR,PH-10,{align:"right"});
+  doc.text(pie, ML, PH-10);
+  doc.text(new Date().toLocaleDateString("es-ES"), PW-MR, PH-10, {align:"right"});
 
   const filename=`presupuesto_${(p.numero||p.id.slice(0,8)).replace(/\//g,"-")}.pdf`;
   if(descargar){doc.save(filename);toast("📄 PDF descargado","success");return null;}
