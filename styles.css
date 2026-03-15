@@ -623,7 +623,7 @@ canvas#chartEvolucion{width:100%!important}
 .cookie-banner-text{display:flex;align-items:flex-start;gap:10px;flex:1;font-size:13px;color:rgba(255,255,255,.75);line-height:1.55}
 .cookie-banner-text a{color:#F97316}
 .cookie-banner-actions{display:flex;gap:8px}
-.cookie-btn-outline{padding:8px 16px;border:1px solid rgba(255,255,255,.2);border-radius:9px;background:none;color:rgba(255,255,255,.7);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .15s}
+.cookie-btn-outline{padding:8px 16px;border:1px solid rgba(255,255,255,.2);border-radius:9px;background:none;color:rgba(255,255,255,.75);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .15s}
 .cookie-btn-outline:hover{background:rgba(255,255,255,.08)}
 .cookie-btn-solid{padding:8px 18px;border:none;border-radius:9px;background:linear-gradient(135deg,#F97316 0%,#FB923C 100%);color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font)}
 
