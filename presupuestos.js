@@ -460,23 +460,18 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
      P.Unit:      posición 155
      Total:       PW-MR (alineado a la derecha)
   */
-  // Ancho útil = 174mm (de 18 a 192)
-  // Descripción: 18→112 (94mm, ~54%)
-  // QTY:         centrado en 122mm
-  // UNIT PRICE:  centrado en 152mm
-  // TOTAL:       derecha en 192mm
   const tDesc  = ML+2;   // 20mm
-  const tQty   = 122;
-  const tPrice = 155;
-  const tTotal = PW-MR;  // 192mm
+  const tQty   = 82;     // -40mm → era 122
+  const tPrice = 115;    // -40mm → era 155
+  const tTotal = PW-MR-20; // -20mm → era 192
 
   // Cabecera tabla
   doc.setFillColor(...INK); doc.roundedRect(ML, y, W, 10, 1, 1, "F");
   doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
-  doc.text("DESCRIPTION",  tDesc,  y+5.8);
-  doc.text("QTY",          tQty,   y+5.8, {align:"center"});
-  doc.text("UNIT PRICE",   tPrice, y+5.8, {align:"center"});
-  doc.text("TOTAL",        tTotal, y+5.8, {align:"right"});
+  doc.text("DESCRIPTION",       tDesc,  y+5.8);
+  doc.text("CANT. / QTY",       tQty,   y+5.8, {align:"center"});
+  doc.text("PRECIO / UNIT PRICE", tPrice, y+5.8, {align:"center"});
+  doc.text("TOTAL",             tTotal, y+5.8, {align:"center"});
   y+=10;
 
   let baseTotal=0; const ivaMap={};
@@ -505,7 +500,7 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
     doc.text(String(qty),              tQty,   y+5.8, {align:"center"});
     doc.text(precio.toFixed(2)+" €",   tPrice, y+5.8, {align:"center"});
     doc.setFont("helvetica","bold"); doc.setTextColor(...INK);
-    doc.text(sub.toFixed(2)+" €",      tTotal, y+5.8, {align:"right"});
+    doc.text(sub.toFixed(2)+" €",      tTotal, y+5.8, {align:"center"});
     y+=rH;
     if(y>PH-80){doc.addPage();y=20;}
   });
