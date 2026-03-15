@@ -401,47 +401,41 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
 
   doc.setFillColor(...WHITE); doc.rect(0,0,PW,PH,"F");
 
-  // Logo / nombre
+  /* ── IZQUIERDA: PRESUPUESTO / QUOTE + número ── */
+  doc.setFont("helvetica","bold"); doc.setFontSize(28); doc.setTextColor(...INK);
+  doc.text("PRESUPUESTO", ML, 22);
+  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(...MUTED);
+  doc.text("QUOTE", ML, 29);
+  doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(...INK);
+  doc.text(p.numero||"S/N", ML, 38);
+
+  /* ── DERECHA: logo o nombre empresa ── */
   let logoOk=false;
   let logoB64=perfil.logo_url ? await logoToBase64(perfil.logo_url) : null;
   if(logoB64){
     try{
       const mime=logoB64.split(";")[0].split(":")[1];
-      doc.addImage(logoB64, mime.includes("png")?"PNG":"JPEG", ML, 14, 0, 26, "", "FAST");
+      doc.addImage(logoB64, mime.includes("png")?"PNG":"JPEG", PW-MR-40, 10, 40, 26, "", "FAST");
       logoOk=true;
     }catch(e){}
   }
   if(!logoOk){
-    doc.setFont("helvetica","bold"); doc.setFontSize(22); doc.setTextColor(...INK);
-    doc.text(perfil.nombre_razon_social||"", ML, 28);
+    doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.setTextColor(...INK);
+    doc.text(perfil.nombre_razon_social||"", PW-MR, 24, {align:"right"});
   }
-  const yEmisor=logoOk?44:34;
-  doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...MUTED);
-  let ye=yEmisor;
-  if(perfil.nif)             { doc.text("NIF: "+perfil.nif, ML, ye); ye+=4.5; }
-  if(perfil.domicilio_fiscal){ const ls=doc.splitTextToSize(perfil.domicilio_fiscal,80); doc.text(ls,ML,ye); }
 
-  // PRESUPUESTO / QUOTE
-  doc.setFont("helvetica","bold"); doc.setFontSize(26); doc.setTextColor(...INK);
-  doc.text("PRESUPUESTO", PW-MR, 24, {align:"right"});
-  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
-  doc.text("QUOTE", PW-MR, 31, {align:"right"});
-  doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(...INK);
-  doc.text(p.numero||"S/N", PW-MR, 40, {align:"right"});
-  const fechaFmt=p.fecha?new Date(p.fecha).toLocaleDateString("es-ES"):"—";
-  doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...MUTED);
-  doc.text("Fecha / Date:  "+fechaFmt, PW-MR, 48, {align:"right"});
-
-  // Divisora
+  /* ── LÍNEA DIVISORA ── */
   doc.setDrawColor(...BORDER); doc.setLineWidth(0.5);
-  doc.line(ML, 60, PW-MR, 60);
+  doc.line(ML, 46, PW-MR, 46);
 
-  // DE / FROM — PARA / TO
-  let y=70;
+  /* ── DE / FROM  ·  PARA / TO ── */
+  let y=56;
   const COL1=ML, COL2=PW/2+6, cW=W/2-10;
+
   doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
   doc.text("DE / FROM", COL1, y); doc.text("PARA / TO", COL2, y); y+=5;
 
+  /* Emisor — nombre + NIF + dirección */
   const yBlock=y;
   doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...INK);
   doc.text((perfil.nombre_razon_social||"—").substring(0,32), COL1, y); y+=5.5;
@@ -449,28 +443,19 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
   if(perfil.nif)             { doc.text("NIF: "+perfil.nif, COL1, y); y+=4.5; }
   if(perfil.domicilio_fiscal){ const ls=doc.splitTextToSize(perfil.domicilio_fiscal,cW); doc.text(ls,COL1,y); }
 
-  // Cliente — solo nombre
+  /* Cliente — solo nombre */
   doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...INK);
   doc.text((p.cliente_nombre||"—").substring(0,32), COL2, yBlock);
 
-  y=Math.max(y+5,yBlock+12)+12;
+  y=Math.max(y+5, yBlock+12)+14;
 
-  // Barra metadatos: solo fecha
-  doc.setFillColor(...LIGHT); doc.setDrawColor(...BORDER); doc.setLineWidth(0.25);
-  doc.roundedRect(ML, y, W, 14, 1.5, 1.5, "FD");
-  doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
-  doc.text("FECHA DE EMISIÓN / ISSUE DATE", ML+5, y+5.5);
-  doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(...INK);
-  doc.text(fechaFmt, ML+5, y+11.5);
-  y+=20;
-
-  // Concepto
+  /* ── CONCEPTO ── */
   if(p.concepto){
     doc.setFont("helvetica","bold"); doc.setFontSize(14); doc.setTextColor(...INK);
     doc.text(p.concepto, ML, y); y+=12;
   }
 
-  // Tabla 4 columnas (sin IVA)
+  /* ── TABLA 4 COLUMNAS (sin IVA) ── */
   const cDesc=ML+2, cQty=ML+108, cPrice=ML+126, cTotal=PW-MR;
   doc.setFillColor(...INK); doc.roundedRect(ML, y, W, 10, 1, 1, "F");
   doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
@@ -503,7 +488,7 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
 
   doc.setDrawColor(...BORDER); doc.setLineWidth(0.4); doc.line(ML,y,PW-MR,y); y+=10;
 
-  // Totales
+  /* ── TOTALES ── */
   const xTL=PW-MR-88, xTV=PW-MR;
   const ivaTotal=Object.values(ivaMap).reduce((a,b)=>a+b,0);
   doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
@@ -521,7 +506,7 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
   doc.text((baseTotal+ivaTotal).toFixed(2)+" €",xTV,y+7,{align:"right"});
   y+=22;
 
-  // Notas
+  /* ── NOTAS ── */
   if(p.notas&&y<PH-50){
     doc.setFillColor(...LIGHT); doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
     const nl=doc.splitTextToSize(p.notas,W-10);
@@ -533,7 +518,7 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
     doc.text(nl,ML+5,y+11.5);
   }
 
-  // Pie — solo datos emisor, sin branding
+  /* ── PIE — solo nombre y NIF del emisor ── */
   doc.setDrawColor(...BORDER); doc.setLineWidth(0.4); doc.line(ML,PH-16,PW-MR,PH-16);
   doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
   const pie=[perfil.nombre_razon_social,perfil.nif?"NIF "+perfil.nif:null].filter(Boolean).join("  ·  ");
