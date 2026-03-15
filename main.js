@@ -295,7 +295,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Cookie banner ── */
   if (!localStorage.getItem("tg_cookies_ok")) {
-    setTimeout(()=>{ const b=document.getElementById("cookieBanner"); if(b) b.style.display="flex"; },1200);
+    setTimeout(()=>{
+      const b=document.getElementById("cookieBanner");
+      if(b) {
+        // Apply inline styles so it works even if CSS hasn't loaded
+        b.style.cssText = "display:flex;position:fixed;bottom:20px;left:20px;right:20px;max-width:700px;z-index:9999;background:#0B0D12;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.4);border:1px solid rgba(249,115,22,.2)";
+      }
+    },1200);
   }
   document.getElementById("cookieAceptar")?.addEventListener("click", () => {
     localStorage.setItem("tg_cookies_ok","1");
