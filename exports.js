@@ -24,148 +24,203 @@ export async function exportFacturaPDF(facturaId) {
   }
 
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  const pw = doc.internal.pageSize.width, ph = doc.internal.pageSize.height;
-  const m = 14; let y = 0;
+  const doc = new jsPDF({ unit:"mm", format:"a4" });
+  const PW=210, PH=297, ML=18, MR=18, W=PW-ML-MR;
   const isIncome = f.tipo==="emitida";
-  const CR = isIncome?[26,86,219]:[185,28,28];
 
-  // Cabecera
-  doc.setFillColor(11,13,18); doc.rect(0,0,pw,42,"F");
+  // Paleta elegante
+  const INK    = [15,23,42];      // slate-900
+  const ACCENT = [15,23,42];      // mismo para facturas (azul oscuro / sobrio)
+  const MUTED  = [100,116,139];   // slate-500
+  const LIGHT  = [248,250,252];   // slate-50
+  const BORDER = [226,232,240];   // slate-200
+  const WHITE  = [255,255,255];
+  const GREEN  = [5,150,105];
+  const RED    = [220,38,38];
 
-  // Logo empresa (si existe)
+  /* ── CABECERA BLANCA CON LÍNEA FINA ── */
+  doc.setFillColor(...WHITE);
+  doc.rect(0,0,PW,PH,"F");
+
+  // Bloque logo / nombre emisor — arriba izquierda
+  let logoOk = false;
   if (pf?.logo_url && pf.logo_url.startsWith("data:image")) {
     try {
-      const ext = pf.logo_url.includes("image/png") ? "PNG"
-                : pf.logo_url.includes("image/svg") ? "SVG"
-                : "JPEG";
-      doc.addImage(pf.logo_url, ext, m, 6, 0, 28, "", "FAST");
-    } catch(e) {
-      // logo fallback: nombre empresa
-      doc.setTextColor(255,255,255); doc.setFontSize(20); doc.setFont("helvetica","bold");
-      doc.text(pf?.nombre_razon_social||"Taurix", m, 16);
-    }
-  } else {
-    doc.setTextColor(255,255,255); doc.setFontSize(20); doc.setFont("helvetica","bold");
-    doc.text(pf?.nombre_razon_social||"Taurix", m, 16);
+      const ext = pf.logo_url.includes("image/png")?"PNG":"JPEG";
+      doc.addImage(pf.logo_url, ext, ML, 16, 0, 22, "", "FAST");
+      logoOk = true;
+    } catch(e) {}
+  }
+  if (!logoOk) {
+    // Nombre empresa como "logotipo tipográfico"
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(22);
+    doc.setTextColor(...INK);
+    doc.text(pf?.nombre_razon_social||"Taurix", ML, 30);
   }
 
-  doc.setTextColor(249,115,22); doc.setFontSize(9); doc.setFont("helvetica","normal");
-  if(pf?.nif) doc.text("NIF: "+pf.nif, m, 29);
-  if(pf?.domicilio_fiscal) doc.text(pf.domicilio_fiscal.substring(0,55), m, 35);
-  if(pf?.email) doc.text(pf.email, m, 39.5);
+  // Datos fiscales emisor debajo del logo
+  const yEmisor = logoOk ? 42 : 36;
+  doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...MUTED);
+  let ye = yEmisor;
+  if(pf?.nif)             { doc.text("NIF: "+pf.nif, ML, ye); ye+=4.5; }
+  if(pf?.domicilio_fiscal){ doc.text(pf.domicilio_fiscal.substring(0,55), ML, ye); ye+=4.5; }
+  if(pf?.email)           { doc.text(pf.email, ML, ye); ye+=4.5; }
+  if(pf?.telefono)        { doc.text(pf.telefono, ML, ye); }
 
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(22); doc.setFont("helvetica","bold");
-  doc.text("FACTURA",pw-m,16,{align:"right"});
-  doc.setTextColor(249,115,22); doc.setFontSize(13); doc.setFont("helvetica","bold");
-  doc.text(f.numero_factura||"BORRADOR",pw-m,26,{align:"right"});
-  doc.setTextColor(180,180,180); doc.setFontSize(9); doc.setFont("helvetica","normal");
-  doc.text(`Fecha: ${f.fecha||"—"}`,pw-m,33,{align:"right"});
-  if(f.fecha_emision&&f.fecha_emision!==f.fecha) doc.text(`Emisión: ${f.fecha_emision}`,pw-m,38,{align:"right"});
-  doc.setTextColor(0,0,0); y=52;
+  // Bloque FACTURA — arriba derecha
+  doc.setFont("helvetica","bold"); doc.setFontSize(28); doc.setTextColor(...INK);
+  doc.text("FACTURA", PW-MR, 26, {align:"right"});
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
+  doc.text("Nº  "+( f.numero_factura||"BORRADOR"), PW-MR, 34, {align:"right"});
+  doc.text("Fecha: "+( f.fecha||"—"), PW-MR, 40, {align:"right"});
+  if(f.fecha_vencimiento) doc.text("Vencimiento: "+f.fecha_vencimiento, PW-MR, 46, {align:"right"});
 
-  // Cliente
-  doc.setFillColor(247,248,252); doc.rect(m,y,(pw-m*2)/2-4,28,"F");
-  doc.setFontSize(7.5); doc.setTextColor(120,120,120); doc.setFont("helvetica","bold");
-  doc.text(isIncome?"FACTURAR A":"PROVEEDOR",m+4,y+6);
-  doc.setTextColor(0,0,0); doc.setFontSize(10); doc.setFont("helvetica","bold");
-  doc.text((f.cliente_nombre||"—").substring(0,30),m+4,y+13);
-  doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(80,80,80);
-  if(f.cliente_nif) doc.text("NIF/CIF: "+f.cliente_nif,m+4,y+20);
-  const opLabels2={nacional:"Operación nacional",intracomunitaria:"Operación intracomunitaria",exportacion:"Exportación",importacion:"Importación",inversion_sujeto_pasivo:"Inversión sujeto pasivo"};
-  doc.text(opLabels2[f.tipo_operacion]||"",m+4,y+26);
-  y+=36;
-
-  // Estado de cobro en cabecera (solo facturas emitidas)
-  if (isIncome && f.estado==="emitida") {
-    const cobroTxt = f.cobrada
-      ? `✓ COBRADA${f.fecha_cobro?" el "+f.fecha_cobro:""}`
-      : "PENDIENTE DE COBRO";
-    doc.setFillColor(f.cobrada?220:255,f.cobrada?252:251,f.cobrada?231:235);
-    doc.rect(pw-m-55,52,55,10,"F");
-    doc.setTextColor(f.cobrada?6:146,f.cobrada?95:64,f.cobrada?70:0);
-    doc.setFontSize(7.5); doc.setFont("helvetica","bold");
-    doc.text(cobroTxt,pw-m-28,58,{align:"center"});
-    doc.setTextColor(0,0,0);
+  // Badge cobro
+  if(isIncome && f.estado==="emitida") {
+    const cobrada = f.cobrada;
+    const bColor = cobrada ? GREEN : RED;
+    const bTxt   = cobrada ? "✓ COBRADA" : "PENDIENTE DE COBRO";
+    doc.setFillColor(...bColor);
+    doc.roundedRect(PW-MR-44, 52, 44, 8, 1.5, 1.5, "F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(...WHITE);
+    doc.text(bTxt, PW-MR-22, 57.2, {align:"center"});
   }
 
-  // Tabla líneas
-  const colsW={desc:85,qty:18,price:28,iva:16,total:28};
-  const tableW=pw-m*2;
-  doc.setFillColor(...CR); doc.rect(m,y,tableW,9,"F");
-  doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont("helvetica","bold");
-  let x=m+2;
-  ["Descripción","Cant.","P. unit.","IVA","Total"].forEach((h,i)=>{
-    doc.text(h,x,y+6); x+=[colsW.desc,colsW.qty,colsW.price,colsW.iva,colsW.total][i];
-  });
-  y+=9; doc.setTextColor(0,0,0); doc.setFont("helvetica","normal");
+  // Línea separadora elegante
+  const yLine = 64;
+  doc.setDrawColor(...BORDER); doc.setLineWidth(0.5);
+  doc.line(ML, yLine, PW-MR, yLine);
+
+  // Bloque "FACTURAR A"
+  let y = yLine + 10;
+  doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
+  doc.text(isIncome?"FACTURAR A":"PROVEEDOR", ML, y); y+=5;
+  doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(...INK);
+  doc.text((f.cliente_nombre||"—").substring(0,40), ML, y); y+=5;
+  doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...MUTED);
+  if(f.cliente_nif)       { doc.text("NIF/CIF: "+f.cliente_nif, ML, y); y+=4.5; }
+  if(f.cliente_direccion) { doc.text(f.cliente_direccion.substring(0,55), ML, y); y+=4.5; }
+  if(f.cliente_email)     { doc.text(f.cliente_email, ML, y); y+=4.5; }
+
+  // Tipo operación como chip
+  const opLabels = {nacional:"Operación nacional",intracomunitaria:"Intracomunitaria",exportacion:"Exportación",importacion:"Importación",inversion_sujeto_pasivo:"Inv. sujeto pasivo"};
+  const opTxt = opLabels[f.tipo_operacion]||"Nacional";
+  doc.setFillColor(...LIGHT); doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
+  const chipW = doc.getTextWidth(opTxt)+8;
+  doc.roundedRect(ML, y+1, chipW, 7, 1.5, 1.5, "FD");
+  doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+  doc.text(opTxt, ML+4, y+5.8);
+  y += 16;
+
+  // ── TABLA DE LÍNEAS ──
+  const colDesc  = ML;
+  const colQty   = ML+100;
+  const colPrice = ML+116;
+  const colIva   = ML+142;
+  const colTotal = PW-MR;
+
+  // Cabecera tabla — fondo slate oscuro
+  doc.setFillColor(...INK);
+  doc.roundedRect(ML, y, W, 8, 1, 1, "F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
+  doc.text("DESCRIPCIÓN",   colDesc+2,   y+5.5);
+  doc.text("CANT.",         colQty,      y+5.5);
+  doc.text("P. UNIT.",      colPrice,    y+5.5);
+  doc.text("IVA",           colIva,      y+5.5);
+  doc.text("TOTAL",         colTotal,    y+5.5, {align:"right"});
+  y += 8;
 
   let baseTotal=0; const ivaMap={};
-  lineas.forEach((l,ri)=>{
-    const subtotal=(l.cantidad||1)*(l.precio||0);
-    const ivaAmt=subtotal*(l.iva||0)/100;
-    baseTotal+=subtotal; ivaMap[l.iva]=(ivaMap[l.iva]||0)+ivaAmt;
-    if(ri%2===0){doc.setFillColor(250,251,255);}else{doc.setFillColor(255,255,255);}
-    doc.rect(m,y,tableW,8,"F");
-    doc.setFontSize(8.5); x=m+2;
-    [l.descripcion?.substring(0,42)||"—",String(l.cantidad||1),parseFloat(l.precio||0).toFixed(2)+" €",(l.iva||0)+"%",subtotal.toFixed(2)+" €"]
-      .forEach((v,i)=>{
-        if(i===4){doc.setFont("helvetica","bold");}
-        doc.text(v,x,y+5.5);
-        if(i===4){doc.setFont("helvetica","normal");}
-        x+=[colsW.desc,colsW.qty,colsW.price,colsW.iva,colsW.total][i];
-      });
-    y+=8; if(y>ph-60){doc.addPage();y=20;}
+  lineas.forEach((l,ri) => {
+    const qty = l.cantidad||1;
+    const precio = l.precio||0;
+    const subtotal = qty*precio;
+    const ivaAmt = subtotal*(l.iva||0)/100;
+    baseTotal += subtotal;
+    ivaMap[l.iva] = (ivaMap[l.iva]||0)+ivaAmt;
+
+    // Fila alterna
+    if(ri%2===0){ doc.setFillColor(249,250,251); } else { doc.setFillColor(...WHITE); }
+    doc.rect(ML, y, W, 8.5, "F");
+
+    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...INK);
+    // Descripción — puede ser larga, split
+    const descLines = doc.splitTextToSize(l.descripcion||"—", 90);
+    doc.text(descLines[0], colDesc+2, y+5.5);
+    if(descLines.length>1) { doc.setFontSize(7); doc.setTextColor(...MUTED); doc.text(descLines[1], colDesc+2, y+9); }
+
+    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...INK);
+    doc.text(String(qty),                        colQty,   y+5.5);
+    doc.text(precio.toFixed(2)+" €",             colPrice, y+5.5);
+    doc.text((l.iva||0)+"%",                     colIva,   y+5.5);
+    doc.setFont("helvetica","bold");
+    doc.text(subtotal.toFixed(2)+" €",           colTotal, y+5.5, {align:"right"});
+    y += 8.5;
+    if(y > PH-70){ doc.addPage(); y=20; }
   });
 
-  doc.setDrawColor(...CR); doc.setLineWidth(0.5); doc.line(m,y,pw-m,y); y+=6;
+  // Línea cierre tabla
+  doc.setDrawColor(...BORDER); doc.setLineWidth(0.4);
+  doc.line(ML, y, PW-MR, y); y+=8;
 
-  // Totales
-  const ivaTotal=Object.values(ivaMap).reduce((a,b)=>a+b,0);
-  const irpfAmt=baseTotal*(f.irpf_retencion||0)/100;
-  const totalFinal=baseTotal+ivaTotal-irpfAmt;
-  const colW=75, xRight=pw-m-colW*2;
+  // ── TOTALES — columna derecha ──
+  const xTL = PW-MR-80; const xTV = PW-MR;
+  const rowH = 7;
 
-  const addRow=(label,value,bold=false,color=null)=>{
-    if(bold){doc.setFillColor(247,248,252);doc.rect(xRight,y,colW*2,8,"F");}
-    doc.setFont("helvetica",bold?"bold":"normal"); doc.setFontSize(9);
-    if(color)doc.setTextColor(...color);else doc.setTextColor(60,60,60);
-    doc.text(label,xRight+3,y+5.5); doc.setTextColor(0,0,0);
-    doc.text(value,pw-m-2,y+5.5,{align:"right"}); y+=9;
+  const addTotalRow = (label, value, bold=false, color=INK) => {
+    doc.setFont("helvetica", bold?"bold":"normal");
+    doc.setFontSize(bold?10:9);
+    doc.setTextColor(...MUTED);
+    doc.text(label, xTL, y);
+    doc.setTextColor(...color);
+    doc.text(value, xTV, y, {align:"right"});
+    y += rowH;
   };
-  addRow("Base imponible",baseTotal.toFixed(2)+" €",true);
-  Object.entries(ivaMap).filter(([,v])=>v>0).sort(([a],[b])=>b-a).forEach(([pct,amt])=>{
-    addRow(`IVA ${pct}%`,amt.toFixed(2)+" €");
-  });
-  if(f.irpf_retencion>0) addRow(`IRPF (−${f.irpf_retencion}%)`,"-"+irpfAmt.toFixed(2)+" €",false,[185,28,28]);
-  y+=2; doc.setFillColor(...CR); doc.rect(xRight,y,colW*2,12,"F");
-  doc.setTextColor(255,255,255); doc.setFontSize(12); doc.setFont("helvetica","bold");
-  doc.text("TOTAL",xRight+4,y+8.5); doc.text(totalFinal.toFixed(2)+" €",pw-m-2,y+8.5,{align:"right"});
-  y+=20;
 
-  if(f.notas){
-    doc.setFillColor(255,251,235); doc.rect(m,y,tableW,14,"F");
-    doc.setFontSize(7.5); doc.setTextColor(120,80,0); doc.setFont("helvetica","bold");
-    doc.text("NOTAS Y CONDICIONES",m+3,y+5);
-    doc.setFont("helvetica","normal"); doc.setTextColor(80,60,0);
-    doc.text((doc.splitTextToSize(f.notas,tableW-6)[0])||"",m+3,y+11); y+=18;
+  const ivaTotal = Object.values(ivaMap).reduce((a,b)=>a+b,0);
+  const irpfAmt  = baseTotal*(f.irpf_retencion||0)/100;
+  const totalFinal = baseTotal+ivaTotal-irpfAmt;
+
+  addTotalRow("Base imponible", baseTotal.toFixed(2)+" €");
+  Object.entries(ivaMap).filter(([,v])=>v>0).sort(([a],[b])=>b-a).forEach(([pct,amt])=>{
+    addTotalRow(`IVA ${pct}%`, amt.toFixed(2)+" €");
+  });
+  if(f.irpf_retencion>0) addTotalRow(`IRPF (−${f.irpf_retencion}%)`, "−"+irpfAmt.toFixed(2)+" €", false, RED);
+
+  y += 2;
+  // Caja total final
+  doc.setFillColor(...INK);
+  doc.roundedRect(xTL-4, y-2, xTV-xTL+4+4, 13, 1.5, 1.5, "F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(...WHITE);
+  doc.text("TOTAL", xTL, y+7);
+  doc.text(totalFinal.toFixed(2)+" €", xTV, y+7, {align:"right"});
+  y += 20;
+
+  // Notas
+  if(f.notas && y < PH-50) {
+    doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
+    doc.setFillColor(...LIGHT);
+    const notaLines = doc.splitTextToSize(f.notas, W-8);
+    const notaH = notaLines.length*4.5+10;
+    doc.roundedRect(ML, y, W, notaH, 1.5, 1.5, "FD");
+    doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+    doc.text("NOTAS Y CONDICIONES", ML+4, y+6);
+    doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...INK);
+    doc.text(notaLines, ML+4, y+11);
   }
 
-  const opLegal={
-    nacional:"Operación sujeta a IVA español según la Ley 37/1992 del IVA.",
-    intracomunitaria:"Operación intracomunitaria exenta de IVA (Art. 25 LIVA).",
-    exportacion:"Exportación exenta de IVA (Art. 21 LIVA). No sujeta a IVA español.",
-    importacion:"Importación — IVA liquidado en aduana mediante DUA.",
-    inversion_sujeto_pasivo:"Inversión del sujeto pasivo (Art. 84 LIVA)."
-  };
-  doc.setDrawColor(200); doc.setLineWidth(0.3); doc.line(m,ph-22,pw-m,ph-22);
-  doc.setFontSize(7); doc.setTextColor(140); doc.setFont("helvetica","normal");
-  doc.text(opLegal[f.tipo_operacion]||"",m,ph-16);
-  doc.text(`${pf?.nombre_razon_social||"Taurix"} · NIF: ${pf?.nif||"—"} · Generado con Taurix`,m,ph-10);
-  doc.text(new Date().toLocaleDateString("es-ES"),pw-m,ph-10,{align:"right"});
+  // ── PIE ELEGANTE ──
+  const footerY = PH-18;
+  doc.setDrawColor(...BORDER); doc.setLineWidth(0.4);
+  doc.line(ML, footerY, PW-MR, footerY);
+  doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
+  const opLegal={nacional:"Operación sujeta a IVA español (Ley 37/1992).",intracomunitaria:"Operación intracomunitaria exenta de IVA (Art. 25 LIVA).",exportacion:"Exportación exenta (Art. 21 LIVA).",importacion:"IVA liquidado en aduana mediante DUA.",inversion_sujeto_pasivo:"Inversión del sujeto pasivo (Art. 84 LIVA)."};
+  doc.text(opLegal[f.tipo_operacion]||"", ML, footerY+5);
+  doc.text(`${pf?.nombre_razon_social||"Taurix"} · NIF: ${pf?.nif||"—"} · Generado con Taurix`, ML, footerY+10);
+  doc.text(new Date().toLocaleDateString("es-ES"), PW-MR, footerY+10, {align:"right"});
 
-  const fname=f.numero_factura?f.numero_factura.replace(/[\/\\]/g,"-"):"borrador";
+  const fname = f.numero_factura ? f.numero_factura.replace(/[\/\\]/g,"-") : "borrador";
   doc.save(`factura_${fname}.pdf`);
   toast("PDF descargado correctamente","success");
 }
