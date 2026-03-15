@@ -463,7 +463,7 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
   const tDesc  = ML+2;
   const tQty   = 92;     // +10mm
   const tPrice = 135;    // +20mm
-  const tTotal = PW-MR-20;
+  const tTotal = PW-MR-15;
 
   // Cabecera tabla
   doc.setFillColor(...INK); doc.roundedRect(ML, y, W, 10, 1, 1, "F");
