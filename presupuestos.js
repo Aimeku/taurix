@@ -460,18 +460,18 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
      P.Unit:      posición 155
      Total:       PW-MR (alineado a la derecha)
   */
-  const tDesc  = ML+2;   // 20mm
-  const tQty   = 82;     // -40mm → era 122
-  const tPrice = 115;    // -40mm → era 155
-  const tTotal = PW-MR-20; // -20mm → era 192
+  const tDesc  = ML+2;
+  const tQty   = 92;     // +10mm
+  const tPrice = 135;    // +20mm
+  const tTotal = PW-MR-20;
 
   // Cabecera tabla
   doc.setFillColor(...INK); doc.roundedRect(ML, y, W, 10, 1, 1, "F");
   doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
-  doc.text("DESCRIPCIÓN / DESCRIPTION", tDesc,  y+5.8);
-  doc.text("CANTIDAD / QTY",            tQty,   y+5.8, {align:"center"});
-  doc.text("PRECIO / UNIT PRICE",       tPrice, y+5.8, {align:"center"});
-  doc.text("TOTAL",                     tTotal, y+5.8, {align:"center"});
+  doc.text("DESCRIPCIÓN / DESCRIPTION",      tDesc,  y+5.8);
+  doc.text("CANTIDAD / QUANTITY",            tQty,   y+5.8, {align:"center"});
+  doc.text("PRECIO UNITARIO / UNIT PRICE",   tPrice, y+5.8, {align:"center"});
+  doc.text("TOTAL",                          tTotal, y+5.8, {align:"center"});
   y+=10;
 
   let baseTotal=0; const ivaMap={};
