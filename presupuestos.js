@@ -398,27 +398,23 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
 
   const PW=210, PH=297, ML=18, MR=18, W=PW-ML-MR;
 
-  // Paleta elegante sobria
-  const INK    = [15,23,42];      // slate-900
-  const MUTED  = [100,116,139];   // slate-500
-  const LIGHT  = [248,250,252];   // slate-50
-  const BORDER = [226,232,240];   // slate-200
+  // Paleta sobria
+  const INK    = [15,23,42];
+  const MUTED  = [100,116,139];
+  const LIGHT  = [248,250,252];
+  const BORDER = [226,232,240];
   const WHITE  = [255,255,255];
-  const GREEN  = [5,150,105];
-  const RED    = [220,38,38];
-  const AMBER  = [180,83,9];
 
-  // Fondo blanco completo
   doc.setFillColor(...WHITE); doc.rect(0,0,PW,PH,"F");
 
-  /* ── BLOQUE LOGO / NOMBRE — arriba izquierda ── */
+  /* ── LOGO / NOMBRE — arriba izquierda ── */
   let logoOk = false;
   let logoB64 = perfil.logo_url ? await logoToBase64(perfil.logo_url) : null;
   if (logoB64) {
     try {
       const mime = logoB64.split(";")[0].split(":")[1];
       const fmt2 = mime.includes("png") ? "PNG" : "JPEG";
-      doc.addImage(logoB64, fmt2, ML, 14, 0, 24, "", "FAST");
+      doc.addImage(logoB64, fmt2, ML, 14, 0, 26, "", "FAST");
       logoOk = true;
     } catch(e) {}
   }
@@ -427,144 +423,127 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
     doc.text(perfil.nombre_razon_social||"Taurix", ML, 30);
   }
 
-  // Datos fiscales del emisor bajo el logo
-  const yEmisor = logoOk ? 42 : 37;
-  doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...MUTED);
+  /* Datos del emisor bajo el logo */
+  const yEmisor = logoOk ? 44 : 37;
+  doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...MUTED);
   let ye = yEmisor;
   if(perfil.nif)              { doc.text("NIF: "+perfil.nif, ML, ye); ye+=4.5; }
   if(perfil.domicilio_fiscal) { doc.text(perfil.domicilio_fiscal.substring(0,55), ML, ye); ye+=4.5; }
   if(perfil.telefono)         { doc.text("Tel: "+perfil.telefono, ML, ye); ye+=4.5; }
   if(perfil.email)            { doc.text(perfil.email, ML, ye); }
 
-  /* ── PRESUPUESTO + NÚMERO — arriba derecha ── */
+  /* ── PRESUPUESTO + Nº — arriba derecha ── */
   doc.setFont("helvetica","bold"); doc.setFontSize(28); doc.setTextColor(...INK);
   doc.text("PRESUPUESTO", PW-MR, 26, {align:"right"});
+  doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(...INK);
+  doc.text(p.numero||"S/N", PW-MR, 35, {align:"right"});
   doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
-  doc.text("Nº  "+(p.numero||"S/N"), PW-MR, 34, {align:"right"});
-  doc.text("Fecha: "+(p.fecha ? new Date(p.fecha).toLocaleDateString("es-ES") : "—"), PW-MR, 40, {align:"right"});
-  if(p.fecha_validez) doc.text("Válido hasta: "+new Date(p.fecha_validez).toLocaleDateString("es-ES"), PW-MR, 46, {align:"right"});
-
-  // Badge de estado
-  const estadoLabel = {borrador:"Borrador",enviado:"Enviado",aceptado:"Aceptado",rechazado:"Rechazado"}[p.estado]||"";
-  const estadoBg = p.estado==="aceptado"?GREEN : p.estado==="rechazado"?RED : p.estado==="enviado"?[37,99,235]:MUTED;
-  const badgeW = doc.getStringUnitWidth(estadoLabel)*7/doc.internal.scaleFactor+10;
-  doc.setFillColor(...estadoBg);
-  doc.roundedRect(PW-MR-badgeW, 51, badgeW, 7.5, 1.5, 1.5, "F");
-  doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(...WHITE);
-  doc.text(estadoLabel.toUpperCase(), PW-MR-badgeW/2, 56, {align:"center"});
+  doc.text("Fecha: "+(p.fecha ? new Date(p.fecha).toLocaleDateString("es-ES") : "—"), PW-MR, 42, {align:"right"});
+  if(p.fecha_validez) {
+    doc.text("Válido hasta: "+new Date(p.fecha_validez).toLocaleDateString("es-ES"), PW-MR, 48, {align:"right"});
+  }
 
   /* ── LÍNEA DIVISORA ── */
-  const yDiv = 65;
+  const yDiv = 60;
   doc.setDrawColor(...BORDER); doc.setLineWidth(0.5);
   doc.line(ML, yDiv, PW-MR, yDiv);
 
-  /* ── BLOQUE DE / PARA en dos columnas ── */
+  /* ── DE / PARA ── */
   let y = yDiv+10;
   const COL1=ML, COL2=PW/2+6, cW=W/2-10;
 
-  // Labels
   doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
-  doc.text("DE", COL1, y); doc.text("PARA", COL2, y); y+=5;
+  doc.text("DE", COL1, y); doc.text("PARA", COL2, y);
+  y += 5;
 
-  // Emisor
+  /* Emisor — completo */
   const yBlock = y;
-  doc.setFont("helvetica","bold"); doc.setFontSize(10.5); doc.setTextColor(...INK);
-  doc.text((perfil.nombre_razon_social||"—").substring(0,30), COL1, y); y+=5.5;
-  doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...MUTED);
+  doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...INK);
+  doc.text((perfil.nombre_razon_social||"—").substring(0,32), COL1, y); y+=5.5;
+  doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...MUTED);
   if(perfil.nif)              { doc.text("NIF: "+perfil.nif, COL1, y); y+=4.5; }
   if(perfil.domicilio_fiscal) { const ls=doc.splitTextToSize(perfil.domicilio_fiscal,cW); doc.text(ls,COL1,y); y+=ls.length*4.5; }
   if(perfil.telefono)         { doc.text("Tel: "+perfil.telefono, COL1, y); y+=4.5; }
   if(perfil.email)            { doc.text(perfil.email, COL1, y); }
 
-  // Cliente
-  let ry = yBlock;
-  doc.setFont("helvetica","bold"); doc.setFontSize(10.5); doc.setTextColor(...INK);
-  doc.text((p.cliente_nombre||"—").substring(0,30), COL2, ry); ry+=5.5;
-  doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...MUTED);
-  if(p.cliente_nif)       { doc.text("NIF: "+p.cliente_nif, COL2, ry); ry+=4.5; }
-  if(p.cliente_direccion) { const ls=doc.splitTextToSize(p.cliente_direccion,cW); doc.text(ls,COL2,ry); ry+=ls.length*4.5; }
-  if(p.cliente_email)     { doc.text(p.cliente_email, COL2, ry); ry+=4.5; }
-  if(p.cliente_telefono)  { doc.text("Tel: "+p.cliente_telefono, COL2, ry); }
+  /* Cliente — SOLO nombre (en presupuestos no son obligatorios el resto) */
+  doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...INK);
+  doc.text((p.cliente_nombre||"—").substring(0,32), COL2, yBlock);
 
-  y = Math.max(y, ry)+12;
+  y = Math.max(y, yBlock+6)+14;
 
-  /* ── BARRA DE METADATOS ── */
+  /* ── BARRA DE METADATOS: solo fecha y validez ── */
   doc.setFillColor(...LIGHT); doc.setDrawColor(...BORDER); doc.setLineWidth(0.25);
   doc.roundedRect(ML, y, W, 14, 1.5, 1.5, "FD");
   const meta = [
-    { label:"FECHA EMISIÓN",  value: p.fecha ? new Date(p.fecha).toLocaleDateString("es-ES") : "—" },
-    { label:"VÁLIDO HASTA",   value: p.fecha_validez ? new Date(p.fecha_validez).toLocaleDateString("es-ES") : "—" },
-    { label:"REFERENCIA",     value: p.numero||"S/N" },
-    { label:"ESTADO",         value: estadoLabel },
+    { label:"FECHA DE EMISIÓN", value: p.fecha ? new Date(p.fecha).toLocaleDateString("es-ES") : "—" },
+    { label:"VÁLIDO HASTA",     value: p.fecha_validez ? new Date(p.fecha_validez).toLocaleDateString("es-ES") : "—" },
   ];
   const mW = W/meta.length;
   meta.forEach((m,i) => {
     const x = ML+i*mW+5;
     if(i>0){ doc.setDrawColor(...BORDER); doc.setLineWidth(0.2); doc.line(ML+i*mW, y+2, ML+i*mW, y+12); }
-    doc.setFont("helvetica","normal"); doc.setFontSize(6.5); doc.setTextColor(...MUTED);
+    doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
     doc.text(m.label, x, y+5.5);
-    doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(...INK);
+    doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(...INK);
     doc.text(m.value, x, y+11.5);
   });
   y += 20;
 
-  /* ── CONCEPTO / TÍTULO ── */
+  /* ── CONCEPTO ── */
   if(p.concepto) {
-    doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.setTextColor(...INK);
+    doc.setFont("helvetica","bold"); doc.setFontSize(14); doc.setTextColor(...INK);
     doc.text(p.concepto, ML, y); y+=12;
   }
 
-  /* ── TABLA DE LÍNEAS ── */
-  const cDesc=ML+2, cQty=ML+100, cPrice=ML+118, cIva=ML+145, cTotal=PW-MR;
+  /* ── TABLA ── */
+  const cDesc=ML+2, cQty=ML+100, cPrice=ML+118, cIva=ML+148, cTotal=PW-MR;
 
-  // Cabecera tabla
   doc.setFillColor(...INK);
   doc.roundedRect(ML, y, W, 9, 1, 1, "F");
   doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
   doc.text("DESCRIPCIÓN", cDesc, y+5.8);
-  doc.text("CANT.",       cQty,  y+5.8);
-  doc.text("P. UNIT.",    cPrice,y+5.8);
-  doc.text("IVA",         cIva,  y+5.8);
-  doc.text("TOTAL",       cTotal,y+5.8, {align:"right"});
+  doc.text("CANT.",        cQty,  y+5.8);
+  doc.text("P. UNIT.",     cPrice,y+5.8);
+  doc.text("IVA",          cIva,  y+5.8);
+  doc.text("TOTAL",        cTotal,y+5.8, {align:"right"});
   y += 9;
 
   let baseTotal=0; const ivaMap={};
-  lineas.forEach((l, idx) => {
+  lineas.forEach((l,idx) => {
     const sub = (l.cantidad||0)*(l.precio||0);
     baseTotal += sub;
     ivaMap[l.iva] = (ivaMap[l.iva]||0)+sub*(l.iva||0)/100;
     const rH = 9;
-    if(idx%2===0){ doc.setFillColor(249,250,251); doc.rect(ML,y,W,rH,"F"); }
+    doc.setFillColor(idx%2===0 ? 249:255, idx%2===0?250:255, idx%2===0?251:255);
+    doc.rect(ML, y, W, rH, "F");
     doc.setDrawColor(...BORDER); doc.setLineWidth(0.1); doc.line(ML,y+rH,ML+W,y+rH);
-
+    const descLines = doc.splitTextToSize(l.descripcion||"—", 92);
     doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...INK);
-    const descLines = doc.splitTextToSize(l.descripcion||"—", 90);
     doc.text(descLines[0], cDesc, y+5.8);
-    if(descLines.length>1){ doc.setFontSize(7); doc.setTextColor(...MUTED); doc.text(descLines[1],cDesc,y+9); }
+    if(descLines.length>1){ doc.setFontSize(7.5); doc.setTextColor(...MUTED); doc.text(descLines[1],cDesc,y+9.5); }
     doc.setFontSize(8.5); doc.setTextColor(...MUTED);
-    doc.text(String(l.cantidad||1), cQty, y+5.8);
-    doc.text((l.precio||0).toFixed(2)+" €", cPrice, y+5.8);
-    doc.text((l.iva||0)+"%", cIva, y+5.8);
+    doc.text(String(l.cantidad||1),       cQty,   y+5.8);
+    doc.text((l.precio||0).toFixed(2)+" €",cPrice,y+5.8);
+    doc.text((l.iva||0)+"%",              cIva,   y+5.8);
     doc.setFont("helvetica","bold"); doc.setTextColor(...INK);
-    doc.text(sub.toFixed(2)+" €", cTotal, y+5.8, {align:"right"});
+    doc.text(sub.toFixed(2)+" €",         cTotal, y+5.8, {align:"right"});
     y += rH;
     if(y > PH-70){ doc.addPage(); y=20; }
   });
 
-  // Cierre tabla
   doc.setDrawColor(...BORDER); doc.setLineWidth(0.4);
-  doc.line(ML, y, PW-MR, y); y+=8;
+  doc.line(ML, y, PW-MR, y); y+=10;
 
-  /* ── TOTALES — columna derecha ── */
+  /* ── TOTALES ── */
   const xTL=PW-MR-80, xTV=PW-MR;
   const ivaTotal = Object.values(ivaMap).reduce((a,b)=>a+b,0);
-  const totalFinal = baseTotal+ivaTotal;
 
   doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
   doc.text("Base imponible", xTL, y);
   doc.setTextColor(...INK); doc.text(baseTotal.toFixed(2)+" €", xTV, y, {align:"right"}); y+=7;
 
-  Object.entries(ivaMap).filter(([,v])=>v>0).forEach(([pct,amt]) => {
+  Object.entries(ivaMap).filter(([,v])=>v>0).sort(([a],[b])=>Number(b)-Number(a)).forEach(([pct,amt]) => {
     doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
     doc.text("IVA "+pct+"%", xTL, y);
     doc.setTextColor(...INK); doc.text(amt.toFixed(2)+" €", xTV, y, {align:"right"}); y+=7;
@@ -575,8 +554,8 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
   doc.roundedRect(xTL-4, y-2, xTV-xTL+8, 13, 1.5, 1.5, "F");
   doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(...WHITE);
   doc.text("TOTAL", xTL, y+7);
-  doc.text(totalFinal.toFixed(2)+" €", xTV, y+7, {align:"right"});
-  y += 20;
+  doc.text((baseTotal+ivaTotal).toFixed(2)+" €", xTV, y+7, {align:"right"});
+  y+=20;
 
   /* ── NOTAS ── */
   if(p.notas && y < PH-50) {
@@ -588,17 +567,15 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
     doc.text("NOTAS Y CONDICIONES", ML+5, y+6);
     doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...INK);
     doc.text(notaLines, ML+5, y+11.5);
-    y += notaH+10;
   }
 
-  /* ── PIE DE PÁGINA ELEGANTE ── */
-  const footerY = PH-16;
+  /* ── PIE ── */
   doc.setDrawColor(...BORDER); doc.setLineWidth(0.4);
-  doc.line(ML, footerY, PW-MR, footerY);
+  doc.line(ML, PH-16, PW-MR, PH-16);
   doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
   const pie = [perfil.nombre_razon_social, perfil.nif?"NIF "+perfil.nif:null, perfil.email].filter(Boolean).join("  ·  ");
-  doc.text(pie, ML, footerY+6);
-  doc.text("Generado con Taurix · "+new Date().toLocaleDateString("es-ES"), PW-MR, footerY+6, {align:"right"});
+  doc.text(pie, ML, PH-10);
+  doc.text("Generado con Taurix · "+new Date().toLocaleDateString("es-ES"), PW-MR, PH-10, {align:"right"});
 
   const filename = `presupuesto_${(p.numero||p.id.slice(0,8)).replace(/\//g,"-")}.pdf`;
   if(descargar) { doc.save(filename); toast("📄 PDF descargado","success"); return null; }
