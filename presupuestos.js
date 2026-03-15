@@ -460,18 +460,23 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
      P.Unit:      posición 155
      Total:       PW-MR (alineado a la derecha)
   */
-  const tDesc  = ML+2;       // descripción arranca en 20mm
-  const tQty   = 148;        // Cantidad centrada en 148mm
-  const tPrice = 166;        // Precio unitario centrado en 166mm
-  const tTotal = PW-MR;      // Total alineado derecha en 192mm
+  // Ancho útil = 174mm (de 18 a 192)
+  // Descripción: 18→112 (94mm, ~54%)
+  // QTY:         centrado en 122mm
+  // UNIT PRICE:  centrado en 152mm
+  // TOTAL:       derecha en 192mm
+  const tDesc  = ML+2;   // 20mm
+  const tQty   = 122;
+  const tPrice = 155;
+  const tTotal = PW-MR;  // 192mm
 
   // Cabecera tabla
   doc.setFillColor(...INK); doc.roundedRect(ML, y, W, 10, 1, 1, "F");
   doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
-  doc.text("DESCRIPCIÓN / DESCRIPTION", tDesc,  y+5.8);
-  doc.text("CANTIDAD",                  tQty,   y+5.8, {align:"center"});
-  doc.text("PRECIO UNITARIO",           tPrice, y+5.8, {align:"center"});
-  doc.text("TOTAL",                     tTotal, y+5.8, {align:"right"});
+  doc.text("DESCRIPTION",  tDesc,  y+5.8);
+  doc.text("QTY",          tQty,   y+5.8, {align:"center"});
+  doc.text("UNIT PRICE",   tPrice, y+5.8, {align:"center"});
+  doc.text("TOTAL",        tTotal, y+5.8, {align:"right"});
   y+=10;
 
   let baseTotal=0; const ivaMap={};
@@ -490,7 +495,7 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
     doc.setDrawColor(...BORDER); doc.setLineWidth(0.1); doc.line(ML,y+rH,ML+W,y+rH);
 
     // Descripción — hasta 2 líneas, ancho ~118mm
-    const dl=doc.splitTextToSize(desc||"—", 118);
+    const dl=doc.splitTextToSize(desc||"—", 94);
     doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...INK);
     doc.text(dl[0], tDesc, y+5.8);
     if(dl.length>1){ doc.setFontSize(7.5); doc.setTextColor(...MUTED); doc.text(dl[1],tDesc,y+9.5); }
