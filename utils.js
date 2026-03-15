@@ -109,7 +109,7 @@ export function toastConDeshacer(msg, onUndo, ms = 5000) {
 export function openModal(html) {
   const c = document.getElementById("modalEl");
   c.innerHTML = `<div class="modal-overlay" id="_mo">${html}</div>`;
-  document.getElementById("_mo").onclick = e => { if(e.target.id==="_mo") closeModal(); };
+}
 }
 export function closeModal() { document.getElementById("modalEl").innerHTML = ""; }
 window._cm = closeModal;
