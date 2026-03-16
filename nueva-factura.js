@@ -55,7 +55,8 @@ function addLinea(prefill = {}) {
     descripcion: prefill.descripcion || "",
     cantidad:    prefill.cantidad    || 1,
     precio:      prefill.precio      || 0,
-    iva:         sinIva ? 0 : (prefill.iva !== undefined ? prefill.iva : 21)
+    iva:         sinIva ? 0 : (prefill.iva !== undefined ? prefill.iva : 21),
+    tipo:        prefill.tipo        || "servicio"
   };
   LINEAS.push(linea);
 
@@ -65,6 +66,10 @@ function addLinea(prefill = {}) {
   row.dataset.lineaId = id;
   row.innerHTML = `
     <input type="text"   class="linea-desc ff-input"  placeholder="Descripción del producto o servicio" value="${linea.descripcion}" data-field="descripcion"/>
+    <select class="linea-tipo ff-select" data-field="tipo" title="Tipo de línea">
+      <option value="servicio" ${linea.tipo==="servicio"?"selected":""}>🔧 Servicio</option>
+      <option value="producto" ${linea.tipo==="producto"?"selected":""}>📦 Producto</option>
+    </select>
     <input type="number" class="linea-qty  ff-input"  value="${linea.cantidad}" min="0.01" step="0.01" data-field="cantidad"/>
     <div class="linea-price-wrap">
       <span class="linea-euro">€</span>
@@ -153,6 +158,7 @@ function onLineaChange(id, el) {
   else if (field === "cantidad")    linea.cantidad    = parseFloat(el.value) || 0;
   else if (field === "precio")      linea.precio      = parseFloat(el.value) || 0;
   else if (field === "iva")         linea.iva         = parseInt(el.value)   || 0;
+  else if (field === "tipo")      { linea.tipo        = el.value; updateIrpfVisibility(); return; }
   const subtotal = linea.cantidad * linea.precio;
   const rowEl = document.getElementById(`ltRow${id}`);
   if (rowEl) rowEl.textContent = fmt(subtotal);
@@ -163,6 +169,7 @@ function onLineaChange(id, el) {
 window._delLinea = (id) => {
   LINEAS = LINEAS.filter(l => l.id !== id);
   document.querySelector(`.linea-row[data-linea-id="${id}"]`)?.remove();
+  updateIrpfVisibility();
   updateTotalesUI();
   updatePreview();
 };
@@ -309,26 +316,29 @@ function updatePreview() {
    - Autónomo + cliente empresa   → toggle ON/OFF + selector %
 ══════════════════════════ */
 function updateIrpfVisibility() {
-  const wrap    = document.getElementById("irpfFieldWrap");
-  const toggle  = document.getElementById("nfIrpfToggle");
-  const sel     = document.getElementById("nfIrpf");
-  const hint    = document.getElementById("nfIrpfHint");
+  const wrap   = document.getElementById("irpfFieldWrap");
+  const toggle = document.getElementById("nfIrpfToggle");
+  const sel    = document.getElementById("nfIrpf");
+  const hint   = document.getElementById("nfIrpfHint");
   if (!wrap || !toggle || !sel) return;
 
-  const regime      = PERFIL_FISCAL_CACHE?.regime || "autonomo_ed";
-  const tipoCliente = document.getElementById("nfTipoCliente")?.value || "empresa";
-  const esSociedad  = regime === "sociedad";
+  const regime       = PERFIL_FISCAL_CACHE?.regime || "autonomo_ed";
+  const tipoCliente  = document.getElementById("nfTipoCliente")?.value || "empresa";
+  const esSociedad   = regime === "sociedad";
   const esParticular = tipoCliente === "particular";
-  const irpfAplica  = !esSociedad && !esParticular;
+
+  // Al menos una línea debe ser servicio para que aplique IRPF
+  const hayServicio  = LINEAS.length === 0 || LINEAS.some(l => (l.tipo || "servicio") === "servicio");
+
+  const irpfAplica = !esSociedad && !esParticular && hayServicio;
 
   if (!irpfAplica) {
-    // Ocultar completamente — no aplica en ningún caso
     wrap.style.display = "none";
     toggle.checked = false;
     sel.style.display = "none";
     sel.value = "0";
+    if (hint) { hint.style.display = ""; hint.textContent = "No aplicar"; }
   } else {
-    // Mostrar toggle
     wrap.style.display = "";
   }
 
