@@ -406,8 +406,6 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
   doc.text("PRESUPUESTO", ML, 22);
   doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(...MUTED);
   doc.text("QUOTE", ML, 29);
-  doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(...INK);
-  doc.text(p.numero||"S/N", ML, 38);
 
   /* ── DERECHA: logo o nombre empresa ── */
   let logoOk=false;
