@@ -13,6 +13,12 @@
   <script type="module" src="main.js" defer></script>
 <style>
 .lp-plan-promo{display:inline-block;margin:6px 0 2px;padding:4px 10px;background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;border-radius:20px;font-size:12px;font-weight:600}
+.irpf-toggle{position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0}
+.irpf-toggle input{opacity:0;width:0;height:0}
+.irpf-toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--brd);border-radius:20px;transition:.2s}
+.irpf-toggle-slider:before{content:"";position:absolute;width:14px;height:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+.irpf-toggle input:checked + .irpf-toggle-slider{background:#dc2626}
+.irpf-toggle input:checked + .irpf-toggle-slider:before{transform:translateX(16px)}
 </style>
 </head>
 <body>
@@ -830,14 +836,20 @@
                   <label>Fecha *</label>
                   <input type="date" id="nfFecha" class="ff-input"/>
                 </div>
-                <div class="ff-field">
-                  <label>IRPF retención</label>
-                  <select id="nfIrpf" class="ff-select">
-                    <option value="0">Sin retención</option>
-                    <option value="7">7% — Inicio actividad</option>
-                    <option value="15" selected>15% — General</option>
-                    <option value="19">19% — Profesionales</option>
-                  </select>
+                <div class="ff-field" id="irpfFieldWrap" style="display:none">
+                  <label>Retención IRPF</label>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <label class="irpf-toggle" title="Aplicar retención IRPF a esta factura">
+                      <input type="checkbox" id="nfIrpfToggle"/>
+                      <span class="irpf-toggle-slider"></span>
+                    </label>
+                    <select id="nfIrpf" class="ff-select" style="display:none;min-width:160px">
+                      <option value="7">7% — Inicio actividad</option>
+                      <option value="15" selected>15% — General</option>
+                      <option value="19">19% — Profesionales</option>
+                    </select>
+                    <span id="nfIrpfHint" style="font-size:11.5px;color:var(--t3)">No aplicar</span>
+                  </div>
                 </div>
               </div>
             </div>
