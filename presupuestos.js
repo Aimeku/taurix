@@ -607,6 +607,28 @@ export async function showEnviarEmailModal(presId) {
           <textarea id="em_body" class="ff-input ff-textarea" style="min-height:130px">${_defaultEmailBody(p, perfil)}</textarea>
         </div>
 
+        <div class="modal-field">
+          <label>Abrir con</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+            <label class="email-client-opt">
+              <input type="radio" name="em_client" value="gmail" checked/>
+              <span>📧 Gmail</span>
+            </label>
+            <label class="email-client-opt">
+              <input type="radio" name="em_client" value="outlook"/>
+              <span>📘 Outlook web</span>
+            </label>
+            <label class="email-client-opt">
+              <input type="radio" name="em_client" value="yahoo"/>
+              <span>💜 Yahoo</span>
+            </label>
+            <label class="email-client-opt">
+              <input type="radio" name="em_client" value="local"/>
+              <span>🖥️ App del sistema</span>
+            </label>
+          </div>
+        </div>
+
         <div class="email-options-row">
           <label class="email-check-lbl">
             <input type="checkbox" id="em_marcar_enviado" checked/>
@@ -642,11 +664,27 @@ export async function showEnviarEmailModal(presId) {
       // 1. Descargar el PDF automáticamente
       await generarPDFPresupuesto(presId, true);
 
-      // 2. Construir mailto: con todos los campos
-      // CC: soporta múltiples emails separados por coma
+      // 2. Construir URL según cliente de correo seleccionado
+      const client = document.querySelector("input[name='em_client']:checked")?.value || "gmail";
       const ccParam = cc ? `&cc=${encodeURIComponent(cc)}` : "";
-      const mailtoUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}${ccParam}&body=${encodeURIComponent(body)}`;
-      window.open(mailtoUrl, "_blank");
+      let mailUrl;
+
+      if (client === "gmail") {
+        // Gmail web
+        const gmailCc = cc ? `&cc=${encodeURIComponent(cc)}` : "";
+        mailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(to)}${gmailCc}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      } else if (client === "outlook") {
+        // Outlook web
+        mailUrl = `https://outlook.live.com/mail/0/deeplink/compose?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}${cc?`&cc=${encodeURIComponent(cc)}`:""}`;
+      } else if (client === "yahoo") {
+        // Yahoo Mail
+        mailUrl = `https://compose.mail.yahoo.com/?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}${cc?`&cc=${encodeURIComponent(cc)}`:""}`;
+      } else {
+        // App del sistema (mailto:)
+        mailUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}${ccParam}&body=${encodeURIComponent(body)}`;
+      }
+
+      window.open(mailUrl, "_blank");
 
       // 3. Marcar como enviado si procede
       if (marcarEnv && p.estado === "borrador") {
