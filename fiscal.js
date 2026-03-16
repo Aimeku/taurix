@@ -35,22 +35,38 @@ export async function refreshIVA() {
 export async function refreshIRPF() {
   const year = getYear(), trim = getTrim();
   const facturasTrim = await getFacturasTrim(year, trim);
-  const { ingresos, gastos, rendimiento, retenciones, pagoFrac, resultado } = calcIRPF(facturasTrim);
+  const { ingresos, gastos, rendimiento, retenciones, pagoFrac } = calcIRPF(facturasTrim);
 
   // Acumulados trimestres anteriores
-  let ingAcum=0, gstAcum=0, retAcum=0;
+  let ingAcum=0, gstAcum=0, retAcum=0, pagosPrevios=0;
   for (const t of ["T1","T2","T3","T4"]) {
     if (t >= trim) break;
     const ff = await getFacturasTrim(year, t);
     const r  = calcIRPF(ff);
-    ingAcum += r.ingresos; gstAcum += r.gastos; retAcum += r.retenciones;
+    ingAcum    += r.ingresos;
+    gstAcum    += r.gastos;
+    retAcum    += r.retenciones;
+    pagosPrevios += r.resultado; // lo que ya se ingresó a Hacienda en trimestres previos
   }
 
+  // Modelo 130 correcto:
+  // Base acumulada = (ingresos totales año hasta este trim - gastos totales) × 20%
+  // Resultado = base acumulada - retenciones acumuladas - pagos ya realizados
+  const ingTotal  = ingresos + ingAcum;
+  const gstTotal  = gastos   + gstAcum;
+  const retTotal  = retenciones + retAcum;
+  const rendAcum  = ingTotal - gstTotal;
+  const pagoAcum  = Math.max(0, rendAcum * 0.20);
+  const resultado = Math.max(0, pagoAcum - retTotal - pagosPrevios);
+
   const s = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=fmt(v); };
-  s("irpfIngBrutos",ingresos); s("irpfIngAcum",ingAcum); s("irpfIngTotal",ingresos+ingAcum);
-  s("irpfGstPeriodo",gastos);  s("irpfGstAcum",gstAcum); s("irpfGstTotal",gastos+gstAcum);
+  s("irpfIngBrutos",ingresos); s("irpfIngAcum",ingAcum); s("irpfIngTotal",ingTotal);
+  s("irpfGstPeriodo",gastos);  s("irpfGstAcum",gstAcum); s("irpfGstTotal",gstTotal);
   s("irpfRetPeriodo",retenciones); s("irpfRetAcum",retAcum);
-  s("irpfRendNeto",rendimiento); s("irpfPagoFrac",pagoFrac); s("irpfMenosRet",retenciones);
+  s("irpfRendNeto",rendAcum); s("irpfPagoFrac",pagoAcum); s("irpfMenosRet",retTotal);
+
+  const pagAntEl = document.getElementById("irpfMenosPagAnt");
+  if(pagAntEl) pagAntEl.textContent = fmt(pagosPrevios);
 
   const resEl  = document.getElementById("irpfResultado130");
   const stEl   = document.getElementById("irpfEstado130");
