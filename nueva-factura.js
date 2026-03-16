@@ -26,7 +26,10 @@ let opTipoActual = "nacional";
    TOTALES
 ══════════════════════════ */
 function getLineasTotales() {
-  const irpfPct = parseInt(document.getElementById("nfIrpf")?.value) || 0;
+  const toggle  = document.getElementById("nfIrpfToggle");
+  const irpfPct = (toggle?.checked)
+    ? (parseInt(document.getElementById("nfIrpf")?.value) || 0)
+    : 0;
   let baseTotal = 0;
   const ivaMap = {};
   LINEAS.forEach(l => {
@@ -302,47 +305,57 @@ function updatePreview() {
 
 /* ══════════════════════════
    LÓGICA IRPF INTELIGENTE
-   Aplica solo si:
-   - Emisor es autónomo (no sociedad)
-   - Cliente es empresa/autónomo (no particular)
+   - Sociedad o cliente particular → campo oculto
+   - Autónomo + cliente empresa   → toggle ON/OFF + selector %
 ══════════════════════════ */
 function updateIrpfVisibility() {
-  const irpfField = document.getElementById("nfIrpf")?.closest(".ff-field");
-  const irpfSel   = document.getElementById("nfIrpf");
-  if (!irpfField || !irpfSel) return;
+  const wrap    = document.getElementById("irpfFieldWrap");
+  const toggle  = document.getElementById("nfIrpfToggle");
+  const sel     = document.getElementById("nfIrpf");
+  const hint    = document.getElementById("nfIrpfHint");
+  if (!wrap || !toggle || !sel) return;
 
   const regime      = PERFIL_FISCAL_CACHE?.regime || "autonomo_ed";
   const tipoCliente = document.getElementById("nfTipoCliente")?.value || "empresa";
   const esSociedad  = regime === "sociedad";
   const esParticular = tipoCliente === "particular";
+  const irpfAplica  = !esSociedad && !esParticular;
 
-  const irpfAplica = !esSociedad && !esParticular;
-
-  if (irpfAplica) {
-    irpfField.style.display = "";
-    // Si no tenía valor puesto, poner 15% por defecto
-    if (irpfSel.value === "0" || !irpfSel._userChanged) {
-      irpfSel.value = "15";
-    }
+  if (!irpfAplica) {
+    // Ocultar completamente — no aplica en ningún caso
+    wrap.style.display = "none";
+    toggle.checked = false;
+    sel.style.display = "none";
+    sel.value = "0";
   } else {
-    irpfField.style.display = "none";
-    irpfSel.value = "0"; // forzar 0 si no aplica
-  }
-
-  // Mostrar tooltip explicativo
-  const label = irpfField.querySelector("label");
-  if (label) {
-    if (esSociedad) {
-      label.title = "Las sociedades (SL/SA) no aplican retención de IRPF";
-    } else if (esParticular) {
-      label.title = "No se aplica IRPF cuando el cliente es un particular";
-    } else {
-      label.title = "Retención IRPF aplicable a servicios profesionales de autónomos";
-    }
+    // Mostrar toggle
+    wrap.style.display = "";
   }
 
   updateTotalesUI();
   updatePreview();
+}
+
+function initIrpfToggle() {
+  const toggle = document.getElementById("nfIrpfToggle");
+  const sel    = document.getElementById("nfIrpf");
+  const hint   = document.getElementById("nfIrpfHint");
+  if (!toggle || !sel) return;
+
+  toggle.addEventListener("change", () => {
+    if (toggle.checked) {
+      sel.style.display = "";
+      if (hint) hint.style.display = "none";
+    } else {
+      sel.style.display = "none";
+      sel.value = "0"; // sin retención cuando toggle OFF
+      if (hint) { hint.style.display = ""; hint.textContent = "No aplicar"; }
+    }
+    updateTotalesUI();
+    updatePreview();
+  });
+
+  sel.addEventListener("change", () => { updateTotalesUI(); updatePreview(); });
 }
 
 
@@ -381,7 +394,10 @@ async function saveFactura(emitirDirecto = false) {
     toast("Añade al menos una línea con precio","error"); return;
   }
   const fecha        = document.getElementById("nfFecha")?.value;
-  const irpf         = parseInt(document.getElementById("nfIrpf")?.value) || 0;
+  const toggle   = document.getElementById("nfIrpfToggle");
+  const irpf     = toggle?.checked
+    ? (parseInt(document.getElementById("nfIrpf")?.value) || 0)
+    : 0;
   const tipo         = document.getElementById("nfTipo")?.value;
   const tipoCliente  = document.getElementById("nfTipoCliente")?.value;
   const clienteNombre= document.getElementById("nfNombre")?.value.trim();
@@ -503,13 +519,10 @@ export function initNuevaFactura() {
   });
 
   initClienteSearch();
+  initIrpfToggle();
   ["nfNombre","nfNif","nfFecha","nfNotas"].forEach(id => {
     document.getElementById(id)?.addEventListener("input",  updatePreview);
     document.getElementById(id)?.addEventListener("change", updatePreview);
-  });
-  document.getElementById("nfIrpf")?.addEventListener("change", ()=>{
-    document.getElementById("nfIrpf")._userChanged = true;
-    updateTotalesUI(); updatePreview();
   });
   document.getElementById("nfTipoCliente")?.addEventListener("change", updateIrpfVisibility);
   document.getElementById("addLineaBtn")?.addEventListener("click", ()=>addLinea());
