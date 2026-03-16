@@ -456,7 +456,8 @@ async function saveFactura(emitirDirecto = false) {
     cliente_pais: pais, notas,
     lineas: JSON.stringify(LINEAS.map(l=>({
       descripcion: l.descripcion, cantidad: l.cantidad,
-      precio: l.precio, iva: l.iva, subtotal: l.cantidad*l.precio
+      precio: l.precio, iva: l.iva, subtotal: l.cantidad*l.precio,
+      tipo: l.tipo || "servicio"
     })))
   }).select().single();
 
