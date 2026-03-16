@@ -25,35 +25,43 @@ export async function emitirFacturaDB(facturaId) {
   if (fe || !f) throw new Error(fe?.message || "Factura no encontrada");
 
   const { data: pfRaw } = await supabase.from("perfil_fiscal").select("serie_formato").eq("user_id", SESSION.user.id).single();
-  const formatoSerie = pfRaw?.serie_formato || "{YEAR}-{NUM4}"; // configurable
+  const formatoSerie = pfRaw?.serie_formato || "{YEAR}-{NUM4}";
 
   const serie = new Date(f.fecha).getFullYear().toString();
-  let { data: sd, error: se } = await supabase.from("factura_series").select("*")
-    .eq("user_id", SESSION.user.id).eq("serie", serie).single();
-  if (se || !sd) {
-    const { data: ns, error: ne } = await supabase.from("factura_series")
-      .insert({ user_id: SESSION.user.id, serie, ultimo_numero: 0 }).select().single();
-    if (ne) throw new Error(ne.message);
-    sd = ns;
-  }
-  const num = sd.ultimo_numero + 1;
 
-  // Aplica el formato: {YEAR} → año, {NUM4} → 0001, {NUM3} → 001
+  // RPC atómica — evita race condition con numeración duplicada
+  const { data: num, error: rpcErr } = await supabase.rpc("get_next_factura_number", {
+    p_user_id: SESSION.user.id,
+    p_serie: serie
+  });
+
+  // Fallback si la RPC no existe aún en Supabase
+  let finalNum = num;
+  if (rpcErr) {
+    console.warn("RPC no disponible, usando fallback:", rpcErr.message);
+    let { data: sd } = await supabase.from("factura_series").select("*")
+      .eq("user_id", SESSION.user.id).eq("serie", serie).single();
+    if (!sd) {
+      const { data: ns, error: ne } = await supabase.from("factura_series")
+        .insert({ user_id: SESSION.user.id, serie, ultimo_numero: 0 }).select().single();
+      if (ne) throw new Error(ne.message);
+      sd = ns;
+    }
+    finalNum = sd.ultimo_numero + 1;
+    await supabase.from("factura_series").update({ ultimo_numero: finalNum }).eq("id", sd.id);
+  }
+
   const numero = formatoSerie
     .replace("{YEAR}", serie)
-    .replace("{NUM4}", String(num).padStart(4,"0"))
-    .replace("{NUM3}", String(num).padStart(3,"0"))
-    .replace("{NUM}",  String(num));
+    .replace("{NUM4}", String(finalNum).padStart(4,"0"))
+    .replace("{NUM3}", String(finalNum).padStart(3,"0"))
+    .replace("{NUM}",  String(finalNum));
 
   const { error: ue } = await supabase.from("facturas").update({
     numero_factura: numero, serie, estado: "emitida",
     fecha_emision: new Date().toISOString().slice(0,10)
   }).eq("id", facturaId).eq("estado","borrador");
   if (ue) throw new Error(ue.message);
-
-  const { error: sue } = await supabase.from("factura_series")
-    .update({ ultimo_numero: num }).eq("id", sd.id);
-  if (sue) console.warn("Serie update:", sue.message);
 
   return numero;
 }
@@ -525,8 +533,7 @@ export async function updateCierreBtn() {
 ══════════════════════════════════════════ */
 export function initFacturasView() {
   document.getElementById("irNuevaFacturaBtn")?.addEventListener("click", () => {
-    const { switchView } = require("./utils.js");
-    switchView("nueva-factura");
+    import("./utils.js").then(m => m.switchView("nueva-factura"));
   });
   ["facturasSearch","filterTipo","filterEstado","filterOp"].forEach(id => {
     document.getElementById(id)?.addEventListener("input",  () => { paginaActual=1; refreshFacturas(); });
