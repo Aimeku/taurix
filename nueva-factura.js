@@ -213,6 +213,7 @@ function initClienteSearch() {
         set("nfNombre",c.nombre); set("nfNif",c.nif||"");
         set("nfPais",c.pais||"ES"); set("nfTipoCliente",c.tipo||"empresa");
         document.getElementById("nfClientePanel")?.classList.add("cliente-panel--filled");
+        updateIrpfVisibility();
         updatePreview();
       });
     });
@@ -300,8 +301,51 @@ function updatePreview() {
 }
 
 /* ══════════════════════════
-   PERFIL PARA PREVIEW
+   LÓGICA IRPF INTELIGENTE
+   Aplica solo si:
+   - Emisor es autónomo (no sociedad)
+   - Cliente es empresa/autónomo (no particular)
 ══════════════════════════ */
+function updateIrpfVisibility() {
+  const irpfField = document.getElementById("nfIrpf")?.closest(".ff-field");
+  const irpfSel   = document.getElementById("nfIrpf");
+  if (!irpfField || !irpfSel) return;
+
+  const regime      = PERFIL_FISCAL_CACHE?.regime || "autonomo_ed";
+  const tipoCliente = document.getElementById("nfTipoCliente")?.value || "empresa";
+  const esSociedad  = regime === "sociedad";
+  const esParticular = tipoCliente === "particular";
+
+  const irpfAplica = !esSociedad && !esParticular;
+
+  if (irpfAplica) {
+    irpfField.style.display = "";
+    // Si no tenía valor puesto, poner 15% por defecto
+    if (irpfSel.value === "0" || !irpfSel._userChanged) {
+      irpfSel.value = "15";
+    }
+  } else {
+    irpfField.style.display = "none";
+    irpfSel.value = "0"; // forzar 0 si no aplica
+  }
+
+  // Mostrar tooltip explicativo
+  const label = irpfField.querySelector("label");
+  if (label) {
+    if (esSociedad) {
+      label.title = "Las sociedades (SL/SA) no aplican retención de IRPF";
+    } else if (esParticular) {
+      label.title = "No se aplica IRPF cuando el cliente es un particular";
+    } else {
+      label.title = "Retención IRPF aplicable a servicios profesionales de autónomos";
+    }
+  }
+
+  updateTotalesUI();
+  updatePreview();
+}
+
+
 async function loadPerfilForPreview() {
   if (!SESSION) return;
   if (!PERFIL_FISCAL_CACHE) {
@@ -324,6 +368,9 @@ async function loadPerfilForPreview() {
       logoWrap.innerHTML = "";
     }
   }
+
+  // Actualizar visibilidad del IRPF según régimen del emisor
+  updateIrpfVisibility();
 }
 
 /* ══════════════════════════
@@ -460,7 +507,11 @@ export function initNuevaFactura() {
     document.getElementById(id)?.addEventListener("input",  updatePreview);
     document.getElementById(id)?.addEventListener("change", updatePreview);
   });
-  document.getElementById("nfIrpf")?.addEventListener("change", ()=>{ updateTotalesUI(); updatePreview(); });
+  document.getElementById("nfIrpf")?.addEventListener("change", ()=>{
+    document.getElementById("nfIrpf")._userChanged = true;
+    updateTotalesUI(); updatePreview();
+  });
+  document.getElementById("nfTipoCliente")?.addEventListener("change", updateIrpfVisibility);
   document.getElementById("addLineaBtn")?.addEventListener("click", ()=>addLinea());
   document.getElementById("nfGuardarBtn")?.addEventListener("click", ()=>saveFactura(false));
   document.getElementById("nfEmitirBtn")?.addEventListener("click",  ()=>saveFactura(true));
