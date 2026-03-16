@@ -222,6 +222,7 @@ function initClienteSearch() {
         const set = (id,v) => { const e=document.getElementById(id); if(e) e.value=v; };
         set("nfNombre",c.nombre); set("nfNif",c.nif||"");
         set("nfPais",c.pais||"ES"); set("nfTipoCliente",c.tipo||"empresa");
+        set("nfDireccion", c.direccion||"");
         document.getElementById("nfClientePanel")?.classList.add("cliente-panel--filled");
         updateIrpfVisibility();
         updatePreview();
@@ -235,7 +236,7 @@ function initClienteSearch() {
   limpiar.addEventListener("click", () => {
     input.value=""; limpiar.style.display="none"; dropdown.style.display="none";
     clienteSeleccionadoId=null;
-    ["nfNombre","nfNif"].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=""; });
+    ["nfNombre","nfNif","nfDireccion"].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=""; });
     document.getElementById("nfClientePanel")?.classList.remove("cliente-panel--filled");
     updatePreview();
   });
@@ -267,17 +268,22 @@ function updateOpUI() {
 ══════════════════════════ */
 function updatePreview() {
   const { baseTotal, ivaMap, irpfAmt, irpfPct, total } = getLineasTotales();
-  const fecha  = document.getElementById("nfFecha")?.value;
-  const nombre = document.getElementById("nfNombre")?.value || "";
-  const nif    = document.getElementById("nfNif")?.value    || "";
-  const notas  = document.getElementById("nfNotas")?.value  || "";
-  const ops    = {nacional:"🇪🇸 Nacional",intracomunitaria:"🇪🇺 Intracomunitaria",exportacion:"🌍 Exportación",importacion:"📦 Importación",inversion_sujeto_pasivo:"🔄 Inv. Sujeto Pasivo"};
-  const set    = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  const fecha   = document.getElementById("nfFecha")?.value;
+  const nombre  = document.getElementById("nfNombre")?.value  || "";
+  const nif     = document.getElementById("nfNif")?.value     || "";
+  const dir     = document.getElementById("nfDireccion")?.value || "";
+  const notas   = document.getElementById("nfNotas")?.value   || "";
+  const ops     = {nacional:"🇪🇸 Nacional",intracomunitaria:"🇪🇺 Intracomunitaria",exportacion:"🌍 Exportación",importacion:"📦 Importación",inversion_sujeto_pasivo:"🔄 Inv. Sujeto Pasivo"};
+  const set     = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
 
   set("pvFecha",  fecha?fmtDate(fecha):"—");
   set("pvCliente",nombre||"—");
-  set("pvNif",    nif||"—");
+  set("pvNif",    nif ? "NIF/CIF: "+nif : "—");
   set("pvOp",     ops[opTipoActual]||"Nacional");
+
+  // Dirección en preview
+  const pvDirEl = document.getElementById("pvClienteDir");
+  if (pvDirEl) pvDirEl.textContent = dir || "";
 
   const pvLineas = document.getElementById("pvLineas");
   if (pvLineas) {
@@ -412,6 +418,7 @@ async function saveFactura(emitirDirecto = false) {
   const tipoCliente  = document.getElementById("nfTipoCliente")?.value;
   const clienteNombre= document.getElementById("nfNombre")?.value.trim();
   const clienteNif   = document.getElementById("nfNif")?.value.trim();
+  const clienteDir   = document.getElementById("nfDireccion")?.value.trim();
   const pais         = document.getElementById("nfPais")?.value || "ES";
   const notas        = document.getElementById("nfNotas")?.value.trim();
   const guardarCliente = document.getElementById("nfGuardarCliente")?.checked;
@@ -420,6 +427,8 @@ async function saveFactura(emitirDirecto = false) {
   if (!clienteNombre && !clienteSeleccionadoId)       { toast("Introduce el nombre del cliente","error"); return; }
   if (tipoCliente==="empresa"&&!clienteNif&&!clienteSeleccionadoId)
                                                       { toast("El NIF es obligatorio para empresas","error"); return; }
+  if (tipoCliente==="empresa"&&!clienteDir&&!clienteSeleccionadoId)
+                                                      { toast("La dirección fiscal es obligatoria para empresas","error"); return; }
 
   const fobj = new Date(fecha);
   const year = fobj.getFullYear();
@@ -438,7 +447,8 @@ async function saveFactura(emitirDirecto = false) {
   let cId = clienteSeleccionadoId;
   if (!cId && guardarCliente && clienteNombre) {
     const { data: nc, error: ce } = await supabase.from("clientes").insert({
-      user_id: SESSION.user.id, nombre: clienteNombre, nif: clienteNif, tipo: tipoCliente, pais
+      user_id: SESSION.user.id, nombre: clienteNombre, nif: clienteNif,
+      tipo: tipoCliente, pais, direccion: clienteDir
     }).select().single();
     if (ce) { toast("Error creando cliente: "+ce.message,"warn"); }
     else    { cId=nc.id; await refreshClientes(); }
@@ -446,6 +456,7 @@ async function saveFactura(emitirDirecto = false) {
 
   const resolvedNombre = cId ? (CLIENTES.find(c=>c.id===cId)?.nombre||clienteNombre) : clienteNombre;
   const resolvedNif    = cId ? (CLIENTES.find(c=>c.id===cId)?.nif   ||clienteNif)    : clienteNif;
+  const resolvedDir    = cId ? (CLIENTES.find(c=>c.id===cId)?.direccion||clienteDir)  : clienteDir;
 
   const { data: fData, error } = await supabase.from("facturas").insert({
     user_id: SESSION.user.id, concepto, base: baseTotal,
@@ -453,6 +464,7 @@ async function saveFactura(emitirDirecto = false) {
     tipo_operacion: opTipoActual, estado: "borrador",
     tipo_cliente: tipoCliente, cliente_id: cId,
     cliente_nombre: resolvedNombre, cliente_nif: resolvedNif,
+    cliente_direccion: resolvedDir,
     cliente_pais: pais, notas,
     lineas: JSON.stringify(LINEAS.map(l=>({
       descripcion: l.descripcion, cantidad: l.cantidad,
@@ -492,7 +504,7 @@ async function saveFactura(emitirDirecto = false) {
 function resetForm() {
   LINEAS=[]; lineaIdCounter=0; clienteSeleccionadoId=null; opTipoActual="nacional";
   document.getElementById("lineasContainer").innerHTML="";
-  ["nfNombre","nfNif","nfNotas"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
+  ["nfNombre","nfNif","nfDireccion","nfNotas"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   const csi=document.getElementById("clienteSearchInput"); if(csi) csi.value="";
   const clb=document.getElementById("clienteLimpiarBtn"); if(clb) clb.style.display="none";
   document.getElementById("nfClientePanel")?.classList.remove("cliente-panel--filled");
@@ -531,7 +543,7 @@ export function initNuevaFactura() {
 
   initClienteSearch();
   initIrpfToggle();
-  ["nfNombre","nfNif","nfFecha","nfNotas"].forEach(id => {
+  ["nfNombre","nfNif","nfDireccion","nfFecha","nfNotas"].forEach(id => {
     document.getElementById(id)?.addEventListener("input",  updatePreview);
     document.getElementById(id)?.addEventListener("change", updatePreview);
   });
