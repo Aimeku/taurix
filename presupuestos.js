@@ -599,7 +599,7 @@ export async function showEnviarEmailModal(presId) {
 
         <div class="modal-field">
           <label>Asunto</label>
-          <input id="em_subject" class="ff-input" value="Presupuesto ${p.numero||""} — ${p.concepto||""}"/>
+          <input id="em_subject" class="ff-input" value="Presupuesto — ${p.concepto||""}"/>
         </div>
 
         <div class="modal-field">
@@ -671,7 +671,7 @@ export async function showEnviarEmailModal(presId) {
 function _defaultEmailBody(p, perfil) {
   const nom   = perfil.nombre_razon_social || "nosotros";
   const valid = p.fecha_validez ? `\n\nEste presupuesto es válido hasta el ${new Date(p.fecha_validez).toLocaleDateString("es-ES")}.` : "";
-  return `Estimado/a ${p.cliente_nombre||"cliente"},\n\nAdjunto encontrará el presupuesto ${p.numero||""} correspondiente a: ${p.concepto||"los servicios solicitados"}.\n\nImporte total: ${fmt(p.base+p.base*p.iva/100)}${valid}\n\nPara aceptar el presupuesto o si tiene cualquier consulta, no dude en contactarnos.\n\nUn saludo,\n${nom}`;
+  return `Estimado/a ${p.cliente_nombre||"cliente"},\n\nAdjunto encontrará el presupuesto correspondiente a: ${p.concepto||"los servicios solicitados"}.\n\nImporte total: ${fmt(p.base+p.base*p.iva/100)}${valid}\n\nPara aceptar el presupuesto o si tiene cualquier consulta, no dude en contactarnos.\n\nUn saludo,\n${nom}`;
 }
 
 function _bodyToHtml(text, p, perfil) {
