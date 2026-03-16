@@ -572,11 +572,6 @@ export async function showEnviarEmailModal(presId) {
       </div>
       <div class="modal-bd">
 
-        <div class="email-taurix-badge">
-          <img src="Logo_Taurix.png" alt="Taurix" style="height:20px"/>
-          <span>Enviado desde <strong>presupuestos@taurix.es</strong> en nombre tuyo</span>
-        </div>
-
         <div class="email-pres-preview">
           <div class="epp-num">${p.numero||"S/N"}</div>
           <div class="epp-datos">
@@ -586,14 +581,19 @@ export async function showEnviarEmailModal(presId) {
           </div>
         </div>
 
+        <div style="background:var(--amber-lt,#fffbeb);border:1px solid var(--amber-mid,#fde68a);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--amber-dd,#92400e);margin-bottom:16px;display:flex;gap:10px;align-items:flex-start">
+          <span style="font-size:16px;flex-shrink:0">💡</span>
+          <span>El PDF se descargará automáticamente. Tu cliente de correo (Gmail, Outlook…) se abrirá con el asunto y mensaje prellenados. Solo tienes que adjuntar el PDF y enviar.</span>
+        </div>
+
         <div class="modal-grid2">
           <div class="modal-field">
             <label>Email del cliente *</label>
             <input id="em_to" class="ff-input" type="email" value="${emailTo}" placeholder="cliente@empresa.com"/>
           </div>
           <div class="modal-field">
-            <label>CC (opcional)</label>
-            <input id="em_cc" class="ff-input" type="email" placeholder="copia@tuempresa.com"/>
+            <label>CC (opcional, separados por coma)</label>
+            <input id="em_cc" class="ff-input" type="text" placeholder="copia@empresa.com, otro@empresa.com"/>
           </div>
         </div>
 
@@ -604,14 +604,10 @@ export async function showEnviarEmailModal(presId) {
 
         <div class="modal-field">
           <label>Mensaje</label>
-          <textarea id="em_body" class="ff-input ff-textarea" style="min-height:120px">${_defaultEmailBody(p, perfil)}</textarea>
+          <textarea id="em_body" class="ff-input ff-textarea" style="min-height:130px">${_defaultEmailBody(p, perfil)}</textarea>
         </div>
 
         <div class="email-options-row">
-          <label class="email-check-lbl">
-            <input type="checkbox" id="em_adjuntar" checked/>
-            <span>📎 Adjuntar PDF del presupuesto</span>
-          </label>
           <label class="email-check-lbl">
             <input type="checkbox" id="em_marcar_enviado" checked/>
             <span>📤 Marcar como "Enviado"</span>
@@ -622,7 +618,7 @@ export async function showEnviarEmailModal(presId) {
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
         <button class="btn-modal-save btn-send-email" id="em_send">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          Enviar presupuesto
+          Descargar PDF y abrir correo
         </button>
       </div>
     </div>
@@ -630,11 +626,10 @@ export async function showEnviarEmailModal(presId) {
 
   document.getElementById("em_send")?.addEventListener("click", async () => {
     const to      = document.getElementById("em_to").value.trim();
+    const cc      = document.getElementById("em_cc").value.trim();
     const subject = document.getElementById("em_subject").value.trim();
     const body    = document.getElementById("em_body").value.trim();
-    const cc      = document.getElementById("em_cc").value.trim();
-    const adjuntar    = document.getElementById("em_adjuntar").checked;
-    const marcarEnv   = document.getElementById("em_marcar_enviado").checked;
+    const marcarEnv = document.getElementById("em_marcar_enviado").checked;
 
     if (!to)      { toast("Introduce el email del cliente","error"); return; }
     if (!subject) { toast("Introduce el asunto","error"); return; }
@@ -644,38 +639,16 @@ export async function showEnviarEmailModal(presId) {
     btn.innerHTML = `<span class="spin"></span> Generando PDF…`;
 
     try {
-      let pdfBase64 = null, pdfFilename = null;
-      if (adjuntar) {
-        const result = await generarPDFPresupuesto(presId, false);
-        if (result) {
-          pdfBase64 = await new Promise((res,rej) => {
-            const reader = new FileReader();
-            reader.onload  = () => res(reader.result.split(",")[1]);
-            reader.onerror = rej;
-            reader.readAsDataURL(result.blob);
-          });
-          pdfFilename = result.filename;
-        }
-      }
+      // 1. Descargar el PDF automáticamente
+      await generarPDFPresupuesto(presId, true);
 
-      btn.innerHTML = `<span class="spin"></span> Enviando…`;
+      // 2. Construir mailto: con todos los campos
+      // CC: soporta múltiples emails separados por coma
+      const ccParam = cc ? `&cc=${encodeURIComponent(cc)}` : "";
+      const mailtoUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}${ccParam}&body=${encodeURIComponent(body)}`;
+      window.open(mailtoUrl, "_blank");
 
-      const { data: resp, error: fnErr } = await supabase.functions.invoke("send-presupuesto", {
-        body: {
-          to, cc: cc||null,
-          from_name:   perfil.nombre_razon_social || "Taurix",
-          from_email:  "presupuestos@taurix.es",
-          subject,
-          body_text: body,
-          body_html: _bodyToHtml(body, p, perfil),
-          pdf_base64:  pdfBase64,
-          pdf_filename: pdfFilename,
-        }
-      });
-
-      if (fnErr) throw new Error(fnErr.message);
-      if (resp?.error) throw new Error(resp.error);
-
+      // 3. Marcar como enviado si procede
       if (marcarEnv && p.estado === "borrador") {
         await supabase.from("presupuestos").update({
           estado: "enviado",
@@ -684,13 +657,13 @@ export async function showEnviarEmailModal(presId) {
       }
 
       closeModal();
-      toast(`✅ Presupuesto enviado a ${to}`, "success", 5000);
+      toast("✅ PDF descargado · Revisa tu cliente de correo", "success", 6000);
       await refreshPresupuestos();
 
     } catch(e) {
       toast("❌ Error: "+e.message,"error",7000);
       btn.disabled = false;
-      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar desde Gmail`;
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Descargar PDF y abrir correo`;
     }
   });
 }
