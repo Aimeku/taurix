@@ -232,10 +232,44 @@ window._emitir = async id => {
     const year = new Date(f.fecha).getFullYear();
     const trim = "T"+(Math.floor(new Date(f.fecha).getMonth()/3)+1);
     if (await isCerrado(year,trim)) { toast("El trimestre está cerrado","error"); return; }
-    const num = await emitirFacturaDB(id);
-    toast(`Factura emitida: ${num}`,"success");
-    const { refreshDashboard } = await import("./dashboard.js");
-    await refreshDashboard(); await refreshFacturas();
+
+    // Modal de confirmación — una vez emitida no se puede editar
+    const total = f.base + (f.base * f.iva / 100);
+    openModal(`
+      <div class="modal">
+        <div class="modal-hd">
+          <span class="modal-title">📤 Confirmar emisión</span>
+          <button class="modal-x" onclick="window._cm()">×</button>
+        </div>
+        <div class="modal-bd">
+          <div style="text-align:center;padding:8px 0 16px">
+            <div style="width:52px;height:52px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:24px">📤</div>
+            <p style="font-size:15px;font-weight:600;color:var(--t1);margin:0 0 6px">${f.concepto||"Factura"}</p>
+            <p style="font-size:13px;color:var(--t3);margin:0 0 4px">${f.cliente_nombre||"—"} · ${fmtDate(f.fecha)}</p>
+            <p style="font-size:20px;font-weight:800;color:var(--brand);margin:10px 0 0">${fmt(total)}</p>
+          </div>
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 14px;font-size:13px;color:#92400e;display:flex;gap:10px">
+            <span style="font-size:16px;flex-shrink:0">⚠️</span>
+            <span>Una vez emitida, <strong>la factura no podrá editarse ni eliminarse</strong>. Se asignará un número correlativo definitivo.</span>
+          </div>
+        </div>
+        <div class="modal-ft">
+          <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
+          <button class="btn-modal-save" id="_confirmEmitir" style="background:var(--brand)">📤 Sí, emitir factura</button>
+        </div>
+      </div>
+    `);
+
+    document.getElementById("_confirmEmitir").addEventListener("click", async () => {
+      closeModal();
+      try {
+        const num = await emitirFacturaDB(id);
+        toast(`Factura emitida: ${num}`,"success");
+        const { refreshDashboard } = await import("./dashboard.js");
+        await refreshDashboard(); await refreshFacturas();
+      } catch(e) { toast("Error: "+e.message,"error"); }
+    });
+
   } catch(e) { toast("Error: "+e.message,"error"); }
 };
 
