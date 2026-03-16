@@ -233,7 +233,6 @@ window._emitir = async id => {
     const trim = "T"+(Math.floor(new Date(f.fecha).getMonth()/3)+1);
     if (await isCerrado(year,trim)) { toast("El trimestre está cerrado","error"); return; }
 
-    // Modal de confirmación — una vez emitida no se puede editar
     const total = f.base + (f.base * f.iva / 100);
     openModal(`
       <div class="modal">
@@ -243,10 +242,10 @@ window._emitir = async id => {
         </div>
         <div class="modal-bd">
           <div style="text-align:center;padding:8px 0 16px">
-            <div style="width:52px;height:52px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:24px">📤</div>
+            <div style="width:52px;height:52px;border-radius:50%;background:#fff7ed;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:24px">📤</div>
             <p style="font-size:15px;font-weight:600;color:var(--t1);margin:0 0 6px">${f.concepto||"Factura"}</p>
             <p style="font-size:13px;color:var(--t3);margin:0 0 4px">${f.cliente_nombre||"—"} · ${fmtDate(f.fecha)}</p>
-            <p style="font-size:20px;font-weight:800;color:var(--brand);margin:10px 0 0">${fmt(total)}</p>
+            <p style="font-size:22px;font-weight:800;color:#f97316;margin:10px 0 0">${fmt(total)}</p>
           </div>
           <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 14px;font-size:13px;color:#92400e;display:flex;gap:10px">
             <span style="font-size:16px;flex-shrink:0">⚠️</span>
@@ -255,7 +254,9 @@ window._emitir = async id => {
         </div>
         <div class="modal-ft">
           <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
-          <button class="btn-modal-save" id="_confirmEmitir" style="background:var(--brand)">📤 Sí, emitir factura</button>
+          <button id="_confirmEmitir" style="padding:10px 22px;border:none;border-radius:10px;background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px">
+            📤 Sí, emitir factura
+          </button>
         </div>
       </div>
     `);
