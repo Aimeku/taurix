@@ -424,10 +424,10 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
 
   /* ── LÍNEA DIVISORA ── */
   doc.setDrawColor(...BORDER); doc.setLineWidth(0.5);
-  doc.line(ML, 46, PW-MR, 46);
+  doc.line(ML, 36, PW-MR, 36);
 
   /* ── DE / FROM  ·  PARA / TO ── */
-  let y=56;
+  let y=46;
   const COL1=ML, COL2=PW/2+6, cW=W/2-10;
 
   doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
@@ -449,7 +449,7 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
   /* ── CONCEPTO ── */
   if(p.concepto){
     doc.setFont("helvetica","bold"); doc.setFontSize(14); doc.setTextColor(...INK);
-    doc.text(p.concepto, ML, y); y+=2;
+    doc.text(p.concepto, ML, y); y+=7;
   }
 
   /* ── TABLA 4 COLUMNAS balanceadas ──
