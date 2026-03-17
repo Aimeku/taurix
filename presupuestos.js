@@ -489,7 +489,77 @@ export function showNuevoPresupuestoModal(prefill = {}) {
   // Cargar líneas iniciales
   lineasPrefill.forEach(l => addLinea(l, !!l.esDescuento));
   document.getElementById("pm_addLinea").addEventListener("click", () => addLinea());
-  document.getElementById("pm_addDesc").addEventListener("click",  () => addLinea({ descripcion: "Descuento", precio: 0, cantidad: 1, iva: 0 }, true));
+  document.getElementById("pm_addDesc").addEventListener("click", () => {
+    // Modal para elegir tipo de descuento
+    const base = lineas.filter(l => !l.esDescuento).reduce((a,l) => a + l.cantidad * l.precio, 0);
+    openModal(`
+      <div class="modal" style="max-width:400px">
+        <div class="modal-hd"><span class="modal-title">💰 Añadir descuento</span><button class="modal-x" onclick="window._cm()">×</button></div>
+        <div class="modal-bd">
+          <div class="modal-field"><label>Motivo del descuento</label>
+            <input id="desc_motivo" class="ff-input" placeholder="Ej: Descuento por volumen" value="Descuento"/></div>
+          <div class="modal-field" style="margin-top:12px"><label>Tipo de descuento</label>
+            <div style="display:flex;gap:8px;margin-top:6px">
+              <label style="flex:1;display:flex;align-items:center;gap:6px;padding:10px;border:2px solid var(--brand);border-radius:8px;cursor:pointer;font-weight:600;font-size:13px">
+                <input type="radio" name="desc_tipo" value="importe" checked/> Importe fijo (€)
+              </label>
+              <label style="flex:1;display:flex;align-items:center;gap:6px;padding:10px;border:1.5px solid var(--brd);border-radius:8px;cursor:pointer;font-size:13px" id="desc_pct_lbl">
+                <input type="radio" name="desc_tipo" value="porcentaje"/> Porcentaje (%)
+              </label>
+            </div>
+          </div>
+          <div class="modal-field" style="margin-top:12px">
+            <label id="desc_val_lbl">Importe a descontar (€)</label>
+            <input type="number" id="desc_valor" class="ff-input" placeholder="0.00" step="0.01" min="0" style="font-size:16px;font-weight:700"/>
+          </div>
+          <div id="desc_preview" style="background:var(--bg2);border-radius:8px;padding:10px 14px;margin-top:8px;font-size:13px;display:none">
+            Descuento: <strong id="desc_preview_val" style="color:var(--red,#dc2626)"></strong>
+          </div>
+        </div>
+        <div class="modal-ft">
+          <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
+          <button class="btn-modal-save" id="desc_ok">Añadir descuento</button>
+        </div>
+      </div>
+    `);
+
+    // Estilo al cambiar tipo
+    document.querySelectorAll("input[name='desc_tipo']").forEach(r => {
+      r.addEventListener("change", () => {
+        const esPct = document.querySelector("input[name='desc_tipo']:checked").value === "porcentaje";
+        document.getElementById("desc_val_lbl").textContent = esPct ? "Porcentaje a descontar (%)" : "Importe a descontar (€)";
+        document.querySelector("label[id='desc_pct_lbl']").style.borderColor = esPct ? "var(--brand)" : "var(--brd)";
+        document.querySelector("label[id='desc_pct_lbl']").style.fontWeight  = esPct ? "600" : "400";
+        document.querySelectorAll("input[name='desc_tipo']")[0].closest("label").style.borderColor = !esPct ? "var(--brand)" : "var(--brd)";
+        document.querySelectorAll("input[name='desc_tipo']")[0].closest("label").style.fontWeight  = !esPct ? "600" : "400";
+        updateDescPreview();
+      });
+    });
+
+    const updateDescPreview = () => {
+      const tipo  = document.querySelector("input[name='desc_tipo']:checked")?.value;
+      const val   = parseFloat(document.getElementById("desc_valor")?.value) || 0;
+      const importe = tipo === "porcentaje" ? (base * val / 100) : val;
+      const prev  = document.getElementById("desc_preview");
+      const pvVal = document.getElementById("desc_preview_val");
+      if (val > 0 && prev && pvVal) {
+        prev.style.display = "";
+        pvVal.textContent  = `- ${fmt(importe)}${tipo === "porcentaje" ? ` (${val}% de ${fmt(base)})` : ""}`;
+      } else if (prev) { prev.style.display = "none"; }
+    };
+    document.getElementById("desc_valor")?.addEventListener("input", updateDescPreview);
+
+    document.getElementById("desc_ok").addEventListener("click", () => {
+      const tipo    = document.querySelector("input[name='desc_tipo']:checked").value;
+      const val     = parseFloat(document.getElementById("desc_valor").value);
+      const motivo  = document.getElementById("desc_motivo").value.trim() || "Descuento";
+      if (!val || val <= 0) { toast("Introduce un valor válido", "error"); return; }
+      const importe = tipo === "porcentaje" ? parseFloat((base * val / 100).toFixed(2)) : val;
+      const desc    = tipo === "porcentaje" ? `${motivo} (${val}%)` : motivo;
+      closeModal();
+      addLinea({ descripcion: desc, precio: importe, cantidad: 1, iva: 0 }, true);
+    });
+  });
 
   // Buscar por código de artículo
   const doBuscarCodigo = () => {
