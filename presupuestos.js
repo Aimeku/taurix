@@ -166,8 +166,12 @@ export async function refreshPresupuestos() {
               ? `<button class="ta-btn ta-emit" onclick="window._presTofact('${p.id}')" title="Convertir a factura">📄→🧾</button>
                  <button class="ta-btn" onclick="window._presAlbaran('${p.id}')" title="Convertir a albarán" style="font-size:13px">📋</button>`
               : ""}
+            ${p.estado === "albaran"
+              ? `<button class="ta-btn ta-emit" onclick="window._albaranToFact('${p.id}')" title="Emitir factura desde albarán" style="background:var(--green-lt,#d1fae5);color:var(--green,#059669)">🧾 Facturar</button>
+                 <button class="ta-btn" onclick="window._pdfAlbaran('${p.id}')" title="PDF Albarán">📋 PDF</button>`
+              : ""}
             <button class="ta-btn ta-email" onclick="window._presEmail('${p.id}')" title="Enviar por email">📧</button>
-            <button class="ta-btn" onclick="window._presPDF('${p.id}')" title="Descargar PDF">📄</button>
+            <button class="ta-btn" onclick="window._presPDF('${p.id}')" title="Descargar PDF presupuesto">📄</button>
             <button class="ta-btn" onclick="window._editPres('${p.id}')" title="Editar">✏️</button>
             <button class="ta-btn" onclick="window._dupPres('${p.id}')" title="Duplicar">📋</button>
             <button class="ta-btn ta-del" onclick="window._delPres('${p.id}')" title="Eliminar">🗑️</button>
@@ -698,15 +702,28 @@ async function convertirAAlbaran(presId) {
     const fecha = document.getElementById("alb_fecha").value;
     if (!fecha) { toast("Introduce la fecha", "error"); return; }
 
+    // Generar número de albarán correlativo
+    const year = new Date(fecha).getFullYear();
+    const { data: lastAlb } = await supabase.from("presupuestos")
+      .select("numero_albaran").eq("user_id", SESSION.user.id)
+      .eq("estado", "albaran")
+      .like("numero_albaran", `ALB-${year}-%`)
+      .order("numero_albaran", { ascending: false }).limit(1);
+    const lastNum = lastAlb?.[0]?.numero_albaran
+      ? parseInt(lastAlb[0].numero_albaran.split("-")[2]) || 0 : 0;
+    const numeroAlbaran = `ALB-${year}-${String(lastNum + 1).padStart(3, "0")}`;
+
+    const refAlb = document.getElementById("alb_ref").value.trim();
     const { error: ue } = await supabase.from("presupuestos").update({
-      estado:           "albaran",
-      fecha_aceptacion: fecha,
-      notas: [p.notas, document.getElementById("alb_ref").value.trim() ? `Ref. albarán: ${document.getElementById("alb_ref").value.trim()}` : ""]
-        .filter(Boolean).join("\n"),
+      estado:            "albaran",
+      fecha_aceptacion:  fecha,
+      numero_albaran:    numeroAlbaran,
+      estado_facturacion: "pendiente",
+      notas: [p.notas, refAlb ? `Ref. albarán: ${refAlb}` : ""].filter(Boolean).join("\n"),
     }).eq("id", presId);
 
     if (ue) { toast("Error: " + ue.message, "error"); return; }
-    toast("✅ Marcado como albarán", "success");
+    toast(`✅ Albarán creado: ${numeroAlbaran}`, "success");
     closeModal();
     await refreshPresupuestos();
   });
@@ -1101,8 +1118,240 @@ function _defaultEmailBody(p, perfil) {
 /* ══════════════════════════
    WINDOW HANDLERS
 ══════════════════════════ */
+/* ══════════════════════════════════════════════════
+   CONVERTIR ALBARÁN A FACTURA
+══════════════════════════════════════════════════ */
+async function albaranAFactura(presId) {
+  const { data: p, error } = await supabase.from("presupuestos").select("*").eq("id", presId).single();
+  if (error || !p) { toast("Error cargando albarán", "error"); return; }
+  const lineas = p.lineas ? JSON.parse(p.lineas) : [];
+
+  openModal(`
+    <div class="modal">
+      <div class="modal-hd"><span class="modal-title">🧾 Facturar albarán ${p.numero_albaran || p.numero}</span>
+        <button class="modal-x" onclick="window._cm()">×</button></div>
+      <div class="modal-bd">
+        <p style="font-size:13.5px;color:var(--t2);line-height:1.6;margin-bottom:16px">
+          Se creará una factura en borrador vinculada al albarán <strong>${p.numero_albaran || p.numero}</strong>
+          para <strong>${p.cliente_nombre || "—"}</strong>.
+        </p>
+        <div class="modal-field"><label>Fecha de factura *</label>
+          <input type="date" id="af_fecha" class="ff-input" value="${new Date().toISOString().slice(0,10)}"/></div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
+        <button class="btn-modal-save" id="af_ok">Crear factura</button>
+      </div>
+    </div>
+  `);
+
+  document.getElementById("af_ok").addEventListener("click", async () => {
+    const fecha = document.getElementById("af_fecha").value;
+    if (!fecha) { toast("Introduce la fecha", "error"); return; }
+
+    const concepto = lineas.filter(l => !l.esDescuento && l.descripcion)
+      .map(l => l.descripcion).join(" · ") || p.concepto;
+
+    const { error: fe } = await supabase.from("facturas").insert({
+      user_id:            SESSION.user.id,
+      tipo:               "emitida",
+      estado:             "borrador",
+      fecha,
+      concepto,
+      cliente_id:         p.cliente_id,
+      cliente_nombre:     p.cliente_nombre,
+      base:               p.base,
+      iva:                p.iva,
+      tipo_operacion:     "nacional",
+      notas:              p.notas,
+      presupuesto_origen: p.id,
+    });
+    if (fe) { toast("Error creando factura: " + fe.message, "error"); return; }
+
+    await supabase.from("presupuestos").update({
+      estado_facturacion: "facturado",
+      fecha_facturacion:  fecha,
+    }).eq("id", presId);
+
+    toast("✅ Factura creada desde albarán", "success");
+    closeModal();
+    await refreshPresupuestos();
+  });
+}
+
+/* ══════════════════════════════════════════════════
+   PDF ALBARÁN PROFESIONAL
+══════════════════════════════════════════════════ */
+export async function generarPDFAlbaran(presId) {
+  const { data: p, error } = await supabase.from("presupuestos").select("*").eq("id", presId).single();
+  if (error || !p) { toast("Error cargando albarán", "error"); return; }
+
+  const perfil = await cargarPerfil();
+  const lineas = p.lineas ? JSON.parse(p.lineas) : [];
+
+  if (!window.jspdf?.jsPDF) {
+    await new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  const { jsPDF } = window.jspdf || window;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+  const PW=210, PH=297, ML=18, MR=18, W=PW-ML-MR;
+  const INK=[15,23,42], MUTED=[100,116,139], LIGHT=[248,250,252], BORDER=[226,232,240], WHITE=[255,255,255];
+  const GREEN=[5,150,105];
+
+  doc.setFillColor(...WHITE); doc.rect(0,0,PW,PH,"F");
+
+  // Cabecera verde para diferenciar del presupuesto
+  doc.setFillColor(...GREEN); doc.rect(0,0,PW,32,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(26); doc.setTextColor(...WHITE);
+  doc.text("ALBARÁN", ML, 20);
+  doc.setFont("helvetica","normal"); doc.setFontSize(10);
+  doc.text("DELIVERY NOTE", ML, 28);
+
+  // Número de albarán + estado facturación
+  const numAlb = p.numero_albaran || "S/N";
+  doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(...WHITE);
+  doc.text(numAlb, PW-MR, 16, {align:"right"});
+  doc.setFont("helvetica","normal"); doc.setFontSize(9);
+  const facState = p.estado_facturacion === "facturado" ? "✓ Facturado" : "Pendiente de facturar";
+  doc.text(facState, PW-MR, 24, {align:"right"});
+
+  // Logo o nombre empresa
+  let logoOk=false;
+  let logoB64 = perfil.logo_url ? await logoToBase64(perfil.logo_url) : null;
+  if (logoB64) {
+    try {
+      const mime = logoB64.split(";")[0].split(":")[1];
+      doc.addImage(logoB64, mime.includes("png")?"PNG":"JPEG", PW-MR-42, 2, 38, 24, "", "FAST");
+      logoOk=true;
+    } catch(e){}
+  }
+
+  doc.setDrawColor(...BORDER); doc.setLineWidth(0.5);
+  doc.line(ML, 38, PW-MR, 38);
+
+  // DE / PARA
+  let y=48;
+  const COL1=ML, COL2=PW/2+6, cW=W/2-10;
+
+  doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+  doc.text("EMISOR / FROM", COL1, y); doc.text("DESTINATARIO / TO", COL2, y); y+=5;
+
+  const yBlock=y;
+  doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...INK);
+  doc.text((perfil.nombre_razon_social||"—").substring(0,32), COL1, y); y+=5.5;
+  doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...MUTED);
+  if(perfil.nif)             { doc.text("NIF: "+perfil.nif, COL1, y); y+=4.5; }
+  if(perfil.domicilio_fiscal){ const ls=doc.splitTextToSize(perfil.domicilio_fiscal,cW); doc.text(ls,COL1,y); }
+
+  doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...INK);
+  doc.text((p.cliente_nombre||"—").substring(0,32), COL2, yBlock);
+
+  y = Math.max(y+5, yBlock+12)+4;
+
+  // Info del albarán
+  doc.setFillColor(240,253,244); doc.setDrawColor(167,243,208); doc.setLineWidth(0.3);
+  doc.roundedRect(ML, y, W, 18, 1.5, 1.5, "FD");
+  doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...MUTED);
+  const fechaAlb = p.fecha_aceptacion || p.fecha;
+  doc.text(`Fecha de entrega / Delivery date: ${new Date(fechaAlb+"T12:00:00").toLocaleDateString("es-ES")}`, ML+5, y+6);
+  doc.text(`Ref. presupuesto / Quote ref.: ${p.numero || "—"}`, ML+5, y+11.5);
+  if(p.concepto) doc.text(`Concepto / Description: ${p.concepto.substring(0,60)}`, ML+5, y+17);
+  y += 24;
+
+  // Tabla líneas
+  const tDesc=ML+2, tQty=118, tPrice=148, tTotal=PW-MR-2;
+  doc.setFillColor(...INK); doc.roundedRect(ML, y, W, 10, 1, 1, "F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
+  doc.text("DESCRIPCIÓN / DESCRIPTION", tDesc, y+6);
+  doc.text("CANTIDAD / QTY", tQty, y+6, {align:"center"});
+  doc.text("UNIDAD / UNIT", tPrice, y+6, {align:"center"});
+  doc.text("OBSERVACIONES", tTotal, y+6, {align:"right"});
+  y+=10;
+
+  lineas.filter(l => !l.esDescuento).forEach((l,idx)=>{
+    const rH=9;
+    doc.setFillColor(idx%2===0?249:255, idx%2===0?253:255, idx%2===0?250:255);
+    doc.rect(ML,y,W,rH,"F");
+    doc.setDrawColor(...BORDER); doc.setLineWidth(0.1); doc.line(ML,y+rH,ML+W,y+rH);
+    const dl = doc.splitTextToSize((l.descripcion||"—").trim(), 88);
+    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...INK);
+    doc.text(dl[0], tDesc, y+5.8);
+    doc.setTextColor(...MUTED);
+    doc.text(String(l.cantidad||1), tQty, y+5.8, {align:"center"});
+    doc.text(l.unidad||"unidad", tPrice, y+5.8, {align:"center"});
+    y+=rH;
+    if(y>PH-80){doc.addPage();y=20;}
+  });
+
+  doc.setDrawColor(...BORDER); doc.setLineWidth(0.4); doc.line(ML,y,PW-MR,y); y+=14;
+
+  // Nota sin IVA
+  doc.setFillColor(255,251,235); doc.setDrawColor(253,230,138); doc.setLineWidth(0.3);
+  doc.roundedRect(ML, y, W/2-4, 12, 1.5, 1.5, "FD");
+  doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(146,64,14);
+  doc.text("⚠ Este documento no tiene validez fiscal.", ML+4, y+5);
+  doc.text("No incluye IVA. No sustituye a la factura.", ML+4, y+9.5);
+  y += 18;
+
+  // Sección firma del receptor
+  doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
+  const firmaX = ML, firmaY = y, firmaW = W/2-4, firmaH = 40;
+  doc.roundedRect(firmaX, firmaY, firmaW, firmaH, 1.5, 1.5, "D");
+  doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...MUTED);
+  doc.text("FIRMA DEL RECEPTOR / RECIPIENT SIGNATURE", firmaX+4, firmaY+7);
+  doc.setFont("helvetica","normal"); doc.setFontSize(7.5);
+  doc.text("Nombre / Name: ________________________________", firmaX+4, firmaY+18);
+  doc.text("DNI / ID: _____________________________________", firmaX+4, firmaY+25);
+  doc.text("Fecha / Date: _________________________________", firmaX+4, firmaY+32);
+
+  // Info facturación
+  const infoX = PW/2+4, infoW = W/2-4;
+  doc.roundedRect(infoX, firmaY, infoW, firmaH, 1.5, 1.5, "D");
+  doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...MUTED);
+  doc.text("ESTADO DE FACTURACIÓN / BILLING STATUS", infoX+4, firmaY+7);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9);
+  doc.setTextColor(p.estado_facturacion === "facturado" ? 5 : 146, p.estado_facturacion === "facturado" ? 150 : 64, p.estado_facturacion === "facturado" ? 105 : 14);
+  doc.text(p.estado_facturacion === "facturado" ? "✓ Facturado / Invoiced" : "⏳ Pendiente de facturar", infoX+4, firmaY+20);
+  if(p.estado_facturacion === "facturado" && p.fecha_facturacion) {
+    doc.setFontSize(8); doc.setTextColor(...MUTED);
+    doc.text(`Fecha: ${new Date(p.fecha_facturacion+"T12:00:00").toLocaleDateString("es-ES")}`, infoX+4, firmaY+28);
+  }
+
+  // Notas
+  if(p.notas) {
+    y = firmaY + firmaH + 10;
+    doc.setFillColor(...LIGHT); doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
+    const nl = doc.splitTextToSize(p.notas, W-10);
+    const nh = nl.length*4.5+13;
+    doc.roundedRect(ML,y,W,nh,1.5,1.5,"FD");
+    doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+    doc.text("NOTAS / NOTES", ML+5, y+6);
+    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...INK);
+    doc.text(nl, ML+5, y+11.5);
+  }
+
+  // Pie
+  doc.setDrawColor(...BORDER); doc.setLineWidth(0.4); doc.line(ML,PH-16,PW-MR,PH-16);
+  doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
+  const pie = [perfil.nombre_razon_social, perfil.nif?"NIF "+perfil.nif:null].filter(Boolean).join("  ·  ");
+  doc.text(pie, ML, PH-10);
+  doc.text(new Date().toLocaleDateString("es-ES"), PW-MR, PH-10, {align:"right"});
+
+  const filename = `albaran_${numAlb.replace(/\//g,"-")}.pdf`;
+  doc.save(filename);
+  toast("📋 PDF de albarán descargado", "success");
+}
+
 window._presTofact  = convertirAFactura;
-window._presAlbaran = convertirAAlbaran;
+window._presAlbaran  = convertirAAlbaran;
+window._albaranToFact = albaranAFactura;
+window._pdfAlbaran   = (id) => generarPDFAlbaran(id);
 window._presPDF     = (id) => generarPDFPresupuesto(id, true);
 window._presEmail   = (id) => showEnviarEmailModal(id);
 window._editPres = async (id) => {
