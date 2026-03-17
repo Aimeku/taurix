@@ -1319,6 +1319,7 @@
             <option value="enviado">Enviado</option>
             <option value="aceptado">Aceptado</option>
             <option value="rechazado">Rechazado</option>
+            <option value="albaran">Albarán</option>
           </select>
         </div>
 
@@ -1432,17 +1433,26 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>Nombre / Referencia</th><th>Descripción</th><th>Tipo</th>
-                <th>Precio base</th><th>IVA</th><th>Total c/IVA</th><th>Estado</th><th></th>
+                <th>Nombre / Ref. / Barras</th>
+                <th>Descripción</th>
+                <th>Tipo</th>
+                <th>Precio venta</th>
+                <th>Precio coste</th>
+                <th>Margen</th>
+                <th>IVA</th>
+                <th>Total c/IVA</th>
+                <th>Stock</th>
+                <th>Estado</th>
+                <th></th>
               </tr>
             </thead>
-            <tbody id="prodBody"><tr class="dt-empty"><td colspan="8">Cargando catálogo…</td></tr></tbody>
+            <tbody id="prodBody"><tr class="dt-empty"><td colspan="11">Cargando catálogo…</td></tr></tbody>
           </table>
         </div>
 
         <div class="pres-info-bar" style="margin-top:16px">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          Los productos del catálogo aparecen como sugerencias al añadir líneas en facturas y presupuestos, agilizando la creación.
+          Los productos del catálogo aparecen como sugerencias al añadir líneas en facturas y presupuestos. Busca por nombre, referencia SKU o código de barras.
         </div>
       </div>
 
