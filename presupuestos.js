@@ -653,9 +653,10 @@ export function showNuevoPresupuestoModal(prefill = {}) {
       const year = new Date(fecha).getFullYear();
       const { data: last } = await supabase.from("presupuestos")
         .select("numero").eq("user_id", SESSION.user.id)
-        .like("numero", `${year}-%`).order("numero", { ascending: false }).limit(1);
-      const lastNum = last?.[0]?.numero ? parseInt(last[0].numero.split("-")[1]?.replace("P","")) || 0 : 0;
-      payload.numero = `${year}-P${String(lastNum + 1).padStart(3, "0")}`;
+        .like("numero", `PRE-${year}-%`).order("numero", { ascending: false }).limit(1);
+      const lastNum = last?.[0]?.numero
+        ? parseInt((last[0].numero.match(/-(\d+)$/) || [])[1]) || 0 : 0;
+      payload.numero = `PRE-${year}-${String(lastNum + 1).padStart(3, "0")}`;
     }
 
     let err;
@@ -683,8 +684,10 @@ async function convertirAAlbaran(presId) {
       <div class="modal-hd"><span class="modal-title">📋 Convertir a albarán</span><button class="modal-x" onclick="window._cm()">×</button></div>
       <div class="modal-bd">
         <p style="font-size:13.5px;color:var(--t2);line-height:1.6;margin-bottom:16px">
-          El presupuesto <strong>${p.numero}</strong> se marcará como albarán para
-          <strong>${p.cliente_nombre || "—"}</strong>. Se conservan todos los datos y líneas.
+          Se generará un albarán independiente basado en el presupuesto
+          <strong>${p.numero}</strong> para <strong>${p.cliente_nombre || "—"}</strong>.
+          El presupuesto pasará a estado <em>Aceptado</em> y el albarán quedará
+          <em>Pendiente de facturar</em>.
         </p>
         <div class="modal-field"><label>Fecha del albarán *</label>
           <input type="date" id="alb_fecha" class="ff-input" value="${new Date().toISOString().slice(0, 10)}"/></div>
@@ -715,15 +718,15 @@ async function convertirAAlbaran(presId) {
 
     const refAlb = document.getElementById("alb_ref").value.trim();
     const { error: ue } = await supabase.from("presupuestos").update({
-      estado:            "albaran",
-      fecha_aceptacion:  fecha,
-      numero_albaran:    numeroAlbaran,
+      estado:             "albaran",
+      fecha_aceptacion:   fecha,
+      numero_albaran:     numeroAlbaran,
       estado_facturacion: "pendiente",
       notas: [p.notas, refAlb ? `Ref. albarán: ${refAlb}` : ""].filter(Boolean).join("\n"),
     }).eq("id", presId);
 
     if (ue) { toast("Error: " + ue.message, "error"); return; }
-    toast(`✅ Albarán creado: ${numeroAlbaran}`, "success");
+    toast(`✅ Albarán ${numeroAlbaran} creado · Presupuesto marcado como aceptado`, "success");
     closeModal();
     await refreshPresupuestos();
   });
@@ -743,8 +746,9 @@ async function convertirAFactura(presId) {
       <div class="modal-hd"><span class="modal-title">🧾 Convertir presupuesto a factura</span><button class="modal-x" onclick="window._cm()">×</button></div>
       <div class="modal-bd">
         <p style="font-size:13.5px;color:var(--t2);line-height:1.6;margin-bottom:20px">
-          Se creará una nueva factura en borrador con los datos del presupuesto
+          Se creará una factura independiente basada en el presupuesto
           <strong>${p.numero}</strong> para <strong>${p.cliente_nombre || "—"}</strong>.
+          La factura quedará en borrador lista para emitir.
         </p>
         <div class="modal-field"><label>Fecha de factura *</label>
           <input type="date" id="ctf_fecha" class="ff-input" value="${new Date().toISOString().slice(0, 10)}"/></div>
@@ -764,18 +768,23 @@ async function convertirAFactura(presId) {
     const concepto = lineas.filter(l => !l.esDescuento && l.descripcion)
       .map(l => l.descripcion).join(" · ") || p.concepto;
 
+    const notasPres = [
+      p.notas,
+      `Basado en presupuesto: ${p.numero}`
+    ].filter(Boolean).join("\n");
+
     const { error: fe } = await supabase.from("facturas").insert({
-      user_id:           SESSION.user.id,
-      tipo:              "emitida",
-      estado:            "borrador",
+      user_id:            SESSION.user.id,
+      tipo:               "emitida",
+      estado:             "borrador",
       fecha,
       concepto,
-      cliente_id:        p.cliente_id,
-      cliente_nombre:    p.cliente_nombre,
-      base:              p.base,
-      iva:               p.iva,
-      tipo_operacion:    "nacional",
-      notas:             p.notas,
+      cliente_id:         p.cliente_id,
+      cliente_nombre:     p.cliente_nombre,
+      base:               p.base,
+      iva:                p.iva,
+      tipo_operacion:     "nacional",
+      notas:              notasPres,
       presupuesto_origen: p.id,
     });
     if (fe) { toast("Error creando factura: " + fe.message, "error"); return; }
@@ -785,7 +794,7 @@ async function convertirAFactura(presId) {
       fecha_aceptacion: new Date().toISOString().slice(0, 10)
     }).eq("id", presId);
 
-    toast("✅ Factura creada desde presupuesto", "success");
+    toast("✅ Factura creada · Presupuesto marcado como Aceptado", "success");
     closeModal();
     await refreshPresupuestos();
   });
@@ -1152,6 +1161,12 @@ async function albaranAFactura(presId) {
     const concepto = lineas.filter(l => !l.esDescuento && l.descripcion)
       .map(l => l.descripcion).join(" · ") || p.concepto;
 
+    const notasFactura = [
+      p.notas,
+      `Correspondiente al albarán: ${p.numero_albaran || p.numero}`,
+      p.numero ? `Basado en presupuesto: ${p.numero}` : ""
+    ].filter(Boolean).join("\n");
+
     const { error: fe } = await supabase.from("facturas").insert({
       user_id:            SESSION.user.id,
       tipo:               "emitida",
@@ -1163,7 +1178,7 @@ async function albaranAFactura(presId) {
       base:               p.base,
       iva:                p.iva,
       tipo_operacion:     "nacional",
-      notas:              p.notas,
+      notas:              notasFactura,
       presupuesto_origen: p.id,
     });
     if (fe) { toast("Error creando factura: " + fe.message, "error"); return; }
@@ -1173,7 +1188,7 @@ async function albaranAFactura(presId) {
       fecha_facturacion:  fecha,
     }).eq("id", presId);
 
-    toast("✅ Factura creada desde albarán", "success");
+    toast("✅ Factura creada · Albarán marcado como Facturado", "success");
     closeModal();
     await refreshPresupuestos();
   });
@@ -1218,7 +1233,9 @@ export async function generarPDFAlbaran(presId) {
   doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(...WHITE);
   doc.text(numAlb, PW-MR, 16, {align:"right"});
   doc.setFont("helvetica","normal"); doc.setFontSize(9);
-  const facState = p.estado_facturacion === "facturado" ? "✓ Facturado" : "Pendiente de facturar";
+  const facState = p.estado_facturacion === "facturado"
+    ? "✓ Facturado / Invoiced"
+    : "⏳ Pendiente de facturar / Pending invoice";
   doc.text(facState, PW-MR, 24, {align:"right"});
 
   // Logo o nombre empresa
@@ -1259,9 +1276,9 @@ export async function generarPDFAlbaran(presId) {
   doc.roundedRect(ML, y, W, 18, 1.5, 1.5, "FD");
   doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...MUTED);
   const fechaAlb = p.fecha_aceptacion || p.fecha;
-  doc.text(`Fecha de entrega / Delivery date: ${new Date(fechaAlb+"T12:00:00").toLocaleDateString("es-ES")}`, ML+5, y+6);
-  doc.text(`Ref. presupuesto / Quote ref.: ${p.numero || "—"}`, ML+5, y+11.5);
-  if(p.concepto) doc.text(`Concepto / Description: ${p.concepto.substring(0,60)}`, ML+5, y+17);
+  doc.text(`Nº Albarán / Delivery Note No.: ${numAlb}`, ML+5, y+6);
+  doc.text(`Fecha de entrega / Delivery date: ${new Date(fechaAlb+"T12:00:00").toLocaleDateString("es-ES")}`, ML+5, y+11.5);
+  doc.text(`Basado en presupuesto / Based on quote: ${p.numero || "—"}`, ML+5, y+17);
   y += 24;
 
   // Tabla líneas
