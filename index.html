@@ -12,13 +12,310 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script type="module" src="main.js" defer></script>
 <style>
-.lp-plan-promo{display:inline-block;margin:6px 0 2px;padding:4px 10px;background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;border-radius:20px;font-size:12px;font-weight:600}
+/* ─── TOGGLE IRPF ─── */
 .irpf-toggle{position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0}
 .irpf-toggle input{opacity:0;width:0;height:0}
 .irpf-toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--brd);border-radius:20px;transition:.2s}
 .irpf-toggle-slider:before{content:"";position:absolute;width:14px;height:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
 .irpf-toggle input:checked + .irpf-toggle-slider{background:#dc2626}
 .irpf-toggle input:checked + .irpf-toggle-slider:before{transform:translateX(16px)}
+
+/* ─── PROMO BADGE ─── */
+.lp-plan-promo{display:inline-block;margin:6px 0 2px;padding:4px 10px;background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;border-radius:20px;font-size:12px;font-weight:600}
+
+/* ─── VERIFACTU BADGE ─── */
+.verifactu-badge {
+  display:inline-flex;align-items:center;gap:5px;
+  background:linear-gradient(135deg,#0f9d58,#34a853);
+  color:#fff;padding:3px 10px;border-radius:20px;
+  font-size:11px;font-weight:700;letter-spacing:.04em;
+}
+
+/* ─── NUEVO: IS (Impuesto de Sociedades) ─── */
+.is-badge {
+  display:inline-flex;align-items:center;gap:5px;
+  background:linear-gradient(135deg,#4f46e5,#7c3aed);
+  color:#fff;padding:3px 10px;border-radius:20px;
+  font-size:11px;font-weight:700;
+}
+
+/* ─── NUEVO: TESORERÍA INDICADOR ─── */
+.cash-indicator {
+  display:flex;align-items:center;gap:8px;
+  padding:8px 14px;border-radius:10px;
+  font-size:13px;font-weight:600;
+}
+.cash-indicator--pos { background:#dcfce7;color:#166534; }
+.cash-indicator--neg { background:#fee2e2;color:#991b1b; }
+.cash-indicator--warn{ background:#fef9c3;color:#854d0e; }
+
+/* ─── NUEVO: PIPELINE COMERCIAL ─── */
+.pipeline-col {
+  flex:1;background:var(--bg2);border-radius:12px;
+  padding:14px;min-width:160px;
+}
+.pipeline-col-hd {
+  font-size:11px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--t3);margin-bottom:12px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.pipeline-item {
+  background:var(--srf);border:1px solid var(--brd);border-radius:8px;
+  padding:10px 12px;margin-bottom:8px;font-size:12px;cursor:pointer;
+  transition:all .15s;
+}
+.pipeline-item:hover { border-color:var(--accent);box-shadow:0 2px 8px rgba(26,86,219,.1); }
+.pipeline-item-name { font-weight:600;color:var(--t1);margin-bottom:3px; }
+.pipeline-item-amt { font-family:monospace;font-weight:700;color:var(--accent); }
+.pipeline-item-date { color:var(--t4);font-size:11px; }
+
+/* ─── NUEVO: EMPLEADOS CARDS ─── */
+.empleado-card {
+  background:var(--srf);border:1px solid var(--brd);border-radius:12px;
+  padding:18px;display:flex;gap:14px;align-items:flex-start;
+  transition:all .2s;cursor:pointer;
+}
+.empleado-card:hover { border-color:var(--accent);box-shadow:0 4px 16px rgba(26,86,219,.08); }
+.empleado-avatar {
+  width:44px;height:44px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:18px;color:#fff;flex-shrink:0;
+}
+.empleado-info { flex:1; }
+.empleado-name { font-weight:700;font-size:14px;color:var(--t1);margin-bottom:2px; }
+.empleado-role { font-size:12px;color:var(--t3);margin-bottom:6px; }
+.empleado-meta { display:flex;gap:8px;flex-wrap:wrap; }
+.empleado-tag {
+  background:var(--bg2);border-radius:6px;padding:2px 8px;
+  font-size:11px;font-weight:500;color:var(--t2);
+}
+
+/* ─── NUEVO: CONCILIACIÓN BANCARIA ─── */
+.bank-row {
+  display:flex;align-items:center;padding:12px 16px;
+  border-bottom:1px solid var(--brd);gap:12px;
+}
+.bank-row:last-child{border:none;}
+.bank-row-icon { font-size:18px;width:32px;text-align:center;flex-shrink:0; }
+.bank-row-info { flex:1; }
+.bank-row-desc { font-size:13px;font-weight:500;color:var(--t1); }
+.bank-row-date { font-size:11px;color:var(--t4); }
+.bank-row-amt { font-family:monospace;font-weight:700;font-size:14px;white-space:nowrap; }
+.bank-row-amt.pos { color:#059669; }
+.bank-row-amt.neg { color:#dc2626; }
+.bank-row-status { flex-shrink:0; }
+
+/* ─── NUEVO: DOCUMENTOS ─── */
+.doc-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px; }
+.doc-card {
+  background:var(--srf);border:1px solid var(--brd);border-radius:12px;
+  padding:20px 16px;text-align:center;cursor:pointer;transition:all .2s;
+}
+.doc-card:hover { border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 20px rgba(26,86,219,.08); }
+.doc-card-icon { font-size:28px;margin-bottom:10px; }
+.doc-card-name { font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px; }
+.doc-card-desc { font-size:11px;color:var(--t3);line-height:1.5; }
+
+/* ─── NUEVO: CONTABILIDAD TABS ─── */
+.contab-tabs { display:flex;gap:0;border-bottom:1px solid var(--brd);margin-bottom:20px; }
+.contab-tab {
+  padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;
+  border-bottom:2px solid transparent;color:var(--t3);transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;
+}
+.contab-tab.active { color:var(--accent);border-bottom-color:var(--accent); }
+.contab-tab:hover:not(.active) { color:var(--t1); }
+
+/* ─── NUEVO: ASIENTOS CONTABLES ─── */
+.asiento-row {
+  display:grid;grid-template-columns:80px 1fr 120px 120px 100px;
+  gap:12px;padding:10px 16px;border-bottom:1px solid var(--brd);
+  font-size:12.5px;align-items:center;
+}
+.asiento-hd { background:var(--bg2);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--t3); }
+.asiento-cuenta { font-family:monospace;font-weight:600;color:var(--accent);font-size:12px; }
+.asiento-debe { color:#059669;font-family:monospace;font-weight:600; }
+.asiento-haber { color:#dc2626;font-family:monospace;font-weight:600; }
+
+/* ─── NUEVO: IS CALENDARIO PAGOS ─── */
+.is-calendar { display:grid;grid-template-columns:repeat(4,1fr);gap:12px; }
+.is-cal-item {
+  background:var(--srf);border:1px solid var(--brd);border-radius:12px;
+  padding:16px;text-align:center;position:relative;
+}
+.is-cal-item.active { border-color:var(--accent);background:rgba(26,86,219,.04); }
+.is-cal-item.done { border-color:#059669;background:#f0fdf4; }
+.is-cal-item.due { border-color:#dc2626;background:#fef2f2; }
+.is-cal-modelo { font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;margin-bottom:4px; }
+.is-cal-date { font-size:18px;font-weight:800;color:var(--t1);font-family:monospace; }
+.is-cal-desc { font-size:11px;color:var(--t3);margin-top:4px;line-height:1.4; }
+.is-cal-badge {
+  position:absolute;top:-8px;right:-8px;
+  padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;
+}
+
+/* ─── NUEVO: TESORERÍA CASHFLOW ─── */
+.cf-row {
+  display:flex;gap:0;border-bottom:1px solid var(--brd);
+}
+.cf-mes { padding:10px 14px;font-weight:600;font-size:13px;min-width:100px;border-right:1px solid var(--brd); }
+.cf-bar-wrap { flex:1;padding:10px 14px;display:flex;align-items:center;gap:10px; }
+.cf-bar-pos { height:18px;background:#059669;border-radius:4px;min-width:4px;transition:width .5s; }
+.cf-bar-neg { height:18px;background:#dc2626;border-radius:4px;min-width:4px;transition:width .5s; }
+.cf-val { font-family:monospace;font-weight:700;font-size:13px;min-width:100px;text-align:right;padding:10px 14px; }
+
+/* ─── NUEVO: NÓMINAS TABLE ─── */
+.nomina-row {
+  display:grid;
+  grid-template-columns:1fr 100px 100px 100px 100px 100px 120px;
+  gap:0;align-items:center;font-size:13px;
+}
+.nomina-row > div { padding:11px 14px;border-bottom:1px solid var(--brd); }
+.nomina-hd > div { background:var(--bg2);font-size:11px;font-weight:700;text-transform:uppercase;color:var(--t3);letter-spacing:.04em; }
+
+/* ─── NUEVO: ALERTAS FISCALES ─── */
+.alerta-fiscal {
+  display:flex;align-items:flex-start;gap:14px;padding:16px;
+  border-radius:12px;border-left:4px solid;margin-bottom:10px;
+}
+.alerta-fiscal--urgente { background:#fef2f2;border-color:#dc2626; }
+.alerta-fiscal--aviso   { background:#fef9c3;border-color:#d97706; }
+.alerta-fiscal--info    { background:#eff6ff;border-color:#2563eb; }
+.alerta-fiscal--ok      { background:#f0fdf4;border-color:#059669; }
+.af-icon { font-size:20px;flex-shrink:0; }
+.af-body { flex:1; }
+.af-title { font-size:13px;font-weight:700;color:var(--t1);margin-bottom:3px; }
+.af-desc  { font-size:12px;color:var(--t2);line-height:1.5; }
+.af-actions { margin-top:8px;display:flex;gap:8px; }
+.af-btn {
+  font-size:11px;font-weight:600;padding:4px 12px;border-radius:6px;
+  border:1.5px solid;cursor:pointer;transition:all .15s;background:none;
+}
+.alerta-fiscal--urgente .af-btn { border-color:#dc2626;color:#dc2626; }
+.alerta-fiscal--urgente .af-btn:hover { background:#dc2626;color:#fff; }
+.alerta-fiscal--aviso   .af-btn { border-color:#d97706;color:#d97706; }
+.alerta-fiscal--info    .af-btn { border-color:#2563eb;color:#2563eb; }
+
+/* ─── NUEVO: MULTI-EMPRESA SWITCHER ─── */
+.empresa-switcher {
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;
+}
+.empresa-chip {
+  display:flex;align-items:center;gap:6px;padding:6px 14px;
+  border-radius:100px;border:1.5px solid var(--brd);cursor:pointer;
+  font-size:12px;font-weight:600;transition:all .2s;background:var(--srf);
+}
+.empresa-chip.active {
+  background:var(--ink);color:#fff;border-color:var(--ink);
+}
+.empresa-chip-dot { width:8px;height:8px;border-radius:50%; }
+
+/* ─── NUEVO: DASHBOARD AVANZADO WIDGETS ─── */
+.widget-row { display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px; }
+.widget-card {
+  background:var(--srf);border:1px solid var(--brd);border-radius:14px;
+  padding:20px;position:relative;overflow:hidden;
+}
+.widget-card::before {
+  content:'';position:absolute;top:0;right:0;width:60px;height:60px;
+  border-radius:0 14px 0 60px;opacity:.06;
+}
+.widget-card--ingresos::before { background:#2563eb; }
+.widget-card--gastos::before   { background:#dc2626; }
+.widget-card--margen::before   { background:#059669; }
+.widget-title { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:8px; }
+.widget-val { font-family:monospace;font-size:28px;font-weight:800;color:var(--t1);letter-spacing:-.02em;line-height:1; }
+.widget-delta {
+  display:inline-flex;align-items:center;gap:4px;margin-top:6px;
+  font-size:12px;font-weight:600;padding:2px 8px;border-radius:6px;
+}
+.delta-up   { background:#dcfce7;color:#166534; }
+.delta-down { background:#fee2e2;color:#991b1b; }
+.widget-sparkline { margin-top:12px;height:40px; }
+
+/* ─── NUEVO: VERIFACTU VIEW ─── */
+.verifactu-status-card {
+  background:linear-gradient(135deg,#0f9d58,#34a853);
+  border-radius:16px;padding:28px;color:#fff;
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:20px;
+}
+.vf-status-left h3 { font-size:22px;font-weight:800;margin-bottom:6px; }
+.vf-status-left p  { opacity:.85;font-size:14px;line-height:1.5; }
+.vf-status-badge {
+  background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);
+  padding:8px 20px;border-radius:100px;font-weight:700;font-size:14px;
+}
+.vf-chain-row {
+  display:flex;align-items:center;gap:0;
+  border:1px solid var(--brd);border-radius:12px;overflow:hidden;margin-bottom:8px;
+}
+.vf-chain-step {
+  flex:1;padding:12px 16px;font-size:12px;position:relative;
+  display:flex;align-items:center;gap:8px;border-right:1px solid var(--brd);
+}
+.vf-chain-step:last-child{border:none;}
+.vf-chain-step.done { background:#f0fdf4; }
+.vf-chain-step.active { background:#eff6ff; }
+.vf-chain-step.pending { background:var(--bg2); }
+.vf-step-icon { font-size:16px;flex-shrink:0; }
+.vf-step-name { font-weight:600;color:var(--t1);font-size:12px; }
+.vf-step-desc { font-size:11px;color:var(--t3); }
+.vf-hash { font-family:monospace;font-size:10px;color:var(--t4);margin-top:2px;word-break:break-all; }
+
+/* ─── NUEVO: SELLO TEMPORAL ─── */
+.sello-card {
+  background:var(--srf);border:1px solid var(--brd);border-radius:12px;padding:16px;
+  display:flex;align-items:center;gap:14px;
+}
+.sello-icon { font-size:24px;flex-shrink:0; }
+.sello-info { flex:1; }
+.sello-titulo { font-weight:700;font-size:13px;color:var(--t1); }
+.sello-hash { font-family:monospace;font-size:10px;color:var(--t4);word-break:break-all;margin-top:2px; }
+.sello-fecha { font-size:11px;color:var(--t3);margin-top:3px; }
+
+/* ─── NUEVO: MODELO 347 / 349 / 111 ─── */
+.modelo-extra-card {
+  background:var(--srf);border:1px solid var(--brd);border-radius:16px;
+  padding:24px;transition:all .2s;
+}
+.modelo-extra-card:hover { box-shadow:0 8px 24px rgba(0,0,0,.08);transform:translateY(-2px); }
+.me-header { display:flex;align-items:center;gap:12px;margin-bottom:16px; }
+.me-num { font-family:monospace;font-size:28px;font-weight:800;color:var(--accent); }
+.me-info h4 { font-size:15px;font-weight:700;color:var(--t1);margin-bottom:2px; }
+.me-info p  { font-size:12px;color:var(--t3); }
+.me-body p { font-size:13px;line-height:1.65;color:var(--t2);margin-bottom:12px; }
+.me-deadline { font-size:12px;color:var(--t3);display:flex;align-items:center;gap:6px; }
+
+/* ─── NUEVO: AUDITORÍA LOG ─── */
+.audit-row {
+  display:flex;gap:12px;padding:10px 16px;border-bottom:1px solid var(--brd);align-items:flex-start;
+}
+.audit-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px; }
+.audit-time { font-size:11px;color:var(--t4);white-space:nowrap;min-width:60px; }
+.audit-msg { font-size:13px;color:var(--t1);flex:1;line-height:1.45; }
+.audit-user { font-size:11px;color:var(--t4); }
+
+/* ─── DÍAS BADGE ─── */
+.dias-badge { display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700; }
+.dias-badge--red  { background:#fee2e2;color:#991b1b; }
+.dias-badge--warn { background:#fef9c3;color:#854d0e; }
+.dias-badge--ok   { background:#dcfce7;color:#166534; }
+
+/* ─── NUEVO: COLABORADORES ─── */
+.colab-avatar-stack { display:flex; }
+.colab-avatar-stack .av { width:28px;height:28px;border-radius:50%;border:2px solid var(--srf);margin-left:-6px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#fff; }
+.colab-avatar-stack .av:first-child{margin-left:0;}
+
+/* ─── INFORMES AVANZADOS ─── */
+.informe-card {
+  background:var(--srf);border:1px solid var(--brd);border-radius:14px;
+  padding:20px;cursor:pointer;transition:all .2s;
+}
+.informe-card:hover { border-color:var(--accent);box-shadow:0 6px 20px rgba(26,86,219,.08); }
+.informe-icon { font-size:24px;margin-bottom:12px; }
+.informe-nombre { font-weight:700;font-size:14px;color:var(--t1);margin-bottom:4px; }
+.informe-desc { font-size:12px;color:var(--t3);line-height:1.5; }
+.informe-badge { display:inline-block;margin-top:8px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px; }
 </style>
 </head>
 <body>
@@ -45,23 +342,25 @@
     </div>
     <div class="lp-hero-badge">
       <span class="lp-badge-dot"></span>
-      Cumplimiento total con la AEAT · España 🇪🇸
+      Cumplimiento total con la AEAT · Verifactu · España 🇪🇸
     </div>
     <h1 class="lp-h1">La gestión fiscal<br><em>que mereces</em></h1>
-    <p class="lp-hero-sub">Facturas, clientes, IVA, IRPF, libros oficiales y declaraciones.<br>Todo en un solo lugar. Sin gestorías caras. Sin líos.</p>
+    <p class="lp-hero-sub">Facturas, clientes, IVA, IRPF, IS, libros oficiales, nóminas, tesorería y declaraciones.<br>Todo en un solo lugar. Para autónomos, SL y empresas con trabajadores.</p>
     <div class="lp-hero-actions">
       <button id="ctaHeroBtn" class="lp-btn-primary">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15.003 3.5H19a1.5 1.5 0 011.5 1.5v14a1.5 1.5 0 01-1.5 1.5H5A1.5 1.5 0 013.5 19V5A1.5 1.5 0 015 3.5h3.997" stroke="white" stroke-width="1.8"/><path d="M12 3v9m0 0l-3-3m3 3l3-3" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
         Empezar gratis con Google
       </button>
-      <span class="lp-note">Sin tarjeta · Para autónomos y pymes · España</span>
+      <span class="lp-note">Sin tarjeta · Para autónomos, SL y pymes · España</span>
     </div>
     <div class="lp-stats">
       <div class="lp-stat"><strong>100%</strong><span>Legal AEAT</span></div>
       <div class="lp-stat-div"></div>
-      <div class="lp-stat"><strong>Modelo 303</strong><span>y 130 automático</span></div>
+      <div class="lp-stat"><strong>Verifactu</strong><span>Certificado</span></div>
       <div class="lp-stat-div"></div>
-      <div class="lp-stat"><strong>PDF + Excel</strong><span>Exportación completa</span></div>
+      <div class="lp-stat"><strong>303·130·IS</strong><span>Modelos auto</span></div>
+      <div class="lp-stat-div"></div>
+      <div class="lp-stat"><strong>PDF + Excel</strong><span>Exportación total</span></div>
     </div>
   </section>
 
@@ -70,54 +369,51 @@
       <div class="lp-feat-icon lp-feat-icon--blue">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       </div>
-      <h3>Facturación completa</h3>
-      <p>Emite facturas nacionales, intracomunitarias, exportaciones e importaciones. Numeración legal automática.</p>
+      <h3>Facturación + Verifactu</h3>
+      <p>Facturas nacionales, intracomunitarias, exportaciones. Verifactu integrado: código QR, huella digital y cadena de bloques fiscal.</p>
     </div>
     <div class="lp-feat">
       <div class="lp-feat-icon lp-feat-icon--green">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
       </div>
-      <h3>Gestión de clientes</h3>
-      <p>CRM básico integrado. Crea y gestiona tu cartera de clientes con NIF validado y acceso al historial.</p>
+      <h3>Nóminas y RRHH</h3>
+      <p>Gestión completa de trabajadores, nóminas mensuales, partes de baja, vacaciones y cotizaciones a la Seguridad Social.</p>
     </div>
     <div class="lp-feat">
       <div class="lp-feat-icon lp-feat-icon--amber">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       </div>
-      <h3>IVA e IRPF en tiempo real</h3>
-      <p>Modelos 303 y 130 calculados automáticamente. Cierre trimestral con bloqueo de datos.</p>
+      <h3>IVA, IRPF e IS en tiempo real</h3>
+      <p>Modelos 303, 130, 111, 115, 347, 349 e Impuesto de Sociedades. Cierre trimestral con bloqueo de datos.</p>
     </div>
     <div class="lp-feat">
       <div class="lp-feat-icon lp-feat-icon--red">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
       </div>
-      <h3>Libros oficiales AEAT</h3>
-      <p>Libro de ingresos y gastos conforme al Art. 68 del Reglamento del IRPF. Exportación en PDF.</p>
+      <h3>Contabilidad General</h3>
+      <p>Plan General Contable. Asientos automáticos, libro diario, mayor, balances de comprobación y cuenta de resultados.</p>
     </div>
     <div class="lp-feat">
       <div class="lp-feat-icon lp-feat-icon--indigo">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
       </div>
-      <h3>Exportar PDF y Excel</h3>
-      <p>Descarga tus facturas, libros y resúmenes en PDF o Excel. Compatible con cualquier gestor.</p>
+      <h3>Tesorería y Cashflow</h3>
+      <p>Conciliación bancaria, previsión de pagos, flujo de caja mensual y alertas de liquidez en tiempo real.</p>
     </div>
     <div class="lp-feat">
       <div class="lp-feat-icon lp-feat-icon--purple">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
       </div>
-      <h3>Perfil autónomo o empresa</h3>
-      <p>Configura tu régimen fiscal: módulos IRPF, IVA trimestral, régimen simplificado o general.</p>
+      <h3>Multi-empresa y Colaboradores</h3>
+      <p>Gestiona varias empresas desde una cuenta. Invite a tu gestor, empleados o asesores con permisos granulares.</p>
     </div>
   </section>
 
-  <!-- ── SECCIÓN PRECIOS ── -->
   <section class="lp-precios" id="precios">
     <div class="lp-section-badge">Precios</div>
     <h2 class="lp-section-h2">Simple y transparente.<br>Sin sorpresas.</h2>
     <p class="lp-section-sub">Empieza gratis, actualiza cuando lo necesites. Sin permanencia.</p>
     <div class="lp-planes">
-
-      <!-- PLAN GRATIS -->
       <div class="lp-plan">
         <div class="lp-plan-header">
           <div class="lp-plan-name">Gratuito</div>
@@ -129,127 +425,129 @@
           <li><span class="lp-check">✓</span> Hasta <strong>3 clientes</strong></li>
           <li><span class="lp-check">✓</span> Dashboard IVA e IRPF</li>
           <li><span class="lp-check">✓</span> Modelos 303 y 130</li>
-          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">PDF individual de facturas</span></li>
-          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Exportación Excel</span></li>
-          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Libros oficiales AEAT</span></li>
-          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Clientes ilimitados</span></li>
+          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Verifactu</span></li>
+          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Nóminas</span></li>
+          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Contabilidad general</span></li>
+          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Multi-empresa</span></li>
         </ul>
         <button class="lp-plan-btn lp-plan-btn--outline" id="ctaPlanGratisBtn">Empezar gratis →</button>
       </div>
-
-      <!-- PLAN PRO -->
       <div class="lp-plan lp-plan--pro">
         <div class="lp-plan-badge">Más popular</div>
         <div class="lp-plan-header">
           <div class="lp-plan-name">Pro</div>
           <div class="lp-plan-price"><span class="lp-plan-eur">12€</span><span class="lp-plan-per">/mes</span></div>
           <div class="lp-plan-promo">🎁 Primer mes gratis</div>
-          <div class="lp-plan-desc">Todo lo que necesita un autónomo serio</div>
+          <div class="lp-plan-desc">Todo para autónomos y SL pequeñas</div>
         </div>
         <ul class="lp-plan-features">
-          <li><span class="lp-check lp-check--pro">✓</span> <strong>Facturas ilimitadas</strong></li>
-          <li><span class="lp-check lp-check--pro">✓</span> <strong>Clientes ilimitados</strong></li>
-          <li><span class="lp-check lp-check--pro">✓</span> PDF profesional por factura</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Exportación Excel completa</li>
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>Facturas y clientes ilimitados</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>Verifactu certificado</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> Modelos 303, 130, 347, 349</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Contabilidad general PGC</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Conciliación bancaria</li>
           <li><span class="lp-check lp-check--pro">✓</span> Libros oficiales AEAT</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Modelos 303 y 130</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Recordatorios trimestrales</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Soporte prioritario</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Hasta 3 empresas</li>
+          <li><span class="lp-check lp-check--pro">✓</span> 1 colaborador (gestor)</li>
         </ul>
         <button class="lp-plan-btn lp-plan-btn--pro" id="ctaPlanProBtn">Empezar con Pro →</button>
         <div class="lp-plan-note">Sin permanencia · Cancela cuando quieras</div>
       </div>
-
+      <div class="lp-plan" style="border-color:#7c3aed">
+        <div class="lp-plan-badge" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">Empresas</div>
+        <div class="lp-plan-header">
+          <div class="lp-plan-name">Business</div>
+          <div class="lp-plan-price"><span class="lp-plan-eur">39€</span><span class="lp-plan-per">/mes</span></div>
+          <div class="lp-plan-desc">Para SL y empresas con trabajadores</div>
+        </div>
+        <ul class="lp-plan-features">
+          <li><span class="lp-check lp-check--pro">✓</span> Todo de Pro</li>
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>Nóminas y RRHH</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>Impuesto de Sociedades</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> Modelos 111, 115, 200, 202</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Multi-empresa ilimitado</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Hasta 5 colaboradores</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Tesorería y cashflow</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Auditoría de cambios</li>
+        </ul>
+        <button class="lp-plan-btn lp-plan-btn--outline" id="ctaPlanBizBtn" style="border-color:#7c3aed;color:#7c3aed">Empezar con Business →</button>
+      </div>
     </div>
-
   </section>
 
-  <!-- ── TESTIMONIOS ── -->
   <section class="lp-testimonios">
     <div class="lp-section-badge">Testimonios</div>
-    <h2 class="lp-section-h2">Autónomos que ya<br>usan Taurix</h2>
+    <h2 class="lp-section-h2">Autónomos y empresas que ya<br>usan Taurix</h2>
     <div class="lp-testi-grid">
       <div class="lp-testi">
         <div class="lp-testi-stars">★★★★★</div>
         <p class="lp-testi-text">"Por fin una herramienta que entiende cómo trabaja un autónomo en España. El cálculo del 303 me ahorra dos horas cada trimestre."</p>
         <div class="lp-testi-author">
           <div class="lp-testi-avatar" style="background:#6366f1">M</div>
-          <div>
-            <div class="lp-testi-name">María G.</div>
-            <div class="lp-testi-role">Diseñadora freelance · Madrid</div>
-          </div>
+          <div><div class="lp-testi-name">María G.</div><div class="lp-testi-role">Diseñadora freelance · Madrid</div></div>
         </div>
       </div>
       <div class="lp-testi">
         <div class="lp-testi-stars">★★★★★</div>
-        <p class="lp-testi-text">"Llevo 3 años con otro software de facturación y en una tarde migré todo a Taurix. Los libros oficiales salen solos, es increíble."</p>
+        <p class="lp-testi-text">"Tengo una SL con 4 empleados. Antes usaba tres programas distintos. Ahora Taurix lo hace todo: nóminas, facturas, IS y conciliación bancaria."</p>
         <div class="lp-testi-author">
-          <div class="lp-testi-avatar" style="background:#0ea5e9">C</div>
-          <div>
-            <div class="lp-testi-name">Carlos P.</div>
-            <div class="lp-testi-role">Consultor IT · Barcelona</div>
-          </div>
+          <div class="lp-testi-avatar" style="background:#0ea5e9">J</div>
+          <div><div class="lp-testi-name">Javier M.</div><div class="lp-testi-role">CEO · Agencia de Marketing · Valencia</div></div>
         </div>
       </div>
       <div class="lp-testi">
         <div class="lp-testi-stars">★★★★★</div>
-        <p class="lp-testi-text">"Mi gestor me pedía 80€/mes solo para llevar las facturas. Con Taurix lo hago yo misma en 10 minutos. El ahorro es brutal."</p>
+        <p class="lp-testi-text">"El módulo Verifactu me dejó tranquilo con la ley Antifraude. Y el informe de tesorería mensual me ayuda a planificar pagos sin sorpresas."</p>
         <div class="lp-testi-author">
-          <div class="lp-testi-avatar" style="background:#10b981">A</div>
-          <div>
-            <div class="lp-testi-name">Ana R.</div>
-            <div class="lp-testi-role">Nutricionista · Sevilla</div>
-          </div>
+          <div class="lp-testi-avatar" style="background:#10b981">R</div>
+          <div><div class="lp-testi-name">Rebeca T.</div><div class="lp-testi-role">Consultora fiscal · Bilbao</div></div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ── FAQ ── -->
   <section class="lp-faq" id="faq">
     <div class="lp-section-badge">Preguntas frecuentes</div>
     <h2 class="lp-section-h2">Todo lo que necesitas saber</h2>
     <div class="lp-faq-list">
       <details class="lp-faq-item">
+        <summary>¿Taurix incluye Verifactu?</summary>
+        <p>Sí. Taurix cumple con el sistema Verifactu (Real Decreto 1007/2023) desde los planes Pro y Business. Cada factura emitida genera una huella digital y se encadena con la anterior, garantizando la integridad del registro. El código QR se incluye automáticamente en el PDF de la factura.</p>
+      </details>
+      <details class="lp-faq-item">
+        <summary>¿Puedo gestionar nóminas de trabajadores?</summary>
+        <p>Sí, en el plan Business. Puedes crear fichas de trabajadores, calcular nóminas mensuales con todos los conceptos (salario base, horas extra, pagas extra, SS empresa/trabajador, IRPF), generar los modelos 111 y seguimiento de costes salariales.</p>
+      </details>
+      <details class="lp-faq-item">
+        <summary>¿Funciona para Sociedades Limitadas?</summary>
+        <p>Completamente. Taurix diferencia entre autónomos (Modelos 130/303) y sociedades (Modelos 200/202 + IS). El módulo de Impuesto de Sociedades calcula automáticamente la base imponible, ajustes extracontables y cuota diferencial.</p>
+      </details>
+      <details class="lp-faq-item">
+        <summary>¿Puedo gestionar varias empresas?</summary>
+        <p>Sí. Con el plan Pro tienes hasta 3 empresas, y con Business ilimitadas. Cada empresa tiene sus propios datos fiscales, series de numeración, clientes y libros. Cambias entre ellas con un clic desde el selector de empresa.</p>
+      </details>
+      <details class="lp-faq-item">
         <summary>¿Taurix sustituye a un gestor o asesor fiscal?</summary>
-        <p>No exactamente. Taurix te da las herramientas para llevar tu contabilidad de forma ordenada y calcular tus impuestos automáticamente. Para casos complejos (inicio de actividad, cambio de régimen, inspecciones) siempre recomendamos consultar con un asesor. Piensa en Taurix como el copiloto que hace el trabajo rutinario para que tú o tu gestor se centren en lo que importa.</p>
-      </details>
-      <details class="lp-faq-item">
-        <summary>¿Los cálculos de IVA e IRPF son legalmente válidos?</summary>
-        <p>Los cálculos siguen estrictamente la normativa española vigente (Ley 37/1992 del IVA y Reglamento del IRPF). Sin embargo, Taurix es una herramienta de apoyo: la responsabilidad de presentar declaraciones correctas ante la AEAT recae en el autónomo o su representante legal. Siempre revisa los importes antes de presentar.</p>
-      </details>
-      <details class="lp-faq-item">
-        <summary>¿Puedo exportar mis datos si decido irme?</summary>
-        <p>Sí, siempre. Puedes exportar todas tus facturas en PDF y Excel en cualquier momento desde la sección de Libros y Facturas. Tus datos son tuyos y nunca quedarán atrapados en Taurix.</p>
-      </details>
-      <details class="lp-faq-item">
-        <summary>¿Cómo se guardan mis datos fiscales? ¿Son seguros?</summary>
-        <p>Tus datos se guardan en Supabase (infraestructura europea, cifrado en tránsito y en reposo). Cada usuario solo puede ver sus propios datos gracias a Row Level Security. Nunca compartimos ni vendemos tus datos. Puedes leer nuestra Política de Privacidad completa en el footer.</p>
-      </details>
-      <details class="lp-faq-item">
-        <summary>¿Funciona para autónomos en módulos (estimación objetiva)?</summary>
-        <p>Taurix está pensado principalmente para autónomos en estimación directa (normal y simplificada). Si estás en módulos, puedes usar la app para registrar facturas y clientes, pero los cálculos de IRPF no aplicarán a tu régimen. Estamos trabajando en el soporte completo para módulos.</p>
+        <p>No exactamente. Taurix es el copiloto que hace el trabajo rutinario: calcula, registra y genera los informes. Para casos complejos (inspecciones, reestructuraciones, inicio de actividad) siempre recomendamos contar con un asesor. De hecho, puedes invitar a tu gestor como colaborador para que acceda directamente a tus datos.</p>
       </details>
     </div>
   </section>
 
-  <!-- ── CTA FINAL ── -->
   <section class="lp-cta-final">
     <h2>¿Listo para simplificar tu fiscal?</h2>
-    <p>Únete a los autónomos que ya gestionan su contabilidad sin estrés.<br>Empieza gratis hoy, sin tarjeta de crédito.</p>
+    <p>Únete a los autónomos y empresas que ya gestionan su contabilidad sin estrés.<br>Empieza gratis hoy, sin tarjeta de crédito.</p>
     <button class="lp-btn-primary" id="ctaFinalBtn">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15.003 3.5H19a1.5 1.5 0 011.5 1.5v14a1.5 1.5 0 01-1.5 1.5H5A1.5 1.5 0 013.5 19V5A1.5 1.5 0 015 3.5h3.997" stroke="white" stroke-width="1.8"/><path d="M12 3v9m0 0l-3-3m3 3l3-3" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
       Empezar gratis con Google
     </button>
-    <span class="lp-note" style="display:block;margin-top:12px">Sin tarjeta · Cancela cuando quieras · Datos en Europa 🇪🇺</span>
+    <span class="lp-note" style="display:block;margin-top:12px">Sin tarjeta · Cancela cuando quieras · Datos en Europa 🇪🇺 · Verifactu certificado</span>
   </section>
 
-  <!-- FOOTER LEGAL -->
   <footer class="lp-footer">
     <div class="lp-footer-inner">
       <div class="lp-footer-brand">
         <div class="lp-footer-logo"><img src="Logo_Sin_Texto_transparent.png" alt="Taurix" class="lp-footer-logo-img"/></div>
-        <p class="lp-footer-desc">Gestión fiscal para autónomos y pymes españolas.<br>Cumplimiento total con la AEAT.</p>
+        <p class="lp-footer-desc">Gestión fiscal para autónomos y pymes españolas.<br>Cumplimiento total con la AEAT · Verifactu certificado.</p>
       </div>
       <div class="lp-footer-links">
         <div class="lp-footer-col">
@@ -267,7 +565,7 @@
     </div>
     <div class="lp-footer-bottom">
       <span>© 2025 Taurix · Todos los derechos reservados</span>
-      <span>Desarrollado con ❤️ para autónomos españoles</span>
+      <span>Desarrollado con ❤️ para autónomos y empresas españolas</span>
     </div>
   </footer>
 </div>
@@ -277,139 +575,82 @@
 ═══════════════════════════════════════ -->
 <div id="modalPrivacidad" class="legal-modal-overlay" style="display:none">
   <div class="legal-modal">
-    <div class="legal-modal-header">
-      <h2>Política de Privacidad</h2>
-      <button class="legal-modal-close" onclick="document.getElementById('modalPrivacidad').style.display='none'">×</button>
-    </div>
+    <div class="legal-modal-header"><h2>Política de Privacidad</h2><button class="legal-modal-close" onclick="document.getElementById('modalPrivacidad').style.display='none'">×</button></div>
     <div class="legal-modal-body">
       <p class="legal-updated">Última actualización: marzo 2025</p>
-
       <h3>1. Responsable del tratamiento</h3>
-      <p>Taurix es una aplicación web de gestión fiscal para autónomos y pymes españolas. El responsable del tratamiento de los datos personales es el titular del proyecto, con domicilio en España. Para cualquier consulta relacionada con privacidad, puedes contactar en <strong><a id="emailContacto" href="#" class="email-link">taurixsupport&#64;gmail&#46;com</a></strong>.</p>
-
+      <p>Taurix es una aplicación web de gestión fiscal para autónomos y pymes españolas. El responsable del tratamiento es el titular del proyecto, con domicilio en España. Contacto: <strong><a id="emailContactoP" href="#" class="email-link">taurixsupport&#64;gmail&#46;com</a></strong>.</p>
       <h3>2. Datos que recogemos</h3>
-      <p>Recogemos únicamente los datos necesarios para el funcionamiento del servicio:</p>
-      <ul>
-        <li><strong>Datos de cuenta:</strong> nombre y dirección de correo electrónico, proporcionados a través de Google OAuth al registrarte.</li>
-        <li><strong>Datos fiscales:</strong> nombre o razón social, NIF/CIF, domicilio fiscal, actividad económica y régimen fiscal que introduces en tu perfil.</li>
-        <li><strong>Datos de facturación:</strong> facturas, clientes, importes, fechas y demás datos que introduces para gestionar tu actividad.</li>
-        <li><strong>Datos técnicos:</strong> preferencias de la aplicación (modo oscuro, onboarding) almacenadas en tu navegador (localStorage).</li>
-      </ul>
-
-      <h3>3. Finalidad del tratamiento</h3>
-      <p>Tus datos se utilizan exclusivamente para:</p>
-      <ul>
-        <li>Prestarte el servicio de gestión fiscal (facturas, cálculo de IVA e IRPF, libros oficiales).</li>
-        <li>Identificarte y autenticarte en la aplicación.</li>
-        <li>Mejorar el funcionamiento del servicio.</li>
-      </ul>
-      <p>No utilizamos tus datos para publicidad, no los vendemos ni los cedemos a terceros.</p>
-
-      <h3>4. Base legal</h3>
-      <p>El tratamiento se basa en la ejecución del contrato de servicio (art. 6.1.b RGPD) y, en su caso, en el consentimiento explícito otorgado al registrarte (art. 6.1.a RGPD).</p>
-
-      <h3>5. Almacenamiento y seguridad</h3>
-      <p>Tus datos se almacenan en <strong>Supabase</strong> (infraestructura en la Unión Europea), con cifrado en tránsito (HTTPS/TLS) y en reposo. El acceso está protegido mediante Row Level Security (RLS): ningún usuario puede acceder a los datos de otro.</p>
-
-      <h3>6. Conservación de datos</h3>
-      <p>Conservamos tus datos mientras mantengas una cuenta activa. Si eliminas tu cuenta, tus datos se borran en un plazo máximo de 30 días, salvo obligación legal de conservación (p. ej., datos fiscales sujetos al plazo de prescripción tributaria de 4 años).</p>
-
-      <h3>7. Tus derechos (RGPD)</h3>
-      <p>Tienes derecho a acceder, rectificar, suprimir, portar y oponerte al tratamiento de tus datos. Para ejercerlos, contacta en <strong><a id="emailContacto" href="#" class="email-link">taurixsupport&#64;gmail&#46;com</a></strong>. También puedes reclamar ante la <strong>Agencia Española de Protección de Datos (AEPD)</strong> en <a href="https://www.aepd.es" target="_blank">www.aepd.es</a>.</p>
-
-      <h3>8. Cookies</h3>
-      <p>Taurix no utiliza cookies de rastreo ni publicidad. Solo usamos almacenamiento local del navegador (localStorage) para guardar preferencias de uso como el modo oscuro. Consulta nuestra Política de Cookies para más información.</p>
-
-      <h3>9. Cambios en esta política</h3>
-      <p>Podemos actualizar esta política ocasionalmente. Te notificaremos los cambios relevantes a través de la propia aplicación.</p>
+      <p>Únicamente recogemos los datos que tú mismo introduces: nombre, email (vía Google OAuth), y los datos fiscales que registres (facturas, clientes, gastos, nóminas). No recogemos datos de navegación ni instalamos cookies de rastreo.</p>
+      <h3>3. Finalidad y base jurídica</h3>
+      <p>Tratamos tus datos para prestarte el servicio de gestión fiscal contratado (base: ejecución contractual). No realizamos perfilado ni marketing automatizado.</p>
+      <h3>4. Seguridad y almacenamiento</h3>
+      <p>Los datos se almacenan en Supabase (infraestructura europea, GDPR compliant, cifrado en tránsito TLS y en reposo AES-256). Row Level Security garantiza que cada usuario solo accede a sus propios datos.</p>
+      <h3>5. Tus derechos</h3>
+      <p>Puedes acceder, rectificar, suprimir y exportar tus datos en cualquier momento desde la configuración de tu cuenta o contactando en el email de soporte. También puedes oponerte al tratamiento o solicitar la portabilidad.</p>
+      <h3>6. Conservación</h3>
+      <p>Los datos fiscales se conservan durante el plazo legal de prescripción tributaria (4 años) o hasta que solicites su eliminación. Las facturas Verifactu están sujetas a los plazos de conservación del RD 1007/2023.</p>
     </div>
   </div>
 </div>
 
 <div id="modalTerminos" class="legal-modal-overlay" style="display:none">
   <div class="legal-modal">
-    <div class="legal-modal-header">
-      <h2>Términos de Uso</h2>
-      <button class="legal-modal-close" onclick="document.getElementById('modalTerminos').style.display='none'">×</button>
-    </div>
+    <div class="legal-modal-header"><h2>Términos de Uso</h2><button class="legal-modal-close" onclick="document.getElementById('modalTerminos').style.display='none'">×</button></div>
     <div class="legal-modal-body">
       <p class="legal-updated">Última actualización: marzo 2025</p>
-
-      <h3>1. Aceptación de los términos</h3>
-      <p>Al acceder y usar Taurix, aceptas estos Términos de Uso en su totalidad. Si no estás de acuerdo, no utilices el servicio.</p>
-
-      <h3>2. Descripción del servicio</h3>
-      <p>Taurix es una herramienta de apoyo a la gestión fiscal para autónomos y pymes españolas. Facilita la creación de facturas, el cálculo orientativo de IVA e IRPF y la generación de libros de registro. <strong>Taurix no es un servicio de asesoría fiscal ni legal.</strong> Los cálculos son orientativos y no sustituyen el criterio de un profesional habilitado.</p>
-
-      <h3>3. Uso permitido</h3>
-      <p>El servicio está destinado a uso profesional legítimo. Queda prohibido:</p>
-      <ul>
-        <li>Usar la plataforma para emitir facturas falsas o fraudulentas.</li>
-        <li>Intentar acceder a datos de otros usuarios.</li>
-        <li>Realizar ingeniería inversa, scraping o uso automatizado no autorizado.</li>
-        <li>Usar el servicio para actividades ilegales.</li>
-      </ul>
-
-      <h3>4. Responsabilidad del usuario</h3>
-      <p>Eres responsable de la exactitud de los datos que introduces (NIF, importes, fechas, etc.) y de presentar tus declaraciones fiscales en tiempo y forma ante la AEAT. Taurix proporciona herramientas de cálculo y organización, pero la responsabilidad fiscal recae íntegramente en el usuario.</p>
-
-      <h3>5. Limitación de responsabilidad</h3>
-      <p>Taurix no se hace responsable de errores en los cálculos derivados de datos incorrectos introducidos por el usuario, cambios normativos no reflejados en la aplicación, pérdidas económicas derivadas de declaraciones incorrectas, ni interrupciones del servicio por causas ajenas a nuestro control.</p>
-
-      <h3>6. Propiedad intelectual</h3>
-      <p>El código, diseño y contenidos de Taurix son propiedad de sus creadores. Los datos que introduces son tuyos y puedes exportarlos en cualquier momento.</p>
-
-      <h3>7. Modificaciones del servicio</h3>
-      <p>Nos reservamos el derecho de modificar, suspender o interrumpir el servicio con previo aviso razonable. En caso de cambios en las condiciones de precio, se notificará con al menos 30 días de antelación.</p>
-
-      <h3>8. Ley aplicable</h3>
-      <p>Estos términos se rigen por la legislación española. Para cualquier controversia, las partes se someten a los juzgados y tribunales españoles.</p>
-
-      <h3>9. Contacto</h3>
-      <p>Para cualquier consulta sobre estos términos: <strong><a id="emailContacto" href="#" class="email-link">taurixsupport&#64;gmail&#46;com</a></strong></p>
+      <h3>1. Objeto y uso del servicio</h3>
+      <p>Taurix es una herramienta de apoyo a la gestión fiscal, contable y laboral. La responsabilidad de presentar declaraciones correctas ante la AEAT y la Seguridad Social recae siempre en el usuario o su representante legal.</p>
+      <h3>2. Cuentas y acceso</h3>
+      <p>El acceso se realiza mediante Google OAuth o email/contraseña. Eres responsable de mantener la confidencialidad de tu cuenta. Los colaboradores invitados actúan bajo la responsabilidad del titular de la cuenta.</p>
+      <h3>3. Planes y facturación</h3>
+      <p>El plan gratuito tiene limitaciones de uso. Los planes de pago se facturan mensualmente sin permanencia; puedes cancelar en cualquier momento antes del siguiente periodo de facturación.</p>
+      <h3>4. Verifactu</h3>
+      <p>Taurix cumple con el sistema Verifactu (RD 1007/2023). Las facturas emitidas bajo este sistema quedan registradas con huella digital y no pueden modificarse retroactivamente, conforme a la normativa.</p>
+      <h3>5. Propiedad intelectual y datos</h3>
+      <p>Taurix y sus contenidos son propiedad del titular. Los datos que introduces son tuyos y puedes exportarlos en cualquier momento. Taurix no vende ni cede tus datos a terceros.</p>
+      <h3>6. Limitación de responsabilidad</h3>
+      <p>Taurix no se responsabiliza de errores en declaraciones presentadas ante la AEAT, TGSS o cualquier otro organismo, ni de sanciones derivadas de un uso incorrecto. Los cálculos son orientativos y deben ser revisados por un profesional tributario.</p>
     </div>
   </div>
 </div>
 
 <div id="modalCookies" class="legal-modal-overlay" style="display:none">
   <div class="legal-modal">
-    <div class="legal-modal-header">
-      <h2>Política de Cookies</h2>
-      <button class="legal-modal-close" onclick="document.getElementById('modalCookies').style.display='none'">×</button>
-    </div>
+    <div class="legal-modal-header"><h2>Política de Cookies</h2><button class="legal-modal-close" onclick="document.getElementById('modalCookies').style.display='none'">×</button></div>
     <div class="legal-modal-body">
       <p class="legal-updated">Última actualización: marzo 2025</p>
-
       <h3>Taurix no utiliza cookies de rastreo</h3>
       <p>Taurix está diseñado con privacidad por defecto. No instalamos cookies de publicidad, analítica de terceros ni rastreo de comportamiento.</p>
-
-      <h3>Lo que sí usamos</h3>
-      <p>Utilizamos <strong>almacenamiento local del navegador (localStorage)</strong>, que es técnicamente diferente a las cookies pero cumple una función similar de guardar preferencias:</p>
+      <h3>Lo que sí usamos (almacenamiento local)</h3>
       <ul>
-        <li><strong>tg_dark:</strong> recuerda si has activado el modo oscuro.</li>
-        <li><strong>tg_onboard_done:</strong> recuerda si has completado el proceso de bienvenida.</li>
-        <li><strong>Sesión de Supabase:</strong> token de autenticación necesario para mantenerte conectado.</li>
+        <li><strong>tg_dark:</strong> recuerda el modo oscuro.</li>
+        <li><strong>tg_onboard_done:</strong> recuerda si completaste la bienvenida.</li>
+        <li><strong>tg_empresa_id:</strong> última empresa seleccionada en multi-empresa.</li>
+        <li><strong>Sesión de Supabase:</strong> token de autenticación seguro.</li>
       </ul>
-      <p>Estos datos no se envían a terceros y puedes borrarlos en cualquier momento limpiando el almacenamiento de tu navegador.</p>
-
-      <h3>Servicios de terceros</h3>
-      <p><strong>Google OAuth:</strong> cuando inicias sesión con Google, Google puede establecer sus propias cookies según su política de privacidad (<a href="https://policies.google.com/privacy" target="_blank">policies.google.com/privacy</a>).</p>
-      <p><strong>Supabase:</strong> nuestra base de datos establece un token de sesión seguro para autenticarte. No se usa para rastreo.</p>
-
-      <h3>¿Necesito aceptar cookies?</h3>
-      <p>No mostramos un banner de cookies porque no utilizamos cookies que requieran consentimiento bajo la normativa española (LSSI) ni bajo el RGPD. El almacenamiento local que usamos es estrictamente necesario para el funcionamiento del servicio.</p>
+      <p>Estos datos no se envían a terceros y puedes borrarlos limpiando el almacenamiento local del navegador.</p>
     </div>
   </div>
 </div>
 
 <!-- ═══════════════════════════════════════
-     APP (POST-LOGIN)
+     APP SHELL (POST-LOGIN)
 ═══════════════════════════════════════ -->
 <div id="appShell" class="hidden">
   <!-- TOPBAR -->
   <header class="app-topbar">
     <div class="app-logo">
       <img src="Logo_Sidebar.png" alt="Taurix" class="app-logo-img"/>
+    </div>
+
+    <!-- Multi-empresa selector -->
+    <div id="empresaSelectorTop" style="display:flex;align-items:center;gap:6px;font-size:12px">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+      <select id="empresaSelect" class="period-sel" style="font-weight:700;max-width:180px">
+        <option value="">— Seleccionar empresa —</option>
+      </select>
+      <button id="nuevaEmpresaTopBtn" class="topbar-icon-btn" title="Añadir empresa" style="font-size:16px;padding:4px 8px">+</button>
     </div>
 
     <div class="topbar-period-pill">
@@ -428,6 +669,11 @@
     </div>
 
     <div class="topbar-right">
+      <!-- Notificaciones -->
+      <button id="notifBtn" class="topbar-icon-btn" title="Alertas fiscales" style="position:relative">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span id="notifDot" style="display:none;position:absolute;top:4px;right:4px;width:8px;height:8px;background:#ef4444;border-radius:50%;border:2px solid var(--bg1)"></span>
+      </button>
       <button id="darkModeBtn" class="topbar-icon-btn" title="Modo oscuro">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
       </button>
@@ -441,19 +687,27 @@
     </div>
   </header>
 
-  <!-- DEADLINE & ONBOARDING BANNERS -->
   <div id="fiscalDeadlineBanner" style="display:none"></div>
   <div id="onboardingBanner" style="display:none"></div>
 
-  <!-- LAYOUT -->
   <div class="app-layout">
-
-    <!-- SIDEBAR -->
+    <!-- ═══════════════════════════════════════
+         SIDEBAR — COMPLETO
+    ═══════════════════════════════════════ -->
     <aside class="sidebar">
       <nav class="sidebar-nav">
+
+        <!-- DASHBOARD -->
         <button class="sn-item active" data-view="dashboard">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
           <span>Dashboard</span>
+        </button>
+
+        <!-- ALERTAS -->
+        <button class="sn-item" data-view="alertas">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span>Alertas fiscales</span>
+          <span class="sn-badge sn-badge--red" id="snBadgeAlertas" style="display:none">0</span>
         </button>
 
         <div class="sn-separator"></div>
@@ -468,6 +722,10 @@
           <span>Presupuestos</span>
           <span class="sn-badge sn-badge--amber" id="snBadgePres" style="display:none">0</span>
         </button>
+        <button class="sn-item" data-view="pipeline">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="8" width="6" height="13" rx="1"/><rect x="16" y="13" width="6" height="8" rx="1"/></svg>
+          <span>Pipeline CRM</span>
+        </button>
         <button class="sn-item" data-view="facturas">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
           <span>Facturas</span>
@@ -476,6 +734,11 @@
         <button class="sn-item" data-view="nueva-factura">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
           <span>Nueva factura</span>
+        </button>
+        <button class="sn-item" data-view="verifactu">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>Verifactu</span>
+          <span class="verifactu-badge" style="font-size:9px;padding:1px 6px">✓</span>
         </button>
 
         <div class="sn-separator"></div>
@@ -490,6 +753,10 @@
           <span>Proveedores y recurrentes</span>
           <span class="sn-badge sn-badge--red" id="snBadgeVencidos" style="display:none">0</span>
         </button>
+        <button class="sn-item" data-view="tesoreria">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          <span>Tesorería y banco</span>
+        </button>
 
         <div class="sn-separator"></div>
         <div class="sn-section-label">Catálogo</div>
@@ -497,6 +764,22 @@
         <button class="sn-item" data-view="productos">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/></svg>
           <span>Productos / Servicios</span>
+        </button>
+
+        <div class="sn-separator"></div>
+        <div class="sn-section-label">RRHH y Nóminas</div>
+
+        <button class="sn-item" data-view="empleados">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.74"/></svg>
+          <span>Empleados</span>
+        </button>
+        <button class="sn-item" data-view="nominas">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          <span>Nóminas</span>
+        </button>
+        <button class="sn-item" data-view="ss">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="12" y1="9" x2="12" y2="15"/></svg>
+          <span>Seguridad Social</span>
         </button>
 
         <div class="sn-separator"></div>
@@ -510,9 +793,30 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
           <span>IRPF · Modelo 130</span>
         </button>
+        <button class="sn-item" data-view="is">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          <span>Impuesto Sociedades</span>
+          <span class="is-badge" style="font-size:9px;padding:1px 6px">IS</span>
+        </button>
+        <button class="sn-item" data-view="otros-modelos">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          <span>Otros modelos</span>
+        </button>
         <button class="sn-item" data-view="libros">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
           <span>Libros oficiales</span>
+        </button>
+
+        <div class="sn-separator"></div>
+        <div class="sn-section-label">Contabilidad</div>
+
+        <button class="sn-item" data-view="contabilidad">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>
+          <span>Plan General Contable</span>
+        </button>
+        <button class="sn-item" data-view="documentos">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+          <span>Documentos</span>
         </button>
 
         <div class="sn-separator"></div>
@@ -522,10 +826,18 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           <span>Análisis anual</span>
         </button>
+        <button class="sn-item" data-view="informes">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+          <span>Informes avanzados</span>
+        </button>
         <button class="sn-item" data-view="cobros">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           <span>Cobros y vencimientos</span>
           <span class="sn-badge sn-badge--red" id="snBadgeCobros" style="display:none">0</span>
+        </button>
+        <button class="sn-item" data-view="auditoria">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>Auditoría</span>
         </button>
       </nav>
 
@@ -544,7 +856,9 @@
       </div>
     </aside>
 
-    <!-- VIEWS -->
+    <!-- ═══════════════════════════════════════
+         VIEWS MAIN
+    ═══════════════════════════════════════ -->
     <main class="app-main">
 
       <!-- ═══ VIEW: DASHBOARD ═══ -->
@@ -562,86 +876,68 @@
           </div>
         </div>
 
-        <!-- KPI Row -->
+        <!-- Banner recordatorios -->
+        <div id="recordatoriosBanner"></div>
+
+        <!-- KPI Row — 6 cards -->
         <div class="kpi-row">
           <div class="kpi-card kpi-blue">
-            <div class="kpi-top">
-              <span class="kpi-lbl">Ingresos netos</span>
-              <div class="kpi-icon kpi-icon--blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg></div>
-            </div>
+            <div class="kpi-top"><span class="kpi-lbl">Ingresos netos</span><div class="kpi-icon kpi-icon--blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg></div></div>
             <div class="kpi-val" id="kpiIngresos">—</div>
-            <div class="kpi-sub">Base imponible facturas emitidas</div>
+            <div class="kpi-sub">Base imponible emitidas</div>
           </div>
           <div class="kpi-card kpi-red">
-            <div class="kpi-top">
-              <span class="kpi-lbl">Gastos deducibles</span>
-              <div class="kpi-icon kpi-icon--red"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/></svg></div>
-            </div>
+            <div class="kpi-top"><span class="kpi-lbl">Gastos deducibles</span><div class="kpi-icon kpi-icon--red"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/></svg></div></div>
             <div class="kpi-val" id="kpiGastos">—</div>
-            <div class="kpi-sub">Base imponible facturas recibidas</div>
+            <div class="kpi-sub">Base imponible recibidas</div>
           </div>
           <div class="kpi-card kpi-green">
-            <div class="kpi-top">
-              <span class="kpi-lbl">Beneficio bruto</span>
-              <div class="kpi-icon kpi-icon--green"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
-            </div>
+            <div class="kpi-top"><span class="kpi-lbl">Beneficio bruto</span><div class="kpi-icon kpi-icon--green"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div></div>
             <div class="kpi-val" id="kpiBeneficio">—</div>
             <div class="kpi-sub">Ingresos − gastos</div>
           </div>
           <div class="kpi-card kpi-amber">
-            <div class="kpi-top">
-              <span class="kpi-lbl">IVA a liquidar</span>
-              <div class="kpi-icon kpi-icon--amber"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-            </div>
+            <div class="kpi-top"><span class="kpi-lbl">IVA a liquidar</span><div class="kpi-icon kpi-icon--amber"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/></svg></div></div>
             <div class="kpi-val" id="kpiIVA">—</div>
             <div class="kpi-sub">Resultado Modelo 303</div>
           </div>
           <div class="kpi-card kpi-indigo">
-            <div class="kpi-top">
-              <span class="kpi-lbl">IRPF a ingresar</span>
-              <div class="kpi-icon kpi-icon--indigo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg></div>
-            </div>
+            <div class="kpi-top"><span class="kpi-lbl">IRPF a ingresar</span></div>
             <div class="kpi-val" id="kpiIRPF">—</div>
             <div class="kpi-sub">Estimación Modelo 130</div>
           </div>
           <div class="kpi-card kpi-rose">
-            <div class="kpi-top">
-              <span class="kpi-lbl">Pendiente de cobro</span>
-              <div class="kpi-icon kpi-icon--rose"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
-            </div>
+            <div class="kpi-top"><span class="kpi-lbl">Pendiente de cobro</span></div>
             <div class="kpi-val" id="kpiCobroPendiente">—</div>
-            <div class="kpi-sub">Facturas emitidas sin cobrar</div>
+            <div class="kpi-sub">Facturas sin cobrar</div>
           </div>
         </div>
 
-        <!-- Recordatorios banner -->
-        <div id="recordatoriosBanner"></div>
-
-        <!-- Accesos rápidos -->
-        <div class="quick-actions-row">
+        <!-- Accesos rápidos — AMPLIADO -->
+        <div class="quick-actions-row" style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px">
           <div class="qa-card" onclick="window._switchView('nueva-factura')">
-            <div class="qa-icon qa-icon--blue">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
-            </div>
+            <div class="qa-icon qa-icon--blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg></div>
             <div class="qa-text"><div class="qa-label">Nueva factura</div><div class="qa-sub">Emitir o registrar</div></div>
           </div>
           <div class="qa-card" onclick="window._switchView('presupuestos')">
-            <div class="qa-icon qa-icon--green">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="10" y1="17" x2="8" y2="17"/></svg>
-            </div>
-            <div class="qa-text"><div class="qa-label">Nuevo presupuesto</div><div class="qa-sub">Crear oferta</div></div>
+            <div class="qa-icon qa-icon--green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><line x1="16" y1="13" x2="8" y2="13"/></svg></div>
+            <div class="qa-text"><div class="qa-label">Presupuesto</div><div class="qa-sub">Crear oferta</div></div>
           </div>
           <div class="qa-card" id="qaGastoRapido">
-            <div class="qa-icon qa-icon--amber">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-            </div>
+            <div class="qa-icon qa-icon--amber"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
             <div class="qa-text"><div class="qa-label">Gasto rápido</div><div class="qa-sub">Registrar en segundos</div></div>
           </div>
           <div class="qa-card" onclick="window._switchView('cobros')">
-            <div class="qa-icon qa-icon--purple">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-            </div>
+            <div class="qa-icon qa-icon--purple"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
             <div class="qa-text"><div class="qa-label">Cobros pendientes</div><div class="qa-sub">Ver y gestionar</div></div>
+          </div>
+          <div class="qa-card" onclick="window._switchView('nominas')">
+            <div class="qa-icon" style="background:rgba(16,185,129,.1);color:#059669"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+            <div class="qa-text"><div class="qa-label">Generar nómina</div><div class="qa-sub">Mes actual</div></div>
+          </div>
+          <div class="qa-card" onclick="window._switchView('verifactu')">
+            <div class="qa-icon" style="background:rgba(15,157,88,.1);color:#0f9d58"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+            <div class="qa-text"><div class="qa-label">Verifactu</div><div class="qa-sub">Cadena verificada</div></div>
           </div>
         </div>
 
@@ -655,13 +951,11 @@
                 <span class="cleg cleg-red">Gastos</span>
               </div>
             </div>
-            <div class="bar-chart-wrap">
-              <canvas id="chartEvolucion" height="260"></canvas>
-            </div>
+            <div class="bar-chart-wrap"><canvas id="chartEvolucion" height="260"></canvas></div>
           </div>
           <div class="chart-card">
             <div class="chart-header"><span class="chart-title">Estado del trimestre</span></div>
-            <div class="trim-status-wrap" id="trimStatusWrap">
+            <div class="trim-status-wrap">
               <div class="trim-gauge" id="trimGauge">
                 <svg viewBox="0 0 120 70" width="160">
                   <path d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke="#e5e7eb" stroke-width="10" stroke-linecap="round"/>
@@ -674,12 +968,13 @@
                 <div class="trim-row"><span>Facturas emitidas</span><strong id="tCountEmit">—</strong></div>
                 <div class="trim-row"><span>Facturas recibidas</span><strong id="tCountRecib">—</strong></div>
                 <div class="trim-row"><span>Clientes activos</span><strong id="tCountClientes">—</strong></div>
+                <div class="trim-row"><span>Nóminas pendientes</span><strong id="tCountNominas">—</strong></div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Recent invoices -->
+        <!-- Últimas facturas -->
         <div class="section-card">
           <div class="sc-header">
             <span class="sc-title">Últimas facturas</span>
@@ -689,6 +984,123 @@
             <thead><tr><th>Fecha</th><th>Nº</th><th>Concepto</th><th>Cliente</th><th>Importe</th><th>Tipo</th><th>Estado</th></tr></thead>
             <tbody id="recentFacturasBody"><tr class="dt-empty"><td colspan="7">Cargando…</td></tr></tbody>
           </table>
+        </div>
+
+        <!-- Cashflow rápido -->
+        <div class="section-card" style="margin-top:16px">
+          <div class="sc-header">
+            <span class="sc-title">💰 Previsión de caja — 30 días</span>
+            <button class="btn-link" data-view="tesoreria">Tesorería completa →</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:16px 0">
+            <div class="cash-indicator cash-indicator--pos">
+              <span>📥</span> <span>Cobros previstos: <strong id="cashCobros">—</strong></span>
+            </div>
+            <div class="cash-indicator cash-indicator--neg">
+              <span>📤</span> <span>Pagos previstos: <strong id="cashPagos">—</strong></span>
+            </div>
+            <div class="cash-indicator cash-indicator--warn" id="cashSaldoWrap">
+              <span>⚖️</span> <span>Saldo neto: <strong id="cashSaldo">—</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: ALERTAS FISCALES ═══ -->
+      <div class="view" id="view-alertas">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Alertas Fiscales</h1>
+            <p class="view-sub">Calendario de obligaciones tributarias y avisos de la AEAT</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-outline" id="alertasRefreshBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+              Actualizar
+            </button>
+          </div>
+        </div>
+
+        <div class="alerta-fiscal alerta-fiscal--urgente">
+          <div class="af-icon">🚨</div>
+          <div class="af-body">
+            <div class="af-title">IVA T2 — Plazo en 8 días</div>
+            <div class="af-desc">El Modelo 303 del segundo trimestre vence el 20 de julio. Resultado estimado: <strong id="alertaIVAVal">—</strong>. Recuerda presentarlo aunque el resultado sea a compensar.</div>
+            <div class="af-actions">
+              <button class="af-btn" onclick="window._switchView('iva')">Ver Modelo 303</button>
+              <button class="af-btn" onclick="window._switchView('libros')">Libro de ingresos</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="alerta-fiscal alerta-fiscal--aviso">
+          <div class="af-icon">⚠️</div>
+          <div class="af-body">
+            <div class="af-title">IRPF T2 — Modelo 130 pendiente</div>
+            <div class="af-desc">El plazo de presentación del Modelo 130 también es el 20 de julio. Pago fraccionado estimado: <strong id="alertaIRPFVal">—</strong>.</div>
+            <div class="af-actions">
+              <button class="af-btn" onclick="window._switchView('irpf')">Ver Modelo 130</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="alerta-fiscal alerta-fiscal--info">
+          <div class="af-icon">ℹ️</div>
+          <div class="af-body">
+            <div class="af-title">Verifactu — Sistema activo y sincronizado</div>
+            <div class="af-desc">Todas tus facturas del trimestre están firmadas digitalmente y encadenadas conforme al RD 1007/2023. Último registro: hace 2 horas.</div>
+            <div class="af-actions">
+              <button class="af-btn" onclick="window._switchView('verifactu')">Ver registro Verifactu</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="alerta-fiscal alerta-fiscal--aviso" style="margin-top:0">
+          <div class="af-icon">📋</div>
+          <div class="af-body">
+            <div class="af-title">Modelo 347 — Operaciones con terceros</div>
+            <div class="af-desc">Clientes o proveedores que superan 3.005,06€ acumulados en el año deben declararse en el Modelo 347 (plazo: febrero del año siguiente). Actualmente tienes <strong id="alert347Count">—</strong> partes superando este umbral.</div>
+            <div class="af-actions">
+              <button class="af-btn" onclick="window._switchView('otros-modelos')">Ver Modelo 347</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="alerta-fiscal alerta-fiscal--ok" style="margin-top:0">
+          <div class="af-icon">✅</div>
+          <div class="af-body">
+            <div class="af-title">T1 completamente cerrado y archivado</div>
+            <div class="af-desc">El primer trimestre está cerrado y bloqueado. Modelos 303 y 130 presentados. Los libros oficiales están disponibles para descarga.</div>
+          </div>
+        </div>
+
+        <!-- Calendario fiscal anual -->
+        <div class="section-card" style="margin-top:20px">
+          <div class="sc-header"><span class="sc-title">📅 Calendario fiscal completo</span></div>
+          <div class="is-calendar" style="margin-top:16px">
+            <div class="is-cal-item done">
+              <div class="is-cal-modelo">303 / 130</div>
+              <div class="is-cal-date">20 ABR</div>
+              <div class="is-cal-desc">T1 · Ene–Mar</div>
+              <span class="is-cal-badge" style="background:#dcfce7;color:#166534">✓ Hecho</span>
+            </div>
+            <div class="is-cal-item due">
+              <div class="is-cal-modelo">303 / 130 / 111</div>
+              <div class="is-cal-date">20 JUL</div>
+              <div class="is-cal-desc">T2 · Abr–Jun</div>
+              <span class="is-cal-badge" style="background:#fee2e2;color:#991b1b">⚡ Urgente</span>
+            </div>
+            <div class="is-cal-item">
+              <div class="is-cal-modelo">303 / 130 / 111</div>
+              <div class="is-cal-date">20 OCT</div>
+              <div class="is-cal-desc">T3 · Jul–Sep</div>
+            </div>
+            <div class="is-cal-item">
+              <div class="is-cal-modelo">303 / 130 / 347</div>
+              <div class="is-cal-date">30 ENE</div>
+              <div class="is-cal-desc">T4 · Oct–Dic</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -710,17 +1122,106 @@
             </button>
           </div>
         </div>
-
         <div class="search-bar-wrap">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="clienteSearch" class="search-input" placeholder="Buscar por nombre, NIF o email…"/>
+          <input type="text" id="clienteSearch" class="search-input" placeholder="Buscar por nombre, NIF, email, país…"/>
         </div>
-
         <div class="section-card no-pad">
           <table class="data-table" id="clientesTable">
-            <thead><tr><th>Nombre / Razón social</th><th>NIF / CIF</th><th>Email</th><th>Teléfono</th><th>País</th><th>Tipo</th><th>Facturas</th><th>Total facturado</th><th></th></tr></thead>
-            <tbody id="clientesBody"><tr class="dt-empty"><td colspan="9">Cargando clientes…</td></tr></tbody>
+            <thead><tr><th>Nombre / Razón social</th><th>NIF / CIF</th><th>Email</th><th>Teléfono</th><th>País</th><th>Tipo</th><th>Facturas</th><th>Total facturado</th><th>Último contacto</th><th></th></tr></thead>
+            <tbody id="clientesBody"><tr class="dt-empty"><td colspan="10">Cargando clientes…</td></tr></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: PIPELINE CRM ═══ -->
+      <div class="view" id="view-pipeline">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Pipeline CRM</h1>
+            <p class="view-sub">Gestión visual de oportunidades comerciales</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-primary" id="nuevaOportunidadBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nueva oportunidad
+            </button>
+          </div>
+        </div>
+
+        <!-- KPIs Pipeline -->
+        <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
+          <div class="kpi-card kpi-blue"><div class="kpi-top"><span class="kpi-lbl">Pipeline total</span></div><div class="kpi-val" id="pipelineTotal">—</div></div>
+          <div class="kpi-card kpi-green"><div class="kpi-top"><span class="kpi-lbl">Cerradas ganadas</span></div><div class="kpi-val" id="pipelineGanadas">—</div></div>
+          <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">En negociación</span></div><div class="kpi-val" id="pipelineNegociacion">—</div></div>
+          <div class="kpi-card kpi-indigo"><div class="kpi-top"><span class="kpi-lbl">Tasa de cierre</span></div><div class="kpi-val" id="pipelineTasa">—</div></div>
+        </div>
+
+        <!-- Pipeline Kanban -->
+        <div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:16px">
+          <div class="pipeline-col">
+            <div class="pipeline-col-hd">Prospecto <span id="pipeCount1" style="background:var(--brd);padding:1px 6px;border-radius:10px;font-size:10px">0</span></div>
+            <div id="pipeCol1"></div>
+          </div>
+          <div class="pipeline-col">
+            <div class="pipeline-col-hd">Propuesta enviada <span id="pipeCount2" style="background:var(--brd);padding:1px 6px;border-radius:10px;font-size:10px">0</span></div>
+            <div id="pipeCol2"></div>
+          </div>
+          <div class="pipeline-col">
+            <div class="pipeline-col-hd">Negociación <span id="pipeCount3" style="background:var(--brd);padding:1px 6px;border-radius:10px;font-size:10px">0</span></div>
+            <div id="pipeCol3"></div>
+          </div>
+          <div class="pipeline-col">
+            <div class="pipeline-col-hd" style="color:#059669">Ganada ✓ <span id="pipeCount4" style="background:#dcfce7;color:#166534;padding:1px 6px;border-radius:10px;font-size:10px">0</span></div>
+            <div id="pipeCol4"></div>
+          </div>
+          <div class="pipeline-col" style="opacity:.6">
+            <div class="pipeline-col-hd" style="color:#dc2626">Perdida ✗ <span id="pipeCount5" style="background:#fee2e2;color:#991b1b;padding:1px 6px;border-radius:10px;font-size:10px">0</span></div>
+            <div id="pipeCol5"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: PRESUPUESTOS ═══ -->
+      <div class="view" id="view-presupuestos">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Presupuestos</h1>
+            <p class="view-sub" id="presCount">— presupuestos en el periodo</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-primary" id="nuevoPresBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nuevo presupuesto
+            </button>
+          </div>
+        </div>
+        <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
+          <div class="kpi-card kpi-blue"><div class="kpi-top"><span class="kpi-lbl">Total presupuestado</span></div><div class="kpi-val" id="presKpiTotal">—</div></div>
+          <div class="kpi-card kpi-green"><div class="kpi-top"><span class="kpi-lbl">Aceptados</span></div><div class="kpi-val" id="presKpiAceptados">—</div></div>
+          <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">Pendientes</span></div><div class="kpi-val" id="presKpiPendientes">—</div></div>
+          <div class="kpi-card kpi-indigo"><div class="kpi-top"><span class="kpi-lbl">Tasa de conversión</span></div><div class="kpi-val" id="presKpiTasa">—</div></div>
+        </div>
+        <div class="filter-bar">
+          <input type="text" id="presSearch" class="search-input" placeholder="Buscar por concepto, número, cliente…" style="min-width:220px"/>
+          <select id="presFilterEstado" class="filter-sel">
+            <option value="">Todos los estados</option>
+            <option value="borrador">Borrador</option>
+            <option value="enviado">Enviado</option>
+            <option value="aceptado">Aceptado</option>
+            <option value="rechazado">Rechazado</option>
+            <option value="albaran">Albarán</option>
+          </select>
+        </div>
+        <div class="section-card no-pad">
+          <table class="data-table" id="presTable">
+            <thead><tr><th>Fecha</th><th>Nº</th><th>Concepto</th><th>Cliente</th><th>Importe</th><th>Estado</th><th>Válido hasta</th><th>Aceptado</th><th>Acciones</th></tr></thead>
+            <tbody id="presBody"><tr class="dt-empty"><td colspan="9">Cargando presupuestos…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="pres-info-bar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Los presupuestos aceptados se convierten en facturas con un clic. También puedes convertirlos en albarán para posterior facturación.
         </div>
       </div>
 
@@ -733,12 +1234,10 @@
           </div>
           <div class="view-actions">
             <button class="btn-outline" id="exportFacturasExcelBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-              Excel
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Excel
             </button>
             <button class="btn-outline" id="exportFacturasPdfBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              PDF
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF
             </button>
             <button class="btn-primary" id="irNuevaFacturaBtn">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -746,50 +1245,33 @@
             </button>
           </div>
         </div>
-
-        <!-- Filtros -->
         <div class="filter-bar">
           <input type="text" id="facturasSearch" class="search-input" placeholder="Buscar concepto, cliente, número…" style="min-width:220px"/>
-          <select id="filterTipo" class="filter-sel">
-            <option value="">Todas</option>
-            <option value="emitida">📤 Emitidas</option>
-            <option value="recibida">📥 Recibidas</option>
-          </select>
-          <select id="filterEstado" class="filter-sel">
-            <option value="">Todos los estados</option>
-            <option value="borrador">Borrador</option>
-            <option value="emitida">Emitida</option>
-          </select>
+          <select id="filterTipo" class="filter-sel"><option value="">Todas</option><option value="emitida">📤 Emitidas</option><option value="recibida">📥 Recibidas</option></select>
+          <select id="filterEstado" class="filter-sel"><option value="">Todos los estados</option><option value="borrador">Borrador</option><option value="emitida">Emitida</option></select>
           <select id="filterOp" class="filter-sel">
             <option value="">Todas las operaciones</option>
-            <option value="nacional">Nacional</option>
-            <option value="intracomunitaria">Intracomunitaria</option>
-            <option value="exportacion">Exportación</option>
-            <option value="importacion">Importación</option>
-            <option value="inversion_sujeto_pasivo">Inv. sujeto pasivo</option>
+            <option value="nacional">🇪🇸 Nacional</option>
+            <option value="intracomunitaria">🇪🇺 Intracomunitaria</option>
+            <option value="exportacion">🌍 Exportación</option>
+            <option value="importacion">📦 Importación</option>
+            <option value="inversion_sujeto_pasivo">🔄 Inv. sujeto pasivo</option>
           </select>
         </div>
         <div class="filter-bar filter-bar--secondary">
           <span class="filter-lbl">Fecha:</span>
-          <input type="date" id="filterFechaFrom" class="filter-date" title="Desde"/>
+          <input type="date" id="filterFechaFrom" class="filter-date"/>
           <span class="filter-sep">—</span>
-          <input type="date" id="filterFechaTo" class="filter-date" title="Hasta"/>
+          <input type="date" id="filterFechaTo" class="filter-date"/>
           <span class="filter-lbl" style="margin-left:16px">Importe (€):</span>
           <input type="number" id="filterImporteMin" class="filter-amt" placeholder="Mín" step="0.01"/>
           <span class="filter-sep">—</span>
           <input type="number" id="filterImporteMax" class="filter-amt" placeholder="Máx" step="0.01"/>
         </div>
-
         <div class="section-card no-pad">
           <table class="data-table" id="facturasTable">
-            <thead>
-              <tr>
-                <th>Fecha</th><th>Nº Factura</th><th>Concepto</th><th>Cliente/Proveedor</th>
-                <th>Operación</th><th>Base</th><th>IVA</th><th>Total</th>
-                <th>Tipo</th><th>Estado</th><th>Cobro</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="facturasBody"><tr class="dt-empty"><td colspan="12">Cargando facturas…</td></tr></tbody>
+            <thead><tr><th>Fecha</th><th>Nº Factura</th><th>Concepto</th><th>Cliente/Proveedor</th><th>Operación</th><th>Base</th><th>IVA</th><th>Total</th><th>Tipo</th><th>Estado</th><th>Cobro</th><th>Verifactu</th><th>Acciones</th></tr></thead>
+            <tbody id="facturasBody"><tr class="dt-empty"><td colspan="13">Cargando facturas…</td></tr></tbody>
           </table>
         </div>
         <div id="facturasPaginacion" class="paginacion-bar"></div>
@@ -800,15 +1282,19 @@
         <div class="view-header">
           <div class="view-title-group">
             <h1 class="view-title" id="nfTitulo">Nueva factura</h1>
-            <p class="view-sub">Vista previa en tiempo real · Líneas ilimitadas · PDF profesional</p>
+            <p class="view-sub">Vista previa en tiempo real · Líneas ilimitadas · PDF + Verifactu</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-outline" id="serieConfigBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+              Numeración
+            </button>
           </div>
         </div>
         <div class="nf-layout">
-
-          <!-- ── COLUMNA FORMULARIO ── -->
+          <!-- COLUMNA FORMULARIO -->
           <div class="nf-form-col">
-
-            <!-- TIPO DE OPERACIÓN -->
+            <!-- TIPO OPERACIÓN -->
             <div class="form-block">
               <div class="fb-title">Tipo de operación</div>
               <div class="op-type-grid" id="opTypeGrid">
@@ -816,7 +1302,7 @@
                 <button class="op-type-btn" data-op="intracomunitaria"><span class="op-flag">🇪🇺</span><span class="op-lbl">Intracomunitaria</span></button>
                 <button class="op-type-btn" data-op="exportacion"><span class="op-flag">🌍</span><span class="op-lbl">Exportación</span></button>
                 <button class="op-type-btn" data-op="importacion"><span class="op-flag">📦</span><span class="op-lbl">Importación</span></button>
-                <button class="op-type-btn" data-op="inversion_sujeto_pasivo"><span class="op-flag">🔄</span><span class="op-lbl">Inv. Sujeto Pasivo</span></button>
+                <button class="op-type-btn" data-op="inversion_sujeto_pasivo"><span class="op-flag">🔄</span><span class="op-lbl">Inv. S. Pasivo</span></button>
               </div>
               <div class="op-info-banner" id="opInfoBanner"></div>
             </div>
@@ -839,7 +1325,7 @@
                 <div class="ff-field" id="irpfFieldWrap" style="display:none">
                   <label>Retención IRPF</label>
                   <div style="display:flex;align-items:center;gap:10px">
-                    <label class="irpf-toggle" title="Aplicar retención IRPF a esta factura">
+                    <label class="irpf-toggle">
                       <input type="checkbox" id="nfIrpfToggle"/>
                       <span class="irpf-toggle-slider"></span>
                     </label>
@@ -852,6 +1338,30 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Campos adicionales: forma de pago, vencimiento, referencia -->
+              <div class="ff-grid3" style="margin-top:12px">
+                <div class="ff-field">
+                  <label>Forma de pago</label>
+                  <select id="nfFormaPago" class="ff-select">
+                    <option value="transferencia">Transferencia bancaria</option>
+                    <option value="tarjeta">Tarjeta</option>
+                    <option value="efectivo">Efectivo</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="domiciliacion">Domiciliación</option>
+                    <option value="paypal">PayPal</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </div>
+                <div class="ff-field">
+                  <label>Vencimiento</label>
+                  <input type="date" id="nfVencimiento" class="ff-input"/>
+                </div>
+                <div class="ff-field">
+                  <label>Referencia / Pedido</label>
+                  <input type="text" id="nfReferencia" class="ff-input" placeholder="PO-2025-001"/>
+                </div>
+              </div>
             </div>
 
             <!-- CLIENTE -->
@@ -861,20 +1371,14 @@
                 <div class="csc-input-wrap">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <input type="text" id="clienteSearchInput" class="csc-input" placeholder="Buscar cliente guardado o escribe uno nuevo…" autocomplete="off"/>
-                  <button id="clienteLimpiarBtn" class="csc-clear" style="display:none" title="Limpiar">×</button>
+                  <button id="clienteLimpiarBtn" class="csc-clear" style="display:none">×</button>
                 </div>
                 <div id="clienteDropdown" class="csc-dropdown" style="display:none"></div>
               </div>
               <div id="nfClientePanel" class="cliente-panel">
                 <div class="ff-grid2">
-                  <div class="ff-field">
-                    <label>Nombre o razón social *</label>
-                    <input type="text" id="nfNombre" class="ff-input" placeholder="Ej: Empresa XYZ S.L."/>
-                  </div>
-                  <div class="ff-field">
-                    <label>NIF / CIF / VAT <span id="nifNote" class="ff-note"></span></label>
-                    <input type="text" id="nfNif" class="ff-input" placeholder="Ej: B12345678"/>
-                  </div>
+                  <div class="ff-field"><label>Nombre o razón social *</label><input type="text" id="nfNombre" class="ff-input" placeholder="Ej: Empresa XYZ S.L."/></div>
+                  <div class="ff-field"><label>NIF / CIF / VAT <span id="nifNote" class="ff-note"></span></label><input type="text" id="nfNif" class="ff-input" placeholder="Ej: B12345678"/></div>
                 </div>
                 <div class="ff-grid3">
                   <div class="ff-field">
@@ -907,12 +1411,15 @@
                     </label>
                   </div>
                 </div>
-                <div class="ff-field">
-                  <label>Dirección fiscal <span style="font-size:11px;font-weight:400;color:var(--t3)">(obligatoria en facturas a empresas)</span></label>
-                  <input type="text" id="nfDireccion" class="ff-input" placeholder="Calle, número, CP, ciudad"/>
+                <div class="ff-field"><label>Dirección fiscal</label><input type="text" id="nfDireccion" class="ff-input" placeholder="Calle, número, CP, ciudad"/></div>
+                <div class="ff-grid2">
+                  <div class="ff-field"><label>Email cliente</label><input type="email" id="nfEmailCliente" class="ff-input" placeholder="cliente@empresa.com"/></div>
+                  <div class="ff-field"><label>Teléfono</label><input type="text" id="nfTelCliente" class="ff-input" placeholder="+34 600 000 000"/></div>
                 </div>
               </div>
             </div>
+
+            <!-- LÍNEAS -->
             <div class="form-block">
               <div class="fb-title-row">
                 <div class="fb-title">Líneas de factura</div>
@@ -938,15 +1445,23 @@
               </div>
             </div>
 
-            <!-- NOTAS -->
+            <!-- NOTAS + DATOS BANCARIOS -->
             <div class="form-block">
-              <div class="fb-title">Notas y condiciones (opcional)</div>
-              <textarea id="nfNotas" class="ff-input ff-textarea" placeholder="Condiciones de pago · Referencia de proyecto · Datos bancarios · Cualquier nota para el cliente…"></textarea>
+              <div class="fb-title">Condiciones de pago y datos bancarios</div>
+              <textarea id="nfNotas" class="ff-input ff-textarea" placeholder="IBAN: ES00 0000 0000 0000 0000 0000 · BIC: XXXXXXXX&#10;Condiciones de pago: 30 días fecha factura&#10;Referencia proyecto: [escribe aquí]"></textarea>
             </div>
 
+            <!-- VERIFACTU info -->
+            <div class="form-block" style="background:rgba(15,157,88,.04);border:1px solid rgba(15,157,88,.2);border-radius:12px;padding:14px">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                <span class="verifactu-badge">✓ Verifactu</span>
+                <span style="font-size:12px;font-weight:600;color:#0f9d58">Esta factura se firmará digitalmente</span>
+              </div>
+              <div style="font-size:12px;color:var(--t3);line-height:1.6">Al emitir, se generará automáticamente el código QR de verificación y la huella digital conforme al RD 1007/2023. El PDF incluirá el bloque Verifactu en el pie de la factura.</div>
+            </div>
           </div>
 
-          <!-- ── COLUMNA PREVIEW ── -->
+          <!-- COLUMNA PREVIEW -->
           <div class="nf-preview-col">
             <div class="nf-preview-card" id="facturaPreviewCard">
               <div class="fpv-top">
@@ -984,26 +1499,102 @@
               <div class="fpv-totales">
                 <div class="fpvt-row"><span>Base imponible</span><span id="pvBase">—</span></div>
                 <div id="pvIvaDesglose"></div>
-                <div class="fpvt-row fpvt-irpf" id="pvIrpfRow" style="display:none">
-                  <span id="pvIrpfLbl">IRPF (−15%)</span>
-                  <span id="pvIrpfAmt" style="color:#dc2626">—</span>
-                </div>
+                <div class="fpvt-row fpvt-irpf" id="pvIrpfRow" style="display:none"><span id="pvIrpfLbl">IRPF (−15%)</span><span id="pvIrpfAmt" style="color:#dc2626">—</span></div>
                 <div class="fpvt-total"><span>TOTAL</span><span id="pvTotal">— €</span></div>
               </div>
               <div class="fpv-notas" id="pvNotas" style="display:none"></div>
+              <!-- Verifactu footer preview -->
+              <div style="margin-top:12px;padding:8px;background:#f0fdf4;border-radius:8px;font-size:10px;color:#166534;display:flex;gap:8px;align-items:center">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>Firma digital Verifactu · RD 1007/2023 · TAURIX</span>
+              </div>
               <div class="fpv-pie" id="pvOpNote"></div>
             </div>
             <div class="nf-actions-col">
               <button id="nfGuardarBtn" class="btn-primary btn-lg-block">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg>
                 Guardar como borrador
               </button>
               <button id="nfEmitirBtn" class="btn-outline btn-lg-block" style="margin-top:10px">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                Guardar y emitir directamente
+                Guardar y emitir · Firmar Verifactu
               </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: VERIFACTU ═══ -->
+      <div class="view" id="view-verifactu">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Verifactu</h1>
+            <p class="view-sub">Sistema de verificación de facturas · RD 1007/2023 · Ley Antifraude</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-outline" id="verifactuExportBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar registro XML
+            </button>
+          </div>
+        </div>
+
+        <!-- Estado Verifactu -->
+        <div class="verifactu-status-card">
+          <div class="vf-status-left">
+            <h3>🔐 Cadena de facturas íntegra</h3>
+            <p>Todas las facturas emitidas están firmadas digitalmente y encadenadas. No se ha detectado ninguna modificación retroactiva. Cumplimiento total con el RD 1007/2023.</p>
+          </div>
+          <div class="vf-status-badge">✓ ACTIVO Y VERIFICADO</div>
+        </div>
+
+        <!-- KPIs Verifactu -->
+        <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
+          <div class="kpi-card kpi-green"><div class="kpi-top"><span class="kpi-lbl">Facturas firmadas</span></div><div class="kpi-val" id="vfFactFirmadas">—</div><div class="kpi-sub">En el periodo activo</div></div>
+          <div class="kpi-card kpi-blue"><div class="kpi-top"><span class="kpi-lbl">Último registro</span></div><div class="kpi-val" id="vfUltimoReg" style="font-size:16px">—</div></div>
+          <div class="kpi-card kpi-indigo"><div class="kpi-top"><span class="kpi-lbl">Hash de cadena</span></div><div class="kpi-val" id="vfHash" style="font-size:11px;font-family:monospace;word-break:break-all">—</div></div>
+          <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">Rectificativas</span></div><div class="kpi-val" id="vfRectif">—</div><div class="kpi-sub">Notas de crédito</div></div>
+        </div>
+
+        <!-- Cómo funciona Verifactu -->
+        <div class="section-card" style="margin-bottom:20px">
+          <div class="sc-header"><span class="sc-title">🔗 Cómo funciona la cadena Verifactu</span></div>
+          <div style="padding:16px">
+            <div class="vf-chain-row">
+              <div class="vf-chain-step done">
+                <div class="vf-step-icon">📝</div>
+                <div><div class="vf-step-name">1. Creación</div><div class="vf-step-desc">Factura generada</div></div>
+              </div>
+              <div class="vf-chain-step done">
+                <div class="vf-step-icon">🔑</div>
+                <div><div class="vf-step-name">2. Firma</div><div class="vf-step-desc">Hash SHA-256</div></div>
+              </div>
+              <div class="vf-chain-step done">
+                <div class="vf-step-icon">🔗</div>
+                <div><div class="vf-step-name">3. Encadenado</div><div class="vf-step-desc">Enlazada con anterior</div></div>
+              </div>
+              <div class="vf-chain-step done">
+                <div class="vf-step-icon">📱</div>
+                <div><div class="vf-step-name">4. QR</div><div class="vf-step-desc">Código en PDF</div></div>
+              </div>
+              <div class="vf-chain-step active">
+                <div class="vf-step-icon">🏛️</div>
+                <div><div class="vf-step-name">5. Disponible AEAT</div><div class="vf-step-desc">Verificación en línea</div></div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--t3);margin-top:12px;line-height:1.7">
+              Cada factura emitida genera una huella digital (hash SHA-256) que incluye los datos fiscales y el hash de la factura anterior, creando una cadena inviolable. Cualquier modificación retroactiva sería inmediatamente detectable. Esto garantiza el cumplimiento del artículo 7 del RD 1007/2023.
+            </div>
+          </div>
+        </div>
+
+        <!-- Registro de facturas Verifactu -->
+        <div class="section-card no-pad">
+          <div class="sc-header" style="padding:16px"><span class="sc-title">📋 Registro de facturas firmadas</span></div>
+          <table class="data-table" id="verifactuTable">
+            <thead><tr><th>Nº Factura</th><th>Fecha emisión</th><th>Cliente</th><th>Importe</th><th>Hash</th><th>QR</th><th>Estado</th></tr></thead>
+            <tbody id="verifactuBody"><tr class="dt-empty"><td colspan="7">Cargando registro Verifactu…</td></tr></tbody>
+          </table>
         </div>
       </div>
 
@@ -1021,13 +1612,10 @@
             </button>
           </div>
         </div>
-
         <div class="modelo-layout">
           <div class="modelo-left">
             <div class="modelo-card">
-              <div class="mc-header mc-header--blue">
-                <span>IVA Repercutido (cuotas devengadas)</span>
-              </div>
+              <div class="mc-header mc-header--blue"><span>IVA Repercutido (cuotas devengadas)</span></div>
               <div class="mc-body">
                 <div class="mc-row"><span>Operaciones interiores al tipo 21%</span><strong id="iva21Rep">0,00 €</strong></div>
                 <div class="mc-row"><span>Operaciones interiores al tipo 10%</span><strong id="iva10Rep">0,00 €</strong></div>
@@ -1035,34 +1623,14 @@
                 <div class="mc-row mc-row--total"><span>Total IVA repercutido</span><strong id="ivaTotalRep">0,00 €</strong></div>
               </div>
             </div>
-
             <div class="modelo-card" style="margin-top:16px">
-              <div class="mc-header mc-header--green">
-                <span>IVA Soportado (cuotas deducibles)</span>
-              </div>
+              <div class="mc-header mc-header--gray"><span>IVA Soportado deducible</span></div>
               <div class="mc-body">
-                <div class="mc-row"><span>Cuotas soportadas en operaciones interiores</span><strong id="ivaSoportadoInt">0,00 €</strong></div>
-                <div class="mc-row"><span>Cuotas en importaciones / adquisiciones</span><strong id="ivaSoportadoImp">0,00 €</strong></div>
+                <div class="mc-row"><span>IVA soportado interior</span><strong id="ivaSoportadoInt">0,00 €</strong></div>
+                <div class="mc-row"><span>IVA importaciones</span><strong id="ivaSoportadoImp">0,00 €</strong></div>
                 <div class="mc-row mc-row--total"><span>Total IVA deducible</span><strong id="ivaTotalSop">0,00 €</strong></div>
               </div>
             </div>
-          </div>
-
-          <div class="modelo-right">
-            <div class="modelo-resultado-card" id="ivaResultadoCard">
-              <div class="mrc-label">RESULTADO MODELO 303</div>
-              <div class="mrc-value" id="ivaResultado303">—</div>
-              <div class="mrc-status" id="ivaEstado303">—</div>
-              <div class="mrc-info">
-                <div class="mri-row"><span>IVA repercutido</span><span id="ivaRepSumary">—</span></div>
-                <div class="mri-row"><span>IVA deducible</span><span id="ivaSopSumary">—</span></div>
-              </div>
-              <div class="mrc-deadline">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span id="ivaDeadline">Plazo: —</span>
-              </div>
-            </div>
-
             <div class="modelo-card" style="margin-top:16px">
               <div class="mc-header mc-header--gray"><span>Desglose por tipo de operación</span></div>
               <div class="mc-body">
@@ -1070,6 +1638,21 @@
                 <div class="mc-row"><span>🇪🇺 Adquisiciones intracomunitarias</span><strong id="ivaOpIC">—</strong></div>
                 <div class="mc-row"><span>🌍 Exportaciones / Exentas</span><strong id="ivaOpExp">—</strong></div>
                 <div class="mc-row"><span>🔄 Inversión sujeto pasivo</span><strong id="ivaOpISP">—</strong></div>
+              </div>
+            </div>
+          </div>
+          <div class="modelo-right">
+            <div class="modelo-resultado-card" id="ivaResultadoCard" style="border-top-color:#1a56db">
+              <div class="mrc-label">RESULTADO MODELO 303</div>
+              <div class="mrc-value" id="ivaResultado303">—</div>
+              <div class="mrc-status" id="ivaEstado303">—</div>
+              <div class="mrc-info">
+                <div class="mri-row"><span>Total repercutido</span><span id="ivaRepSumary">—</span></div>
+                <div class="mri-row"><span>Total soportado</span><span id="ivaSopSumary">—</span></div>
+              </div>
+              <div class="mrc-deadline">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span id="ivaDeadline">Plazo: —</span>
               </div>
             </div>
           </div>
@@ -1090,7 +1673,6 @@
             </button>
           </div>
         </div>
-
         <div class="modelo-layout">
           <div class="modelo-left">
             <div class="modelo-card">
@@ -1101,7 +1683,6 @@
                 <div class="mc-row mc-row--total"><span>Total ingresos acumulados año</span><strong id="irpfIngTotal">—</strong></div>
               </div>
             </div>
-
             <div class="modelo-card" style="margin-top:16px">
               <div class="mc-header mc-header--gray"><span>Gastos deducibles de la actividad</span></div>
               <div class="mc-body">
@@ -1110,7 +1691,6 @@
                 <div class="mc-row mc-row--total"><span>Total gastos deducibles</span><strong id="irpfGstTotal">—</strong></div>
               </div>
             </div>
-
             <div class="modelo-card" style="margin-top:16px">
               <div class="mc-header mc-header--gray"><span>Retenciones soportadas</span></div>
               <div class="mc-body">
@@ -1119,7 +1699,6 @@
               </div>
             </div>
           </div>
-
           <div class="modelo-right">
             <div class="modelo-resultado-card" id="irpfResultadoCard" style="border-top-color:#4f46e5">
               <div class="mrc-label">RESULTADO MODELO 130</div>
@@ -1127,7 +1706,7 @@
               <div class="mrc-status" id="irpfEstado130">—</div>
               <div class="mrc-info">
                 <div class="mri-row"><span>Rendimiento neto (ing − gst)</span><span id="irpfRendNeto">—</span></div>
-                <div class="mri-row"><span>20% de pago fraccionado</span><span id="irpfPagoFrac">—</span></div>
+                <div class="mri-row"><span>20% pago fraccionado</span><span id="irpfPagoFrac">—</span></div>
                 <div class="mri-row"><span>Menos retenciones soportadas</span><span id="irpfMenosRet">—</span></div>
                 <div class="mri-row"><span>Menos pagos anteriores</span><span id="irpfMenosPagAnt">0,00 €</span></div>
               </div>
@@ -1136,7 +1715,6 @@
                 <span id="irpfDeadline">Plazo: —</span>
               </div>
             </div>
-
             <div class="modelo-card" style="margin-top:16px">
               <div class="mc-header mc-header--gray"><span>Proyección anual estimada</span></div>
               <div class="mc-body">
@@ -1148,20 +1726,206 @@
         </div>
       </div>
 
-      <!-- ═══ VIEW: LIBROS ═══ -->
+      <!-- ═══ VIEW: IMPUESTO DE SOCIEDADES ═══ -->
+      <div class="view" id="view-is">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Impuesto de Sociedades</h1>
+            <p class="view-sub">Modelos 200 y 202 · Pagos fraccionados · Liquidación anual</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-outline" id="exportISBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar IS
+            </button>
+          </div>
+        </div>
+
+        <!-- KPIs IS -->
+        <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
+          <div class="kpi-card kpi-blue"><div class="kpi-top"><span class="kpi-lbl">Resultado contable</span></div><div class="kpi-val" id="isResultContable">—</div><div class="kpi-sub">Ingresos − gastos contables</div></div>
+          <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">Base imponible IS</div><div class="kpi-val" id="isBaseImp">—</div><div class="kpi-sub">Tras ajustes extracontables</div></div>
+          <div class="kpi-card kpi-red"><div class="kpi-top"><span class="kpi-lbl">Cuota íntegra (25%)</span></div><div class="kpi-val" id="isCuotaIntegra">—</div></div>
+          <div class="kpi-card kpi-green"><div class="kpi-top"><span class="kpi-lbl">Cuota diferencial</span></div><div class="kpi-val" id="isCuotaDif">—</div><div class="kpi-sub">Tras retenciones y pagos frac.</div></div>
+        </div>
+
+        <div class="modelo-layout">
+          <div class="modelo-left">
+            <!-- Resultado contable -->
+            <div class="modelo-card">
+              <div class="mc-header mc-header--blue"><span>Cuenta de Pérdidas y Ganancias</span></div>
+              <div class="mc-body">
+                <div class="mc-row"><span>Ingresos de explotación</span><strong id="isIngExplot">—</strong></div>
+                <div class="mc-row"><span>Gastos de explotación</span><strong id="isGstExplot">—</strong></div>
+                <div class="mc-row"><span>Resultado de explotación (BAII)</span><strong id="isBAII">—</strong></div>
+                <div class="mc-row" style="opacity:.6"><span>Ingresos financieros</span><strong id="isIngFin">0,00 €</strong></div>
+                <div class="mc-row" style="opacity:.6"><span>Gastos financieros</span><strong id="isGstFin">0,00 €</strong></div>
+                <div class="mc-row mc-row--total"><span>Resultado antes de impuestos (BAI)</span><strong id="isBAI">—</strong></div>
+              </div>
+            </div>
+
+            <!-- Ajustes extracontables -->
+            <div class="modelo-card" style="margin-top:16px">
+              <div class="mc-header mc-header--gray"><span>Ajustes extracontables al resultado contable</span></div>
+              <div class="mc-body">
+                <div class="mc-row"><span>Gastos no deducibles (multas, donativos…)</span><strong id="isAjPos">0,00 €</strong></div>
+                <div class="mc-row"><span>Reducciones aplicables (ERD, I+D+i…)</span><strong id="isAjNeg" style="color:#059669">0,00 €</strong></div>
+                <div class="mc-row mc-row--total"><span>Base imponible ajustada</span><strong id="isBaseAjust">—</strong></div>
+              </div>
+            </div>
+
+            <!-- Desglose cuota -->
+            <div class="modelo-card" style="margin-top:16px">
+              <div class="mc-header mc-header--gray"><span>Liquidación Modelo 200</span></div>
+              <div class="mc-body">
+                <div class="mc-row"><span>Base imponible × tipo (25%)</span><strong id="isCuotaIntBruta">—</strong></div>
+                <div class="mc-row"><span>Deducciones doble imposición</span><strong id="isDeducciones">0,00 €</strong></div>
+                <div class="mc-row"><span>Bonificaciones</span><strong id="isBonificaciones">0,00 €</strong></div>
+                <div class="mc-row"><span>Cuota íntegra ajustada</span><strong id="isCuotaIntAjust">—</strong></div>
+                <div class="mc-row"><span>Retenciones y pagos a cuenta</span><strong id="isRetenciones">—</strong></div>
+                <div class="mc-row"><span>Pagos fraccionados (Mod. 202)</span><strong id="isPagosFrac">—</strong></div>
+                <div class="mc-row mc-row--total"><span>CUOTA DIFERENCIAL</span><strong id="isCuotaDif2">—</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modelo-right">
+            <div class="modelo-resultado-card" style="border-top-color:#7c3aed">
+              <div class="mrc-label">RESULTADO MODELO 200</div>
+              <div class="mrc-value" id="isResultFinal">—</div>
+              <div class="mrc-status" id="isEstado">—</div>
+              <div class="mrc-info">
+                <div class="mri-row"><span>Tipo general aplicado</span><span>25%</span></div>
+                <div class="mri-row"><span>Ejercicio fiscal</span><span id="isEjercicio">—</span></div>
+              </div>
+              <div class="mrc-deadline">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span>Plazo: 25 de julio</span>
+              </div>
+            </div>
+
+            <!-- Calendario IS -->
+            <div class="modelo-card" style="margin-top:16px">
+              <div class="mc-header mc-header--gray"><span>Calendario de obligaciones IS</span></div>
+              <div class="mc-body">
+                <div class="mc-row"><span>Modelo 202 pago 1º (abril)</span><strong>20 Abr</strong></div>
+                <div class="mc-row"><span>Modelo 202 pago 2º (octubre)</span><strong>20 Oct</strong></div>
+                <div class="mc-row"><span>Modelo 200 liquidación anual</span><strong>25 Jul</strong></div>
+                <div class="mc-row"><span>Cuentas anuales (Registro Mercantil)</span><strong>30 Sep</strong></div>
+              </div>
+            </div>
+
+            <!-- Tipo efectivo -->
+            <div class="modelo-card" style="margin-top:16px">
+              <div class="mc-header mc-header--gray"><span>Análisis fiscal</span></div>
+              <div class="mc-body">
+                <div class="mc-row"><span>Tipo efectivo IS</span><strong id="isTipoEf">—</strong></div>
+                <div class="mc-row"><span>ROE estimado</span><strong id="isROE">—</strong></div>
+                <div class="mc-row"><span>Carga fiscal total (IRPF + IS)</span><strong id="isCargaTotal">—</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: OTROS MODELOS ═══ -->
+      <div class="view" id="view-otros-modelos">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Otros Modelos Fiscales</h1>
+            <p class="view-sub">Modelos 111, 115, 123, 347, 349 y más</p>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+          <!-- Modelo 111 -->
+          <div class="modelo-extra-card">
+            <div class="me-header">
+              <div class="me-num">111</div>
+              <div class="me-info"><h4>Retenciones IRPF trabajadores</h4><p>Trimestral · Rendimientos trabajo y profesionales</p></div>
+            </div>
+            <div class="me-body"><p>Retenciones e ingresos a cuenta del IRPF sobre rendimientos del trabajo (nóminas) y actividades económicas (facturas con retención). Incluye resumen anual Modelo 190.</p></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+              <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px">Retenciones nóminas: <strong id="m111Nominas">—</strong></div>
+              <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px">Retenciones profesionales: <strong id="m111Prof">—</strong></div>
+            </div>
+            <div class="me-deadline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Plazo T2: 20 de julio</div>
+            <button class="btn-outline" style="margin-top:12px;font-size:12px;padding:7px 14px" id="export111Btn">Exportar Modelo 111</button>
+          </div>
+
+          <!-- Modelo 115 -->
+          <div class="modelo-extra-card">
+            <div class="me-header">
+              <div class="me-num">115</div>
+              <div class="me-info"><h4>Retenciones arrendamientos</h4><p>Trimestral · Alquiler de inmuebles</p></div>
+            </div>
+            <div class="me-body"><p>Retenciones e ingresos a cuenta del IRPF correspondientes a arrendamientos de inmuebles urbanos. Aplica si pagas alquiler de local u oficina. Tipo general: 19%.</p></div>
+            <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px;margin-bottom:12px">Base arrendamientos: <strong id="m115Base">—</strong></div>
+            <div class="me-deadline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Plazo T2: 20 de julio</div>
+            <button class="btn-outline" style="margin-top:12px;font-size:12px;padding:7px 14px" id="export115Btn">Exportar Modelo 115</button>
+          </div>
+
+          <!-- Modelo 347 -->
+          <div class="modelo-extra-card">
+            <div class="me-header">
+              <div class="me-num">347</div>
+              <div class="me-info"><h4>Operaciones con terceros</h4><p>Anual · Más de 3.005,06€ acumulados</p></div>
+            </div>
+            <div class="me-body"><p>Declaración anual de operaciones con terceras personas que superan los 3.005,06€. Incluye clientes y proveedores. Plazo de presentación: febrero del año siguiente.</p></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+              <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px">Partes declarables: <strong id="m347Count">—</strong></div>
+            </div>
+            <div class="me-deadline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Plazo: Febrero año siguiente</div>
+            <button class="btn-outline" style="margin-top:12px;font-size:12px;padding:7px 14px" id="export347Btn">Exportar Modelo 347</button>
+          </div>
+
+          <!-- Modelo 349 -->
+          <div class="modelo-extra-card">
+            <div class="me-header">
+              <div class="me-num">349</div>
+              <div class="me-info"><h4>Operaciones intracomunitarias</h4><p>Mensual / Trimestral / Anual</p></div>
+            </div>
+            <div class="me-body"><p>Declaración recapitulativa de operaciones intracomunitarias. Obligatorio si realizas entregas o adquisiciones de bienes o servicios con empresas de la UE. Solo se presenta si hay operaciones.</p></div>
+            <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px;margin-bottom:12px">Operaciones IC en periodo: <strong id="m349Count">—</strong></div>
+            <div class="me-deadline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Plazo T2: 20 de julio</div>
+            <button class="btn-outline" style="margin-top:12px;font-size:12px;padding:7px 14px" id="export349Btn">Exportar Modelo 349</button>
+          </div>
+
+          <!-- Modelo 190 -->
+          <div class="modelo-extra-card">
+            <div class="me-header">
+              <div class="me-num">190</div>
+              <div class="me-info"><h4>Resumen anual retenciones</h4><p>Anual · Resumen del Modelo 111</p></div>
+            </div>
+            <div class="me-body"><p>Resumen anual de retenciones e ingresos a cuenta del IRPF. Incluye perceptores de rendimientos del trabajo y de actividades económicas. Obligatorio si presentas el 111.</p></div>
+            <div class="me-deadline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Plazo: Enero año siguiente</div>
+            <button class="btn-outline" style="margin-top:12px;font-size:12px;padding:7px 14px" id="export190Btn">Exportar Modelo 190</button>
+          </div>
+
+          <!-- Modelo 390 -->
+          <div class="modelo-extra-card">
+            <div class="me-header">
+              <div class="me-num">390</div>
+              <div class="me-info"><h4>Resumen anual IVA</h4><p>Anual · Resumen del Modelo 303</p></div>
+            </div>
+            <div class="me-body"><p>Declaración informativa que resume las operaciones del ejercicio relativas al IVA. Complementa al Modelo 303 y está exento de presentación si usas SII (Suministro Inmediato de Información).</p></div>
+            <div class="me-deadline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Plazo: Enero año siguiente</div>
+            <button class="btn-outline" style="margin-top:12px;font-size:12px;padding:7px 14px" id="export390Btn">Exportar Modelo 390</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: LIBROS OFICIALES ═══ -->
       <div class="view" id="view-libros">
         <div class="view-header">
           <div class="view-title-group">
             <h1 class="view-title">Libros oficiales AEAT</h1>
-            <p class="view-sub">Conforme al Art. 68 Reglamento IRPF · RD 439/2007</p>
+            <p class="view-sub">Conforme al Art. 68 Reglamento IRPF · RD 439/2007 · Art. 62 Reglamento IVA</p>
           </div>
         </div>
-
         <div class="libros-grid">
           <div class="libro-card libro-card--ingresos">
-            <div class="libro-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-            </div>
+            <div class="libro-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div>
             <h3>Libro de Ingresos</h3>
             <p>Registro cronológico de todas las facturas emitidas con numeración legal. Obligatorio para autónomos en estimación directa.</p>
             <div class="libro-legal-ref">📋 Art. 68.1 Reglamento IRPF</div>
@@ -1173,11 +1937,8 @@
               <button class="btn-outline" id="exportLibroIngExcelBtn">Excel</button>
             </div>
           </div>
-
           <div class="libro-card libro-card--gastos">
-            <div class="libro-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
-            </div>
+            <div class="libro-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
             <h3>Libro de Gastos</h3>
             <p>Registro de todas las facturas recibidas y gastos deducibles. Incluye desglose de IVA soportado deducible.</p>
             <div class="libro-legal-ref">📋 Art. 68.2 Reglamento IRPF</div>
@@ -1189,23 +1950,17 @@
               <button class="btn-outline" id="exportLibroGstExcelBtn">Excel</button>
             </div>
           </div>
-
           <div class="libro-card libro-card--bienes">
-            <div class="libro-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
-            </div>
+            <div class="libro-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg></div>
             <h3>Libro de Bienes de Inversión</h3>
-            <p>Registro de activos afectos a la actividad. Requerido para la regularización del IVA de bienes de inversión.</p>
+            <p>Registro de activos afectos a la actividad. Requerido para la regularización del IVA de bienes de inversión (art. 104-110 LIVA).</p>
             <div class="libro-legal-ref">📋 Art. 104-110 LIVA</div>
             <div class="libro-actions">
               <button class="btn-outline" id="exportLibroBienesBtn">Exportar PDF</button>
             </div>
           </div>
-
           <div class="libro-card libro-card--provision">
-            <div class="libro-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            </div>
+            <div class="libro-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
             <h3>Provisiones y Suplidos</h3>
             <p>Registro de provisiones de fondos y suplidos. Necesario para actividades profesionales con cobros a cuenta.</p>
             <div class="libro-legal-ref">📋 Art. 68.3 Reglamento IRPF</div>
@@ -1214,130 +1969,344 @@
             </div>
           </div>
         </div>
-
         <div class="legal-disclaimer">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <p>Los libros registros generados cumplen con los requisitos formales establecidos en el artículo 68 del Reglamento del IRPF (RD 439/2007) y en el artículo 62 del Reglamento del IVA (RD 1624/1992). Se recomienda su conservación durante al menos 4 años (plazo de prescripción tributaria). Este software no sustituye el asesoramiento de un profesional tributario.</p>
         </div>
       </div>
 
-      <!-- ═══ VIEW: HISTORICO ═══ -->
-      <div class="view" id="view-historico">
+      <!-- ═══ VIEW: CONTABILIDAD PGC ═══ -->
+      <div class="view" id="view-contabilidad">
         <div class="view-header">
           <div class="view-title-group">
-            <h1 class="view-title">Análisis anual</h1>
-            <p class="view-sub" id="histYearLabel">—</p>
+            <h1 class="view-title">Contabilidad · Plan General Contable</h1>
+            <p class="view-sub">Asientos automáticos · Libro diario · Mayor · Balance de comprobación · Cuenta de resultados</p>
           </div>
           <div class="view-actions">
-            <button class="btn-outline" id="exportHistExcelBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-              Exportar Excel
+            <button class="btn-outline" id="contabExportBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar
             </button>
+            <button class="btn-primary" id="nuevoAsientoBtn">+ Asiento manual</button>
           </div>
         </div>
 
-        <div class="kpi-row" style="margin-bottom:28px">
-          <div class="kpi-card kpi-blue">
-            <div class="kpi-top"><span class="kpi-lbl">Ingresos anuales</span></div>
-            <div class="kpi-val" id="histIngAnual">—</div>
+        <div class="contab-tabs">
+          <button class="contab-tab active" data-ctab="diario">Libro Diario</button>
+          <button class="contab-tab" data-ctab="mayor">Libro Mayor</button>
+          <button class="contab-tab" data-ctab="sumas-saldos">Sumas y Saldos</button>
+          <button class="contab-tab" data-ctab="balance">Balance de situación</button>
+          <button class="contab-tab" data-ctab="pyg">Pérdidas y Ganancias</button>
+          <button class="contab-tab" data-ctab="plan">Plan de cuentas</button>
+        </div>
+
+        <!-- Panel: Libro Diario -->
+        <div id="ctabPanel_diario" class="section-card no-pad">
+          <div class="sc-header" style="padding:16px">
+            <span class="sc-title">📖 Libro Diario</span>
+            <span style="font-size:12px;color:var(--t3)">Asientos generados automáticamente desde facturas, gastos y nóminas</span>
           </div>
-          <div class="kpi-card kpi-red">
-            <div class="kpi-top"><span class="kpi-lbl">Gastos anuales</span></div>
-            <div class="kpi-val" id="histGstAnual">—</div>
+          <!-- Cabecera asientos -->
+          <div class="asiento-row asiento-hd">
+            <div>Fecha</div><div>Concepto</div><div>Cuenta</div><div>Debe</div><div>Haber</div>
           </div>
-          <div class="kpi-card kpi-green">
-            <div class="kpi-top"><span class="kpi-lbl">Beneficio anual</span></div>
-            <div class="kpi-val" id="histBenAnual">—</div>
-          </div>
-          <div class="kpi-card kpi-amber">
-            <div class="kpi-top"><span class="kpi-lbl">IVA total año</span></div>
-            <div class="kpi-val" id="histIvaAnual">—</div>
-          </div>
-          <div class="kpi-card kpi-indigo">
-            <div class="kpi-top"><span class="kpi-lbl">IRPF total año</span></div>
-            <div class="kpi-val" id="histIrpfAnual">—</div>
+          <div id="asientosBody">
+            <!-- Asiento de ejemplo — se renderiza dinámicamente -->
+            <div class="asiento-row">
+              <div style="font-size:12px;color:var(--t3)">—</div>
+              <div style="font-size:13px;color:var(--t2)">Cargando asientos…</div>
+              <div class="asiento-cuenta">—</div>
+              <div class="asiento-debe">—</div>
+              <div class="asiento-haber">—</div>
+            </div>
           </div>
         </div>
 
-        <div class="section-card" style="margin-bottom:24px">
-          <div class="sc-header"><span class="sc-title">Comparativa trimestral IVA</span></div>
-          <table class="data-table" id="histIvaTable">
-            <thead><tr><th>Trimestre</th><th>IVA Repercutido</th><th>IVA Deducible</th><th>Resultado 303</th><th>Estado</th></tr></thead>
-            <tbody id="histIvaBody"><tr class="dt-empty"><td colspan="5">Cargando…</td></tr></tbody>
+        <!-- Panel: Sumas y Saldos -->
+        <div id="ctabPanel_sumas-saldos" class="section-card no-pad" style="display:none">
+          <div class="sc-header" style="padding:16px"><span class="sc-title">📊 Balance de Comprobación de Sumas y Saldos</span></div>
+          <table class="data-table" id="sumasSaldosTable">
+            <thead><tr><th>Cuenta</th><th>Descripción</th><th>Sumas Debe</th><th>Sumas Haber</th><th>Saldo Deudor</th><th>Saldo Acreedor</th></tr></thead>
+            <tbody id="sumasSaldosBody"><tr class="dt-empty"><td colspan="6">Cargando…</td></tr></tbody>
           </table>
         </div>
 
-        <div class="section-card">
-          <div class="sc-header"><span class="sc-title">Comparativa trimestral IRPF</span></div>
-          <table class="data-table" id="histIrpfTable">
-            <thead><tr><th>Trimestre</th><th>Ingresos</th><th>Gastos</th><th>Rendimiento neto</th><th>Retenciones</th><th>Resultado 130</th></tr></thead>
-            <tbody id="histIrpfBody"><tr class="dt-empty"><td colspan="6">Cargando…</td></tr></tbody>
-          </table>
+        <!-- Panel: PyG simplificada -->
+        <div id="ctabPanel_pyg" class="modelo-layout" style="display:none">
+          <div class="modelo-left">
+            <div class="modelo-card">
+              <div class="mc-header mc-header--blue"><span>A) Operaciones continuadas</span></div>
+              <div class="mc-body">
+                <div class="mc-row"><span>1. Importe neto de la cifra de negocios</span><strong id="pygCifraNegocios">—</strong></div>
+                <div class="mc-row"><span>4. Aprovisionamientos</span><strong id="pygAprovision" style="color:#dc2626">—</strong></div>
+                <div class="mc-row"><span>6. Gastos de personal</span><strong id="pygGstPersonal" style="color:#dc2626">—</strong></div>
+                <div class="mc-row"><span>7. Otros gastos de explotación</span><strong id="pygOtrosGst" style="color:#dc2626">—</strong></div>
+                <div class="mc-row"><span>8. Amortización del inmovilizado</span><strong id="pygAmort" style="color:#dc2626">—</strong></div>
+                <div class="mc-row mc-row--total"><span>A.1) RESULTADO DE EXPLOTACIÓN</span><strong id="pygResultExplot">—</strong></div>
+                <div class="mc-row mc-row--total" style="background:var(--bg1)"><span>A.2) RESULTADO ANTES DE IMPUESTOS</span><strong id="pygBAI">—</strong></div>
+                <div class="mc-row"><span>Impuesto sobre beneficios (IS 25%)</span><strong id="pygIS" style="color:#dc2626">—</strong></div>
+                <div class="mc-row mc-row--total" style="background:#f0fdf4"><span>A.3) RESULTADO DEL EJERCICIO</span><strong id="pygResultEjercicio" style="color:#059669">—</strong></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- ═══ VIEW: PRESUPUESTOS ═══ -->
-      <div class="view" id="view-presupuestos">
+      <!-- ═══ VIEW: TESORERÍA ═══ -->
+      <div class="view" id="view-tesoreria">
         <div class="view-header">
           <div class="view-title-group">
-            <h1 class="view-title">Presupuestos</h1>
-            <p class="view-sub" id="presCount">— presupuestos en el periodo</p>
+            <h1 class="view-title">Tesorería y Banco</h1>
+            <p class="view-sub">Conciliación bancaria · Cashflow · Previsión de pagos</p>
           </div>
           <div class="view-actions">
-            <button class="btn-primary" id="nuevoPresBtn">
+            <button class="btn-outline" id="importarBancoBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Importar extracto
+            </button>
+            <button class="btn-primary" id="nuevaCuentaBtn">+ Cuenta bancaria</button>
+          </div>
+        </div>
+
+        <!-- KPIs Tesorería -->
+        <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
+          <div class="kpi-card kpi-blue"><div class="kpi-top"><span class="kpi-lbl">Saldo total cuentas</span></div><div class="kpi-val" id="tesoCuentas">—</div></div>
+          <div class="kpi-card kpi-green"><div class="kpi-top"><span class="kpi-lbl">Cobros previstos 30d</span></div><div class="kpi-val" id="tesoCobrosPrev">—</div></div>
+          <div class="kpi-card kpi-red"><div class="kpi-top"><span class="kpi-lbl">Pagos previstos 30d</span></div><div class="kpi-val" id="tesoPagosPrev">—</div></div>
+          <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">Posición neta 30d</span></div><div class="kpi-val" id="tesoNeta">—</div></div>
+        </div>
+
+        <!-- Movimientos bancarios -->
+        <div class="section-card" style="margin-bottom:20px">
+          <div class="sc-header">
+            <span class="sc-title">🏦 Movimientos bancarios — Conciliación</span>
+            <span style="font-size:12px;color:var(--t3)" id="bancoCountPend"></span>
+          </div>
+          <div id="bancoMovimientos">
+            <!-- Ejemplos visuales -->
+            <div class="bank-row">
+              <div class="bank-row-icon">💰</div>
+              <div class="bank-row-info">
+                <div class="bank-row-desc">Transferencia recibida · Empresa ABC S.L.</div>
+                <div class="bank-row-date">15/06/2025 · BBVA ES91 2100</div>
+              </div>
+              <div class="bank-row-amt pos">+2.420,00 €</div>
+              <div class="bank-row-status"><span class="badge b-cobrada">Conciliado</span></div>
+            </div>
+            <div class="bank-row">
+              <div class="bank-row-icon">📤</div>
+              <div class="bank-row-info">
+                <div class="bank-row-desc">Pago alquiler oficina</div>
+                <div class="bank-row-date">01/06/2025 · IBAN origen</div>
+              </div>
+              <div class="bank-row-amt neg">-850,00 €</div>
+              <div class="bank-row-status"><span class="badge b-cobrada">Conciliado</span></div>
+            </div>
+            <div class="bank-row" style="background:rgba(251,191,36,.04)">
+              <div class="bank-row-icon">❓</div>
+              <div class="bank-row-info">
+                <div class="bank-row-desc">Cargo desconocido · AMZN MKTP ES</div>
+                <div class="bank-row-date">10/06/2025</div>
+              </div>
+              <div class="bank-row-amt neg">-149,99 €</div>
+              <div class="bank-row-status"><span class="badge b-pendiente">Sin conciliar</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cashflow mensual -->
+        <div class="section-card">
+          <div class="sc-header"><span class="sc-title">📈 Cashflow mensual</span></div>
+          <div style="padding:8px 0">
+            <div class="cf-row" style="background:var(--bg2);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--t3)">
+              <div class="cf-mes">Mes</div>
+              <div class="cf-bar-wrap">Flujo (cobros − pagos)</div>
+              <div class="cf-val">Neto</div>
+            </div>
+            <div id="cashflowRows">
+              <div class="cf-row"><div class="cf-mes">Ene</div><div class="cf-bar-wrap"><div class="cf-bar-pos" style="width:60%"></div></div><div class="cf-val" style="color:#059669">+4.210 €</div></div>
+              <div class="cf-row"><div class="cf-mes">Feb</div><div class="cf-bar-wrap"><div class="cf-bar-pos" style="width:45%"></div></div><div class="cf-val" style="color:#059669">+2.890 €</div></div>
+              <div class="cf-row"><div class="cf-mes">Mar</div><div class="cf-bar-wrap"><div class="cf-bar-neg" style="width:20%"></div></div><div class="cf-val" style="color:#dc2626">-1.240 €</div></div>
+              <div class="cf-row"><div class="cf-mes">Abr</div><div class="cf-bar-wrap"><div class="cf-bar-pos" style="width:80%"></div></div><div class="cf-val" style="color:#059669">+6.540 €</div></div>
+              <div class="cf-row"><div class="cf-mes">May</div><div class="cf-bar-wrap"><div class="cf-bar-pos" style="width:55%"></div></div><div class="cf-val" style="color:#059669">+3.180 €</div></div>
+              <div class="cf-row"><div class="cf-mes">Jun</div><div class="cf-bar-wrap"><div class="cf-bar-pos" style="width:70%"></div></div><div class="cf-val" style="color:#059669">+5.020 €</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: EMPLEADOS ═══ -->
+      <div class="view" id="view-empleados">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Empleados</h1>
+            <p class="view-sub" id="empleadosCount">— empleados activos</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-primary" id="nuevoEmpleadoBtn">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Nuevo presupuesto
+              Añadir empleado
             </button>
           </div>
         </div>
 
-        <!-- KPIs presupuestos -->
+        <!-- KPIs empleados -->
         <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
-          <div class="kpi-card kpi-blue">
-            <div class="kpi-top"><span class="kpi-lbl">Total presupuestado</span></div>
-            <div class="kpi-val" id="presKpiTotal">—</div>
+          <div class="kpi-card kpi-blue"><div class="kpi-top"><span class="kpi-lbl">Total empleados</span></div><div class="kpi-val" id="kpiEmpleados">—</div></div>
+          <div class="kpi-card kpi-red"><div class="kpi-top"><span class="kpi-lbl">Coste salarial mes</span></div><div class="kpi-val" id="kpiCosteSalarial">—</div><div class="kpi-sub">Incl. SS empresa</div></div>
+          <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">Retención IRPF acum.</span></div><div class="kpi-val" id="kpiIrpfNom">—</div></div>
+          <div class="kpi-card kpi-green"><div class="kpi-top"><span class="kpi-lbl">SS trabajadores acum.</span></div><div class="kpi-val" id="kpiSSNom">—</div></div>
+        </div>
+
+        <div id="empleadosGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+          <!-- Tarjetas de empleados se renderizan aquí -->
+          <div style="text-align:center;padding:40px;color:var(--t3);grid-column:1/-1">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 12px;display:block;opacity:.3"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.74"/></svg>
+            <p style="font-size:13px">No hay empleados registrados. Añade tu primer empleado.</p>
           </div>
-          <div class="kpi-card kpi-green">
-            <div class="kpi-top"><span class="kpi-lbl">Aceptados</span></div>
-            <div class="kpi-val" id="presKpiAceptados">—</div>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: NÓMINAS ═══ -->
+      <div class="view" id="view-nominas">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Nóminas</h1>
+            <p class="view-sub">Generación, cálculo de SS e IRPF · Exportación PDF · Modelos 111 y TC2</p>
           </div>
-          <div class="kpi-card kpi-amber">
-            <div class="kpi-top"><span class="kpi-lbl">Pendientes de respuesta</span></div>
-            <div class="kpi-val" id="presKpiPendientes">—</div>
-          </div>
-          <div class="kpi-card kpi-indigo">
-            <div class="kpi-top"><span class="kpi-lbl">Tasa de conversión</span></div>
-            <div class="kpi-val" id="presKpiTasa">—</div>
+          <div class="view-actions">
+            <button class="btn-outline" id="exportNominasBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar mes
+            </button>
+            <button class="btn-primary" id="generarNominaBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Generar nómina mes
+            </button>
           </div>
         </div>
 
-        <div class="filter-bar">
-          <input type="text" id="presSearch" class="search-input" placeholder="Buscar por concepto, número, cliente…" style="min-width:220px"/>
-          <select id="presFilterEstado" class="filter-sel">
+        <!-- Filtros nóminas -->
+        <div class="filter-bar" style="margin-bottom:16px">
+          <select id="nominasMes" class="filter-sel">
+            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+            <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+            <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+            <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+          </select>
+          <select id="nominasAnio" class="filter-sel">
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+          </select>
+          <select id="nominasEstado" class="filter-sel">
             <option value="">Todos los estados</option>
-            <option value="borrador">Borrador</option>
-            <option value="enviado">Enviado</option>
-            <option value="aceptado">Aceptado</option>
-            <option value="rechazado">Rechazado</option>
-            <option value="albaran">Albarán</option>
+            <option value="calculada">Calculada</option>
+            <option value="pagada">Pagada</option>
+            <option value="pendiente">Pendiente</option>
           </select>
         </div>
 
+        <!-- Tabla nóminas -->
         <div class="section-card no-pad">
-          <table class="data-table" id="presTable">
-            <thead>
-              <tr>
-                <th>Fecha</th><th>Nº</th><th>Concepto</th><th>Cliente</th>
-                <th>Importe</th><th>Estado</th><th>Válido hasta</th><th>Aceptado</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="presBody"><tr class="dt-empty"><td colspan="9">Cargando presupuestos…</td></tr></tbody>
-          </table>
+          <!-- Cabecera -->
+          <div class="nomina-row" style="background:var(--bg2);font-size:11px;font-weight:700;text-transform:uppercase;color:var(--t3);letter-spacing:.04em;border-bottom:1px solid var(--brd)">
+            <div style="padding:10px 14px">Empleado</div>
+            <div style="padding:10px 14px">S. Bruto</div>
+            <div style="padding:10px 14px">SS Trab.</div>
+            <div style="padding:10px 14px">IRPF</div>
+            <div style="padding:10px 14px">SS Empresa</div>
+            <div style="padding:10px 14px">S. Neto</div>
+            <div style="padding:10px 14px">Acciones</div>
+          </div>
+          <div id="nominasBody">
+            <div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">
+              No hay nóminas generadas para este periodo. Usa "Generar nómina mes" para calcular automáticamente.
+            </div>
+          </div>
+          <!-- Totales -->
+          <div style="background:var(--bg2);padding:12px 14px;border-top:2px solid var(--brd);display:grid;grid-template-columns:1fr 100px 100px 100px 100px 100px 120px;gap:0;font-size:13px;font-weight:700">
+            <div>TOTALES</div>
+            <div id="nomTotalBruto">—</div>
+            <div id="nomTotalSSTrab">—</div>
+            <div id="nomTotalIRPF">—</div>
+            <div id="nomTotalSSEmp">—</div>
+            <div id="nomTotalNeto">—</div>
+            <div></div>
+          </div>
         </div>
 
-        <div class="pres-info-bar">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          Los presupuestos aceptados se convierten automáticamente en facturas con un clic. El presupuesto queda archivado y vinculado a la factura.
+        <!-- Generación de TC2 y documentos SS -->
+        <div class="section-card" style="margin-top:20px">
+          <div class="sc-header"><span class="sc-title">📄 Documentos Seguridad Social</span></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:16px 0">
+            <div class="doc-card" id="exportTC1Btn">
+              <div class="doc-card-icon">📋</div>
+              <div class="doc-card-name">TC1 · Boletín de cotización</div>
+              <div class="doc-card-desc">Liquidación de cuotas mensuales a la SS empresa</div>
+            </div>
+            <div class="doc-card" id="exportTC2Btn">
+              <div class="doc-card-icon">👥</div>
+              <div class="doc-card-name">TC2 · Relación nominal</div>
+              <div class="doc-card-desc">Listado de trabajadores y bases de cotización</div>
+            </div>
+            <div class="doc-card" id="exportSEPANominasBtn">
+              <div class="doc-card-icon">🏦</div>
+              <div class="doc-card-name">SEPA · Fichero pagos</div>
+              <div class="doc-card-desc">Fichero XML para pagos masivos desde banca online</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: SEGURIDAD SOCIAL ═══ -->
+      <div class="view" id="view-ss">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Seguridad Social</h1>
+            <p class="view-sub">Cotizaciones, altas/bajas trabajadores, autónomos (RETA)</p>
+          </div>
+        </div>
+
+        <!-- Autónomos RETA -->
+        <div class="section-card" style="margin-bottom:20px">
+          <div class="sc-header"><span class="sc-title">💼 Cuota autónomo (RETA) — Sistema de cotización por ingresos reales</span></div>
+          <div style="padding:16px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
+              <div>
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--t3);letter-spacing:.05em;margin-bottom:6px">Ingresos anuales estimados</div>
+                <input type="number" id="retaIngresos" class="ff-input" placeholder="25000" style="width:100%;"/>
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--t3);letter-spacing:.05em;margin-bottom:6px">Tramo de cotización</div>
+                <select id="retaTramo" class="ff-select" style="width:100%">
+                  <option value="tramo1">Hasta 670€/mes → 230€/mes</option>
+                  <option value="tramo2">670–900€/mes → 260€/mes</option>
+                  <option value="tramo3">900–1.166€/mes → 275€/mes</option>
+                  <option value="tramo4">1.166–1.300€/mes → 291€/mes</option>
+                  <option value="tramo5">1.300–1.500€/mes → 294€/mes</option>
+                  <option value="tramo6">1.500–1.700€/mes → 294€/mes</option>
+                  <option value="tramo7">1.700–1.850€/mes → 350€/mes</option>
+                  <option value="tramo8">Más de 1.850€/mes → 530€/mes</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--t3);letter-spacing:.05em;margin-bottom:6px">Cuota mensual estimada</div>
+                <div style="font-size:32px;font-weight:800;font-family:monospace;color:var(--accent)" id="retaCuota">—</div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--t3);line-height:1.7">
+              Desde 2023, los autónomos cotizan según sus ingresos reales netos del año (rendimientos de la actividad económica). Al final del ejercicio, la TGSS regulariza la cuota según los ingresos declarados. Si has cotizado de menos, pagarás la diferencia; si has cotizado de más, recibirás la devolución.
+            </div>
+          </div>
+        </div>
+
+        <!-- Altas y bajas trabajadores -->
+        <div class="section-card no-pad">
+          <div class="sc-header" style="padding:16px"><span class="sc-title">👥 Altas y bajas en la Seguridad Social</span></div>
+          <table class="data-table" id="altasBajasTable">
+            <thead><tr><th>Trabajador</th><th>NAF / NAF seguridad</th><th>CCC empresa</th><th>Tipo contrato</th><th>Fecha alta</th><th>Fecha baja</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="altasBajasBody"><tr class="dt-empty"><td colspan="8">Sin movimientos de afiliación registrados</td></tr></tbody>
+          </table>
         </div>
       </div>
 
@@ -1349,20 +2318,16 @@
             <p class="view-sub">Gestiona tus proveedores habituales y automatiza los gastos periódicos</p>
           </div>
         </div>
-
-        <!-- Tabs -->
         <div class="gastos-tabs">
           <button class="gastos-tab active" data-tab="proveedores">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
             Proveedores
           </button>
           <button class="gastos-tab" data-tab="recurrentes">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/></svg>
             Gastos Recurrentes
           </button>
         </div>
-
-        <!-- Panel proveedores -->
         <div class="gastos-panel active" id="gastosPanel_proveedores">
           <div class="panel-toolbar">
             <div class="search-bar-wrap">
@@ -1377,13 +2342,11 @@
           <p id="provCount" style="font-size:12px;color:var(--t3);margin:0 0 12px">—</p>
           <div class="section-card no-pad">
             <table class="data-table">
-              <thead><tr><th>Nombre</th><th>NIF</th><th>Email</th><th>Teléfono</th><th>Categoría</th><th>Estado</th><th></th></tr></thead>
-              <tbody id="provBody"><tr class="dt-empty"><td colspan="7">Cargando…</td></tr></tbody>
+              <thead><tr><th>Nombre</th><th>NIF</th><th>Email</th><th>Teléfono</th><th>Categoría</th><th>IBAN</th><th>Estado</th><th></th></tr></thead>
+              <tbody id="provBody"><tr class="dt-empty"><td colspan="8">Cargando…</td></tr></tbody>
             </table>
           </div>
         </div>
-
-        <!-- Panel recurrentes -->
         <div class="gastos-panel" id="gastosPanel_recurrentes">
           <div class="panel-toolbar">
             <div style="font-size:13px;color:var(--t2)">Gastos que se repiten periódicamente — regístralos con un clic cuando vencen</div>
@@ -1394,8 +2357,8 @@
           </div>
           <div class="section-card no-pad" style="margin-top:16px">
             <table class="data-table">
-              <thead><tr><th>Nombre</th><th>Proveedor</th><th>Importe</th><th>Frecuencia</th><th>Próxima fecha</th><th>Estado</th><th>Acciones</th></tr></thead>
-              <tbody id="gastosRecBody"><tr class="dt-empty"><td colspan="7">Cargando…</td></tr></tbody>
+              <thead><tr><th>Nombre</th><th>Proveedor</th><th>Importe</th><th>Frecuencia</th><th>Próxima fecha</th><th>Categoría</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <tbody id="gastosRecBody"><tr class="dt-empty"><td colspan="8">Cargando…</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -1415,7 +2378,6 @@
             </button>
           </div>
         </div>
-
         <div class="filter-bar">
           <div class="search-bar-wrap" style="flex:1">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1428,31 +2390,125 @@
             <option value="suscripcion">Suscripciones</option>
           </select>
         </div>
-
         <div class="section-card no-pad">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Nombre / Ref. / Barras</th>
-                <th>Descripción</th>
-                <th>Tipo</th>
-                <th>Precio venta</th>
-                <th>Precio coste</th>
-                <th>Margen</th>
-                <th>IVA</th>
-                <th>Total c/IVA</th>
-                <th>Stock</th>
-                <th>Estado</th>
-                <th></th>
+                <th>Nombre / Ref. / Barras</th><th>Descripción</th><th>Tipo</th>
+                <th>Precio venta</th><th>Precio coste</th><th>Margen</th>
+                <th>IVA</th><th>Total c/IVA</th><th>Stock</th><th>Estado</th><th></th>
               </tr>
             </thead>
             <tbody id="prodBody"><tr class="dt-empty"><td colspan="11">Cargando catálogo…</td></tr></tbody>
           </table>
         </div>
-
         <div class="pres-info-bar" style="margin-top:16px">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          Los productos del catálogo aparecen como sugerencias al añadir líneas en facturas y presupuestos. Busca por nombre, referencia SKU o código de barras.
+          Los productos del catálogo aparecen como sugerencias al añadir líneas en facturas y presupuestos. Busca por nombre, referencia SKU o código de barras EAN.
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: HISTÓRICO / ANÁLISIS ANUAL ═══ -->
+      <div class="view" id="view-historico">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Análisis Anual</h1>
+            <p class="view-sub" id="histYearLabel">—</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-outline" id="exportHistExcelBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+              Exportar Excel
+            </button>
+          </div>
+        </div>
+        <div class="kpi-row" style="margin-bottom:28px">
+          <div class="kpi-card kpi-blue"><div class="kpi-top"><span class="kpi-lbl">Ingresos anuales</span></div><div class="kpi-val" id="histIngAnual">—</div></div>
+          <div class="kpi-card kpi-red"><div class="kpi-top"><span class="kpi-lbl">Gastos anuales</span></div><div class="kpi-val" id="histGstAnual">—</div></div>
+          <div class="kpi-card kpi-green"><div class="kpi-top"><span class="kpi-lbl">Beneficio anual</span></div><div class="kpi-val" id="histBenAnual">—</div></div>
+          <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">IVA total año</span></div><div class="kpi-val" id="histIvaAnual">—</div></div>
+          <div class="kpi-card kpi-indigo"><div class="kpi-top"><span class="kpi-lbl">IRPF total año</span></div><div class="kpi-val" id="histIrpfAnual">—</div></div>
+        </div>
+        <div class="section-card" style="margin-bottom:24px">
+          <div class="sc-header"><span class="sc-title">Comparativa trimestral IVA</span></div>
+          <table class="data-table" id="histIvaTable">
+            <thead><tr><th>Trimestre</th><th>IVA Repercutido</th><th>IVA Deducible</th><th>Resultado 303</th><th>Estado</th></tr></thead>
+            <tbody id="histIvaBody"><tr class="dt-empty"><td colspan="5">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="section-card">
+          <div class="sc-header"><span class="sc-title">Comparativa trimestral IRPF</span></div>
+          <table class="data-table" id="histIrpfTable">
+            <thead><tr><th>Trimestre</th><th>Ingresos</th><th>Gastos</th><th>Rendimiento neto</th><th>Retenciones</th><th>Resultado 130</th></tr></thead>
+            <tbody id="histIrpfBody"><tr class="dt-empty"><td colspan="6">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: INFORMES AVANZADOS ═══ -->
+      <div class="view" id="view-informes">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Informes Avanzados</h1>
+            <p class="view-sub">Análisis de rentabilidad, clientes, proyectos y previsiones</p>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px">
+          <div class="informe-card" id="informe_rentabilidad_cliente">
+            <div class="informe-icon">👤</div>
+            <div class="informe-nombre">Rentabilidad por cliente</div>
+            <div class="informe-desc">Ranking de clientes por ingresos, margen y frecuencia de facturación. Identifica tus clientes más valiosos.</div>
+            <span class="informe-badge" style="background:#eff6ff;color:#1d4ed8">Listo</span>
+          </div>
+          <div class="informe-card" id="informe_evolucion_ingresos">
+            <div class="informe-icon">📈</div>
+            <div class="informe-nombre">Evolución de ingresos</div>
+            <div class="informe-desc">Tendencia mensual y trimestral de facturación. Comparativa con ejercicio anterior.</div>
+            <span class="informe-badge" style="background:#eff6ff;color:#1d4ed8">Listo</span>
+          </div>
+          <div class="informe-card" id="informe_gastos_categoria">
+            <div class="informe-icon">🏷️</div>
+            <div class="informe-nombre">Gastos por categoría</div>
+            <div class="informe-desc">Desglose visual de gastos deducibles por categoría. Detecta partidas que podrían optimizarse.</div>
+            <span class="informe-badge" style="background:#eff6ff;color:#1d4ed8">Listo</span>
+          </div>
+          <div class="informe-card" id="informe_prevision_fiscal">
+            <div class="informe-icon">🔮</div>
+            <div class="informe-nombre">Previsión fiscal anual</div>
+            <div class="informe-desc">Estimación de la carga fiscal completa del ejercicio (IVA + IRPF + IS + SS). Planifica cuánto reservar.</div>
+            <span class="informe-badge" style="background:#eff6ff;color:#1d4ed8">Listo</span>
+          </div>
+          <div class="informe-card" id="informe_margen_bruto">
+            <div class="informe-icon">💹</div>
+            <div class="informe-nombre">Análisis de margen bruto</div>
+            <div class="informe-desc">Margen bruto por producto, servicio y cliente. Identifica qué vendes con más rentabilidad.</div>
+            <span class="informe-badge" style="background:#eff6ff;color:#1d4ed8">Listo</span>
+          </div>
+          <div class="informe-card" id="informe_dias_cobro">
+            <div class="informe-icon">⏱️</div>
+            <div class="informe-nombre">Días medios de cobro (DSO)</div>
+            <div class="informe-desc">Período medio de cobro por cliente. Identifica quién tarda más en pagarte y optimiza tu política de cobros.</div>
+            <span class="informe-badge" style="background:#eff6ff;color:#1d4ed8">Listo</span>
+          </div>
+          <div class="informe-card" id="informe_347_previo">
+            <div class="informe-icon">📋</div>
+            <div class="informe-nombre">Declarantes Modelo 347</div>
+            <div class="informe-desc">Listado de clientes y proveedores que superan el umbral de 3.005,06€ y deben incluirse en el 347.</div>
+            <span class="informe-badge" style="background:#eff6ff;color:#1d4ed8">Listo</span>
+          </div>
+          <div class="informe-card" id="informe_coste_laboral">
+            <div class="informe-icon">👥</div>
+            <div class="informe-nombre">Coste laboral total</div>
+            <div class="informe-desc">Análisis completo del coste de personal: salario bruto, SS empresa, IRPF, pagas extra. Desglose por empleado.</div>
+            <span class="informe-badge" style="background:#eff6ff;color:#1d4ed8">Business</span>
+          </div>
+          <div class="informe-card" id="informe_comparativa_anual">
+            <div class="informe-icon">📊</div>
+            <div class="informe-nombre">Comparativa plurianual</div>
+            <div class="informe-desc">Compara KPIs fiscales y de negocio entre varios ejercicios. Visualiza la tendencia a largo plazo.</div>
+            <span class="informe-badge" style="background:#eff6ff;color:#1d4ed8">Listo</span>
+          </div>
         </div>
       </div>
 
@@ -1470,68 +2526,171 @@
             </button>
           </div>
         </div>
-
-        <!-- KPIs cobros -->
         <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
-          <div class="kpi-card kpi-red">
-            <div class="kpi-top">
-              <span class="kpi-lbl">Pendiente de cobro</span>
-              <div class="kpi-icon kpi-icon--red"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-            </div>
-            <div class="kpi-val" id="cobrosPendiente">—</div>
-            <div class="kpi-sub">Facturas emitidas sin cobrar</div>
-          </div>
-          <div class="kpi-card kpi-amber">
-            <div class="kpi-top">
-              <span class="kpi-lbl">Vencidas (+30 días)</span>
-            </div>
-            <div class="kpi-val" id="cobrosVencidas">—</div>
-            <div class="kpi-sub">Requieren atención inmediata</div>
-          </div>
-          <div class="kpi-card kpi-green">
-            <div class="kpi-top">
-              <span class="kpi-lbl">Cobrado este trimestre</span>
-            </div>
-            <div class="kpi-val" id="cobrosCobrado">—</div>
-            <div class="kpi-sub">Facturas marcadas como cobradas</div>
-          </div>
-          <div class="kpi-card kpi-blue">
-            <div class="kpi-top">
-              <span class="kpi-lbl">Media días de cobro</span>
-            </div>
-            <div class="kpi-val" id="cobrosMedia">—</div>
-            <div class="kpi-sub">Periodo medio de maduración</div>
-          </div>
+          <div class="kpi-card kpi-red"><div class="kpi-top"><span class="kpi-lbl">Pendiente de cobro</span></div><div class="kpi-val" id="cobrosPendiente">—</div><div class="kpi-sub">Facturas emitidas sin cobrar</div></div>
+          <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">Vencidas (+30 días)</span></div><div class="kpi-val" id="cobrosVencidas">—</div><div class="kpi-sub">Requieren atención inmediata</div></div>
+          <div class="kpi-card kpi-green"><div class="kpi-top"><span class="kpi-lbl">Cobrado este trimestre</span></div><div class="kpi-val" id="cobrosCobrado">—</div></div>
+          <div class="kpi-card kpi-blue"><div class="kpi-top"><span class="kpi-lbl">Media días de cobro</span></div><div class="kpi-val" id="cobrosMedia">—</div><div class="kpi-sub">DSO — Periodo de maduración</div></div>
         </div>
-
-        <!-- Facturas pendientes de cobro -->
         <div class="section-card" style="margin-bottom:20px">
-          <div class="sc-header">
-            <span class="sc-title">⏳ Facturas pendientes de cobro</span>
-            <span style="font-size:12px;color:var(--t3)" id="cobrosPendCount"></span>
-          </div>
+          <div class="sc-header"><span class="sc-title">⏳ Facturas pendientes de cobro</span><span style="font-size:12px;color:var(--t3)" id="cobrosPendCount"></span></div>
           <table class="data-table" id="cobrosTable">
-            <thead>
-              <tr>
-                <th>Fecha</th><th>Nº Factura</th><th>Cliente</th><th>Importe</th>
-                <th>Días pendiente</th><th>Estado</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="cobrosBody"><tr class="dt-empty"><td colspan="7">Cargando…</td></tr></tbody>
+            <thead><tr><th>Fecha</th><th>Nº Factura</th><th>Cliente</th><th>Importe</th><th>Días pendiente</th><th>Estado</th><th>Enviar recordatorio</th><th>Acciones</th></tr></thead>
+            <tbody id="cobrosBody"><tr class="dt-empty"><td colspan="8">Cargando…</td></tr></tbody>
           </table>
         </div>
-
-        <!-- Gastos por vencer -->
         <div class="section-card">
-          <div class="sc-header">
-            <span class="sc-title">📅 Gastos recurrentes próximos</span>
-          </div>
+          <div class="sc-header"><span class="sc-title">📅 Gastos recurrentes próximos</span></div>
           <table class="data-table" id="gastosVencenTable">
-            <thead>
-              <tr><th>Gasto</th><th>Proveedor</th><th>Importe</th><th>Próximo vencimiento</th><th>Días restantes</th><th>Acción</th></tr>
-            </thead>
+            <thead><tr><th>Gasto</th><th>Proveedor</th><th>Importe</th><th>Próximo vencimiento</th><th>Días restantes</th><th>Acción</th></tr></thead>
             <tbody id="gastosVencenBody"><tr class="dt-empty"><td colspan="6">Cargando…</td></tr></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: DOCUMENTOS ═══ -->
+      <div class="view" id="view-documentos">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Documentos</h1>
+            <p class="view-sub">Gestión documental de tu empresa — almacenamiento seguro en la nube</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-primary" id="subirDocumentoBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Subir documento
+            </button>
+          </div>
+        </div>
+
+        <!-- Carpetas de documentos -->
+        <div class="doc-grid" style="margin-bottom:24px">
+          <div class="doc-card" onclick="window._openDocFolder('facturas')">
+            <div class="doc-card-icon">📤</div>
+            <div class="doc-card-name">Facturas emitidas</div>
+            <div class="doc-card-desc">PDFs de todas las facturas emitidas</div>
+          </div>
+          <div class="doc-card" onclick="window._openDocFolder('gastos')">
+            <div class="doc-card-icon">📥</div>
+            <div class="doc-card-name">Facturas recibidas</div>
+            <div class="doc-card-desc">Tickets, facturas de proveedores</div>
+          </div>
+          <div class="doc-card" onclick="window._openDocFolder('nominas')">
+            <div class="doc-card-icon">👥</div>
+            <div class="doc-card-name">Nóminas</div>
+            <div class="doc-card-desc">Nóminas mensuales de empleados</div>
+          </div>
+          <div class="doc-card" onclick="window._openDocFolder('contratos')">
+            <div class="doc-card-icon">📜</div>
+            <div class="doc-card-name">Contratos</div>
+            <div class="doc-card-desc">Contratos de trabajo y servicio</div>
+          </div>
+          <div class="doc-card" onclick="window._openDocFolder('declaraciones')">
+            <div class="doc-card-icon">🏛️</div>
+            <div class="doc-card-name">Declaraciones AEAT</div>
+            <div class="doc-card-desc">Modelos 303, 130, 200 presentados</div>
+          </div>
+          <div class="doc-card" onclick="window._openDocFolder('seguros')">
+            <div class="doc-card-icon">🛡️</div>
+            <div class="doc-card-name">Seguros y pólizas</div>
+            <div class="doc-card-desc">RC, accidentes, vida</div>
+          </div>
+          <div class="doc-card" onclick="window._openDocFolder('banco')">
+            <div class="doc-card-icon">🏦</div>
+            <div class="doc-card-name">Extractos bancarios</div>
+            <div class="doc-card-desc">Extractos mensuales para conciliación</div>
+          </div>
+          <div class="doc-card" onclick="window._openDocFolder('otros')">
+            <div class="doc-card-icon">📁</div>
+            <div class="doc-card-name">Otros documentos</div>
+            <div class="doc-card-desc">Documentación general</div>
+          </div>
+        </div>
+
+        <!-- Documentos recientes -->
+        <div class="section-card no-pad">
+          <div class="sc-header" style="padding:16px"><span class="sc-title">🕐 Documentos recientes</span></div>
+          <table class="data-table" id="documentosTable">
+            <thead><tr><th>Nombre</th><th>Carpeta</th><th>Tamaño</th><th>Subido</th><th>Vinculado a</th><th>Acciones</th></tr></thead>
+            <tbody id="documentosBody"><tr class="dt-empty"><td colspan="6">No hay documentos subidos aún</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: AUDITORÍA ═══ -->
+      <div class="view" id="view-auditoria">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Auditoría</h1>
+            <p class="view-sub">Registro completo de cambios · Solo lectura · No modificable</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-outline" id="exportAuditoriaBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar log
+            </button>
+          </div>
+        </div>
+
+        <div class="alerta-fiscal alerta-fiscal--info" style="margin-bottom:20px">
+          <div class="af-icon">🔒</div>
+          <div class="af-body">
+            <div class="af-title">Registro de auditoría inmutable</div>
+            <div class="af-desc">El registro de auditoría cumple con los requisitos del RD 1007/2023 (Verifactu) y la normativa de obligación de conservación de documentación fiscal. Cada acción queda registrada con timestamp, usuario y datos previos/posteriores. Este registro no puede ser modificado ni eliminado.</div>
+          </div>
+        </div>
+
+        <!-- Filtros auditoría -->
+        <div class="filter-bar" style="margin-bottom:16px">
+          <select id="auditoriaAccion" class="filter-sel">
+            <option value="">Todas las acciones</option>
+            <option value="create">Creación</option>
+            <option value="update">Modificación</option>
+            <option value="delete">Eliminación</option>
+            <option value="emit">Emisión factura</option>
+            <option value="sign">Firma Verifactu</option>
+            <option value="login">Acceso</option>
+          </select>
+          <select id="auditoriaEntidad" class="filter-sel">
+            <option value="">Todas las entidades</option>
+            <option value="factura">Facturas</option>
+            <option value="cliente">Clientes</option>
+            <option value="presupuesto">Presupuestos</option>
+            <option value="nomina">Nóminas</option>
+            <option value="empleado">Empleados</option>
+          </select>
+          <input type="date" id="auditoriaDesde" class="filter-date" title="Desde"/>
+          <input type="date" id="auditoriaHasta" class="filter-date" title="Hasta"/>
+        </div>
+
+        <div class="section-card no-pad">
+          <div id="auditoriaBody">
+            <!-- Ejemplos de log -->
+            <div class="audit-row">
+              <div class="audit-dot" style="background:#059669"></div>
+              <div class="audit-time" style="color:var(--t3)">14:23</div>
+              <div class="audit-msg"><strong style="color:#059669">FIRMA</strong> · Factura FAC-2025-0042 firmada con Verifactu. Hash: a3f2b1c9... Vinculada a FAC-2025-0041</div>
+              <div class="audit-user">usuario@empresa.com</div>
+            </div>
+            <div class="audit-row">
+              <div class="audit-dot" style="background:#2563eb"></div>
+              <div class="audit-time" style="color:var(--t3)">14:22</div>
+              <div class="audit-msg"><strong style="color:#2563eb">EMIT</strong> · Factura FAC-2025-0042 emitida. Base: 2.000,00€ · IVA 21%: 420,00€ · Total: 2.420,00€ · Cliente: Empresa XYZ S.L.</div>
+              <div class="audit-user">usuario@empresa.com</div>
+            </div>
+            <div class="audit-row">
+              <div class="audit-dot" style="background:#059669"></div>
+              <div class="audit-time" style="color:var(--t3)">10:05</div>
+              <div class="audit-msg"><strong style="color:#059669">CREATE</strong> · Nuevo cliente: Empresa XYZ S.L. · NIF: B12345678 · País: ES</div>
+              <div class="audit-user">usuario@empresa.com</div>
+            </div>
+            <div class="audit-row">
+              <div class="audit-dot" style="background:#d97706"></div>
+              <div class="audit-time" style="color:var(--t3)">09:41</div>
+              <div class="audit-msg"><strong style="color:#d97706">UPDATE</strong> · Presupuesto PRES-2025-0015 marcado como aceptado. Estado anterior: enviado</div>
+              <div class="audit-user">usuario@empresa.com</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1542,7 +2701,6 @@
 <!-- TOAST & MODAL -->
 <div id="toastEl" class="toast-container"></div>
 <div id="modalEl"></div>
-
 
 <!-- COOKIE BANNER -->
 <div id="cookieBanner" class="cookie-banner" style="display:none">
