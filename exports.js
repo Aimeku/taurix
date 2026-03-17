@@ -1,3 +1,13 @@
+async function _cargarJsPDF() {
+  if (window.jspdf?.jsPDF) return;
+  await new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
 /* ═══════════════════════════════════════════════════════
    TUGESTOR · exports.js
    PDF individual de factura, libros oficiales (PDF),
@@ -12,7 +22,7 @@ import { showPerfilModal } from "./utils.js";
    PDF FACTURA INDIVIDUAL
 ══════════════════════════════════════════ */
 export async function exportFacturaPDF(facturaId) {
-  if (!window.jspdf?.jsPDF) { toast("jsPDF no disponible","error"); return; }
+  await _cargarJsPDF();
   const { data: f, error: fe } = await supabase.from("facturas").select("*").eq("id",facturaId).single();
   if (fe || !f) { toast("Factura no encontrada","error"); return; }
   const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id",SESSION.user.id).single();
@@ -190,7 +200,7 @@ export async function exportFacturaPDF(facturaId) {
    PDF LIBRO INGRESOS
 ══════════════════════════════════════════ */
 export async function exportLibroIngPDF() {
-  if (!window.jspdf?.jsPDF) { toast("jsPDF no disponible","error"); return; }
+  await _cargarJsPDF();
   const { data: pf, error: pe } = await supabase.from("perfil_fiscal").select("*").eq("user_id",SESSION.user.id).single();
   if (!pf?.nombre_razon_social) { toast("Completa el perfil fiscal primero","warn"); showPerfilModal(); return; }
 
@@ -259,7 +269,7 @@ export async function exportLibroIngPDF() {
    PDF LIBRO GASTOS
 ══════════════════════════════════════════ */
 export async function exportLibroGstPDF() {
-  if (!window.jspdf?.jsPDF) { toast("jsPDF no disponible","error"); return; }
+  await _cargarJsPDF();
   const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id",SESSION.user.id).single();
   if (!pf?.nombre_razon_social) { toast("Completa el perfil fiscal primero","warn"); showPerfilModal(); return; }
 
@@ -397,7 +407,7 @@ export async function exportClientesExcel() {
 }
 
 export async function exportFacturasPDF() {
-  if (!window.jspdf?.jsPDF) { toast("jsPDF no disponible","error"); return; }
+  await _cargarJsPDF();
   const year=getYear(), trim=getTrim();
   const { ini, fin } = getFechaRango(year, trim);
   const { data: facs, error } = await supabase.from("facturas").select("*")
