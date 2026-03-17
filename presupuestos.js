@@ -874,9 +874,9 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
   doc.setFillColor(...INK); doc.roundedRect(ML, y, W, 10, 1, 1, "F");
   doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
   doc.text("DESCRIPCIÓN / DESCRIPTION", tDesc, y+5.8);
-  doc.text("CANTIDAD", tQty, y+5.8, {align:"center"});
-  doc.text("PRECIO UNIT.", tPrice, y+5.8, {align:"center"});
-  doc.text("TOTAL", tTotal, y+5.8, {align:"center"});
+  doc.text("CANTIDAD / QTY", tQty, y+5.8, {align:"center"});
+  doc.text("PRECIO UNIT. / UNIT PRICE", tPrice, y+5.8, {align:"center"});
+  doc.text("TOTAL / AMOUNT", tTotal, y+5.8, {align:"center"});
   y+=10;
 
   let baseTotal=0; const ivaMap={};
@@ -915,8 +915,15 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
       doc.setFont("helvetica","bold"); doc.setTextColor(...INK);
       doc.text((qty*precio).toFixed(2)+" €", tTotal, y+5.8, {align:"center"});
     } else {
+      // Descuento — fila completa en la tabla, bilingüe
+      doc.setFontSize(8.5); doc.setTextColor(200,50,50);
+      doc.setFont("helvetica","italic");
+      // Mostrar "DESCUENTO / DISCOUNT" como badge en columna cantidad
+      doc.text("DESCUENTO", tQty, y+4.5, {align:"center"});
+      doc.setFontSize(6.5);
+      doc.text("DISCOUNT", tQty, y+8.5, {align:"center"});
+      doc.setFontSize(8.5);
       doc.setFont("helvetica","bold");
-      doc.setTextColor(200,50,50);
       doc.text("- "+Math.abs(precio).toFixed(2)+" €", tTotal, y+5.8, {align:"center"});
     }
     y+=rH;
@@ -929,12 +936,12 @@ export async function generarPDFPresupuesto(presId, descargar = true) {
   const ivaTotal=Object.values(ivaMap).reduce((a,b)=>a+b,0);
 
   doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
-  doc.text("Subtotal", xTL, y);
+  doc.text("Subtotal / Subtotal", xTL, y);
   doc.setTextColor(...INK); doc.text(baseTotal.toFixed(2)+" €",xTV,y,{align:"right"}); y+=7;
 
   if (descuentoTotal > 0) {
     doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(200,50,50);
-    doc.text("Descuentos", xTL, y);
+    doc.text("Descuentos / Discounts", xTL, y);
     doc.text("- "+descuentoTotal.toFixed(2)+" €",xTV,y,{align:"right"}); y+=7;
   }
 
