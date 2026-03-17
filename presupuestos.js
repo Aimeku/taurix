@@ -1234,8 +1234,8 @@ export async function generarPDFAlbaran(presId) {
   doc.text(numAlb, PW-MR, 16, {align:"right"});
   doc.setFont("helvetica","normal"); doc.setFontSize(9);
   const facState = p.estado_facturacion === "facturado"
-    ? "✓ Facturado / Invoiced"
-    : "⏳ Pendiente de facturar / Pending invoice";
+    ? "Facturado / Invoiced"
+    : "Pendiente de facturar / Pending invoice";
   doc.text(facState, PW-MR, 24, {align:"right"});
 
   // Logo o nombre empresa
@@ -1312,7 +1312,7 @@ export async function generarPDFAlbaran(presId) {
   doc.setFillColor(255,251,235); doc.setDrawColor(253,230,138); doc.setLineWidth(0.3);
   doc.roundedRect(ML, y, W/2-4, 12, 1.5, 1.5, "FD");
   doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(146,64,14);
-  doc.text("⚠ Este documento no tiene validez fiscal.", ML+4, y+5);
+  doc.text("! Este documento no tiene validez fiscal.", ML+4, y+5);
   doc.text("No incluye IVA. No sustituye a la factura.", ML+4, y+9.5);
   y += 18;
 
@@ -1334,7 +1334,7 @@ export async function generarPDFAlbaran(presId) {
   doc.text("ESTADO DE FACTURACIÓN / BILLING STATUS", infoX+4, firmaY+7);
   doc.setFont("helvetica","normal"); doc.setFontSize(9);
   doc.setTextColor(p.estado_facturacion === "facturado" ? 5 : 146, p.estado_facturacion === "facturado" ? 150 : 64, p.estado_facturacion === "facturado" ? 105 : 14);
-  doc.text(p.estado_facturacion === "facturado" ? "✓ Facturado / Invoiced" : "⏳ Pendiente de facturar", infoX+4, firmaY+20);
+  doc.text(p.estado_facturacion === "facturado" ? "Facturado / Invoiced" : "Pendiente de facturar", infoX+4, firmaY+20);
   if(p.estado_facturacion === "facturado" && p.fecha_facturacion) {
     doc.setFontSize(8); doc.setTextColor(...MUTED);
     doc.text(`Fecha: ${new Date(p.fecha_facturacion+"T12:00:00").toLocaleDateString("es-ES")}`, infoX+4, firmaY+28);
