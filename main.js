@@ -47,6 +47,12 @@ import { loadEmpleados, setEmpleados, refreshEmpleados, refreshNominas, initNomi
 import { initTesoreriaView, refreshTesoreria } from "./tesoreria.js";
 import { initInformesView } from "./informes.js";
 import { initAlertasView, refreshAlertas } from "./alertas.js";
+import { initColaboradores, initColaboradoresView, refreshColaboradoresView } from "./colaboradores.js";
+import {
+  initModos, aplicarModo, toggleModo, showOnboardingModo,
+  refreshCartera, esModoGestor, getModo
+} from "./modos.js";
+import { initNordigenView, refreshConexionesBancarias, autoSyncBancos } from "./nordigen.js";
 import { initDocumentosView } from "./documentos.js";
 import { initContabilidadView, refreshLibroDiario, refreshSumasSaldos, refreshBalance, refreshPyG } from "./contabilidad.js";
 import { initOtrosModelosView } from "./otros-modelos.js";
@@ -296,6 +302,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Navegación ── */
   initNav();
+  window._rebindNav(); // Bind listeners del sidebar dinámico
   initNuevaFactura();
 
   /* ── Cambio de periodo ── */
@@ -451,6 +458,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ── Alertas fiscales ── */
   initAlertasView();
 
+  /* ── Modo empresario/gestor ── */
+  const modoOk = await initModos();
+  if (!modoOk) showOnboardingModo();
+
+  /* ── Colaboradores view ── */
+  initColaboradoresView();
+
+  /* ── Banco automático view ── */
+  initNordigenView();
+
   /* ── Documentos ── */
   initDocumentosView();
 
@@ -485,6 +502,43 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ── Notificaciones ── */
   document.getElementById("notifBtn")?.addEventListener("click", () => switchView("alertas"));
 
+  /* ── Rebind nav: se llama cada vez que el sidebar se reconstruye ── */
+  window._rebindNav = () => {
+    document.querySelectorAll(".sn-item[data-view]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const view = btn.dataset.view;
+        switchView(view);
+        if (view === "pipeline")        await refreshPipeline();
+        if (view === "alertas")         await refreshAlertas();
+        if (view === "documentos")      { const { refreshDocumentos } = await import("./documentos.js"); await refreshDocumentos(); }
+        if (view === "tesoreria")       await refreshTesoreria();
+        if (view === "verifactu")       { const { refreshVerifactu } = await import("./utils.js"); await refreshVerifactu(); }
+        if (view === "otros-modelos")   await initOtrosModelosView();
+        if (view === "contabilidad")    await refreshLibroDiario();
+        if (view === "amortizaciones")  { const { refreshBienesInversion } = await import("./amortizaciones.js"); await refreshBienesInversion(); }
+        if (view === "nominas")         { const { refreshNominas } = await import("./nominas.js"); await refreshNominas(); }
+        if (view === "empleados")       { const { refreshEmpleados } = await import("./nominas.js"); if(refreshEmpleados) await refreshEmpleados(); }
+        if (view === "colaboradores")   await refreshColaboradoresView();
+        if (view === "banco-auto")      await refreshConexionesBancarias();
+        if (view === "cartera")         await refreshCartera();
+        if (view === "informes")        initInformesView();
+      });
+    });
+    // Gasto rápido button
+    document.getElementById("gastoRapidoBtn")?.addEventListener("click", showGastoRapidoModal);
+    // Active state on current view
+    document.querySelectorAll(".sn-item[data-view]").forEach(btn => {
+      const active = document.querySelector(".view.active");
+      if (active && btn.dataset.view === active.id.replace("view-","")) {
+        btn.classList.add("active");
+      }
+    });
+  };
+
+  // Toggle modo global
+  window._toggleModo = () => toggleModo();
+  window._refreshDashboard = () => refreshDashboard();
+
   /* ── Navegación a vistas con lazy init ── */
   document.querySelectorAll(".sn-item[data-view]").forEach(btn => {
     btn.addEventListener("click", async () => {
@@ -503,6 +557,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (view === "contabilidad")    await refreshLibroDiario();
       if (view === "amortizaciones")  { const { refreshBienesInversion } = await import("./amortizaciones.js"); await refreshBienesInversion(); }
       if (view === "nominas")         { const { refreshNominas } = await import("./nominas.js"); await refreshNominas(); }
+      if (view === "colaboradores")    await refreshColaboradoresView();
+      if (view === "banco-auto")       await refreshConexionesBancarias();
       if (view === "empleados")       { const { refreshEmpleados } = await import("./nominas.js"); await refreshEmpleados(); }
     });
   });
