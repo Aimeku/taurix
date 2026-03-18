@@ -212,7 +212,6 @@ export function showAuthModal() {
   });
 
   document.getElementById("authCloseBtn").addEventListener("click",()=>modal.remove());
-  document.getElementById("authOverlay").addEventListener("click",e=>{if(e.target.id==="authOverlay")modal.remove();});
   document.addEventListener("keydown",function esc(e){if(e.key==="Escape"){modal.remove();document.removeEventListener("keydown",esc);}});
 
   supabase.auth.onAuthStateChange((event,session)=>{
