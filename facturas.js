@@ -169,7 +169,9 @@ export async function refreshFacturas() {
     } else {
       acciones = `<div class="tbl-act">
         <button class="ta-btn" onclick="window._pdfFact('${f.id}')" title="Descargar PDF">📄</button>
-        ${f.tipo==="emitida"?`<button class="ta-btn ${f.cobrada?"ta-cobrada":"ta-pendiente"}" onclick="window._toggleCobro('${f.id}',${!f.cobrada})" title="${f.cobrada?"Cobrada · Click para marcar pendiente":"Pendiente de cobro · Click para marcar cobrada"}">${f.cobrada?"✅":"⏳"}</button>`:""}
+        ${f.tipo==="emitida"?`<button class="ta-btn ${f.cobrada?"ta-cobrada":"ta-pendiente"}" onclick="window._toggleCobro('${f.id}',${!f.cobrada})" title="${f.cobrada?"Cobrada":"Pendiente"}">${f.cobrada?"✅":"⏳"}</button>`:""}
+        <button class="ta-btn" onclick="window._duplicarFact('${f.id}')" title="Duplicar factura">📋</button>
+        ${f.tipo==="emitida"?`<button class="ta-btn" onclick="window._notaCredito('${f.id}')" title="Nota de crédito / Rectificativa" style="color:#dc2626">🔄</button>`:""}
         <button class="ta-btn ta-del" onclick="window._delFact('${f.id}')">🗑️</button>
       </div>`;
     }
@@ -204,6 +206,7 @@ export async function refreshFacturas() {
         <td><span class="badge ${f.tipo==="emitida"?"b-income":"b-expense"}">${f.tipo==="emitida"?"📤 Emitida":"📥 Recibida"}</span></td>
         <td><span class="badge ${f.estado==="emitida"?"b-emit":"b-draft"}">${f.estado==="emitida"?"Oficial":"Borrador"}</span></td>
         <td>${cobroBadge}</td>
+        <td>${f.verifactu_hash ? `<span class="verifactu-badge" title="${f.verifactu_hash.substring(0,16)}…" style="font-size:9px;padding:2px 7px">✓ VF</span>` : `<span style="color:var(--t4);font-size:11px">—</span>`}</td>
         <td>${acciones}</td>
       </tr>`;
   }).join("");
@@ -221,6 +224,101 @@ export async function refreshFacturas() {
     document.getElementById("_nextPag")?.addEventListener("click",()=>{paginaActual++;refreshFacturas();});
   }
 }
+
+/* ══════════════════════════════════════════
+   DUPLICAR FACTURA
+══════════════════════════════════════════ */
+window._duplicarFact = async (id) => {
+  const { data: f } = await supabase.from("facturas").select("*").eq("id", id).single();
+  if (!f) { toast("Factura no encontrada","error"); return; }
+  const { error } = await supabase.from("facturas").insert({
+    user_id: SESSION.user.id,
+    concepto: f.concepto,
+    base: f.base, iva: f.iva, irpf_retencion: f.irpf_retencion,
+    tipo: f.tipo, tipo_operacion: f.tipo_operacion,
+    fecha: new Date().toISOString().slice(0,10),
+    estado: "borrador",
+    cliente_id: f.cliente_id, cliente_nombre: f.cliente_nombre,
+    cliente_nif: f.cliente_nif, cliente_direccion: f.cliente_direccion,
+    cliente_pais: f.cliente_pais, notas: f.notas, lineas: f.lineas,
+    forma_pago: f.forma_pago,
+  });
+  if (error) { toast("Error duplicando: "+error.message,"error"); return; }
+  toast("Factura duplicada como borrador ✅","success");
+  const { refreshDashboard } = await import("./dashboard.js");
+  await refreshDashboard(); await refreshFacturas();
+};
+
+/* ══════════════════════════════════════════
+   NOTA DE CRÉDITO / RECTIFICATIVA
+══════════════════════════════════════════ */
+window._notaCredito = async (id) => {
+  const { data: f } = await supabase.from("facturas").select("*").eq("id", id).single();
+  if (!f) { toast("Factura no encontrada","error"); return; }
+  if (f.estado !== "emitida") { toast("Solo se pueden rectificar facturas emitidas","error"); return; }
+
+  openModal(`
+    <div class="modal">
+      <div class="modal-hd">
+        <span class="modal-title">🔄 Nota de crédito — ${f.numero_factura}</span>
+        <button class="modal-x" onclick="window._cm()">×</button>
+      </div>
+      <div class="modal-bd">
+        <div style="background:#fef9c3;border:1px solid #fde047;border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:16px">
+          ⚠️ La nota de crédito anulará total o parcialmente la factura <strong>${f.numero_factura}</strong> (${fmt(f.base + f.base*(f.iva||0)/100)}).
+        </div>
+        <div class="modal-field"><label>Causa de la rectificación</label>
+          <select id="nc_causa" class="ff-select">
+            <option>Devolución total</option>
+            <option>Devolución parcial</option>
+            <option>Error en el precio</option>
+            <option>Error en datos fiscales</option>
+            <option>Descuento posterior</option>
+            <option>Otra causa</option>
+          </select>
+        </div>
+        <div class="modal-grid2">
+          <div class="modal-field"><label>Base a rectificar (€)</label>
+            <input type="number" id="nc_base" class="ff-input" value="${f.base}" step="0.01" max="${f.base}"/>
+          </div>
+          <div class="modal-field"><label>Fecha</label>
+            <input type="date" id="nc_fecha" class="ff-input" value="${new Date().toISOString().slice(0,10)}"/>
+          </div>
+        </div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
+        <button class="btn-modal-save" id="nc_ok" style="background:#dc2626">Emitir nota de crédito</button>
+      </div>
+    </div>`);
+
+  document.getElementById("nc_ok").addEventListener("click", async () => {
+    const base  = parseFloat(document.getElementById("nc_base").value) || f.base;
+    const fecha = document.getElementById("nc_fecha").value;
+    const causa = document.getElementById("nc_causa").value;
+    const baseRect = -Math.abs(base);
+
+    const { data: nc, error } = await supabase.from("facturas").insert({
+      user_id: SESSION.user.id,
+      concepto: `Nota de crédito · ${f.numero_factura} · ${causa}`,
+      base: baseRect, iva: f.iva, tipo: "emitida",
+      tipo_operacion: f.tipo_operacion, fecha, estado: "borrador",
+      cliente_id: f.cliente_id, cliente_nombre: f.cliente_nombre,
+      cliente_nif: f.cliente_nif, cliente_direccion: f.cliente_direccion,
+      factura_rectif_de: f.id, cobrada: false,
+    }).select().single();
+    if (error) { toast("Error: "+error.message,"error"); return; }
+
+    // Emitir directamente
+    try {
+      const num = await emitirFacturaDB(nc.id);
+      toast(`Nota de crédito emitida: ${num} ✅`,"success");
+    } catch(e) { toast("Guardada pero sin emitir: "+e.message,"warn"); }
+    closeModal();
+    const { refreshDashboard } = await import("./dashboard.js");
+    await refreshDashboard(); await refreshFacturas();
+  });
+};
 
 window._pdfFact = id => { import("./exports.js").then(m => m.exportFacturaPDF(id)); };
 
