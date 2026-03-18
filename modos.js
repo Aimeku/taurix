@@ -163,7 +163,7 @@ export async function initModos() {
   } else {
     // Primera vez — leer de perfil_fiscal si existe
     const { data: pf } = await supabase.from("perfil_fiscal")
-      .select("modo_usuario").eq("user_id", SESSION.user.id).single();
+      .select("modo_usuario").eq("user_id", SESSION.user.id).maybeSingle();
 
     if (pf?.modo_usuario) {
       MODO_ACTUAL = pf.modo_usuario;
