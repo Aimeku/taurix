@@ -192,10 +192,21 @@ export function showNuevoTrabajoModal(prefill = {}) {
     `<option value="${c.id}" data-nombre="${c.nombre}" ${prefill.cliente_id===c.id?"selected":""}>${c.nombre}</option>`
   ).join("");
 
-  const tecnicoOpts = `<option value="">Sin asignar</option>` +
-    TECNICOS.map(e =>
-      `<option value="${e.id}" ${prefill.tecnico_id===e.id?"selected":""}>${e.nombre}${e.puesto?` · ${e.puesto}`:""}</option>`
-    ).join("");
+  const tecnicoOpts = TECNICOS.length === 0
+    ? `<option value="">Sin técnicos — añade empleados primero</option>`
+    : `<option value="">Sin asignar</option>` +
+      TECNICOS.map(e =>
+        `<option value="${e.id}" ${prefill.tecnico_id===e.id?"selected":""}>${e.nombre}${e.puesto?` · ${e.puesto}`:""}</option>`
+      ).join("");
+
+  const tecnicoHint = TECNICOS.length === 0
+    ? `<div style="font-size:11px;color:#d97706;margin-top:4px;display:flex;align-items:center;gap:5px">
+        ⚠️ No tienes técnicos/empleados.
+        <button onclick="window._cm();window._switchView&&window._switchView('empleados')"
+                style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;font-weight:700;padding:0">
+          Añadir empleados →
+        </button>
+      </div>` : "";
 
   const materiales = prefill.materiales || [];
 
@@ -220,7 +231,10 @@ export function showNuevoTrabajoModal(prefill = {}) {
             </select>
           </div>
           <div class="modal-field"><label>Técnico asignado</label>
-            <select id="tj_tecnico" class="ff-select">${tecnicoOpts}</select>
+            <select id="tj_tecnico" class="ff-select" ${TECNICOS.length===0?"disabled":""}>
+              ${tecnicoOpts}
+            </select>
+            ${tecnicoHint}
           </div>
           <div class="modal-field"><label>Estado</label>
             <select id="tj_estado" class="ff-select">
