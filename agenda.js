@@ -28,11 +28,20 @@ const TIPOS = [
 ];
 
 const DIAS   = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+
+// Fecha local como YYYY-MM-DD (evita el bug UTC con toISOString)
+const toLocalDateStr = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+};
 const MESES  = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 let EVENTOS   = [];
 let TECNICOS  = [];
 let HOY       = new Date();
+const HOY_STR = toLocalDateStr(new Date());
 let FECHA_NAV = new Date(HOY.getFullYear(), HOY.getMonth(), 1); // primer día del mes visible
 let VISTA     = "mes"; // "mes" | "semana" | "dia"
 
@@ -42,8 +51,8 @@ let VISTA     = "mes"; // "mes" | "semana" | "dia"
 export async function loadAgenda() {
   const year  = FECHA_NAV.getFullYear();
   const month = FECHA_NAV.getMonth();
-  const ini   = new Date(year, month - 1, 1).toISOString().slice(0,10);
-  const fin   = new Date(year, month + 2, 0).toISOString().slice(0,10);
+  const ini   = toLocalDateStr(new Date(year, month - 1, 1));
+  const fin   = toLocalDateStr(new Date(year, month + 2, 0));
 
   const [eventosRes, tecnicosRes] = await Promise.all([
     supabase.from("agenda_eventos").select("*")
@@ -108,14 +117,14 @@ function renderMes(wrap) {
   // Días del mes
   for (let d = 1; d <= ultimoDia.getDate(); d++) celdas.push(new Date(year, month, d));
 
-  const hoyStr = HOY.toISOString().slice(0,10);
+  const hoyStr = toLocalDateStr(HOY);
 
   wrap.innerHTML = `
     <div class="cal-grid-mes">
       ${DIAS.map(d=>`<div class="cal-header-day">${d}</div>`).join("")}
       ${celdas.map(fecha => {
         if (!fecha) return `<div class="cal-cell cal-cell--vacio"></div>`;
-        const fechaStr = fecha.toISOString().slice(0,10);
+        const fechaStr = toLocalDateStr(fecha);
         const esHoy    = fechaStr === hoyStr;
         const eventos  = EVENTOS.filter(e => e.fecha === fechaStr);
         return `
@@ -144,14 +153,14 @@ function renderSemana(wrap) {
   const dias  = Array.from({length:7}, (_,i) => {
     const d = new Date(lunes); d.setDate(lunes.getDate()+i); return d;
   });
-  const hoyStr = HOY.toISOString().slice(0,10);
+  const hoyStr = toLocalDateStr(HOY);
 
   wrap.innerHTML = `
     <div class="cal-grid-semana">
       <!-- Cabecera días -->
       <div class="cal-sem-time-col"></div>
       ${dias.map(d => {
-        const ds = d.toISOString().slice(0,10);
+        const ds = toLocalDateStr(d);
         const esHoy = ds === hoyStr;
         return `<div class="cal-sem-day-hd ${esHoy?"cal-sem-day-hd--hoy":""}">
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--t3)">${DIAS[dias.indexOf(d)]}</div>
@@ -165,7 +174,7 @@ function renderSemana(wrap) {
         return `
           <div class="cal-sem-time">${hora}:00</div>
           ${dias.map(d => {
-            const ds = d.toISOString().slice(0,10);
+            const ds = toLocalDateStr(d);
             const eventos = EVENTOS.filter(e => e.fecha===ds &&
               e.hora_inicio && parseInt(e.hora_inicio.slice(0,2))===hora);
             return `<div class="cal-sem-cell" onclick="window._clickDia('${ds}','${hora.toString().padStart(2,'0')}:00')">
@@ -185,7 +194,7 @@ function renderSemana(wrap) {
 
 /* ── Vista diaria ── */
 function renderDia(wrap) {
-  const fechaStr = FECHA_NAV.toISOString().slice(0,10);
+  const fechaStr = toLocalDateStr(FECHA_NAV);
   const eventos  = EVENTOS.filter(e => e.fecha === fechaStr)
                           .sort((a,b) => (a.hora_inicio||"").localeCompare(b.hora_inicio||""));
 
@@ -228,7 +237,7 @@ function renderProximosEventos() {
   const wrap = document.getElementById("proximosEventos");
   if (!wrap) return;
 
-  const hoyStr = HOY.toISOString().slice(0,10);
+  const hoyStr = toLocalDateStr(HOY);
   const proximos = EVENTOS
     .filter(e => e.fecha >= hoyStr)
     .sort((a,b) => a.fecha.localeCompare(b.fecha) || (a.hora_inicio||"").localeCompare(b.hora_inicio||""))
@@ -308,7 +317,7 @@ export function showNuevoEventoModal(prefill = {}) {
 
         <div class="modal-grid2">
           <div class="modal-field"><label>Fecha *</label>
-            <input type="date" id="ev_fecha" class="ff-input" value="${prefill.fecha||new Date().toISOString().slice(0,10)}"/>
+            <input type="date" id="ev_fecha" class="ff-input" value="${prefill.fecha||toLocalDateStr(new Date())}"/>
           </div>
           <div class="modal-field"><label>Todo el día</label>
             <label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer">
