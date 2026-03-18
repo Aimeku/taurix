@@ -1074,3 +1074,103 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
 #scannerWrap{outline:none!important}
 
 .modal--wide{max-width:860px!important;width:94%!important}
+
+/* ═══════════════════════════════════════════
+   CONTABILIDAD v2 — Libro diario mejorado
+═══════════════════════════════════════════ */
+
+/* Bloque de asiento */
+.asiento-bloque {
+  border: 1px solid var(--brd);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  transition: box-shadow .15s;
+}
+.asiento-bloque:hover { box-shadow: 0 2px 12px rgba(0,0,0,.07); }
+.asiento-bloque--manual { border-style: dashed; }
+
+/* Cabecera del asiento */
+.asiento-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--brd);
+  min-width: 0;
+}
+.asiento-num {
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 12px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.asiento-fecha {
+  font-size: 12px;
+  color: var(--t3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.asiento-concepto {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Líneas del asiento */
+.asiento-lineas { padding: 4px 0; }
+.asiento-linea {
+  display: grid;
+  grid-template-columns: 36px 1fr 120px 120px;
+  gap: 8px;
+  padding: 5px 14px;
+  align-items: center;
+  border-bottom: 1px solid var(--brd);
+  transition: background .1s;
+  min-width: 0;
+}
+.asiento-linea:last-child { border: none; }
+.asiento-linea:hover { background: var(--bg2); }
+.asiento-linea--haber { padding-left: 30px; }
+
+/* Cuenta en línea de asiento */
+.asiento-linea-cuenta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  min-width: 0;
+}
+.asiento-linea-cuenta:hover .asiento-nom-cuenta { color: var(--accent); text-decoration: underline; }
+.asiento-num-cuenta {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent);
+  background: rgba(26,86,219,.08);
+  padding: 2px 6px;
+  border-radius: 5px;
+  flex-shrink: 0;
+  min-width: 36px;
+  text-align: center;
+}
+.asiento-nom-cuenta {
+  font-size: 12px;
+  color: var(--t2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.asiento-debe-col, .asiento-haber-col {
+  text-align: right;
+  font-size: 12px;
+}
+
+/* Fila plan de cuentas */
+.plan-cuenta-row { transition: background .1s; }
