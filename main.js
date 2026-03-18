@@ -74,6 +74,7 @@ async function fullRefresh() {
   }
 }
 window._refresh = fullRefresh;
+window._switchView = switchView;  // alias global para módulos externos
 
 /* ══════════════════════════
    COBROS Y VENCIMIENTOS
