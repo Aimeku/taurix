@@ -568,7 +568,7 @@ export function initNuevaFactura() {
       LINEAS.forEach(l => {
         if (l.descripcion === (prod.descripcion||prod.nombre)) {
           l.cantidad += qty;
-          const row = document.querySelector(\`.linea-row[data-linea-id="\${l.id}"]\`);
+          const row = document.querySelector(`.linea-row[data-linea-id="${l.id}"]`);
           if (row) {
             const qEl = row.querySelector("[data-field='cantidad']");
             if (qEl) { qEl.value = l.cantidad; }
