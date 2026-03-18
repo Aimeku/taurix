@@ -41,6 +41,7 @@ export function renderClientesTable(list) {
       <td class="mono fw7">—</td>
       <td>
         <div class="tbl-act">
+          <button class="ta-btn" onclick="window._verCliente('${c.id}')" title="Ver historial">📊</button>
           <button class="ta-btn" onclick="window._editCliente('${c.id}')">✏️</button>
           <button class="ta-btn ta-del" onclick="window._delCliente('${c.id}')">🗑️</button>
         </div>
@@ -150,6 +151,74 @@ window._delCliente = id => {
     closeModal(); toast("Cliente eliminado","success");
     await refreshClientes();
   };
+};
+
+window._verCliente = async (id) => {
+  const c = CLIENTES.find(x => x.id === id);
+  if (!c) return;
+
+  // Cargar facturas del cliente
+  const { data: facturas } = await supabase.from("facturas")
+    .select("numero_factura, fecha, base, iva, estado, cobrada, concepto")
+    .eq("user_id", SESSION.user.id).eq("cliente_id", id)
+    .order("fecha", { ascending: false }).limit(20);
+
+  const total = (facturas || []).reduce((a, f) => a + f.base + f.base*(f.iva||0)/100, 0);
+  const cobrado = (facturas || []).filter(f=>f.cobrada).reduce((a, f) => a + f.base + f.base*(f.iva||0)/100, 0);
+  const pendiente = total - cobrado;
+
+  openModal(`
+    <div class="modal" style="max-width:700px">
+      <div class="modal-hd">
+        <span class="modal-title">📊 ${c.nombre} — Historial</span>
+        <button class="modal-x" onclick="window._cm()">×</button>
+      </div>
+      <div class="modal-bd">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:20px">
+          <div style="background:var(--bg2);padding:12px;border-radius:10px;text-align:center">
+            <div style="font-size:10px;color:var(--t3);text-transform:uppercase;font-weight:700">Facturas</div>
+            <div style="font-size:24px;font-weight:800">${(facturas||[]).length}</div>
+          </div>
+          <div style="background:var(--bg2);padding:12px;border-radius:10px;text-align:center">
+            <div style="font-size:10px;color:var(--t3);text-transform:uppercase;font-weight:700">Total facturado</div>
+            <div style="font-size:16px;font-weight:800;font-family:monospace;color:var(--accent)">${fmt(total)}</div>
+          </div>
+          <div style="background:#f0fdf4;padding:12px;border-radius:10px;text-align:center">
+            <div style="font-size:10px;color:var(--t3);text-transform:uppercase;font-weight:700">Cobrado</div>
+            <div style="font-size:16px;font-weight:800;font-family:monospace;color:#059669">${fmt(cobrado)}</div>
+          </div>
+          <div style="background:${pendiente > 0 ? "#fef2f2" : "var(--bg2)"};padding:12px;border-radius:10px;text-align:center">
+            <div style="font-size:10px;color:var(--t3);text-transform:uppercase;font-weight:700">Pendiente</div>
+            <div style="font-size:16px;font-weight:800;font-family:monospace;color:${pendiente > 0 ? "#dc2626" : "var(--t3)"}">${fmt(pendiente)}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--t3);margin-bottom:8px">Datos del cliente</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;font-size:13px">
+          <div><span style="color:var(--t3)">NIF:</span> <strong>${c.nif||"—"}</strong></div>
+          <div><span style="color:var(--t3)">Email:</span> <strong>${c.email||"—"}</strong></div>
+          <div><span style="color:var(--t3)">Teléfono:</span> <strong>${c.telefono||"—"}</strong></div>
+          <div><span style="color:var(--t3)">País:</span> <strong>${c.pais||"ES"}</strong></div>
+          <div style="grid-column:1/-1"><span style="color:var(--t3)">Dirección:</span> <strong>${c.direccion||"—"}</strong></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--t3);margin-bottom:8px">Últimas facturas</div>
+        <table class="data-table">
+          <thead><tr><th>Fecha</th><th>Nº Factura</th><th>Concepto</th><th>Total</th><th>Estado</th></tr></thead>
+          <tbody>
+            ${(facturas||[]).map(f => `<tr>
+              <td class="mono" style="font-size:12px">${fmtDate(f.fecha)}</td>
+              <td><span class="badge b-income mono" style="font-size:11px">${f.numero_factura||"Borrador"}</span></td>
+              <td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.concepto||"—"}</td>
+              <td class="mono fw7">${fmt(f.base+f.base*(f.iva||0)/100)}</td>
+              <td><span class="badge ${f.cobrada?"b-cobrada":"b-pendiente"}">${f.cobrada?"✅":"⏳"}</span></td>
+            </tr>`).join("") || `<tr class="dt-empty"><td colspan="5">Sin facturas registradas</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-ft">
+        <button class="btn-modal-cancel" onclick="window._cm()">Cerrar</button>
+        <button class="btn-modal-save" onclick="window._cm();window._editCliente('${c.id}')">✏️ Editar cliente</button>
+      </div>
+    </div>`);
 };
 
 export function initClientesView() {
