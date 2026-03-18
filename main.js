@@ -42,6 +42,10 @@ import {
   loadProveedores, setProveedores, refreshProveedores,
   refreshGastosRecurrentes, initGastosView
 } from "./gastos.js";
+import { initPipelineView, refreshPipeline } from "./pipeline.js";
+import { loadEmpleados, setEmpleados, refreshEmpleados, refreshNominas, initNominasView } from "./nominas.js";
+import { initTesoreriaView, refreshTesoreria } from "./tesoreria.js";
+import { initInformesView } from "./informes.js";
 
 
 
@@ -433,17 +437,33 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   /* ── Informes ── */
-  document.querySelectorAll(".informe-card").forEach(card => {
-    card.addEventListener("click", () => {
-      toast("Abriendo informe…", "info");
-    });
-  });
+  /* ── Informes ── */
+  initInformesView();
+
+  /* ── Pipeline CRM ── */
+  initPipelineView();
+
+  /* ── Nóminas y empleados ── */
+  initNominasView();
+
+  /* ── Tesorería ── */
+  initTesoreriaView();
 
   /* ── Nueva empresa ── */
   document.getElementById("nuevaEmpresaTopBtn")?.addEventListener("click", showNuevaEmpresaModal);
 
   /* ── Notificaciones ── */
   document.getElementById("notifBtn")?.addEventListener("click", () => switchView("alertas"));
+
+  /* ── Navegación a vistas con lazy init ── */
+  document.querySelectorAll(".sn-item[data-view]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const view = btn.dataset.view;
+      if (view === "pipeline")   await refreshPipeline();
+      if (view === "tesoreria")  await refreshTesoreria();
+      if (view === "verifactu")  await refreshVerifactu();
+    });
+  });
 
   /* ═══════════════════════
      CARGA INICIAL
@@ -461,10 +481,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   const proveedores = await loadProveedores();
   setProveedores(proveedores);
 
+  // Cargar empleados
+  const empleados = await loadEmpleados();
+  setEmpleados(empleados);
+
   await fullRefresh();
   await refreshProductos();
   await refreshProveedores();
   await refreshGastosRecurrentes();
+  await refreshEmpleados();
 
   // Actualizar 347 badge
   try {
