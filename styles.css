@@ -1492,3 +1492,19 @@ html.dark .lp-plan--gestor {
   text-align: center;
   line-height: 1.6;
 }
+
+/* Plan claim — "Ahorra +10h/mes" */
+.lp-plan-claim {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(249,115,22,.12);
+  color: #ea580c;
+  border: 1px solid rgba(249,115,22,.25);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 6px 0 2px;
+  letter-spacing: .01em;
+}
