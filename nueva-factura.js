@@ -13,7 +13,7 @@ import { emitirFacturaDB } from "./facturas.js";
 import { refreshClientes, populateClienteSelect } from "./clientes.js";
 import { refreshDashboard } from "./dashboard.js";
 import { refreshFacturas } from "./facturas.js";
-import { PRODUCTOS } from "./productos.js";
+import { PRODUCTOS, buscarProductoPorCodigo } from "./productos.js";
 
 /* ── Estado interno del formulario ── */
 let LINEAS = [];
@@ -549,6 +549,63 @@ export function initNuevaFactura() {
   });
   document.getElementById("nfTipoCliente")?.addEventListener("change", updateIrpfVisibility);
   document.getElementById("addLineaBtn")?.addEventListener("click", ()=>addLinea());
+
+  // ══════════════════════════════════════════════════
+  // ESCÁNER en Nueva Factura — igual que en presupuestos
+  // ══════════════════════════════════════════════════
+  const nfScanInput    = document.getElementById("nfScanInput");
+  const nfScanFeedback = document.getElementById("nfScanFeedback");
+
+  const nfProcesarCodigo = () => {
+    const codigo = nfScanInput?.value.trim().replace(/[\r\n\t]/g,"");
+    if (!codigo) return;
+    const prod = buscarProductoPorCodigo ? buscarProductoPorCodigo(codigo) : null;
+    const qty  = Math.max(1, parseInt(document.getElementById("nfScanQty")?.value)||1);
+
+    if (prod) {
+      // Buscar línea existente con mismo nombre para sumar cantidad
+      let yaExiste = false;
+      LINEAS.forEach(l => {
+        if (l.descripcion === (prod.descripcion||prod.nombre)) {
+          l.cantidad += qty;
+          const row = document.querySelector(\`.linea-row[data-linea-id="\${l.id}"]\`);
+          if (row) {
+            const qEl = row.querySelector("[data-field='cantidad']");
+            if (qEl) { qEl.value = l.cantidad; }
+          }
+          yaExiste = true;
+        }
+      });
+      if (!yaExiste) addLinea({ descripcion: prod.descripcion||prod.nombre, cantidad: qty, precio: prod.precio, iva: prod.iva });
+      updateTotalesUI(); updatePreview();
+      if (nfScanFeedback) {
+        nfScanFeedback.style.color="#059669"; nfScanFeedback.style.opacity="1";
+        nfScanFeedback.textContent=`✅ ${yaExiste?"Cantidad actualizada":"Añadido"}: ${prod.nombre}${qty>1?" × "+qty:""} — ${fmt(prod.precio)}`;
+        setTimeout(()=>{ if(nfScanFeedback) nfScanFeedback.style.opacity="0"; },3000);
+      }
+      try {
+        const ctx=new(window.AudioContext||window.webkitAudioContext)();
+        const osc=ctx.createOscillator(); const g=ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination); osc.frequency.value=880;
+        g.gain.setValueAtTime(0.15,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.12);
+        osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.12);
+      } catch(e){}
+    } else {
+      if (nfScanFeedback) {
+        nfScanFeedback.style.color="#dc2626"; nfScanFeedback.style.opacity="1";
+        nfScanFeedback.textContent=`❌ Código "${codigo}" no encontrado`;
+        setTimeout(()=>{ if(nfScanFeedback) nfScanFeedback.style.opacity="0"; },3000);
+      }
+      if(nfScanInput){ nfScanInput.style.borderColor="#dc2626"; nfScanInput.style.background="#fef2f2"; setTimeout(()=>{ nfScanInput.style.borderColor=""; nfScanInput.style.background=""; },1200); }
+    }
+    if(nfScanInput){ nfScanInput.value=""; nfScanInput.focus(); }
+  };
+
+  nfScanInput?.addEventListener("keydown", e => { if(e.key==="Enter"){ e.preventDefault(); nfProcesarCodigo(); } });
+  nfScanInput?.addEventListener("focus", () => {
+    if(nfScanFeedback){ nfScanFeedback.style.color="var(--t3)"; nfScanFeedback.style.opacity="1"; nfScanFeedback.textContent="🎯 Listo para escanear"; }
+  });
+  nfScanInput?.addEventListener("blur", () => { if(nfScanFeedback) nfScanFeedback.style.opacity="0"; });
   document.getElementById("nfGuardarBtn")?.addEventListener("click", ()=>saveFactura(false));
   document.getElementById("nfEmitirBtn")?.addEventListener("click",  ()=>saveFactura(true));
   if (LINEAS.length===0) addLinea();
