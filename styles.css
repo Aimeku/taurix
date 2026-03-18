@@ -1508,3 +1508,164 @@ html.dark .lp-plan--gestor {
   margin: 6px 0 2px;
   letter-spacing: .01em;
 }
+
+/* ═══════════════════════════════════════════════════
+   TRABAJOS — Kanban
+═══════════════════════════════════════════════════ */
+.trabajo-col {
+  background: var(--bg2);
+  border-radius: 14px;
+  padding: 12px;
+  min-height: 200px;
+  transition: background .15s;
+}
+.trabajo-col.drag-over { background: rgba(26,86,219,.06); outline: 2px dashed var(--accent); }
+.trabajo-col-hd {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 8px 10px;
+  margin-bottom: 6px;
+}
+.trabajo-col-body { display: flex; flex-direction: column; gap: 8px; }
+.trabajo-card {
+  background: var(--srf);
+  border: 1px solid var(--brd);
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all .15s;
+  user-select: none;
+}
+.trabajo-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 3px 12px rgba(26,86,219,.1);
+  transform: translateY(-1px);
+}
+
+/* Vista toggle buttons */
+.vista-toggle-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 7px 14px; background: none; border: none;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  color: var(--t3); font-family: var(--font);
+  transition: all .12s;
+}
+.vista-toggle-btn:hover { color: var(--t1); background: var(--bg2); }
+.vista-toggle-btn.active { color: var(--accent); background: rgba(26,86,219,.07); }
+
+/* ═══════════════════════════════════════════════════
+   AGENDA / CALENDARIO
+═══════════════════════════════════════════════════ */
+
+/* Vista mensual */
+.cal-grid-mes {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-left: 1px solid var(--brd);
+  border-top: 1px solid var(--brd);
+}
+.cal-header-day {
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--t3);
+  border-right: 1px solid var(--brd);
+  border-bottom: 1px solid var(--brd);
+  background: var(--bg2);
+}
+.cal-cell {
+  min-height: 90px;
+  padding: 6px;
+  border-right: 1px solid var(--brd);
+  border-bottom: 1px solid var(--brd);
+  cursor: pointer;
+  transition: background .1s;
+  vertical-align: top;
+}
+.cal-cell:hover { background: var(--bg2); }
+.cal-cell--vacio { background: var(--bg2); opacity: .4; }
+.cal-cell--hoy { background: rgba(26,86,219,.04); }
+.cal-cell-num {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t2);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-bottom: 4px;
+}
+.cal-cell-num--hoy {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+}
+.cal-evento {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: .9;
+  transition: opacity .1s;
+}
+.cal-evento:hover { opacity: 1; }
+.cal-evento-mas {
+  font-size: 10px;
+  color: var(--t4);
+  padding: 1px 4px;
+  font-weight: 600;
+}
+
+/* Vista semanal */
+.cal-grid-semana {
+  display: grid;
+  grid-template-columns: 50px repeat(7, 1fr);
+  border-left: 1px solid var(--brd);
+  border-top: 1px solid var(--brd);
+  font-size: 12px;
+}
+.cal-sem-time-col { border-right: 1px solid var(--brd); border-bottom: 1px solid var(--brd); background: var(--bg2); }
+.cal-sem-day-hd {
+  padding: 8px 4px;
+  text-align: center;
+  border-right: 1px solid var(--brd);
+  border-bottom: 1px solid var(--brd);
+  background: var(--bg2);
+}
+.cal-sem-day-hd--hoy { background: rgba(26,86,219,.06); }
+.cal-sem-time {
+  font-size: 10px;
+  color: var(--t4);
+  padding: 4px 6px;
+  text-align: right;
+  border-right: 1px solid var(--brd);
+  border-bottom: 1px solid var(--brd);
+  background: var(--bg2);
+}
+.cal-sem-cell {
+  min-height: 44px;
+  border-right: 1px solid var(--brd);
+  border-bottom: 1px solid var(--brd);
+  padding: 2px;
+  cursor: pointer;
+  transition: background .1s;
+}
+.cal-sem-cell:hover { background: rgba(26,86,219,.03); }
+.cal-evento-sem {
+  color: #fff;
+  font-size: 11px;
+  padding: 3px 6px;
+  border-radius: 5px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  overflow: hidden;
+}
