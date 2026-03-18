@@ -1157,28 +1157,15 @@
           <div class="kpi-card kpi-indigo"><div class="kpi-top"><span class="kpi-lbl">Tasa de cierre</span></div><div class="kpi-val" id="pipelineTasa">—</div></div>
         </div>
 
-        <!-- Pipeline Kanban -->
-        <div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:16px">
-          <div class="pipeline-col">
-            <div class="pipeline-col-hd">Prospecto <span id="pipeCount1" style="background:var(--brd);padding:1px 6px;border-radius:10px;font-size:10px">0</span></div>
-            <div id="pipeCol1"></div>
-          </div>
-          <div class="pipeline-col">
-            <div class="pipeline-col-hd">Propuesta enviada <span id="pipeCount2" style="background:var(--brd);padding:1px 6px;border-radius:10px;font-size:10px">0</span></div>
-            <div id="pipeCol2"></div>
-          </div>
-          <div class="pipeline-col">
-            <div class="pipeline-col-hd">Negociación <span id="pipeCount3" style="background:var(--brd);padding:1px 6px;border-radius:10px;font-size:10px">0</span></div>
-            <div id="pipeCol3"></div>
-          </div>
-          <div class="pipeline-col">
-            <div class="pipeline-col-hd" style="color:#059669">Ganada ✓ <span id="pipeCount4" style="background:#dcfce7;color:#166534;padding:1px 6px;border-radius:10px;font-size:10px">0</span></div>
-            <div id="pipeCol4"></div>
-          </div>
-          <div class="pipeline-col" style="opacity:.6">
-            <div class="pipeline-col-hd" style="color:#dc2626">Perdida ✗ <span id="pipeCount5" style="background:#fee2e2;color:#991b1b;padding:1px 6px;border-radius:10px;font-size:10px">0</span></div>
-            <div id="pipeCol5"></div>
-          </div>
+        <!-- KPIs extra pipeline -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div class="kpi-card" style="border:1px solid var(--brd)"><div class="kpi-top"><span class="kpi-lbl">Ciclo medio de venta</span></div><div class="kpi-val" id="pipelineCiclo">—</div></div>
+          <div class="kpi-card" style="border:1px solid var(--brd)"><div class="kpi-top"><span class="kpi-lbl">Oportunidades perdidas</span></div><div class="kpi-val" id="pipelinePerdidas">—</div></div>
+        </div>
+
+        <!-- Kanban Board (renderizado por pipeline.js) -->
+        <div id="pipelineBoard" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:16px;min-height:300px">
+          <div style="display:flex;align-items:center;justify-content:center;width:100%;color:var(--t3);font-size:13px">Cargando pipeline…</div>
         </div>
       </div>
 
@@ -2076,6 +2063,26 @@
           <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">Posición neta 30d</span></div><div class="kpi-val" id="tesoNeta">—</div></div>
         </div>
 
+        <!-- Cuentas bancarias -->
+        <div class="section-card" style="margin-bottom:20px">
+          <div class="sc-header">
+            <span class="sc-title">💳 Cuentas bancarias</span>
+            <button class="btn-outline" style="font-size:12px" onclick="window._nuevaCuenta()">+ Añadir cuenta</button>
+          </div>
+          <div id="cuentasBancariasWrap" style="display:flex;flex-direction:column;gap:10px;padding:4px 0">
+            <div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Cargando cuentas…</div>
+          </div>
+        </div>
+
+        <!-- Previsiones de cobro -->
+        <div class="section-card" style="margin-bottom:20px">
+          <div class="sc-header"><span class="sc-title">📅 Cobros pendientes próximos 30 días</span></div>
+          <table class="data-table">
+            <thead><tr><th>Cliente</th><th>Importe</th><th>Vencimiento</th><th>Días</th></tr></thead>
+            <tbody id="previsionesBody"><tr class="dt-empty"><td colspan="4">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+
         <!-- Movimientos bancarios -->
         <div class="section-card" style="margin-bottom:20px">
           <div class="sc-header">
@@ -2670,25 +2677,25 @@
               <div class="audit-dot" style="background:#059669"></div>
               <div class="audit-time" style="color:var(--t3)">14:23</div>
               <div class="audit-msg"><strong style="color:#059669">FIRMA</strong> · Factura FAC-2025-0042 firmada con Verifactu. Hash: a3f2b1c9... Vinculada a FAC-2025-0041</div>
-              <div class="audit-user">usuario@empresa.com</div>
+              <div class="audit-user"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a7d2d4d2c6d5cec8e7c2cad7d5c2d4c689c4c8ca">[email&#160;protected]</a></div>
             </div>
             <div class="audit-row">
               <div class="audit-dot" style="background:#2563eb"></div>
               <div class="audit-time" style="color:var(--t3)">14:22</div>
               <div class="audit-msg"><strong style="color:#2563eb">EMIT</strong> · Factura FAC-2025-0042 emitida. Base: 2.000,00€ · IVA 21%: 420,00€ · Total: 2.420,00€ · Cliente: Empresa XYZ S.L.</div>
-              <div class="audit-user">usuario@empresa.com</div>
+              <div class="audit-user"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f88d8b8d998a9197b89d95888a9d8b99d69b9795">[email&#160;protected]</a></div>
             </div>
             <div class="audit-row">
               <div class="audit-dot" style="background:#059669"></div>
               <div class="audit-time" style="color:var(--t3)">10:05</div>
               <div class="audit-msg"><strong style="color:#059669">CREATE</strong> · Nuevo cliente: Empresa XYZ S.L. · NIF: B12345678 · País: ES</div>
-              <div class="audit-user">usuario@empresa.com</div>
+              <div class="audit-user"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6f1a1c1a0e1d06002f0a021f1d0a1c0e410c0002">[email&#160;protected]</a></div>
             </div>
             <div class="audit-row">
               <div class="audit-dot" style="background:#d97706"></div>
               <div class="audit-time" style="color:var(--t3)">09:41</div>
               <div class="audit-msg"><strong style="color:#d97706">UPDATE</strong> · Presupuesto PRES-2025-0015 marcado como aceptado. Estado anterior: enviado</div>
-              <div class="audit-user">usuario@empresa.com</div>
+              <div class="audit-user"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bcc9cfc9ddced5d3fcd9d1ccced9cfdd92dfd3d1">[email&#160;protected]</a></div>
             </div>
           </div>
         </div>
@@ -2706,15 +2713,4 @@
 <div id="cookieBanner" class="cookie-banner" style="display:none">
   <div class="cookie-banner-inner">
     <div class="cookie-banner-text">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px;opacity:.7"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <span>Usamos almacenamiento local para mantener tu sesión y preferencias. No usamos cookies de rastreo ni publicidad. <a href="#" id="cookieLeerMas">Más información</a></span>
-    </div>
-    <div class="cookie-banner-actions">
-      <button class="cookie-btn-outline" id="cookieRechazar">Solo esenciales</button>
-      <button class="cookie-btn-solid" id="cookieAceptar">Aceptar</button>
-    </div>
-  </div>
-</div>
-
-</body>
-</html>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px;opacity:.7"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><l
