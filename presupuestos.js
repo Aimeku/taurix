@@ -305,11 +305,39 @@ export function showNuevoPresupuestoModal(prefill = {}) {
           </div>
         </div>
 
-        <!-- Buscar por código de artículo -->
-        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
-          <input id="pm_codBuscar" class="ff-input" style="max-width:220px;font-size:13px"
-            placeholder="🔍 Código / SKU / barras" title="Busca un producto por su referencia o código de barras y añádelo como línea"/>
-          <button id="pm_codBuscarBtn" class="btn-outline" style="font-size:12px;padding:6px 12px;white-space:nowrap">Añadir por código</button>
+        <!-- ══════════════════════════════════════════
+             CAMPO ESCÁNER — Lector físico USB/Bluetooth
+             El lector teclea el código + Enter automáticamente
+             ══════════════════════════════════════════ -->
+        <div id="scannerWrap" style="margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9v-2a2 2 0 012-2h2M3 15v2a2 2 0 002 2h2M15 3h2a2 2 0 012 2v2M15 21h2a2 2 0 002-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+            Escáner de código de barras
+          </div>
+          <div style="display:flex;gap:8px;align-items:stretch">
+            <div style="position:relative;flex:1;max-width:340px">
+              <input id="pm_codBuscar"
+                class="ff-input"
+                style="width:100%;padding-left:36px;font-family:monospace;font-size:13px;letter-spacing:.04em"
+                placeholder="Escanea aquí o escribe el código…"
+                autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                title="Haz click aquí y luego pasa el lector por el código de barras"/>
+              <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t3);pointer-events:none" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9v-2a2 2 0 012-2h2M3 15v2a2 2 0 002 2h2M15 3h2a2 2 0 012 2v2M15 21h2a2 2 0 002-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <div id="scannerQtyWrap" style="display:flex;align-items:center;gap:4px">
+                <span style="font-size:12px;color:var(--t3);white-space:nowrap">Cant.:</span>
+                <input id="pm_scanQty" type="number" min="1" step="1" value="1"
+                  class="ff-input" style="width:58px;text-align:center;font-size:13px;font-weight:700"
+                  title="Cantidad a añadir cuando se escanee"/>
+              </div>
+            </div>
+          </div>
+          <!-- Feedback del escáner -->
+          <div id="scannerFeedback" style="min-height:22px;margin-top:5px;font-size:12px;transition:opacity .3s"></div>
+          <div style="font-size:11px;color:var(--t4);margin-top:3px">
+            💡 Haz click en el campo, después pasa el lector por el código de barras. Se añade solo.
+          </div>
         </div>
 
         <div class="lineas-header" style="font-size:11px">
@@ -565,23 +593,150 @@ export function showNuevoPresupuestoModal(prefill = {}) {
     });
   });
 
-  // Buscar por código de artículo
-  const doBuscarCodigo = () => {
-    const codigo = document.getElementById("pm_codBuscar")?.value.trim();
-    if (!codigo) { toast("Introduce un código o referencia", "warn"); return; }
-    const prod = buscarProductoPorCodigo(codigo);
-    if (!prod) { toast(`No se encontró ningún artículo con el código "${codigo}"`, "error"); return; }
-    addLinea({
-      descripcion: prod.descripcion || prod.nombre,
-      cantidad: 1,
-      precio:   prod.precio,
-      iva:      prod.iva,
-    });
-    document.getElementById("pm_codBuscar").value = "";
-    toast(`✅ Añadido: ${prod.nombre}`, "success");
+  // ══════════════════════════════════════════════════
+  // ESCÁNER — Lector físico USB/Bluetooth
+  // El lector envía el código como si fuera teclado + Enter
+  // ══════════════════════════════════════════════════
+  const scanInput    = document.getElementById("pm_codBuscar");
+  const scanFeedback = document.getElementById("scannerFeedback");
+  let   _scanTimeout = null;   // timeout para detectar "tipeo lento" vs "lector rápido"
+  let   _lastKeyTime  = 0;
+  let   _keyBuffer    = "";    // buffer de teclas del lector
+
+  const mostrarFeedback = (msg, tipo) => {
+    if (!scanFeedback) return;
+    const colores = { ok:"#059669", error:"#dc2626", warn:"#d97706", info:"var(--t3)" };
+    scanFeedback.style.color   = colores[tipo] || "var(--t3)";
+    scanFeedback.style.opacity = "1";
+    scanFeedback.textContent   = msg;
+    clearTimeout(_scanTimeout);
+    _scanTimeout = setTimeout(() => { if(scanFeedback) scanFeedback.style.opacity="0"; }, 3000);
   };
-  document.getElementById("pm_codBuscarBtn")?.addEventListener("click", doBuscarCodigo);
-  document.getElementById("pm_codBuscar")?.addEventListener("keydown", e => { if (e.key === "Enter") doBuscarCodigo(); });
+
+  const procesarCodigo = () => {
+    const codigo = scanInput?.value.trim().replace(/[\r\n\t]/g,"");
+    if (!codigo) return;
+
+    const prod = buscarProductoPorCodigo(codigo);
+    const qty  = Math.max(1, parseInt(document.getElementById("pm_scanQty")?.value)||1);
+
+    if (prod) {
+      // Producto encontrado — comprobar si ya existe en las líneas
+      // para sumar cantidad en lugar de crear línea duplicada
+      const lineasActuales = document.querySelectorAll(".linea-row");
+      let yaExiste = false;
+      lineasActuales.forEach(row => {
+        const descEl = row.querySelector("[data-field='descripcion']");
+        if (descEl && descEl.value === (prod.descripcion || prod.nombre)) {
+          // Sumar cantidad a la línea existente
+          const qtyEl = row.querySelector("[data-field='cantidad']");
+          if (qtyEl) {
+            const qActual = parseFloat(qtyEl.value)||1;
+            qtyEl.value = qActual + qty;
+            qtyEl.dispatchEvent(new Event("input"));
+          }
+          yaExiste = true;
+        }
+      });
+
+      if (!yaExiste) {
+        addLinea({
+          descripcion: prod.descripcion || prod.nombre,
+          cantidad:    qty,
+          precio:      prod.precio,
+          iva:         prod.iva,
+        });
+      }
+
+      // Feedback positivo
+      mostrarFeedback(
+        `✅ ${yaExiste?"Cantidad actualizada":"Añadido"}: ${prod.nombre}${qty>1?" × "+qty:""} — ${fmt(prod.precio)}`,
+        "ok"
+      );
+
+      // Pitido de confirmación (Web Audio API — sin librerías)
+      try {
+        const ctx = new (window.AudioContext||window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.12);
+      } catch(e) { /* Sin audio si el navegador no lo soporta */ }
+
+    } else {
+      // Producto NO encontrado — ofrecer crear o ver el catálogo
+      mostrarFeedback(`❌ Código "${codigo}" no encontrado en el catálogo`, "error");
+
+      // Resaltar brevemente el campo
+      if (scanInput) {
+        scanInput.style.borderColor = "#dc2626";
+        scanInput.style.background  = "#fef2f2";
+        setTimeout(() => {
+          scanInput.style.borderColor = "";
+          scanInput.style.background  = "";
+        }, 1200);
+      }
+
+      // Vibración en móvil
+      if (navigator.vibrate) navigator.vibrate([100,50,100]);
+    }
+
+    // Limpiar campo y devolver foco — CRÍTICO para que el siguiente
+    // escaneo funcione sin que la secretaria tenga que hacer click
+    if (scanInput) {
+      scanInput.value = "";
+      scanInput.focus();
+    }
+  };
+
+  // Detectar Enter (lo que envía el lector al terminar de leer)
+  scanInput?.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      procesarCodigo();
+    }
+  });
+
+  // Detección inteligente de lector vs teclado:
+  // Los lectores físicos envían todos los caracteres en <50ms
+  // Un humano teclea más despacio. Si detectamos velocidad de lector,
+  // procesamos automáticamente aunque no pulse Enter (por si acaso)
+  scanInput?.addEventListener("keypress", e => {
+    const now = Date.now();
+    if (now - _lastKeyTime < 50) {
+      // Velocidad de lector — acumular
+      _keyBuffer += e.key;
+    } else {
+      // Velocidad humana — resetear buffer
+      _keyBuffer = e.key;
+    }
+    _lastKeyTime = now;
+  });
+
+  // Focus visual: indicar claramente que el campo está activo
+  scanInput?.addEventListener("focus", () => {
+    const wrap = document.getElementById("scannerWrap");
+    if (wrap) wrap.style.outline = "2px solid var(--accent)";
+    wrap.style.borderRadius = "8px";
+    mostrarFeedback("🎯 Listo para escanear — pasa el lector ahora", "info");
+  });
+  scanInput?.addEventListener("blur", () => {
+    const wrap = document.getElementById("scannerWrap");
+    if (wrap) { wrap.style.outline=""; wrap.style.borderRadius=""; }
+    if(scanFeedback) scanFeedback.style.opacity="0";
+  });
+
+  // Auto-focus al abrir el modal si no hay líneas
+  setTimeout(() => {
+    if (scanInput && document.querySelectorAll(".linea-row").length === 0) {
+      // Solo auto-focus si parece que van a escanear (sin líneas todavía)
+    }
+    // El foco por defecto va al campo de cliente, no al escáner
+    // La secretaria hace click en el campo cuando quiere escanear
+  }, 100);
 
   // Sincronizar cliente_nombre con select
   document.getElementById("pm_cliente").addEventListener("change", e => {
