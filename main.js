@@ -296,27 +296,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     sfr.textContent = labels[pf.regime] || "Autónomo · IRPF";
   }
 
-  /* ── Banner perfil incompleto ── */
-  const perfilIncompleto = !pf || !pf.nif || !pf.nombre_razon_social || !pf.regime;
-  if (perfilIncompleto && !sessionStorage.getItem("taurix_banner_dismissed")) {
-    const banner = document.getElementById("onboardingBanner");
-    if (banner) {
-      banner.style.display = "";
-      banner.style.cssText = "display:block;position:relative;z-index:10";
-      banner.innerHTML = `
-        <div style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;padding:10px 20px;display:flex;align-items:center;gap:12px">
-          <span style="font-size:18px">⚡</span>
-          <div style="flex:1;font-size:12px">
-            <strong>Completa tu perfil fiscal</strong> — Necesitas tu NIF y nombre para emitir facturas válidas.
-          </div>
-          <button onclick="showPerfilModal()" style="background:rgba(255,255,255,.25);border:none;color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;flex-shrink:0">
-            Completar →
-          </button>
-          <button onclick="this.closest('#onboardingBanner').style.display='none';sessionStorage.setItem('taurix_banner_dismissed','1')"
-                  style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:18px;line-height:1;padding:0 4px;flex-shrink:0">×</button>
-        </div>`;
-    }
-  }
+  /* ── Banner perfil incompleto ── eliminado ── */
 
   /* ── Año / trimestre ── */
   const now = new Date();
