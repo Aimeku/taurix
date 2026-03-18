@@ -281,8 +281,10 @@ export function showNuevoEventoModal(prefill = {}) {
     `<option value="${c.id}" data-nombre="${c.nombre}" ${prefill.cliente_id===c.id?"selected":""}>${c.nombre}</option>`
   ).join("");
 
-  const tecnicoOpts = `<option value="">Sin asignar</option>` +
-    TECNICOS.map(e => `<option value="${e.id}" ${prefill.tecnico_id===e.id?"selected":""}>${e.nombre}</option>`).join("");
+  const tecnicoOpts = TECNICOS.length === 0
+    ? `<option value="">Sin técnicos — ve a Empleados para añadirlos</option>`
+    : `<option value="">Sin asignar</option>` +
+      TECNICOS.map(e => `<option value="${e.id}" ${prefill.tecnico_id===e.id?"selected":""}>${e.nombre}</option>`).join("");
 
   openModal(`
     <div class="modal" style="max-width:560px">
