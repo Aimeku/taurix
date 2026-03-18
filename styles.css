@@ -160,6 +160,7 @@ table{border-collapse:collapse}
 
 /* ══ APP TOPBAR ══ */
 .app-topbar{position:fixed;top:0;left:0;right:0;height:var(--top-h);background:var(--srf);border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;padding:0 20px 0 0;z-index:200}
+#fiscalDeadlineBanner:empty{display:none!important;margin:0;padding:0;height:0}
 .app-logo{width:var(--sb-w);display:flex;align-items:center;padding:0 22px;background:var(--sb);height:100%;border-right:1px solid var(--sb-brd);flex-shrink:0}
 .app-logo-img{height:34px;width:auto;object-fit:contain;filter:none}
 .topbar-period-pill{display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--srf2);border:1px solid var(--brd);border-radius:10px;margin-left:20px}
@@ -1068,3 +1069,8 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
   padding: 8px 20px; border-radius: 100px; font-weight: 700; font-size: 14px;
   white-space: nowrap;
 }
+
+#nfScannerWrap{outline:none!important}
+#scannerWrap{outline:none!important}
+
+.modal--wide{max-width:860px!important;width:94%!important}
