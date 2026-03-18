@@ -1174,3 +1174,157 @@ html.dark .badge.b-pendiente{background:#451a03;color:#fcd34d}
 
 /* Fila plan de cuentas */
 .plan-cuenta-row { transition: background .1s; }
+
+/* ═══════════════════════════════════════════════════
+   PWA + COLABORADORES + BANCO
+═══════════════════════════════════════════════════ */
+
+/* Update banner */
+#updateBanner {
+  position: fixed;
+  top: var(--top-h);
+  left: 0; right: 0;
+  background: #1a56db;
+  color: #fff;
+  text-align: center;
+  padding: 8px 20px;
+  font-size: 13px;
+  z-index: 199;
+  display: none;
+}
+
+/* Install PWA button pulse */
+#installPwaBtn {
+  animation: pulse-blue 2s infinite;
+}
+@keyframes pulse-blue {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(26,86,219,0); }
+  50%       { box-shadow: 0 0 0 4px rgba(26,86,219,.2); }
+}
+
+/* Banco card hover */
+.banco-card:hover {
+  border-color: var(--accent) !important;
+  background: rgba(26,86,219,.04) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(26,86,219,.1);
+}
+.banco-card { transition: all .15s; }
+
+/* Rol card hover */
+label[id^="inv_rol_wrap_"] { transition: all .15s; }
+label[id^="inv_rol_wrap_"]:hover { background: var(--bg2); }
+
+/* Colaborador banner */
+#onboardingBanner > div { margin: 0 0 12px; }
+
+/* ═══════════════════════════════════════════════════
+   MODOS — Onboarding + Cartera + Toggle
+═══════════════════════════════════════════════════ */
+
+/* Onboarding cards */
+.onboard-card:hover {
+  border-color: var(--accent) !important;
+  background:   rgba(26,86,219,.04) !important;
+  transform:    translateY(-2px) !important;
+  box-shadow:   0 8px 24px rgba(26,86,219,.12);
+}
+
+/* Cartera grid */
+.cartera-card {
+  background:    var(--srf);
+  border:        1px solid var(--brd);
+  border-radius: 16px;
+  padding:       20px;
+  cursor:        pointer;
+  transition:    all .18s;
+  display:       flex;
+  flex-direction:column;
+  gap:           12px;
+}
+.cartera-card:hover {
+  border-color:  var(--accent);
+  box-shadow:    0 6px 20px rgba(26,86,219,.1);
+  transform:     translateY(-2px);
+}
+.cartera-card--propia {
+  border-color:  rgba(26,86,219,.3);
+  background:    rgba(26,86,219,.02);
+}
+.cartera-card-header {
+  display:     flex;
+  align-items: center;
+  gap:         12px;
+}
+.cartera-card-avatar {
+  width:         44px;
+  height:        44px;
+  border-radius: 12px;
+  display:       flex;
+  align-items:   center;
+  justify-content:center;
+  font-size:     18px;
+  font-weight:   900;
+  color:         #fff;
+  flex-shrink:   0;
+}
+.cartera-card-nombre {
+  font-size:   14px;
+  font-weight: 700;
+  color:       var(--t1);
+  overflow:    hidden;
+  text-overflow:ellipsis;
+  white-space: nowrap;
+}
+.cartera-card-nif {
+  font-size:   12px;
+  color:       var(--t4);
+  font-family: monospace;
+  margin-top:  2px;
+}
+.cartera-card-footer {
+  display:        flex;
+  align-items:    center;
+  justify-content:space-between;
+  padding-top:    8px;
+  border-top:     1px solid var(--brd);
+  margin-top:     auto;
+}
+
+/* Modo toggle button */
+#modoToggleBtn {
+  font-size:    11px;
+  font-weight:  700;
+  padding:      0 12px;
+  min-width:    120px;
+  height:       36px;
+  border-radius:10px;
+  display:      flex;
+  align-items:  center;
+  justify-content:center;
+  transition:   all .2s;
+  white-space:  nowrap;
+}
+#modoToggleBtn:hover {
+  opacity: .85;
+  transform: scale(1.02);
+}
+
+/* Modo gestor: acent verde en sidebar items especiales */
+.sn-item[data-view="cartera"] {
+  position: relative;
+}
+.sn-item[data-view="cartera"]::before {
+  content:       '';
+  position:      absolute;
+  left:          0; top:4px; bottom:4px;
+  width:         3px;
+  background:    #059669;
+  border-radius: 0 3px 3px 0;
+}
+
+/* Fade in animation for onboarding */
+@keyframes fadeIn {
+  from { opacity:0; transform:scale(.98); }
+  to   { opacity:1; transform:scale(1); }
+}
