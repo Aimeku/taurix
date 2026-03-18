@@ -33,6 +33,8 @@ export const MODOS = {
       { view:"clientes",     label:"Clientes",             icon:"users" },
       { view:"presupuestos", label:"Presupuestos",         icon:"file-text", badge:"snBadgePres" },
       { view:"pipeline",     label:"Pipeline",             icon:"bar-chart" },
+      { view:"trabajos",     label:"Trabajos",             icon:"briefcase" },
+      { view:"agenda",       label:"Agenda",               icon:"calendar" },
       { view:"facturas",     label:"Facturas",             icon:"file",   badge:"snBadgeBorradores" },
       { view:"nueva-factura",label:"Nueva factura",        icon:"plus-circle" },
       { sep: true, label:"Gastos" },
@@ -68,6 +70,8 @@ export const MODOS = {
       { view:"clientes",     label:"Clientes",             icon:"users" },
       { view:"presupuestos", label:"Presupuestos",         icon:"file-text", badge:"snBadgePres" },
       { view:"pipeline",     label:"Pipeline CRM",         icon:"bar-chart" },
+      { view:"trabajos",     label:"Trabajos",             icon:"briefcase" },
+      { view:"agenda",       label:"Agenda",               icon:"calendar" },
       { view:"facturas",     label:"Facturas",             icon:"file",   badge:"snBadgeBorradores" },
       { view:"nueva-factura",label:"Nueva factura",        icon:"plus-circle" },
       { view:"verifactu",    label:"Verifactu",            icon:"shield" },
@@ -136,6 +140,7 @@ const ICONS = {
   activity:    `<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`,
   folder:      `<path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>`,
   briefcase:   `<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>`,
+  calendar:    `<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>`,
 };
 
 function svgIcon(name, size=16) {
