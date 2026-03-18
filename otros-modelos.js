@@ -390,7 +390,345 @@ export async function initOtrosModelosView() {
   document.getElementById("export111Btn")?.addEventListener("click", exportModelo111PDF);
   document.getElementById("export115Btn")?.addEventListener("click", exportModelo115PDF);
   document.getElementById("export347Btn")?.addEventListener("click", exportModelo347PDF);
+
+  // Exportaciones para software contable y ficheros oficiales AEAT
+  document.getElementById("exportA3Btn")?.addEventListener("click", exportarParaA3);
+  document.getElementById("exportContaPlusBtn")?.addEventListener("click", exportarParaContaPlus);
+  document.getElementById("exportFichero347Btn")?.addEventListener("click", exportarFichero347);
+  document.getElementById("exportFichero190Btn")?.addEventListener("click", exportarFichero190);
   document.getElementById("export349Btn")?.addEventListener("click", exportModelo349PDF);
   document.getElementById("export190Btn")?.addEventListener("click", exportModelo190PDF);
   document.getElementById("export390Btn")?.addEventListener("click", exportModelo390PDF);
+}
+
+/* ══════════════════════════════════════════════════════════
+   EXPORTACIÓN A3 / CONTAPLUS
+   Formato de asientos para importar en software contable
+══════════════════════════════════════════════════════════ */
+
+/* ── Exportar para A3 (formato Excel estructurado) ── */
+export async function exportarParaA3() {
+  if (!window.XLSX) {
+    await new Promise((res,rej)=>{ const s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  }
+
+  const year = getYear ? getYear() : new Date().getFullYear();
+  const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).maybeSingle();
+  const { data: facturas } = await supabase.from("facturas").select("*")
+    .eq("user_id", SESSION.user.id).gte("fecha",`${year}-01-01`).lte("fecha",`${year}-12-31`)
+    .order("fecha");
+
+  const rows = [];
+
+  // Cabecera informativa
+  rows.push({
+    "EMPRESA":     pf?.nombre_razon_social || "—",
+    "NIF":         pf?.nif || "—",
+    "EJERCICIO":   year,
+    "GENERADO":    new Date().toLocaleDateString("es-ES"),
+    "SOFTWARE":    "Taurix → A3",
+    "":            "",
+  });
+  rows.push({});
+
+  // Cabecera columnas del diario
+  rows.push({
+    "EMPRESA": "Nº Asiento", "NIF": "Fecha", "EJERCICIO": "Concepto",
+    "GENERADO": "Cuenta", "SOFTWARE": "Descripción cuenta", "": "Debe", " ": "Haber", "  ": "Documento"
+  });
+
+  let nAsiento = 1;
+  (facturas||[]).forEach(f => {
+    const total    = f.base + f.base*(f.iva||0)/100;
+    const cuotaIVA = f.base*(f.iva||0)/100;
+    const irpfAmt  = f.base*(f.irpf_retencion||f.irpf||0)/100;
+    const fecha    = f.fecha;
+    const nAsStr   = String(nAsiento).padStart(6,"0");
+    const concepto = f.tipo==="emitida"
+      ? `Fra. emitida ${f.numero_factura||"S/N"} ${f.cliente_nombre||""}`
+      : `Fra. recibida ${f.numero_factura||"S/N"} ${f.cliente_nombre||f.concepto||""}`;
+
+    if (f.tipo==="emitida" && f.estado==="emitida") {
+      rows.push({ "EMPRESA":nAsStr,"NIF":fecha,"EJERCICIO":concepto,"GENERADO":"430000","SOFTWARE":"Clientes","":"": f.base, " ":"", "  ":f.numero_factura||"" });
+      if (irpfAmt>0) rows.push({ "EMPRESA":nAsStr,"NIF":fecha,"EJERCICIO":concepto,"GENERADO":"473000","SOFTWARE":"HP, retenciones y pagos a cuenta","":"":irpfAmt," ":"","  ":"" });
+      if (cuotaIVA>0) rows.push({ "EMPRESA":nAsStr,"NIF":fecha,"EJERCICIO":concepto,"GENERADO":"477000","SOFTWARE":"HP, IVA repercutido","":""," ":"":cuotaIVA,"  ":"" });
+      rows.push({ "EMPRESA":nAsStr,"NIF":fecha,"EJERCICIO":concepto,"GENERADO":"705000","SOFTWARE":"Prestaciones de servicios","":""," ":"":f.base,"  ":"" });
+    } else if (f.tipo==="recibida") {
+      rows.push({ "EMPRESA":nAsStr,"NIF":fecha,"EJERCICIO":concepto,"GENERADO":"629000","SOFTWARE":"Otros servicios","":"":f.base," ":"","  ":f.numero_factura||"" });
+      if (cuotaIVA>0) rows.push({ "EMPRESA":nAsStr,"NIF":fecha,"EJERCICIO":concepto,"GENERADO":"472000","SOFTWARE":"HP, IVA soportado","":"":cuotaIVA," ":"","  ":"" });
+      rows.push({ "EMPRESA":nAsStr,"NIF":fecha,"EJERCICIO":concepto,"GENERADO":"400000","SOFTWARE":"Proveedores","":""," ":"":total,"  ":"" });
+    }
+    rows.push({});
+    nAsiento++;
+  });
+
+  const ws = window.XLSX.utils.json_to_sheet(rows);
+  ws["!cols"] = [{wch:12},{wch:12},{wch:45},{wch:10},{wch:35},{wch:14},{wch:14},{wch:16}];
+  const wb = window.XLSX.utils.book_new();
+  window.XLSX.utils.book_append_sheet(wb, ws, `Diario ${year}`);
+  window.XLSX.writeFile(wb, `taurix_A3_${year}.xlsx`);
+  toast("✅ Exportado para A3 — importa el archivo en A3 Asesor → Contabilidad → Importar diario", "success", 6000);
+}
+
+/* ── Exportar para ContaPlus (formato .txt registros fijos) ── */
+export async function exportarParaContaPlus() {
+  const year = getYear ? getYear() : new Date().getFullYear();
+  const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).maybeSingle();
+  const { data: facturas } = await supabase.from("facturas").select("*")
+    .eq("user_id", SESSION.user.id).gte("fecha",`${year}-01-01`).lte("fecha",`${year}-12-31`)
+    .order("fecha");
+
+  // ContaPlus formato: DDMMAAAA;CCCCCC;CONCEPTO;DEBE;HABER;DOCUMENTO
+  const pad  = (v,n,c="0") => String(v).padStart(n,c);
+  const padR = (v,n)       => String(v).padEnd(n," ").slice(0,n);
+  const fmtImporte = (v)   => (Math.round((v||0)*100)).toString().padStart(15,"0");
+
+  let lineas = [];
+  let nAsiento = 1;
+
+  (facturas||[]).forEach(f => {
+    const total    = f.base + f.base*(f.iva||0)/100;
+    const cuotaIVA = f.base*(f.iva||0)/100;
+    const irpfAmt  = f.base*(f.irpf_retencion||f.irpf||0)/100;
+    const [yy,mm,dd] = (f.fecha||"2025-01-01").split("-");
+    const fecha = `${dd}${mm}${yy}`;
+    const nAs   = pad(nAsiento,6);
+    const doc   = padR(f.numero_factura||"",12);
+    const conc  = padR(f.tipo==="emitida"
+      ? `Fra ${f.numero_factura||""} ${f.cliente_nombre||""}`.slice(0,40)
+      : `Fra rec ${f.numero_factura||""} ${f.concepto||""}`.slice(0,40), 40);
+
+    const mkLinea = (cta, debe, haber) =>
+      `${fecha};${nAs};${padR(cta,10)};${conc};${fmtImporte(debe)};${fmtImporte(haber)};${doc}`;
+
+    if (f.tipo==="emitida" && f.estado==="emitida") {
+      lineas.push(mkLinea("4300000000", total-irpfAmt, 0));
+      if (irpfAmt>0) lineas.push(mkLinea("4730000000", irpfAmt, 0));
+      if (cuotaIVA>0) lineas.push(mkLinea("4770000000", 0, cuotaIVA));
+      lineas.push(mkLinea("7050000000", 0, f.base));
+    } else if (f.tipo==="recibida") {
+      lineas.push(mkLinea("6290000000", f.base, 0));
+      if (cuotaIVA>0) lineas.push(mkLinea("4720000000", cuotaIVA, 0));
+      lineas.push(mkLinea("4000000000", 0, total));
+    }
+    nAsiento++;
+  });
+
+  const contenido = lineas.join("\r\n");
+  const blob = new Blob([contenido], { type:"text/plain;charset=utf-8" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = `taurix_ContaPlus_${year}.txt`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast("✅ Exportado para ContaPlus — importa en Contabilidad → Asientos → Importar", "success", 6000);
+}
+
+/* ── Fichero oficial AEAT Modelo 347 (.txt formato BOE) ──
+   Diseño de registro: BOE-A-2013-12322
+   Tipo 1: Registro de declarante
+   Tipo 2: Registro de declarado (uno por operación >3.005,06€)
+── */
+export async function exportarFichero347() {
+  const year = getYear ? getYear() : new Date().getFullYear();
+  const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).maybeSingle();
+
+  if (!pf?.nif) {
+    toast("⚠️ Necesitas configurar tu NIF en Perfil fiscal antes de exportar el fichero oficial", "warn", 5000);
+    return;
+  }
+
+  const data347 = await calcModelo347(year);
+  const { declarables } = data347;
+
+  if (!declarables.length) {
+    toast("No hay operaciones declarables (>3.005,06€) en el ejercicio " + year, "warn");
+    return;
+  }
+
+  // Helpers formato AEAT (campos de longitud fija)
+  const rpad = (v,n)   => String(v||"").toUpperCase().padEnd(n," ").slice(0,n);
+  const lpad = (v,n)   => String(v||"").padStart(n," ").slice(0,n);
+  const lpad0 = (v,n)  => String(v||"0").padStart(n,"0").slice(0,n);
+  const importe = (v)  => {
+    // Formato AEAT: 16 posiciones, sin decimales (en céntimos), sin signo
+    const cents = Math.round(Math.abs(v||0)*100);
+    return lpad0(cents, 16);
+  };
+  const signo = (v) => v >= 0 ? " " : "N";
+
+  const nifDeclarante  = rpad((pf.nif||"").replace(/[-\s]/g,""), 9);
+  const nomDeclarante  = rpad(pf.nombre_razon_social||"TAURIX", 40);
+  const ejercicio      = String(year);
+  const telContacto    = lpad0((pf.telefono||"").replace(/\D/g,"").slice(0,9), 9);
+  const nomContacto    = rpad(pf.nombre_razon_social||"", 40);
+
+  // ── REGISTRO TIPO 1: Declarante ──
+  const totalRegistros = declarables.length;
+  const totalImportes  = declarables.reduce((a,d) => a + Math.abs(d.total), 0);
+
+  const reg1 =
+    "1" +                           // tipo registro
+    "347" +                          // modelo
+    ejercicio +                      // ejercicio (4)
+    nifDeclarante +                  // NIF (9)
+    nomDeclarante +                  // nombre (40)
+    "T" +                            // tipo soporte (T=telematico)
+    " ".repeat(13) +                 // teléfono contacto (fijo vacío aquí) (13)
+    nomContacto +                    // nombre contacto (40)
+    " ".repeat(12) +                 // núm declaración (12)
+    lpad0(totalRegistros, 9) +       // total registros tipo 2 (9)
+    " " +                            // indicador complementaria
+    " " +                            // indicador sustitutiva
+    " ".repeat(13) +                 // núm declaración anterior (13)
+    importe(totalImportes) +         // importe total (16)
+    " ".repeat(16) +                 // importe total (metálico) (16)
+    " ".repeat(204) +                // blancos hasta 500
+    " ".repeat(19);                  // blancos
+
+  // Padding a 500 caracteres
+  const rec1 = reg1.padEnd(500," ").slice(0,500);
+
+  // ── REGISTROS TIPO 2: Declarados ──
+  const rec2s = declarables.map((d, i) => {
+    const nifDec = rpad((d.nif||"").replace(/[-\s]/g,""), 9);
+    const nomDec = rpad(d.nombre||"DESCONOCIDO", 40);
+    const claveOp = d.tipo === "emitida" ? "B" : "A"; // B=ventas A=compras
+    const pais    = "ES"; // España
+
+    const reg2 =
+      "2" +                         // tipo registro
+      "347" +                        // modelo
+      ejercicio +                    // ejercicio
+      nifDeclarante +                // NIF declarante (9)
+      nomDeclarante +                // nombre declarante (40)
+      lpad0(i+1, 8) +                // núm registro (8)
+      nifDec +                       // NIF declarado (9)
+      rpad(pais, 2) +                // código país (2) — vacío si ES
+      nomDec +                       // nombre declarado (40)
+      claveOp +                      // clave operación (1)
+      ejercicio +                    // ejercicio operación (4)
+      signo(d.total) +               // signo importe (1)
+      importe(d.total) +             // importe (16)
+      " " +                          // operación seguro (1)
+      " " +                          // arrendamiento local (1)
+      " ".repeat(16) +               // importe percibido en metálico (16)
+      " " +                          // signo metálico (1)
+      " ".repeat(4) +                // ejercicio metálico (4)
+      " ".repeat(350);               // blancos
+
+    return reg2.padEnd(500," ").slice(0,500);
+  });
+
+  // Unir todos los registros
+  const contenido = [rec1, ...rec2s].join("\r\n") + "\r\n";
+
+  // Nombre del fichero según AEAT: 347AAAANNNNNNNNNC.txt
+  const nombreFichero = `347${year}${nifDeclarante.trim()}.txt`;
+
+  const blob = new Blob([contenido], { type:"text/plain;charset=iso-8859-1" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = nombreFichero;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+
+  toast(`✅ Fichero oficial 347 generado (${declarables.length} declarados) — importa en la Sede Electrónica AEAT`, "success", 7000);
+}
+
+/* ── Fichero oficial AEAT Modelo 190 (.txt formato BOE) ──
+   Resumen anual retenciones e ingresos a cuenta IRPF
+── */
+export async function exportarFichero190() {
+  const year = getYear ? getYear() : new Date().getFullYear();
+  const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).maybeSingle();
+
+  if (!pf?.nif) {
+    toast("⚠️ Necesitas configurar tu NIF en Perfil fiscal antes de exportar el fichero oficial", "warn", 5000);
+    return;
+  }
+
+  // Obtener perceptores (empleados con retención + profesionales)
+  const { data: facturas } = await supabase.from("facturas").select("*")
+    .eq("user_id", SESSION.user.id).gte("fecha",`${year}-01-01`).lte("fecha",`${year}-12-31`)
+    .eq("tipo","emitida").not("irpf_retencion","is",null);
+
+  const { data: nominas } = await supabase.from("nominas").select("*")
+    .eq("user_id", SESSION.user.id).gte("fecha",`${year}-01-01`);
+
+  const rpad  = (v,n) => String(v||"").toUpperCase().padEnd(n," ").slice(0,n);
+  const lpad0 = (v,n) => String(Math.round(v||0)).padStart(n,"0").slice(0,n);
+  const nifDec = rpad((pf.nif||"").replace(/[-\s]/g,""), 9);
+  const nomDec = rpad(pf.nombre_razon_social||"", 40);
+
+  const perceptores = [];
+
+  // Profesionales (facturas con retención)
+  const porProf = {};
+  (facturas||[]).forEach(f => {
+    const k = (f.cliente_nif||f.cliente_nombre||"DESCONOCIDO").toUpperCase();
+    if (!porProf[k]) porProf[k] = { nif: f.cliente_nif||"", nombre: f.cliente_nombre||"", base:0, retencion:0 };
+    porProf[k].base      += f.base;
+    porProf[k].retencion += f.base * (f.irpf_retencion||0) / 100;
+  });
+  Object.values(porProf).forEach(p => {
+    perceptores.push({ ...p, clave:"G", subclave:"01" }); // G = prof. art. 95.1 RIRPF
+  });
+
+  // Trabajadores (nóminas)
+  const porEmp = {};
+  (nominas||[]).forEach(n => {
+    const k = (n.nombre_empleado||"EMPLEADO").toUpperCase();
+    if (!porEmp[k]) porEmp[k] = { nif:"", nombre:n.nombre_empleado||"", base:0, retencion:0 };
+    porEmp[k].base      += n.salario_bruto||0;
+    porEmp[k].retencion += n.irpf||0;
+  });
+  Object.values(porEmp).forEach(p => {
+    perceptores.push({ ...p, clave:"A", subclave:"01" }); // A = rendimientos trabajo
+  });
+
+  if (!perceptores.length) {
+    toast("No hay perceptores con retenciones en el ejercicio " + year, "warn");
+    return;
+  }
+
+  // Registro tipo 1: Declarante
+  const totalRet = perceptores.reduce((a,p) => a+p.retencion, 0);
+  const rec1 = (
+    "1" + "190" + String(year) +
+    nifDec + nomDec +
+    "T" + " ".repeat(9) + nomDec +
+    " ".repeat(12) + " " + " ".repeat(13) +
+    lpad0(perceptores.length, 9) +
+    lpad0(totalRet*100, 17) +
+    " ".repeat(299)
+  ).padEnd(500," ").slice(0,500);
+
+  // Registros tipo 2: Perceptores
+  const rec2s = perceptores.map((p,i) => (
+    "2" + "190" + String(year) +
+    nifDec + nomDec +
+    lpad0(i+1,8) +
+    rpad((p.nif||"").replace(/[-\s]/g,""),9) +
+    " " + // representante
+    rpad(p.nombre,40) +
+    p.clave + p.subclave +
+    " " + // signo percepciones
+    lpad0(p.base*100, 12) +
+    " " + // signo retenciones
+    lpad0(p.retencion*100, 12) +
+    " ".repeat(310)
+  ).padEnd(500," ").slice(0,500));
+
+  const contenido = [rec1, ...rec2s].join("\r\n") + "\r\n";
+  const nombreFichero = `190${year}${nifDec.trim()}.txt`;
+
+  const blob = new Blob([contenido], { type:"text/plain;charset=iso-8859-1" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = nombreFichero;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+
+  toast(`✅ Fichero oficial 190 generado (${perceptores.length} perceptores) — importa en la Sede Electrónica AEAT`, "success", 7000);
 }
