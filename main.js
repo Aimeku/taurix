@@ -53,6 +53,8 @@ import {
   refreshCartera, esModoGestor, getModo
 } from "./modos.js";
 import { initNordigenView, refreshConexionesBancarias, autoSyncBancos } from "./nordigen.js";
+import { initTrabajosView, refreshTrabajos } from "./trabajos.js";
+import { initAgendaView, refreshAgenda } from "./agenda.js";
 import { initDocumentosView } from "./documentos.js";
 import { initContabilidadView, refreshLibroDiario, refreshSumasSaldos, refreshBalance, refreshPyG } from "./contabilidad.js";
 import { initOtrosModelosView } from "./otros-modelos.js";
@@ -472,6 +474,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ── Banco automático view ── */
   initNordigenView();
 
+  /* ── Trabajos ── */
+  initTrabajosView();
+
+  /* ── Agenda ── */
+  initAgendaView();
+
   /* ── Documentos ── */
   initDocumentosView();
 
@@ -525,6 +533,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (view === "colaboradores")   await refreshColaboradoresView();
         if (view === "banco-auto")      await refreshConexionesBancarias();
         if (view === "cartera")         await refreshCartera();
+      if (view === "trabajos")        await refreshTrabajos();
+      if (view === "agenda")          await refreshAgenda();
         if (view === "informes")        initInformesView();
       });
     });
