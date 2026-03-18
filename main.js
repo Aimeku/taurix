@@ -542,9 +542,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (view === "colaboradores")   await refreshColaboradoresView();
         if (view === "banco-auto")      await refreshConexionesBancarias();
         if (view === "cartera")         await refreshCartera();
-      if (view === "trabajos")        await refreshTrabajos();
-      if (view === "agenda")          await refreshAgenda();
-      if (view === "auditoria")       await refreshAuditoriaView();
+        if (view === "trabajos")        await refreshTrabajos();
+        if (view === "agenda")          await refreshAgenda();
+        if (view === "auditoria")       await refreshAuditoriaView();
         if (view === "informes")        initInformesView();
       });
     });
@@ -566,29 +566,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   window._toggleModo = () => toggleModo();
   window._refreshDashboard = () => refreshDashboard();
 
-  /* ── Navegación a vistas con lazy init ── */
-  document.querySelectorAll(".sn-item[data-view]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const view = btn.dataset.view;
-
-      // ── PRIMERO: mostrar la vista (siempre) ──
-      switchView(view);
-
-      // ── DESPUÉS: cargar datos según la vista ──
-      if (view === "pipeline")        await refreshPipeline();
-      if (view === "alertas")         await refreshAlertas();
-      if (view === "documentos")      { const { refreshDocumentos } = await import("./documentos.js"); await refreshDocumentos(); }
-      if (view === "tesoreria")       await refreshTesoreria();
-      if (view === "verifactu")       { const { refreshVerifactu } = await import("./utils.js"); await refreshVerifactu(); }
-      if (view === "otros-modelos")   await initOtrosModelosView();
-      if (view === "contabilidad")    await refreshLibroDiario();
-      if (view === "amortizaciones")  { const { refreshBienesInversion } = await import("./amortizaciones.js"); await refreshBienesInversion(); }
-      if (view === "nominas")         { const { refreshNominas } = await import("./nominas.js"); await refreshNominas(); }
-      if (view === "colaboradores")    await refreshColaboradoresView();
-      if (view === "banco-auto")       await refreshConexionesBancarias();
-      if (view === "empleados")       { const { refreshEmpleados } = await import("./nominas.js"); await refreshEmpleados(); }
-    });
-  });
+  // Navegación gestionada por _rebindNav() ↑
 
   /* ═══════════════════════
      CARGA INICIAL
