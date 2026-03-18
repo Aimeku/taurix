@@ -1471,7 +1471,30 @@
             <div class="form-block">
               <div class="fb-title-row">
                 <div class="fb-title">Líneas de factura</div>
-                <button id="addLineaBtn" class="btn-add-linea">
+                <!-- ESCÁNER en nueva factura -->
+          <div id="nfScannerWrap" style="margin-bottom:12px;padding:12px;background:var(--bg2);border-radius:10px;border:1px solid var(--brd)">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9v-2a2 2 0 012-2h2M3 15v2a2 2 0 002 2h2M15 3h2a2 2 0 012 2v2M15 21h2a2 2 0 002-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+              Escáner código de barras
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div style="position:relative;flex:1;max-width:320px">
+                <input id="nfScanInput" class="ff-input"
+                  style="padding-left:34px;font-family:monospace;font-size:13px;letter-spacing:.04em"
+                  placeholder="Escanea aquí el código de barras…"
+                  autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+                <svg style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--t3);pointer-events:none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9v-2a2 2 0 012-2h2M3 15v2a2 2 0 002 2h2M15 3h2a2 2 0 012 2v2M15 21h2a2 2 0 002-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+              </div>
+              <div style="display:flex;align-items:center;gap:5px">
+                <span style="font-size:11px;color:var(--t3);white-space:nowrap">×</span>
+                <input id="nfScanQty" type="number" min="1" step="1" value="1"
+                  class="ff-input" style="width:54px;text-align:center;font-size:13px;font-weight:700"/>
+              </div>
+            </div>
+            <div id="nfScanFeedback" style="min-height:18px;margin-top:5px;font-size:11px;transition:opacity .3s;opacity:0"></div>
+          </div>
+
+          <button id="addLineaBtn" class="btn-add-linea">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   Añadir línea
                 </button>
