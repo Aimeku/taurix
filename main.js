@@ -43,51 +43,7 @@ import {
   refreshGastosRecurrentes, initGastosView
 } from "./gastos.js";
 
-/* ══════════════════════════
-   LANDING PAGE BUTTONS
-══════════════════════════ */
-document.addEventListener("DOMContentLoaded", () => {
-  ["ctaNavBtn", "ctaHeroBtn", "ctaHeroSecBtn", "ctaPlanGratisBtn",
-   "ctaPlanProBtn", "ctaPlanBizBtn", "ctaFinalBtn", "ctaFinalProBtn"].forEach(id => {
-    document.getElementById(id)?.addEventListener("click", showAuthModal);
-  });
 
-  ["openPrivacidad", "openTerminos", "openCookies"].forEach(id => {
-    const el = document.getElementById(id);
-    const targetMap = { openPrivacidad: "modalPrivacidad", openTerminos: "modalTerminos", openCookies: "modalCookies" };
-    el?.addEventListener("click", (e) => {
-      e.preventDefault();
-      const modal = document.getElementById(targetMap[id]);
-      if (modal) modal.style.display = "flex";
-    });
-  });
-
-  // Cerrar modales legales al click fuera
-  document.querySelectorAll(".legal-modal-overlay").forEach(overlay => {
-    overlay.addEventListener("click", e => {
-      if (e.target === overlay) overlay.style.display = "none";
-    });
-  });
-
-  // Cookie banner
-  const cookieBanner = document.getElementById("cookieBanner");
-  if (!localStorage.getItem("tg_cookies") && cookieBanner) {
-    cookieBanner.style.display = "";
-  }
-  document.getElementById("cookieAceptar")?.addEventListener("click", () => {
-    localStorage.setItem("tg_cookies", "1");
-    if (cookieBanner) cookieBanner.style.display = "none";
-  });
-  document.getElementById("cookieRechazar")?.addEventListener("click", () => {
-    localStorage.setItem("tg_cookies", "essential");
-    if (cookieBanner) cookieBanner.style.display = "none";
-  });
-
-  // Email links
-  document.querySelectorAll(".email-link").forEach(el => {
-    el.href = "mailto:taurixsupport@gmail.com";
-  });
-});
 
 /* ══════════════════════════
    GLOBAL REFRESH
@@ -237,9 +193,13 @@ window._sendRecordatorio = (facturaId, clienteNombre) => {
 document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Auth listener ── */
+  // NOTA: NO usar reload() aquí — causa bucle infinito.
+  // La sesión ya se gestiona con getSession() más abajo.
+  // Solo escuchamos SIGNED_OUT para limpiar la UI.
   supabase.auth.onAuthStateChange((event, session) => {
-    if (event === "SIGNED_IN" && session && !SESSION) {
-      window.location.reload();
+    if (event === "SIGNED_OUT") {
+      document.getElementById("appShell")?.classList.add("hidden");
+      document.getElementById("landingPage")?.classList.remove("hidden");
     }
   });
 
@@ -247,6 +207,41 @@ document.addEventListener("DOMContentLoaded", async () => {
   ["ctaNavBtn", "ctaHeroBtn", "ctaHeroSecBtn", "ctaPlanGratisBtn",
    "ctaPlanProBtn", "ctaPlanBizBtn", "ctaFinalBtn"].forEach(id => {
     document.getElementById(id)?.addEventListener("click", showAuthModal);
+  });
+
+  // Modales legales
+  ["openPrivacidad", "openTerminos", "openCookies"].forEach(id => {
+    const el = document.getElementById(id);
+    const targetMap = { openPrivacidad: "modalPrivacidad", openTerminos: "modalTerminos", openCookies: "modalCookies" };
+    el?.addEventListener("click", (e) => {
+      e.preventDefault();
+      const modal = document.getElementById(targetMap[id]);
+      if (modal) modal.style.display = "flex";
+    });
+  });
+  document.querySelectorAll(".legal-modal-overlay").forEach(overlay => {
+    overlay.addEventListener("click", e => {
+      if (e.target === overlay) overlay.style.display = "none";
+    });
+  });
+
+  // Email links
+  document.querySelectorAll(".email-link").forEach(el => {
+    el.href = "mailto:taurixsupport@gmail.com";
+  });
+
+  // Cookie banner
+  const cookieBanner = document.getElementById("cookieBanner");
+  if (!localStorage.getItem("tg_cookies") && cookieBanner) {
+    cookieBanner.style.display = "";
+  }
+  document.getElementById("cookieAceptar")?.addEventListener("click", () => {
+    localStorage.setItem("tg_cookies", "1");
+    if (cookieBanner) cookieBanner.style.display = "none";
+  });
+  document.getElementById("cookieRechazar")?.addEventListener("click", () => {
+    localStorage.setItem("tg_cookies", "essential");
+    if (cookieBanner) cookieBanner.style.display = "none";
   });
 
   /* ── Sesión ── */
