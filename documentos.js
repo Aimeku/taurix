@@ -350,6 +350,18 @@ window._delDoc = (id) => {
 
 window._selectCarpeta = (id) => {
   _carpetaActiva = _carpetaActiva === id ? null : id;
+  // Actualizar label de la sección
+  const labelEl = document.getElementById("docsCarpetaLabel");
+  const resetEl = document.getElementById("docsCarpetaReset");
+  if (labelEl) {
+    if (_carpetaActiva) {
+      const c = CARPETAS.find(x => x.id === _carpetaActiva);
+      labelEl.textContent = `${c?.icon || "📁"} ${c?.label || _carpetaActiva}`;
+    } else {
+      labelEl.textContent = "📂 Todos los documentos";
+    }
+  }
+  if (resetEl) resetEl.style.display = _carpetaActiva ? "" : "none";
   refreshDocumentos();
 };
 
