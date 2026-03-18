@@ -123,11 +123,17 @@ function renderTarjeta(t) {
         </div>
         ${total > 0 ? `<span style="font-size:12px;font-weight:700;font-family:monospace;color:var(--accent)">${fmt(total)}</span>` : ""}
       </div>
-      ${t.estado==="terminado" ? `
+      <div style="display:flex;gap:5px;margin-top:8px">
+        <button onclick="event.stopPropagation();window._imprimirTrabajo('${t.id}')"
+                style="flex:1;padding:5px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:10px;font-weight:700;color:#1a56db;cursor:pointer">
+          🖨️ Imprimir
+        </button>
+        ${t.estado==="terminado" ? `
         <button onclick="event.stopPropagation();window._convertirAFactura('${t.id}')"
-                style="width:100%;margin-top:8px;padding:6px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:11px;font-weight:700;color:#059669;cursor:pointer">
-          🧾 Convertir a factura
+                style="flex:2;padding:5px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:10px;font-weight:700;color:#059669;cursor:pointer">
+          🧾 A factura
         </button>` : ""}
+      </div>
     </div>`;
 }
 
@@ -302,6 +308,10 @@ export function showNuevoTrabajoModal(prefill = {}) {
       </div>
       <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
+        ${isEdit ? `
+          <button class="btn-outline" onclick="window._imprimirTrabajo('${prefill.id}')">
+            🖨️ Imprimir orden
+          </button>` : ""}
         ${isEdit && prefill.estado==="terminado" ? `
           <button class="btn-outline" style="color:#059669;border-color:#059669"
                   onclick="window._convertirAFactura('${prefill.id}');window._cm()">
@@ -614,6 +624,242 @@ window._delTrabajo = (id) => {
     await refreshTrabajos();
   });
 };
+
+
+/* ══════════════════════════
+   PDF ORDEN DE TRABAJO
+══════════════════════════ */
+export async function generarPDFTrabajo(trabajoId) {
+  // Cargar jsPDF si no está
+  if (!window.jspdf) {
+    await new Promise((res, rej) => {
+      if (document.querySelector('script[src*="jspdf"]')) { res(); return; }
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const t = TRABAJOS.find(x => x.id === trabajoId);
+  if (!t) { toast("Trabajo no encontrado","error"); return; }
+
+  const tec   = TECNICOS.find(e => e.id === t.tecnico_id);
+  const mats  = typeof t.materiales === "string"
+    ? JSON.parse(t.materiales || "[]") : (t.materiales || []);
+
+  const { data: pf } = await supabase.from("perfil_fiscal")
+    .select("*").eq("user_id", SESSION.user.id).maybeSingle();
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:"mm", format:"a4" });
+  const PW = 210, ML = 18, W = PW - ML*2;
+
+  // ── Colores ──
+  const BLUE  = [26,86,219];
+  const DARK  = [15,23,42];
+  const MUTED = [100,116,139];
+  const GREEN = [5,150,105];
+  const AMBER = [217,119,6];
+
+  const est   = ESTADOS.find(e => e.id === t.estado);
+  const prio  = PRIORIDADES.find(p => p.id === t.prioridad);
+
+  // ── Cabecera azul ──
+  doc.setFillColor(...BLUE);
+  doc.rect(0, 0, PW, 32, "F");
+
+  doc.setTextColor(255,255,255);
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(16);
+  doc.text("ORDEN DE TRABAJO", ML, 13);
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica","normal");
+  doc.text(`Nº ${t.numero || "—"}  ·  ${new Date().toLocaleDateString("es-ES")}`, ML, 20);
+  if (pf?.nombre_razon_social) {
+    doc.setFontSize(8);
+    doc.text(pf.nombre_razon_social, PW - ML, 13, { align:"right" });
+    if (pf.nif) doc.text(`NIF: ${pf.nif}`, PW - ML, 19, { align:"right" });
+  }
+
+  // ── Badge estado ──
+  const estadoColors = {
+    pendiente:[245,158,11], en_curso:[59,130,246],
+    terminado:[5,150,105],  facturado:[107,114,128]
+  };
+  const ec = estadoColors[t.estado] || estadoColors.pendiente;
+  doc.setFillColor(...ec);
+  doc.roundedRect(PW - ML - 32, 22, 32, 7, 2, 2, "F");
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(8);
+  doc.setFont("helvetica","bold");
+  doc.text((est?.label || t.estado).toUpperCase(), PW - ML - 16, 27, { align:"center" });
+
+  let y = 40;
+
+  // ── Bloque trabajo ──
+  doc.setTextColor(...DARK);
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(14);
+  doc.text(t.titulo, ML, y); y += 7;
+
+  if (t.descripcion) {
+    doc.setFont("helvetica","normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...MUTED);
+    const lines = doc.splitTextToSize(t.descripcion, W);
+    doc.text(lines, ML, y);
+    y += lines.length * 4.5 + 4;
+  }
+
+  // ── Grid info (2 columnas) ──
+  y += 2;
+  const infoBox = (label, value, x, yy, w) => {
+    doc.setFillColor(248,250,252);
+    doc.rect(x, yy, w, 14, "F");
+    doc.setDrawColor(226,232,240);
+    doc.rect(x, yy, w, 14, "S");
+    doc.setTextColor(...MUTED);
+    doc.setFontSize(7);
+    doc.setFont("helvetica","normal");
+    doc.text(label.toUpperCase(), x+4, yy+5);
+    doc.setTextColor(...DARK);
+    doc.setFontSize(9);
+    doc.setFont("helvetica","bold");
+    doc.text(String(value||"—").slice(0,35), x+4, yy+11);
+  };
+
+  const half = (W-4)/2;
+  infoBox("Cliente",           t.cliente_nombre||"—",                 ML,       y,   half);
+  infoBox("Técnico asignado",  tec?.nombre||"Sin asignar",             ML+half+4, y,  half);
+  y += 17;
+  infoBox("Fecha programada",  t.fecha_programada ? fmtDate(t.fecha_programada) : "—", ML, y, half);
+  infoBox("Prioridad",         prio?.label||"Normal",                  ML+half+4, y, half);
+  y += 17;
+
+  if (t.direccion) {
+    infoBox("Dirección / Ubicación", t.direccion, ML, y, W);
+    y += 17;
+  }
+  y += 2;
+
+  // ── Descripción del trabajo ──
+  if (t.notas) {
+    doc.setFillColor(255,251,235);
+    doc.setDrawColor(253,230,138);
+    doc.rect(ML, y, W, 1, "F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(...AMBER);
+    doc.text("NOTAS", ML, y+5);
+    doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...DARK);
+    const noLines = doc.splitTextToSize(t.notas, W);
+    doc.text(noLines, ML, y+10);
+    y += noLines.length * 4.5 + 16;
+  }
+
+  // ── Materiales ──
+  if (mats.length > 0) {
+    // Cabecera tabla
+    doc.setFillColor(...BLUE);
+    doc.rect(ML, y, W, 8, "F");
+    doc.setTextColor(255,255,255);
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(8);
+    doc.text("MATERIALES UTILIZADOS", ML+3, y+5.5);
+    y += 8;
+
+    // Columnas: Descripción | Cantidad | Precio unit. | Total
+    const cols = [W*0.55, W*0.15, W*0.15, W*0.15];
+    const heads = ["Descripción", "Cant.", "Precio unit.", "Total"];
+    let x = ML;
+
+    doc.setFillColor(241,245,249);
+    doc.rect(ML, y, W, 7, "F");
+    doc.setTextColor(...MUTED);
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica","bold");
+    heads.forEach((h,i) => {
+      doc.text(h, x+2, y+4.8, { align: i>0?"right":"left", maxWidth: cols[i]-4 });
+      x += cols[i];
+    });
+    y += 7;
+
+    mats.forEach((m, ri) => {
+      if (!m.nombre) return;
+      const total = (m.cantidad||1)*(m.precio||0);
+      if (ri%2===0) { doc.setFillColor(248,250,252); doc.rect(ML,y,W,6.5,"F"); }
+      doc.setDrawColor(226,232,240);
+      doc.rect(ML, y, W, 6.5, "S");
+      doc.setTextColor(...DARK);
+      doc.setFontSize(8);
+      doc.setFont("helvetica","normal");
+      x = ML;
+      const rowData = [m.nombre, String(m.cantidad||1), fmt(m.precio||0), fmt(total)];
+      rowData.forEach((v,i) => {
+        doc.text(v.slice(0,45), x + (i>0?cols[i]-2:2), y+4.5, { align:i>0?"right":"left", maxWidth:cols[i]-4 });
+        x += cols[i];
+      });
+      y += 6.5;
+      if (y > 260) { doc.addPage(); y = 20; }
+    });
+
+    // Totales
+    const totalMat  = mats.reduce((a,m)=>(a+(m.cantidad||1)*(m.precio||0)),0);
+    const totalMO   = t.mano_obra || 0;
+    const totalBase = totalMat + totalMO;
+    const totalIVA  = totalBase*(t.iva||21)/100;
+    const totalFin  = totalBase + totalIVA;
+
+    y += 2;
+    const drawTotal = (label, valor, bold=false) => {
+      if (bold) { doc.setFillColor(241,245,249); doc.rect(ML+W*0.55,y,W*0.45,7,"F"); }
+      doc.setFont("helvetica", bold?"bold":"normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(bold?...BLUE:...MUTED);
+      doc.text(label, ML+W*0.56, y+5);
+      doc.setTextColor(...DARK);
+      doc.text(fmt(valor), PW-ML-2, y+5, { align:"right" });
+      y += 7;
+    };
+    if (totalMO>0) drawTotal("Mano de obra", totalMO);
+    drawTotal("Materiales", totalMat);
+    drawTotal(`IVA ${t.iva||21}%`, totalIVA);
+    drawTotal("TOTAL ESTIMADO", totalFin, true);
+    y += 4;
+  }
+
+  // ── Mano de obra sola (sin materiales) ──
+  else if (t.mano_obra > 0) {
+    doc.setFillColor(241,245,249);
+    doc.rect(ML, y, W, 7, "F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(...DARK);
+    doc.text("Mano de obra:", ML+3, y+5);
+    doc.text(fmt(t.mano_obra), PW-ML-2, y+5, { align:"right" });
+    y += 12;
+  }
+
+  // ── Firma técnico ──
+  y = Math.max(y, 230);
+  doc.setDrawColor(...MUTED);
+  doc.setLineWidth(0.3);
+  doc.line(ML, y, ML+70, y);
+  doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...MUTED);
+  doc.text("Firma del técnico", ML, y+5);
+  doc.text(tec?.nombre||"", ML, y+9);
+
+  doc.line(PW-ML-70, y, PW-ML, y);
+  doc.text("Firma del cliente / Conforme", PW-ML-70, y+5);
+  doc.text(t.cliente_nombre||"", PW-ML-70, y+9);
+
+  // ── Pie ──
+  doc.setFontSize(7); doc.setTextColor(...MUTED);
+  doc.text(`Orden de trabajo generada por Taurix · ${new Date().toLocaleDateString("es-ES")}`, PW/2, 290, { align:"center" });
+
+  doc.save(`orden_trabajo_${t.numero||t.id.slice(0,8)}.pdf`);
+  toast("🖨️ PDF de trabajo descargado", "success");
+}
+
+window._imprimirTrabajo = (id) => generarPDFTrabajo(id);
 
 /* ══════════════════════════
    INIT
