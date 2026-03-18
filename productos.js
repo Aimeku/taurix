@@ -261,6 +261,7 @@ window._delProd = (id) => {
 
 export function initProductosView() {
   document.getElementById("nuevoProdBtn")?.addEventListener("click", () => showNuevoProductoModal());
+  document.getElementById("importarProdBtn")?.addEventListener("click", () => showImportarProductosModal());
   document.getElementById("prodSearch")?.addEventListener("input", e => {
     const q = e.target.value.toLowerCase();
     renderProductosTable(PRODUCTOS.filter(p =>
@@ -299,4 +300,441 @@ export function buscarProductoPorCodigo(codigo) {
       (p.referencia    || "").toLowerCase().includes(q)
     )
   ) || null;
+}
+
+/* ══════════════════════════════════════════════════════
+   IMPORTACIÓN MASIVA DE PRODUCTOS DESDE EXCEL / CSV
+   ══════════════════════════════════════════════════════ */
+
+export function showImportarProductosModal() {
+  openModal(`
+    <div class="modal" style="max-width:720px">
+      <div class="modal-hd">
+        <span class="modal-title">📥 Importar productos desde Excel / CSV</span>
+        <button class="modal-x" onclick="window._cm()">×</button>
+      </div>
+      <div class="modal-bd">
+
+        <!-- Paso 1: Descargar plantilla -->
+        <div style="background:var(--bg2);border-radius:12px;padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
+          <div style="font-size:28px">📋</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:700;margin-bottom:3px">Paso 1 — Descarga la plantilla Excel</div>
+            <div style="font-size:12px;color:var(--t3)">Rellena tus productos en la plantilla y vuelve a subirla. Las columnas marcadas con * son obligatorias.</div>
+          </div>
+          <button class="btn-outline" id="descPlantillaBtn" style="white-space:nowrap;font-size:12px">
+            ⬇️ Descargar plantilla
+          </button>
+        </div>
+
+        <!-- Paso 2: Subir archivo -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:8px">Paso 2 — Sube tu archivo</div>
+          <div id="importDropzone"
+               style="border:2px dashed var(--brd);border-radius:12px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s"
+               ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='rgba(26,86,219,.03)'"
+               ondragleave="this.style.borderColor='';this.style.background=''"
+               ondrop="window._importDrop(event)"
+               onclick="document.getElementById('importFileInput').click()">
+            <div style="font-size:32px;margin-bottom:8px">📂</div>
+            <div style="font-size:13px;font-weight:600">Arrastra el Excel o CSV aquí</div>
+            <div style="font-size:12px;color:var(--t3);margin-top:4px">o haz click para seleccionar</div>
+            <div id="importFileName" style="margin-top:8px;font-size:12px;color:var(--accent);font-weight:600"></div>
+          </div>
+          <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" style="display:none"/>
+        </div>
+
+        <!-- Paso 3: Preview -->
+        <div id="importPreviewWrap" style="display:none">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px">
+            Paso 3 — Revisa antes de importar
+          </div>
+
+          <!-- Resumen -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+            <div style="background:#f0fdf4;border-radius:8px;padding:10px;text-align:center">
+              <div style="font-size:22px;font-weight:800;color:#059669" id="importCountOk">0</div>
+              <div style="font-size:11px;color:#166534;font-weight:600">Listos para importar</div>
+            </div>
+            <div style="background:#fef9c3;border-radius:8px;padding:10px;text-align:center">
+              <div style="font-size:22px;font-weight:800;color:#d97706" id="importCountWarn">0</div>
+              <div style="font-size:11px;color:#92400e;font-weight:600">Con advertencias</div>
+            </div>
+            <div style="background:#fef2f2;border-radius:8px;padding:10px;text-align:center">
+              <div style="font-size:22px;font-weight:800;color:#dc2626" id="importCountErr">0</div>
+              <div style="font-size:11px;color:#991b1b;font-weight:600">Con errores (se omitirán)</div>
+            </div>
+          </div>
+
+          <!-- Tabla preview -->
+          <div style="max-height:300px;overflow-y:auto;border:1px solid var(--brd);border-radius:10px">
+            <table class="data-table" style="font-size:11px">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Nombre</th>
+                  <th>Referencia</th>
+                  <th>Cód. barras</th>
+                  <th>Tipo</th>
+                  <th>Precio</th>
+                  <th>Coste</th>
+                  <th>IVA</th>
+                  <th>Stock</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="importPreviewBody"></tbody>
+            </table>
+          </div>
+
+          <!-- Opciones -->
+          <div style="margin-top:14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+              <input type="checkbox" id="importActualizar" style="width:14px;height:14px"/>
+              <span>Actualizar productos existentes si coincide la referencia o código de barras</span>
+            </label>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-ft">
+        <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
+        <button class="btn-modal-save" id="importarBtn" disabled style="min-width:160px">
+          📥 Importar productos
+        </button>
+      </div>
+    </div>
+  `);
+
+  // ── Descargar plantilla ──
+  document.getElementById("descPlantillaBtn").addEventListener("click", () => {
+    descargarPlantillaExcel();
+  });
+
+  // ── Drag & drop / click ──
+  let parsedRows = [];
+
+  window._importDrop = (e) => {
+    e.preventDefault();
+    const zone = document.getElementById("importDropzone");
+    if (zone) { zone.style.borderColor=""; zone.style.background=""; }
+    const file = e.dataTransfer.files[0];
+    if (file) procesarArchivoImport(file);
+  };
+
+  document.getElementById("importFileInput").addEventListener("change", e => {
+    if (e.target.files[0]) procesarArchivoImport(e.target.files[0]);
+  });
+
+  async function procesarArchivoImport(file) {
+    // Nombre del archivo
+    const fnEl = document.getElementById("importFileName");
+    if (fnEl) fnEl.textContent = file.name;
+
+    // Cargar SheetJS si no está
+    if (!window.XLSX) {
+      toast("Cargando librería de Excel…","info");
+      await new Promise((res,rej)=>{
+        const s=document.createElement("script");
+        s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+        s.onload=res; s.onerror=rej; document.head.appendChild(s);
+      });
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data   = new Uint8Array(ev.target.result);
+        const wb     = window.XLSX.read(data, { type:"array" });
+        const ws     = wb.Sheets[wb.SheetNames[0]];
+        const raw    = window.XLSX.utils.sheet_to_json(ws, { defval:"" });
+
+        parsedRows = validarFilas(raw);
+        mostrarPreview(parsedRows);
+
+        const btn = document.getElementById("importarBtn");
+        const okCount = parsedRows.filter(r=>r._estado!=="error").length;
+        if (btn) btn.disabled = okCount === 0;
+      } catch(e) {
+        toast("Error leyendo el archivo: " + e.message, "error");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  // ── Importar ──
+  document.getElementById("importarBtn").addEventListener("click", async () => {
+    const actualizar = document.getElementById("importActualizar")?.checked;
+    await ejecutarImportacion(parsedRows, actualizar);
+  });
+}
+
+/* ── Validar filas del Excel ── */
+function validarFilas(raw) {
+  const TIPOS_VALIDOS = ["servicio","producto","suscripcion","service","product"];
+  const IVAS_VALIDOS  = [0, 4, 10, 21];
+
+  return raw.map((row, i) => {
+    const errores  = [];
+    const avisos   = [];
+
+    // Normalizar nombres de columna (insensible a mayúsculas/espacios)
+    const get = (...keys) => {
+      for (const k of keys) {
+        const found = Object.keys(row).find(rk =>
+          rk.toLowerCase().replace(/[\s_*]/g,"") === k.toLowerCase().replace(/[\s_*]/g,"")
+        );
+        if (found !== undefined && row[found] !== "") return String(row[found]).trim();
+      }
+      return "";
+    };
+
+    const nombre       = get("nombre","name","producto","product");
+    const referencia   = get("referencia","ref","sku","codigo","code");
+    const codigoBarras = get("codigobarras","codigo_barras","barras","ean","isbn","barcode");
+    const tipoRaw      = get("tipo","type").toLowerCase() || "servicio";
+    const precioRaw    = get("precio","price","pvp");
+    const costeRaw     = get("coste","costo","cost","preciocoste");
+    const ivaRaw       = get("iva","vat","impuesto").replace("%","") || "21";
+    const stockRaw     = get("stock","stockactual","stock_actual");
+    const stockMinRaw  = get("stockminimo","stock_minimo","stockmin","minimo");
+    const descripcion  = get("descripcion","description","desc");
+    const unidad       = get("unidad","unit") || "unidad";
+
+    // Validaciones obligatorias
+    if (!nombre) errores.push("Nombre vacío");
+
+    const precio = parseFloat(precioRaw.replace(",","."));
+    if (isNaN(precio) || precio < 0) errores.push(`Precio inválido: "${precioRaw}"`);
+
+    // Tipo
+    const tipoMap = { servicio:"servicio", service:"servicio", producto:"producto", product:"producto", suscripcion:"suscripcion" };
+    const tipo = tipoMap[tipoRaw] || "servicio";
+    if (!TIPOS_VALIDOS.includes(tipoRaw) && tipoRaw) {
+      avisos.push(`Tipo "${tipoRaw}" no reconocido → se usará "servicio"`);
+    }
+
+    // IVA
+    const iva = parseInt(ivaRaw);
+    if (!IVAS_VALIDOS.includes(iva)) {
+      avisos.push(`IVA ${iva}% no estándar → se usará 21%`);
+    }
+
+    // Coste
+    const coste = costeRaw ? parseFloat(costeRaw.replace(",",".")) : null;
+    if (costeRaw && isNaN(coste)) avisos.push(`Precio de coste inválido: "${costeRaw}" (se ignorará)`);
+
+    // Stock
+    const stock    = stockRaw    ? parseInt(stockRaw)    : null;
+    const stockMin = stockMinRaw ? parseInt(stockMinRaw) : null;
+
+    // Código de barras — avisar si parece muy corto
+    if (codigoBarras && codigoBarras.length < 8) {
+      avisos.push(`Código de barras muy corto (${codigoBarras.length} dígitos)`);
+    }
+
+    const _estado = errores.length > 0 ? "error" : avisos.length > 0 ? "warn" : "ok";
+
+    return {
+      _fila: i + 2, // +2 porque fila 1 es cabecera en Excel
+      _estado,
+      _errores: errores,
+      _avisos:  avisos,
+      nombre,
+      referencia:    referencia   || null,
+      codigo_barras: codigoBarras || null,
+      tipo,
+      precio:        isNaN(precio) ? 0 : precio,
+      precio_coste:  (!isNaN(coste) && coste > 0) ? coste : null,
+      iva:           IVAS_VALIDOS.includes(iva) ? iva : 21,
+      stock_actual:  tipo==="producto" && stock!==null && !isNaN(stock) ? stock : null,
+      stock_minimo:  tipo==="producto" && stockMin!==null && !isNaN(stockMin) ? stockMin : null,
+      descripcion:   descripcion || null,
+      unidad:        unidad || "unidad",
+    };
+  });
+}
+
+/* ── Mostrar preview ── */
+function mostrarPreview(rows) {
+  const wrap = document.getElementById("importPreviewWrap");
+  if (wrap) wrap.style.display = "";
+
+  const countOk   = rows.filter(r=>r._estado==="ok").length;
+  const countWarn = rows.filter(r=>r._estado==="warn").length;
+  const countErr  = rows.filter(r=>r._estado==="error").length;
+
+  const s=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  s("importCountOk",   countOk);
+  s("importCountWarn", countWarn);
+  s("importCountErr",  countErr);
+
+  const tbody = document.getElementById("importPreviewBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = rows.map(r => {
+    const bgColor = r._estado==="error" ? "#fef2f2" : r._estado==="warn" ? "#fef9c3" : "";
+    const icon    = r._estado==="error" ? "❌" : r._estado==="warn" ? "⚠️" : "✅";
+    const msgs    = [...(r._errores||[]), ...(r._avisos||[])].join(" · ");
+    return `<tr style="background:${bgColor}">
+      <td style="color:var(--t4)">${r._fila}</td>
+      <td style="font-weight:600">${r.nombre || "—"}</td>
+      <td class="mono" style="font-size:10px">${r.referencia || "—"}</td>
+      <td class="mono" style="font-size:10px">${r.codigo_barras || "—"}</td>
+      <td>${r.tipo}</td>
+      <td class="mono">${fmt(r.precio)}</td>
+      <td class="mono" style="color:var(--t3)">${r.precio_coste ? fmt(r.precio_coste) : "—"}</td>
+      <td>${r.iva}%</td>
+      <td>${r.stock_actual !== null ? r.stock_actual : "—"}</td>
+      <td title="${msgs}">${icon} ${msgs ? `<span style="font-size:10px;color:var(--t3)">${msgs.substring(0,40)}${msgs.length>40?"…":""}</span>` : "OK"}</td>
+    </tr>`;
+  }).join("");
+}
+
+/* ── Ejecutar importación ── */
+async function ejecutarImportacion(rows, actualizar) {
+  const btn = document.getElementById("importarBtn");
+  if (btn) { btn.disabled=true; btn.textContent="Importando…"; }
+
+  const validos = rows.filter(r => r._estado !== "error");
+  let importados=0, actualizados=0, errores=0;
+
+  for (const r of validos) {
+    const payload = {
+      user_id:       SESSION.user.id,
+      nombre:        r.nombre,
+      referencia:    r.referencia,
+      codigo_barras: r.codigo_barras,
+      descripcion:   r.descripcion,
+      tipo:          r.tipo,
+      precio:        r.precio,
+      precio_coste:  r.precio_coste,
+      iva:           r.iva,
+      unidad:        r.unidad,
+      stock_actual:  r.stock_actual,
+      stock_minimo:  r.stock_minimo,
+      activo:        true,
+    };
+
+    if (actualizar && (r.referencia || r.codigo_barras)) {
+      // Buscar si ya existe por referencia o código de barras
+      const existente = PRODUCTOS.find(p =>
+        (r.referencia    && p.referencia    === r.referencia) ||
+        (r.codigo_barras && p.codigo_barras === r.codigo_barras)
+      );
+      if (existente) {
+        const { error } = await supabase.from("productos").update(payload).eq("id", existente.id);
+        if (error) errores++;
+        else actualizados++;
+        continue;
+      }
+    }
+
+    const { error } = await supabase.from("productos").insert(payload);
+    if (error) errores++;
+    else importados++;
+  }
+
+  closeModal();
+  toast(
+    `✅ Importación completada: ${importados} nuevos · ${actualizados} actualizados${errores>0?" · "+errores+" errores":""}`,
+    "success", 6000
+  );
+  await refreshProductos();
+}
+
+/* ── Descargar plantilla Excel ── */
+function descargarPlantillaExcel() {
+  if (!window.XLSX) {
+    // Cargar XLSX y reintentar
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.onload = () => descargarPlantillaExcel();
+    document.head.appendChild(s);
+    return;
+  }
+
+  const plantilla = [
+    {
+      "nombre *":         "Camiseta básica blanca",
+      "referencia":       "CAM-BL-M",
+      "codigo_barras":    "8400000123456",
+      "tipo":             "producto",
+      "precio *":         19.95,
+      "precio_coste":     8.50,
+      "iva":              21,
+      "stock_actual":     50,
+      "stock_minimo":     10,
+      "descripcion":      "Camiseta de algodón 100%",
+      "unidad":           "unidad",
+    },
+    {
+      "nombre *":         "Consultoría por hora",
+      "referencia":       "CONS-H",
+      "codigo_barras":    "",
+      "tipo":             "servicio",
+      "precio *":         75.00,
+      "precio_coste":     "",
+      "iva":              21,
+      "stock_actual":     "",
+      "stock_minimo":     "",
+      "descripcion":      "Servicio de consultoría profesional",
+      "unidad":           "hora",
+    },
+    {
+      "nombre *":         "Suscripción mensual",
+      "referencia":       "SUB-MES",
+      "codigo_barras":    "",
+      "tipo":             "suscripcion",
+      "precio *":         29.00,
+      "precio_coste":     "",
+      "iva":              21,
+      "stock_actual":     "",
+      "stock_minimo":     "",
+      "descripcion":      "Plan mensual de acceso",
+      "unidad":           "mes",
+    },
+  ];
+
+  const ws = window.XLSX.utils.json_to_sheet(plantilla);
+
+  // Ancho de columnas
+  ws["!cols"] = [
+    {wch:30},{wch:15},{wch:18},{wch:12},{wch:12},{wch:14},{wch:8},
+    {wch:14},{wch:14},{wch:30},{wch:10},
+  ];
+
+  const wb = window.XLSX.utils.book_new();
+  window.XLSX.utils.book_append_sheet(wb, ws, "Productos");
+
+  // Hoja de instrucciones
+  const instrucciones = [
+    { "INSTRUCCIONES": "═══════════════════════════════════════════════" },
+    { "INSTRUCCIONES": "COLUMNAS OBLIGATORIAS (marcadas con *):" },
+    { "INSTRUCCIONES": "  • nombre *      → Nombre del producto o servicio" },
+    { "INSTRUCCIONES": "  • precio *      → Precio de venta (sin IVA)" },
+    { "INSTRUCCIONES": "" },
+    { "INSTRUCCIONES": "COLUMNAS OPCIONALES:" },
+    { "INSTRUCCIONES": "  • referencia    → SKU o código interno (ej: CAM-BL-M)" },
+    { "INSTRUCCIONES": "  • codigo_barras → EAN-13, EAN-8, ISBN, QR, etc." },
+    { "INSTRUCCIONES": "  • tipo          → servicio / producto / suscripcion" },
+    { "INSTRUCCIONES": "  • precio_coste  → Precio de compra (para calcular margen)" },
+    { "INSTRUCCIONES": "  • iva           → 0 / 4 / 10 / 21  (por defecto: 21)" },
+    { "INSTRUCCIONES": "  • stock_actual  → Unidades en stock (solo para productos físicos)" },
+    { "INSTRUCCIONES": "  • stock_minimo  → Alerta cuando el stock baje de este número" },
+    { "INSTRUCCIONES": "  • descripcion   → Texto que aparecerá en la línea del documento" },
+    { "INSTRUCCIONES": "  • unidad        → unidad / hora / día / mes / kg / litro / m²" },
+    { "INSTRUCCIONES": "" },
+    { "INSTRUCCIONES": "NOTAS:" },
+    { "INSTRUCCIONES": "  • Borra las filas de ejemplo antes de importar" },
+    { "INSTRUCCIONES": "  • Los nombres de columna no distinguen mayúsculas" },
+    { "INSTRUCCIONES": "  • Puedes usar coma o punto como separador decimal" },
+    { "INSTRUCCIONES": "  • Las filas con errores se omiten automáticamente" },
+  ];
+  const ws2 = window.XLSX.utils.json_to_sheet(instrucciones);
+  ws2["!cols"] = [{wch:65}];
+  window.XLSX.utils.book_append_sheet(wb, ws2, "Instrucciones");
+
+  window.XLSX.writeFile(wb, "plantilla_productos_taurix.xlsx");
+  toast("Plantilla descargada ✅ — rellénala y súbela aquí", "success", 4000);
 }
