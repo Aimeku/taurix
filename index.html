@@ -2736,74 +2736,16 @@
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="carpetasGrid"></div>
         <div id="documentosMainArea">
           <div class="section-card no-pad">
+            <div class="sc-header" style="padding:14px 16px 12px">
+              <span class="sc-title" id="docsCarpetaLabel">📂 Todos los documentos</span>
+              <span style="font-size:12px;color:var(--t3)" id="docsCarpetaReset"
+                    onclick="window._selectCarpeta(null)"
+                    style="cursor:pointer;display:none">✕ Ver todos</span>
+            </div>
             <div id="documentosLista" style="padding:4px 0"></div>
           </div>
         </div>
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">Documentos</h1>
-            <p class="view-sub">Gestión documental de tu empresa — almacenamiento seguro en la nube</p>
-          </div>
-          <div class="view-actions">
-            <button class="btn-primary" id="subirDocumentoBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Subir documento
-            </button>
-          </div>
-        </div>
 
-        <!-- Carpetas de documentos -->
-        <div class="doc-grid" style="margin-bottom:24px">
-          <div class="doc-card" onclick="window._openDocFolder('facturas')">
-            <div class="doc-card-icon">📤</div>
-            <div class="doc-card-name">Facturas emitidas</div>
-            <div class="doc-card-desc">PDFs de todas las facturas emitidas</div>
-          </div>
-          <div class="doc-card" onclick="window._openDocFolder('gastos')">
-            <div class="doc-card-icon">📥</div>
-            <div class="doc-card-name">Facturas recibidas</div>
-            <div class="doc-card-desc">Tickets, facturas de proveedores</div>
-          </div>
-          <div class="doc-card" onclick="window._openDocFolder('nominas')">
-            <div class="doc-card-icon">👥</div>
-            <div class="doc-card-name">Nóminas</div>
-            <div class="doc-card-desc">Nóminas mensuales de empleados</div>
-          </div>
-          <div class="doc-card" onclick="window._openDocFolder('contratos')">
-            <div class="doc-card-icon">📜</div>
-            <div class="doc-card-name">Contratos</div>
-            <div class="doc-card-desc">Contratos de trabajo y servicio</div>
-          </div>
-          <div class="doc-card" onclick="window._openDocFolder('declaraciones')">
-            <div class="doc-card-icon">🏛️</div>
-            <div class="doc-card-name">Declaraciones AEAT</div>
-            <div class="doc-card-desc">Modelos 303, 130, 200 presentados</div>
-          </div>
-          <div class="doc-card" onclick="window._openDocFolder('seguros')">
-            <div class="doc-card-icon">🛡️</div>
-            <div class="doc-card-name">Seguros y pólizas</div>
-            <div class="doc-card-desc">RC, accidentes, vida</div>
-          </div>
-          <div class="doc-card" onclick="window._openDocFolder('banco')">
-            <div class="doc-card-icon">🏦</div>
-            <div class="doc-card-name">Extractos bancarios</div>
-            <div class="doc-card-desc">Extractos mensuales para conciliación</div>
-          </div>
-          <div class="doc-card" onclick="window._openDocFolder('otros')">
-            <div class="doc-card-icon">📁</div>
-            <div class="doc-card-name">Otros documentos</div>
-            <div class="doc-card-desc">Documentación general</div>
-          </div>
-        </div>
-
-        <!-- Documentos recientes -->
-        <div class="section-card no-pad">
-          <div class="sc-header" style="padding:16px"><span class="sc-title">🕐 Documentos recientes</span></div>
-          <table class="data-table" id="documentosTable">
-            <thead><tr><th>Nombre</th><th>Carpeta</th><th>Tamaño</th><th>Subido</th><th>Vinculado a</th><th>Acciones</th></tr></thead>
-            <tbody id="documentosBody"><tr class="dt-empty"><td colspan="6">No hay documentos subidos aún</td></tr></tbody>
-          </table>
-        </div>
       </div>
 
       <!-- ═══ VIEW: AUDITORÍA ═══ -->
