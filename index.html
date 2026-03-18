@@ -2055,80 +2055,117 @@
       <div class="view" id="view-contabilidad">
         <div class="view-header">
           <div class="view-title-group">
-            <h1 class="view-title">Contabilidad · Plan General Contable</h1>
-            <p class="view-sub">Asientos automáticos · Libro diario · Mayor · Balance de comprobación · Cuenta de resultados</p>
+            <h1 class="view-title">Contabilidad PGC</h1>
+            <p class="view-sub">Plan General Contable · Asientos automáticos · Balance · Pérdidas y Ganancias</p>
           </div>
           <div class="view-actions">
             <button class="btn-outline" id="contabExportBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Exportar
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/></svg>
+              Exportar Excel
             </button>
-            <button class="btn-primary" id="nuevoAsientoBtn">+ Asiento manual</button>
+            <button class="btn-primary" id="nuevoAsientoBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Asiento manual
+            </button>
           </div>
         </div>
 
+        <!-- Aviso legal contabilidad -->
+        <div class="alerta-fiscal alerta-fiscal--info" style="margin-bottom:16px">
+          <div class="af-icon">⚖️</div>
+          <div class="af-body">
+            <div class="af-title">Contabilidad auxiliar orientativa — RD 1514/2007 PGC PYMES</div>
+            <div class="af-desc">Los asientos se generan automáticamente desde tus facturas, nóminas y amortizaciones. Para la contabilidad oficial presentada ante el Registro Mercantil, consulta con tu asesor contable. Esta herramienta sigue el Plan General Contable de PYMES.</div>
+          </div>
+        </div>
+
+        <!-- Tabs contabilidad -->
         <div class="contab-tabs">
-          <button class="contab-tab active" data-ctab="diario">Libro Diario</button>
-          <button class="contab-tab" data-ctab="mayor">Libro Mayor</button>
-          <button class="contab-tab" data-ctab="sumas-saldos">Sumas y Saldos</button>
-          <button class="contab-tab" data-ctab="balance">Balance de situación</button>
-          <button class="contab-tab" data-ctab="pyg">Pérdidas y Ganancias</button>
-          <button class="contab-tab" data-ctab="plan">Plan de cuentas</button>
+          <button class="contab-tab active" data-ctab="diario">📒 Libro Diario</button>
+          <button class="contab-tab" data-ctab="sumas-saldos">⚖️ Sumas y Saldos</button>
+          <button class="contab-tab" data-ctab="balance">🏛️ Balance</button>
+          <button class="contab-tab" data-ctab="pyg">📊 Pérdidas y Ganancias</button>
+          <button class="contab-tab" data-ctab="plan">📋 Plan de Cuentas</button>
         </div>
 
         <!-- Panel: Libro Diario -->
-        <div id="ctabPanel_diario" class="section-card no-pad">
-          <div class="sc-header" style="padding:16px">
-            <span class="sc-title">📖 Libro Diario</span>
-            <span style="font-size:12px;color:var(--t3)">Asientos generados automáticamente desde facturas, gastos y nóminas</span>
-          </div>
-          <!-- Cabecera asientos -->
-          <div class="asiento-row asiento-hd">
-            <div>Fecha</div><div>Concepto</div><div>Cuenta</div><div>Debe</div><div>Haber</div>
-          </div>
-          <div id="asientosBody">
-            <!-- Asiento de ejemplo — se renderiza dinámicamente -->
-            <div class="asiento-row">
-              <div style="font-size:12px;color:var(--t3)">—</div>
-              <div style="font-size:13px;color:var(--t2)">Cargando asientos…</div>
-              <div class="asiento-cuenta">—</div>
-              <div class="asiento-debe">—</div>
-              <div class="asiento-haber">—</div>
+        <div id="ctabPanel_diario">
+          <!-- KPIs diario -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+            <div class="kpi-card" style="border:1px solid var(--brd)">
+              <div class="kpi-top"><span class="kpi-lbl">Asientos</span></div>
+              <div class="kpi-val" id="diarioCount">—</div>
+              <div class="kpi-sub" id="diarioPeriodo"></div>
+            </div>
+            <div class="kpi-card" style="border:1px solid var(--brd)">
+              <div class="kpi-top"><span class="kpi-lbl">Total Debe</span></div>
+              <div class="kpi-val" id="diarioDebe" style="color:#059669">—</div>
+            </div>
+            <div class="kpi-card" style="border:1px solid var(--brd)">
+              <div class="kpi-top"><span class="kpi-lbl">Total Haber</span></div>
+              <div class="kpi-val" id="diarioHaber" style="color:#dc2626">—</div>
+            </div>
+            <div class="kpi-card" style="border:1px solid var(--brd)">
+              <div class="kpi-top"><span class="kpi-lbl">Cuadre</span></div>
+              <div class="kpi-val" style="font-size:20px">✅</div>
+              <div class="kpi-sub">Debe = Haber</div>
             </div>
           </div>
+          <!-- Leyenda tipos -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;font-size:11px">
+            <span style="background:#eff6ff;color:#1a56db;padding:2px 8px;border-radius:6px;font-weight:700">INGRESO</span>
+            <span style="background:#f0fdf4;color:#059669;padding:2px 8px;border-radius:6px;font-weight:700">COBRO</span>
+            <span style="background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:6px;font-weight:700">GASTO</span>
+            <span style="background:#f5f3ff;color:#7c3aed;padding:2px 8px;border-radius:6px;font-weight:700">NÓMINA</span>
+            <span style="background:#fef9c3;color:#d97706;padding:2px 8px;border-radius:6px;font-weight:700">AMORT.</span>
+            <span style="background:#f9fafb;color:#6b7280;padding:2px 8px;border-radius:6px;font-weight:700">MANUAL</span>
+            <span style="font-size:11px;color:var(--t4);margin-left:4px">· Haz click en cualquier cuenta para ver su Libro Mayor</span>
+          </div>
+          <div id="asientosBody"></div>
         </div>
 
         <!-- Panel: Sumas y Saldos -->
-        <div id="ctabPanel_sumas-saldos" class="section-card no-pad" style="display:none">
-          <div class="sc-header" style="padding:16px"><span class="sc-title">📊 Balance de Comprobación de Sumas y Saldos</span></div>
-          <table class="data-table" id="sumasSaldosTable">
-            <thead><tr><th>Cuenta</th><th>Descripción</th><th>Sumas Debe</th><th>Sumas Haber</th><th>Saldo Deudor</th><th>Saldo Acreedor</th></tr></thead>
-            <tbody id="sumasSaldosBody"><tr class="dt-empty"><td colspan="6">Cargando…</td></tr></tbody>
-          </table>
-        </div>
-
-        <!-- Panel: PyG simplificada -->
-        <div id="ctabPanel_pyg" class="modelo-layout" style="display:none">
-          <div class="modelo-left">
-            <div class="modelo-card">
-              <div class="mc-header mc-header--blue"><span>A) Operaciones continuadas</span></div>
-              <div class="mc-body">
-                <div class="mc-row"><span>1. Importe neto de la cifra de negocios</span><strong id="pygCifraNegocios">—</strong></div>
-                <div class="mc-row"><span>4. Aprovisionamientos</span><strong id="pygAprovision" style="color:#dc2626">—</strong></div>
-                <div class="mc-row"><span>6. Gastos de personal</span><strong id="pygGstPersonal" style="color:#dc2626">—</strong></div>
-                <div class="mc-row"><span>7. Otros gastos de explotación</span><strong id="pygOtrosGst" style="color:#dc2626">—</strong></div>
-                <div class="mc-row"><span>8. Amortización del inmovilizado</span><strong id="pygAmort" style="color:#dc2626">—</strong></div>
-                <div class="mc-row mc-row--total"><span>A.1) RESULTADO DE EXPLOTACIÓN</span><strong id="pygResultExplot">—</strong></div>
-                <div class="mc-row mc-row--total" style="background:var(--bg1)"><span>A.2) RESULTADO ANTES DE IMPUESTOS</span><strong id="pygBAI">—</strong></div>
-                <div class="mc-row"><span>Impuesto sobre beneficios (IS 25%)</span><strong id="pygIS" style="color:#dc2626">—</strong></div>
-                <div class="mc-row mc-row--total" style="background:#f0fdf4"><span>A.3) RESULTADO DEL EJERCICIO</span><strong id="pygResultEjercicio" style="color:#059669">—</strong></div>
-              </div>
-            </div>
+        <div id="ctabPanel_sumas-saldos" style="display:none">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+            <div class="kpi-card" style="border:1px solid var(--brd)"><div class="kpi-top"><span class="kpi-lbl">Cuentas activas</span></div><div class="kpi-val" id="ssKpiCuentas">—</div></div>
+            <div class="kpi-card" style="border:1px solid var(--brd)"><div class="kpi-top"><span class="kpi-lbl">Total Debe</span></div><div class="kpi-val" id="ssKpiDebe" style="color:#059669">—</div></div>
+            <div class="kpi-card" style="border:1px solid var(--brd)"><div class="kpi-top"><span class="kpi-lbl">Total Haber</span></div><div class="kpi-val" id="ssKpiHaber" style="color:#dc2626">—</div></div>
+            <div class="kpi-card" style="border:1px solid var(--brd)"><div class="kpi-top"><span class="kpi-lbl">Cuadre</span></div><div class="kpi-val" id="ssKpiCuadre" style="font-size:13px">—</div></div>
+          </div>
+          <div class="section-card no-pad">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Cuenta</th>
+                  <th>Nombre</th>
+                  <th>Sumas Debe</th>
+                  <th>Sumas Haber</th>
+                  <th style="color:#059669">Saldo Deudor</th>
+                  <th style="color:#dc2626">Saldo Acreedor</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="sumasSaldosBody"><tr class="dt-empty"><td colspan="7">Cargando…</td></tr></tbody>
+            </table>
           </div>
         </div>
-      </div>
 
-      <!-- ═══ VIEW: TESORERÍA ═══ -->
+        <!-- Panel: Balance -->
+        <div id="ctabPanel_balance" style="display:none">
+          <!-- Contenido generado por JS -->
+        </div>
+
+        <!-- Panel: PyG -->
+        <div id="ctabPanel_pyg" style="display:none">
+          <!-- Contenido generado por JS -->
+        </div>
+
+        <!-- Panel: Plan de Cuentas -->
+        <div id="ctabPanel_plan" style="display:none">
+          <!-- Contenido generado por JS -->
+        </div>
+
+<!-- ═══ VIEW: TESORERÍA ═══ -->
       <div class="view" id="view-tesoreria">
         <div class="view-header">
           <div class="view-title-group">
