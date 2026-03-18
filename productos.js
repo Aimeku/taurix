@@ -278,9 +278,25 @@ export function initProductosView() {
 
 export function buscarProductoPorCodigo(codigo) {
   if (!codigo) return null;
-  const q = codigo.trim().toLowerCase();
+  // Limpiar lo que envía el lector: quitar espacios, saltos de línea,
+  // caracteres de control que algunos lectores añaden tras el código
+  const q = codigo.trim().replace(/[\r\n\t]/g,"").toLowerCase();
+  if (!q) return null;
+
+  // Búsqueda exacta primero (código de barras o referencia)
+  const exacto = PRODUCTOS.find(p =>
+    p.activo !== false && (
+      (p.codigo_barras || "").trim().toLowerCase() === q ||
+      (p.referencia    || "").trim().toLowerCase() === q
+    )
+  );
+  if (exacto) return exacto;
+
+  // Búsqueda parcial como fallback (por si el lector lee solo parte del código)
   return PRODUCTOS.find(p =>
-    (p.referencia    || "").toLowerCase() === q ||
-    (p.codigo_barras || "").toLowerCase() === q
+    p.activo !== false && (
+      (p.codigo_barras || "").toLowerCase().includes(q) ||
+      (p.referencia    || "").toLowerCase().includes(q)
+    )
   ) || null;
 }
