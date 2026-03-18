@@ -160,27 +160,45 @@ export function esModoEmpresario(){ return MODO_ACTUAL === "empresario"; }
    INIT — leer modo guardado y construir sidebar
 ══════════════════════════════════════════ */
 export async function initModos() {
-  // Leer modo guardado en perfil o localStorage
+  // 1. Comprobar localStorage primero (más rápido, no espera a BD)
   const guardado = localStorage.getItem("taurix_modo");
-
   if (guardado === "gestor" || guardado === "empresario") {
     MODO_ACTUAL = guardado;
-  } else {
-    // Primera vez — leer de perfil_fiscal si existe
+    aplicarModo(MODO_ACTUAL);
+    // Sincronizar con BD en background sin bloquear
+    supabase.from("perfil_fiscal")
+      .upsert({ user_id: SESSION.user.id, modo_usuario: MODO_ACTUAL }, { onConflict:"user_id" })
+      .then(() => {}).catch(() => {});
+    return true;
+  }
+
+  // 2. Intentar leer de la BD
+  try {
     const { data: pf } = await supabase.from("perfil_fiscal")
       .select("modo_usuario").eq("user_id", SESSION.user.id).maybeSingle();
 
     if (pf?.modo_usuario) {
       MODO_ACTUAL = pf.modo_usuario;
       localStorage.setItem("taurix_modo", MODO_ACTUAL);
-    } else {
-      // Primer login — mostrar onboarding de selección de modo
-      return false; // signal: necesita onboarding
+      aplicarModo(MODO_ACTUAL);
+      return true;
     }
+  } catch(e) {
+    console.warn("initModos: error leyendo BD, usando default empresario", e.message);
   }
 
-  aplicarModo(MODO_ACTUAL);
-  return true;
+  // 3. Sin dato en ningún lado — mostrar onboarding UNA SOLA VEZ
+  // Marcar en localStorage que ya se mostró para evitar loops
+  if (localStorage.getItem("taurix_onboard_shown") === "1") {
+    // Ya se mostró pero no se guardó bien — usar empresario por defecto
+    MODO_ACTUAL = "empresario";
+    localStorage.setItem("taurix_modo", "empresario");
+    aplicarModo(MODO_ACTUAL);
+    return true;
+  }
+
+  localStorage.setItem("taurix_onboard_shown", "1");
+  return false; // signal: necesita onboarding
 }
 
 /* ══════════════════════════════════════════
@@ -191,7 +209,16 @@ export function aplicarModo(modo) {
   localStorage.setItem("taurix_modo", modo);
 
   const nav = document.querySelector(".sidebar-nav");
-  if (!nav) return;
+  if (!nav) {
+    // DOM no está listo — reintentar cuando esté
+    if (document.readyState !== "complete") {
+      document.addEventListener("DOMContentLoaded", () => aplicarModo(modo), { once: true });
+    } else {
+      // DOM listo pero sidebar no encontrado — retry tras un tick
+      setTimeout(() => aplicarModo(modo), 100);
+    }
+    return;
+  }
 
   const config = MODOS[modo];
   if (!config) return;
@@ -233,7 +260,22 @@ export function aplicarModo(modo) {
   }).join("");
 
   // Re-registrar listeners del sidebar en main.js
-  if (window._rebindNav) window._rebindNav();
+  if (window._rebindNav) {
+    window._rebindNav();
+  } else {
+    // _rebindNav no está lista aún — esperar hasta 2s
+    let attempts = 0;
+    const waitRebind = setInterval(() => {
+      attempts++;
+      if (window._rebindNav) {
+        clearInterval(waitRebind);
+        window._rebindNav();
+      } else if (attempts > 20) {
+        clearInterval(waitRebind);
+        console.warn("_rebindNav no disponible tras 2s");
+      }
+    }, 100);
+  }
 
   // Toggle button en topbar
   actualizarToggleBtn(modo);
@@ -383,6 +425,7 @@ export function showOnboardingModo() {
     }, { onConflict:"user_id" });
 
     localStorage.setItem("taurix_modo", modo);
+    localStorage.removeItem("taurix_onboard_shown"); // limpieza
     aplicarModo(modo);
 
     // Cerrar con fade
