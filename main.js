@@ -48,6 +48,9 @@ import { initTesoreriaView, refreshTesoreria } from "./tesoreria.js";
 import { initInformesView } from "./informes.js";
 import { initContabilidadView, refreshLibroDiario, refreshSumasSaldos, refreshBalance, refreshPyG } from "./contabilidad.js";
 import { initOtrosModelosView } from "./otros-modelos.js";
+import { initAmortizacionesView } from "./amortizaciones.js";
+import { initValidacionesModal, validarIdentificadorFiscal, validarIBAN } from "./validaciones.js";
+import { exportarDatos303, exportarDatos130, GASTOS_DEDUCIBLES } from "./fiscal.js";
 
 
 
@@ -448,6 +451,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ── Otros modelos fiscales ── */
   await initOtrosModelosView();
 
+  /* ── Amortizaciones ── */
+  initAmortizacionesView();
+
+  /* ── Validaciones en modales ── */
+  initValidacionesModal();
+
+  /* ── Exportar casillas 303/130 ── */
+  document.getElementById("exportIvaBtn")?.addEventListener("click", exportarDatos303);
+  document.getElementById("exportIrpfBtn")?.addEventListener("click", exportarDatos130);
+
   /* ── Pipeline CRM ── */
   initPipelineView();
 
@@ -472,6 +485,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (view === "verifactu")       { const { refreshVerifactu } = await import("./utils.js"); await refreshVerifactu(); }
       if (view === "otros-modelos")   await initOtrosModelosView();
       if (view === "contabilidad")    await refreshLibroDiario();
+      if (view === "amortizaciones")   { const { refreshBienesInversion } = await import("./amortizaciones.js"); await refreshBienesInversion(); }
       if (view === "nominas")         { const { refreshNominas } = await import("./nominas.js"); await refreshNominas(); }
     });
   });
