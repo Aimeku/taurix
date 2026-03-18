@@ -327,7 +327,7 @@ async function generarPDFModelo({ numero, titulo, subtitulo, year, trim, resulta
     doc.rect(ML, y, W, 8, "F");
     doc.setFont("helvetica", f.bold ? "bold" : "normal");
     doc.setFontSize(f.bold ? 10 : 9);
-    doc.setTextColor(f.bold ? ...BLUE : ...INK);
+    if (f.bold) { doc.setTextColor(...BLUE); } else { doc.setTextColor(...INK); }
     doc.text(f.label, ML + 3, y + 5.5);
     if (f.valor !== null && f.valor !== undefined) {
       doc.text(fmt(f.valor), PW - ML - 2, y + 5.5, { align: "right" });
