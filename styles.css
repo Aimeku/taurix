@@ -1677,3 +1677,77 @@ html.dark .lp-plan--gestor {
 /* Material autocomplete en trabajos */
 .tj-mat-ac-item:hover { background: var(--bg2); }
 .tj-mat-ac-item:last-child { border-bottom: none !important; }
+
+/* ═══════════════════════════════════════════════════
+   AUDITORÍA — Timeline
+═══════════════════════════════════════════════════ */
+.audit-day-group { padding: 0 4px; }
+.audit-day-label {
+  padding: 12px 16px 6px;
+  text-align: center;
+}
+.audit-row {
+  display: grid;
+  grid-template-columns: 10px 46px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--brd);
+  cursor: pointer;
+  transition: background .1s;
+}
+.audit-row:hover { background: var(--bg2); }
+.audit-row:last-child { border: none; }
+.audit-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.audit-time {
+  font-size: 11px;
+  color: var(--t4);
+  font-family: monospace;
+  white-space: nowrap;
+}
+.audit-content { flex: 1; min-width: 0; }
+.audit-msg {
+  font-size: 12px;
+  color: var(--t2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  line-height: 1.5;
+}
+.audit-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+  font-family: monospace;
+  letter-spacing: .03em;
+}
+.audit-entidad {
+  font-size: 11px;
+  color: var(--t3);
+  white-space: nowrap;
+}
+.audit-ref {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--t1);
+}
+.audit-desc {
+  font-size: 11px;
+  color: var(--t3);
+  flex: 1;
+}
+.audit-meta { white-space: nowrap; }
+.audit-ver-btn {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+.audit-ver-btn:hover { text-decoration: underline; }
