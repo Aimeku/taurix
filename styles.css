@@ -1751,3 +1751,8 @@ html.dark .lp-plan--gestor {
   cursor: pointer;
 }
 .audit-ver-btn:hover { text-decoration: underline; }
+
+/* Banners — ocultos por defecto, JS los muestra solo cuando tiene contenido */
+#updateBanner   { display: none !important; }
+#onboardingBanner:empty { display: none !important; }
+#onboardingBanner { position: relative; z-index: 10; }
