@@ -292,6 +292,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     sfr.textContent = labels[pf.regime] || "Autónomo · IRPF";
   }
 
+  /* ── Banner perfil incompleto ── */
+  const perfilIncompleto = !pf || !pf.nif || !pf.nombre_razon_social || !pf.regime;
+  if (perfilIncompleto) {
+    const banner = document.getElementById("onboardingBanner");
+    if (banner) {
+      banner.style.display = "";
+      banner.innerHTML = `
+        <div style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border-radius:12px;padding:14px 20px;margin:12px 20px 0;display:flex;align-items:center;gap:14px">
+          <span style="font-size:22px">⚡</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:800;margin-bottom:2px">Completa tu perfil fiscal para emitir facturas</div>
+            <div style="font-size:12px;opacity:.9">Necesitas tu NIF, nombre/razón social y régimen fiscal para que las facturas sean válidas legalmente.</div>
+          </div>
+          <button onclick="showPerfilModal()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap">
+            Completar ahora →
+          </button>
+        </div>`;
+    }
+  }
+
   /* ── Año / trimestre ── */
   const now = new Date();
   const curY = now.getFullYear();
