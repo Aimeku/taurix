@@ -178,6 +178,22 @@ export async function exportFacturaPDF(facturaId) {
     doc.text(nl,ML+5,y+11.5);
   }
 
+  // Verifactu block — si la factura tiene hash Verifactu
+  if (f.verifactu_hash && y < PH - 40) {
+    doc.setFillColor(240, 253, 244);
+    doc.setDrawColor(187, 247, 208);
+    doc.setLineWidth(0.3);
+    const vfH = 14;
+    doc.roundedRect(ML, y, W, vfH, 1.5, 1.5, "FD");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(22, 101, 52);
+    doc.text("✓ VERIFACTU — RD 1007/2023 · Factura verificable electrónicamente", ML + 4, y + 5);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7);
+    doc.text(`Hash: ${f.verifactu_hash.substring(0, 32)}…`, ML + 4, y + 10);
+    const fecha_vf = f.verifactu_fecha ? new Date(f.verifactu_fecha).toLocaleDateString("es-ES") : "";
+    doc.text(`Firmado: ${fecha_vf}`, PW - MR, y + 10, { align: "right" });
+    y += vfH + 6;
+  }
+
   // Pie
   const opLegal={
     nacional:"Operación sujeta a IVA español · Ley 37/1992.",
