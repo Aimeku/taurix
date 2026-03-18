@@ -455,7 +455,7 @@
       <!-- ── PLAN 1: BÁSICO ── -->
       <div class="lp-plan lp-plan--basico">
         <div class="lp-plan-header">
-          <div class="lp-plan-icon">🏢</div>
+          
           <div class="lp-plan-name">Básico</div>
           <div class="lp-plan-tagline">Para el empresario</div>
           <div class="lp-plan-price">
@@ -483,9 +483,9 @@
 
       <!-- ── PLAN 2: PRO (ESTRELLA) ── -->
       <div class="lp-plan lp-plan--pro lp-plan--featured">
-        <div class="lp-plan-badge lp-plan-badge--star">⭐ Plan estrella</div>
+        <div class="lp-plan-badge lp-plan-badge--star">Más popular</div>
         <div class="lp-plan-header">
-          <div class="lp-plan-icon">🔥</div>
+          
           <div class="lp-plan-name">Pro</div>
           <div class="lp-plan-tagline">Para empresa de servicios</div>
           <div class="lp-plan-price">
@@ -515,13 +515,14 @@
       <div class="lp-plan lp-plan--gestor">
         <div class="lp-plan-badge lp-plan-badge--gestor">💼 Para gestorías</div>
         <div class="lp-plan-header">
-          <div class="lp-plan-icon">👔</div>
+          
           <div class="lp-plan-name">Gestor</div>
           <div class="lp-plan-tagline">Para asesores y gestorías</div>
           <div class="lp-plan-price">
             <span class="lp-plan-eur">79€</span>
             <span class="lp-plan-per">/mes</span>
           </div>
+          <div class="lp-plan-promo">🎁 Primer mes gratis</div>
           <div class="lp-plan-desc">Gestiona la contabilidad de todos tus clientes desde una sola cuenta</div>
         </div>
         <ul class="lp-plan-features">
@@ -2935,7 +2936,21 @@
 <div id="cookieBanner" class="cookie-banner" style="display:none">
   <div class="cookie-banner-inner">
     <div class="cookie-banner-text">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px;opacity:.7"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><l  <script>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px;opacity:.7"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div>
+        <strong>Taurix no usa cookies de rastreo.</strong>
+        Solo almacenamiento local para tu sesión y preferencias.
+        <a href="#" onclick="document.getElementById('modalCookies').style.display='flex';return false;" style="color:inherit;text-decoration:underline;margin-left:4px">Más información</a>
+      </div>
+    </div>
+    <div class="cookie-banner-actions">
+      <button id="cookieRechazar" class="cookie-btn-outline">Solo esenciales</button>
+      <button id="cookieAceptar" class="cookie-btn-solid">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').then(reg => {
