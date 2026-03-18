@@ -433,8 +433,9 @@ export async function exportarParaA3() {
 
   // Cabecera columnas del diario
   rows.push({
-    "EMPRESA": "Nº Asiento", "NIF": "Fecha", "EJERCICIO": "Concepto",
-    "GENERADO": "Cuenta", "SOFTWARE": "Descripción cuenta", "": "Debe", " ": "Haber", "  ": "Documento"
+    "Nº Asiento": "Nº Asiento", "Fecha": "Fecha", "Concepto": "Concepto",
+    "Cuenta": "Cuenta", "Descripción cuenta": "Descripción cuenta",
+    "Debe": "Debe", "Haber": "Haber", "Documento": "Documento"
   });
 
   let nAsiento = 1;
@@ -448,15 +449,20 @@ export async function exportarParaA3() {
       ? `Fra. emitida ${f.numero_factura||"S/N"} ${f.cliente_nombre||""}`
       : `Fra. recibida ${f.numero_factura||"S/N"} ${f.cliente_nombre||f.concepto||""}`;
 
+    const mkRow = (cta, desc, debe, haber, doc) => ({
+      "Nº Asiento": nAsStr, "Fecha": fecha, "Concepto": concepto,
+      "Cuenta": cta, "Descripción cuenta": desc,
+      "Debe": debe||"", "Haber": haber||"", "Documento": doc||""
+    });
     if (f.tipo==="emitida" && f.estado==="emitida") {
-      rows.push({ "EMPRESA":nAsStr,"NIF":fecha,"EJERCICIO":concepto,"GENERADO":"430000","SOFTWARE":"Clientes","":"": f.base, " ":"", "  ":f.numero_factura||"" });
-      if (irpfAmt>0) rows.push({ "EMPRESA":nAsStr,"NIF":fecha,"EJERCICIO":concepto,"GENERADO":"473000","SOFTWARE":"HP, retenciones y pagos a cuenta","":"":irpfAmt," ":"","  ":"" });
-      if (cuotaIVA>0) rows.push({ "EMPRESA":nAsStr,"NIF":fecha,"EJERCICIO":concepto,"GENERADO":"477000","SOFTWARE":"HP, IVA repercutido","":""," ":"":cuotaIVA,"  ":"" });
-      rows.push({ "EMPRESA":nAsStr,"NIF":fecha,"EJERCICIO":concepto,"GENERADO":"705000","SOFTWARE":"Prestaciones de servicios","":""," ":"":f.base,"  ":"" });
+      rows.push(mkRow("430000","Clientes",            (f.base - irpfAmt).toFixed(2), "",           f.numero_factura||""));
+      if (irpfAmt>0)  rows.push(mkRow("473000","HP, retenciones",  irpfAmt.toFixed(2), "", ""));
+      if (cuotaIVA>0) rows.push(mkRow("477000","HP, IVA repercutido","", cuotaIVA.toFixed(2), ""));
+      rows.push(mkRow("705000","Prestaciones de servicios","", f.base.toFixed(2), ""));
     } else if (f.tipo==="recibida") {
-      rows.push({ "EMPRESA":nAsStr,"NIF":fecha,"EJERCICIO":concepto,"GENERADO":"629000","SOFTWARE":"Otros servicios","":"":f.base," ":"","  ":f.numero_factura||"" });
-      if (cuotaIVA>0) rows.push({ "EMPRESA":nAsStr,"NIF":fecha,"EJERCICIO":concepto,"GENERADO":"472000","SOFTWARE":"HP, IVA soportado","":"":cuotaIVA," ":"","  ":"" });
-      rows.push({ "EMPRESA":nAsStr,"NIF":fecha,"EJERCICIO":concepto,"GENERADO":"400000","SOFTWARE":"Proveedores","":""," ":"":total,"  ":"" });
+      rows.push(mkRow("629000","Otros servicios",     f.base.toFixed(2), "",     f.numero_factura||""));
+      if (cuotaIVA>0) rows.push(mkRow("472000","HP, IVA soportado", cuotaIVA.toFixed(2), "", ""));
+      rows.push(mkRow("400000","Proveedores",         "", total.toFixed(2), ""));
     }
     rows.push({});
     nAsiento++;
