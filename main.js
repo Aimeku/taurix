@@ -489,6 +489,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.querySelectorAll(".sn-item[data-view]").forEach(btn => {
     btn.addEventListener("click", async () => {
       const view = btn.dataset.view;
+
+      // ── PRIMERO: mostrar la vista (siempre) ──
+      switchView(view);
+
+      // ── DESPUÉS: cargar datos según la vista ──
       if (view === "pipeline")        await refreshPipeline();
       if (view === "alertas")         await refreshAlertas();
       if (view === "documentos")      { const { refreshDocumentos } = await import("./documentos.js"); await refreshDocumentos(); }
@@ -496,8 +501,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (view === "verifactu")       { const { refreshVerifactu } = await import("./utils.js"); await refreshVerifactu(); }
       if (view === "otros-modelos")   await initOtrosModelosView();
       if (view === "contabilidad")    await refreshLibroDiario();
-      if (view === "amortizaciones")   { const { refreshBienesInversion } = await import("./amortizaciones.js"); await refreshBienesInversion(); }
+      if (view === "amortizaciones")  { const { refreshBienesInversion } = await import("./amortizaciones.js"); await refreshBienesInversion(); }
       if (view === "nominas")         { const { refreshNominas } = await import("./nominas.js"); await refreshNominas(); }
+      if (view === "empleados")       { const { refreshEmpleados } = await import("./nominas.js"); await refreshEmpleados(); }
+      if (view === "informes")        initInformesView();
     });
   });
 
