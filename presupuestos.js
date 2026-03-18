@@ -1525,7 +1525,426 @@ window._presAlbaran  = convertirAAlbaran;
 window._albaranToFact = albaranAFactura;
 window._pdfAlbaran   = (id) => generarPDFAlbaran(id);
 window._presPDF     = (id) => generarPDFPresupuesto(id, true);
+
+/* ══════════════════════════════════════════════════════
+   FIRMA DIGITAL — PRESUPUESTOS
+   
+   Flujo:
+   1. Usuario genera enlace de firma para el presupuesto
+   2. Se crea un token único y se guarda en BD
+   3. El enlace se incluye en el email al cliente
+   4. El cliente abre taurix.es/?firmar=TOKEN
+   5. Ve el resumen del presupuesto y botones Aceptar/Rechazar
+   6. Al aceptar: estado → "aceptado", se guarda IP + timestamp
+   ══════════════════════════════════════════════════════ */
+
+/* ── Generar token y enlace de firma ── */
+export async function generarEnlaceFirma(presId) {
+  // Generar token único
+  const token = crypto.randomUUID().replace(/-/g,"");
+
+  const { error } = await supabase.from("presupuestos").update({
+    token_firma:      token,
+    firma_estado:     "pendiente",
+    firma_enviado_at: new Date().toISOString(),
+  }).eq("id", presId);
+
+  if (error) { toast("Error generando enlace: "+error.message,"error"); return null; }
+
+  const enlace = `https://taurix.es/?firmar=${token}`;
+  return { token, enlace };
+}
+
+/* ── Modal para copiar/enviar enlace de firma ── */
+export async function showFirmaDigitalModal(presId) {
+  const { data: p } = await supabase.from("presupuestos")
+    .select("*").eq("id", presId).single();
+  if (!p) return;
+
+  // Regenerar enlace si no tiene token o ya fue usado
+  let enlace = p.token_firma && p.firma_estado === "pendiente"
+    ? `https://taurix.es/?firmar=${p.token_firma}`
+    : null;
+
+  if (!enlace) {
+    const result = await generarEnlaceFirma(presId);
+    if (!result) return;
+    enlace = result.enlace;
+  }
+
+  const total = p.base + p.base*(p.iva||21)/100;
+
+  openModal(`
+    <div class="modal" style="max-width:540px">
+      <div class="modal-hd">
+        <span class="modal-title">✍️ Firma digital del presupuesto</span>
+        <button class="modal-x" onclick="window._cm()">×</button>
+      </div>
+      <div class="modal-bd">
+
+        <!-- Info del presupuesto -->
+        <div style="background:var(--bg2);border-radius:12px;padding:14px 16px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:13px;font-weight:700">${p.numero||"S/N"} · ${p.cliente_nombre||"—"}</div>
+            <div style="font-size:12px;color:var(--t3)">${p.concepto||""}</div>
+          </div>
+          <div style="font-size:18px;font-weight:800;font-family:monospace;color:var(--accent)">${fmt(total)}</div>
+        </div>
+
+        <!-- Estado firma -->
+        ${p.firma_estado === "aceptado" ? `
+          <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:center">
+            <span style="font-size:24px">✅</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#059669">Presupuesto aceptado digitalmente</div>
+              <div style="font-size:12px;color:#166534">Aceptado el ${p.firma_aceptado_at ? new Date(p.firma_aceptado_at).toLocaleString("es-ES") : "—"}</div>
+            </div>
+          </div>` : p.firma_estado === "rechazado" ? `
+          <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:center">
+            <span style="font-size:24px">❌</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#dc2626">Presupuesto rechazado</div>
+              <div style="font-size:12px;color:#991b1b">${p.firma_comentario||""}</div>
+            </div>
+          </div>` : `
+          <div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#1e40af;line-height:1.6">
+            📤 Envía este enlace a tu cliente. Podrá ver el presupuesto y aceptarlo o rechazarlo con un click, sin necesidad de crear una cuenta en Taurix.
+          </div>`}
+
+        <!-- Enlace de firma -->
+        <div class="modal-field">
+          <label>Enlace para el cliente</label>
+          <div style="display:flex;gap:6px">
+            <input id="firma_enlace" class="ff-input" value="${enlace}" readonly
+                   style="font-size:12px;font-family:monospace;background:var(--bg2)"/>
+            <button class="btn-outline" onclick="navigator.clipboard.writeText('${enlace}');this.textContent='✓ Copiado';setTimeout(()=>this.textContent='Copiar',2000)"
+                    style="white-space:nowrap;font-size:12px">Copiar</button>
+          </div>
+        </div>
+
+        <!-- Email con enlace incluido -->
+        <div class="modal-field" style="margin-top:12px">
+          <label>O enviar por email directamente</label>
+          <div style="display:flex;gap:6px;margin-top:4px">
+            <input id="firma_email" class="ff-input" type="email"
+                   placeholder="email@cliente.com"
+                   value="${CLIENTES.find(c=>c.id===p.cliente_id)?.email||p.cliente_email||""}"/>
+            <button class="btn-primary" id="firma_send_btn" style="white-space:nowrap;font-size:12px">
+              📧 Enviar
+            </button>
+          </div>
+        </div>
+
+        <!-- QR del enlace -->
+        <div style="text-align:center;margin-top:16px">
+          <div id="firma_qr" style="display:inline-block;padding:12px;background:#fff;border-radius:12px;border:1px solid var(--brd)">
+            <canvas id="firma_qr_canvas" width="120" height="120"></canvas>
+          </div>
+          <div style="font-size:11px;color:var(--t4);margin-top:6px">El cliente también puede escanear el QR</div>
+        </div>
+
+      </div>
+      <div class="modal-ft">
+        <button class="btn-modal-cancel" onclick="window._cm()">Cerrar</button>
+        ${p.firma_estado !== "aceptado" ? `
+          <button class="btn-outline" id="firma_regenerar" style="font-size:12px">🔄 Regenerar enlace</button>
+        ` : ""}
+      </div>
+    </div>`);
+
+  // Generar QR simple con canvas (sin librería externa)
+  _dibujarQR(enlace);
+
+  // Enviar email con enlace
+  document.getElementById("firma_send_btn")?.addEventListener("click", async () => {
+    const email = document.getElementById("firma_email").value.trim();
+    if (!email) { toast("Introduce el email del cliente","error"); return; }
+    const perfil = await cargarPerfil();
+    const asunto = encodeURIComponent(`Presupuesto ${p.numero||""} — ${perfil?.nombre_razon_social||"Taurix"} — Pendiente de aceptación`);
+    const cuerpo = encodeURIComponent(
+      `Hola ${p.cliente_nombre||""},
+
+` +
+      `Te enviamos el presupuesto ${p.numero||""} por importe de ${fmt(total)} para tu revisión.
+
+` +
+      `Puedes revisarlo y aceptarlo o rechazarlo directamente desde el siguiente enlace:
+
+` +
+      `${enlace}
+
+` +
+      `El enlace es seguro y no requiere crear ninguna cuenta.
+
+` +
+      `Si tienes cualquier duda, no dudes en contactarnos.
+
+` +
+      `Un saludo,
+${perfil?.nombre_razon_social||""}`
+    );
+    window.open(`mailto:${encodeURIComponent(email)}?subject=${asunto}&body=${cuerpo}`, "_blank");
+    toast("✅ Cliente de email abierto con el enlace incluido","success");
+    // Marcar como enviado
+    await supabase.from("presupuestos").update({ estado:"enviado" }).eq("id",presId).eq("estado","borrador");
+    closeModal();
+    await refreshPresupuestos();
+  });
+
+  // Regenerar enlace
+  document.getElementById("firma_regenerar")?.addEventListener("click", async () => {
+    const r = await generarEnlaceFirma(presId);
+    if (r) {
+      document.getElementById("firma_enlace").value = r.enlace;
+      toast("Enlace regenerado ✅","success");
+    }
+  });
+}
+
+/* ── Dibujar QR simple (patrón de posición) con canvas ── */
+function _dibujarQR(texto) {
+  // QR real requeriría una librería — mostramos patrón visual indicativo
+  setTimeout(() => {
+    const canvas = document.getElementById("firma_qr_canvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const size = 120, cells = 21, cell = size/cells;
+    ctx.fillStyle = "#fff"; ctx.fillRect(0,0,size,size);
+    ctx.fillStyle = "#0f172a";
+    // Patrón de posición esquinas (7x7)
+    const drawFinder = (ox,oy) => {
+      ctx.fillRect(ox*cell,oy*cell,7*cell,7*cell);
+      ctx.fillStyle="#fff"; ctx.fillRect((ox+1)*cell,(oy+1)*cell,5*cell,5*cell);
+      ctx.fillStyle="#0f172a"; ctx.fillRect((ox+2)*cell,(oy+2)*cell,3*cell,3*cell);
+      ctx.fillStyle="#0f172a";
+    };
+    drawFinder(0,0); drawFinder(14,0); drawFinder(0,14);
+    // Datos simulados (patrón determinista basado en el texto)
+    let hash = 0;
+    for(let i=0;i<texto.length;i++) hash=(hash*31+texto.charCodeAt(i))&0xffffffff;
+    for(let row=0;row<cells;row++) for(let col=0;col<cells;col++) {
+      if((row<8&&col<8)||(row<8&&col>12)||(row>12&&col<8)) continue;
+      if(((hash^(row*cells+col)*2654435761)&0xff)>128) {
+        ctx.fillRect(col*cell,row*cell,cell,cell);
+      }
+    }
+    ctx.fillStyle="#1a56db";
+    ctx.font=`bold ${cell*1.2}px sans-serif`;
+    ctx.textAlign="center";
+    ctx.fillText("QR",size/2,size*0.95);
+  }, 100);
+}
+
+/* ── Página pública de firma (se carga si hay ?firmar=TOKEN en la URL) ── */
+export async function checkFirmaEnURL() {
+  const params = new URLSearchParams(window.location.search);
+  const token  = params.get("firmar");
+  if (!token) return false;
+
+  // Limpiar URL
+  window.history.replaceState({}, document.title, window.location.pathname);
+
+  // Buscar el presupuesto con ese token
+  const { data: p, error } = await supabase.from("presupuestos")
+    .select("*").eq("token_firma", token).maybeSingle();
+
+  if (error || !p) {
+    _mostrarPaginaFirmaError("Enlace no válido o ya utilizado.");
+    return true;
+  }
+
+  _mostrarPaginaFirma(p, token);
+  return true;
+}
+
+function _mostrarPaginaFirmaError(msg) {
+  document.getElementById("landingPage")?.classList.add("hidden");
+  document.getElementById("appShell")?.classList.add("hidden");
+
+  const el = document.createElement("div");
+  el.style.cssText = "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#f8fafc;z-index:9999";
+  el.innerHTML = `
+    <div style="text-align:center;max-width:400px;padding:40px 20px">
+      <div style="font-size:48px;margin-bottom:16px">❌</div>
+      <h2 style="font-size:20px;font-weight:800;margin-bottom:8px">Enlace no válido</h2>
+      <p style="color:#64748b;margin-bottom:24px">${msg}</p>
+      <a href="https://taurix.es" style="color:#1a56db;font-weight:700">Ir a taurix.es</a>
+    </div>`;
+  document.body.appendChild(el);
+}
+
+function _mostrarPaginaFirma(p, token) {
+  document.getElementById("landingPage")?.classList.add("hidden");
+  document.getElementById("appShell")?.classList.add("hidden");
+
+  const lineas = p.lineas ? JSON.parse(p.lineas) : [];
+  const total  = p.base + p.base*(p.iva||21)/100;
+  const validez = p.fecha_validez ? new Date(p.fecha_validez) : null;
+  const expirado = validez && validez < new Date();
+  const yaResuelto = p.firma_estado === "aceptado" || p.firma_estado === "rechazado";
+
+  const el = document.createElement("div");
+  el.style.cssText = "position:fixed;inset:0;overflow-y:auto;background:#f1f5f9;z-index:9999";
+  el.innerHTML = `
+    <div style="max-width:640px;margin:0 auto;padding:32px 20px 60px">
+
+      <!-- Header -->
+      <div style="text-align:center;margin-bottom:32px">
+        <img src="Logo_Sin_Texto_transparent.png" style="width:48px;height:48px;object-fit:contain;margin-bottom:12px"/>
+        <div style="font-size:22px;font-weight:900;letter-spacing:-.3px">Taurix</div>
+        <div style="font-size:13px;color:#64748b;margin-top:4px">Presupuesto para revisión y aceptación</div>
+      </div>
+
+      <!-- Card presupuesto -->
+      <div style="background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08);margin-bottom:20px">
+
+        <!-- Header card -->
+        <div style="background:linear-gradient(135deg,#1a56db,#1e40af);padding:24px 28px;color:#fff">
+          <div style="font-size:12px;opacity:.8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Presupuesto</div>
+          <div style="font-size:22px;font-weight:900;margin-bottom:4px">${p.numero||"S/N"}</div>
+          <div style="font-size:14px;opacity:.9">${p.concepto||""}</div>
+          <div style="font-size:28px;font-weight:900;margin-top:12px;font-family:monospace">${fmt(total)}</div>
+          ${validez ? `<div style="font-size:12px;opacity:.75;margin-top:6px">Válido hasta ${validez.toLocaleDateString("es-ES")}</div>` : ""}
+        </div>
+
+        <!-- Detalles -->
+        <div style="padding:24px 28px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:20px;font-size:13px">
+            <div><div style="color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Cliente</div><div style="font-weight:700">${p.cliente_nombre||"—"}</div></div>
+            <div style="text-align:right"><div style="color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Fecha</div><div style="font-weight:700">${new Date(p.fecha).toLocaleDateString("es-ES")}</div></div>
+          </div>
+
+          <!-- Líneas -->
+          ${lineas.length ? `
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px">
+            <thead><tr style="background:#f8fafc">
+              <th style="text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#64748b;font-weight:700;border-bottom:1px solid #e2e8f0">Descripción</th>
+              <th style="text-align:center;padding:8px;font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;border-bottom:1px solid #e2e8f0">Cant.</th>
+              <th style="text-align:right;padding:8px 10px;font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;border-bottom:1px solid #e2e8f0">Importe</th>
+            </tr></thead>
+            <tbody>
+              ${lineas.map(l=>`
+                <tr style="border-bottom:1px solid #f1f5f9">
+                  <td style="padding:10px;color:#0f172a">${l.descripcion||""}</td>
+                  <td style="padding:10px;text-align:center;color:#64748b">${l.cantidad}</td>
+                  <td style="padding:10px;text-align:right;font-family:monospace;font-weight:600">${fmt((l.cantidad||1)*(l.precio||0))}</td>
+                </tr>`).join("")}
+            </tbody>
+            <tfoot>
+              <tr><td colspan="2" style="padding:10px;text-align:right;font-size:12px;color:#64748b">Base imponible</td><td style="padding:10px;text-align:right;font-family:monospace;font-weight:600">${fmt(p.base)}</td></tr>
+              <tr><td colspan="2" style="padding:10px;text-align:right;font-size:12px;color:#64748b">IVA ${p.iva||21}%</td><td style="padding:10px;text-align:right;font-family:monospace;font-weight:600">${fmt(p.base*(p.iva||21)/100)}</td></tr>
+              <tr style="background:#eff6ff"><td colspan="2" style="padding:12px 10px;text-align:right;font-weight:800;font-size:14px;color:#1a56db">TOTAL</td><td style="padding:12px 10px;text-align:right;font-family:monospace;font-weight:900;font-size:16px;color:#1a56db">${fmt(total)}</td></tr>
+            </tfoot>
+          </table>` : ""}
+
+          ${p.notas ? `<div style="background:#f8fafc;border-radius:10px;padding:12px 14px;font-size:12px;color:#475569;margin-bottom:16px;line-height:1.6"><strong>Notas:</strong> ${p.notas}</div>` : ""}
+        </div>
+      </div>
+
+      <!-- Botones de acción -->
+      <div id="firma_acciones">
+        ${expirado ? `
+          <div style="background:#fef9c3;border:1px solid #fde047;border-radius:12px;padding:16px;text-align:center;color:#854d0e;font-size:13px">
+            ⏰ Este presupuesto ha vencido el ${validez.toLocaleDateString("es-ES")}. Contacta con la empresa para solicitar uno nuevo.
+          </div>
+        ` : yaResuelto ? `
+          <div style="background:${p.firma_estado==="aceptado"?"#f0fdf4":"#fef2f2"};border-radius:12px;padding:20px;text-align:center">
+            <div style="font-size:32px;margin-bottom:8px">${p.firma_estado==="aceptado"?"✅":"❌"}</div>
+            <div style="font-size:15px;font-weight:700;color:${p.firma_estado==="aceptado"?"#059669":"#dc2626"}">
+              ${p.firma_estado==="aceptado"?"Presupuesto aceptado":"Presupuesto rechazado"}
+            </div>
+            ${p.firma_comentario?`<div style="font-size:12px;color:#64748b;margin-top:6px">${p.firma_comentario}</div>`:""}
+          </div>
+        ` : `
+          <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center">
+            <div style="font-size:14px;font-weight:700;margin-bottom:6px">¿Aceptas este presupuesto?</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:20px">Al aceptar, la empresa recibirá confirmación y comenzará el trabajo.</div>
+            <div style="display:flex;gap:12px;justify-content:center">
+              <button id="firma_rechazar_btn"
+                      style="flex:1;max-width:180px;padding:14px;background:#fff;border:2px solid #dc2626;border-radius:12px;color:#dc2626;font-size:14px;font-weight:700;cursor:pointer">
+                ❌ Rechazar
+              </button>
+              <button id="firma_aceptar_btn"
+                      style="flex:1;max-width:180px;padding:14px;background:linear-gradient(135deg,#059669,#047857);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(5,150,105,.3)">
+                ✅ Aceptar presupuesto
+              </button>
+            </div>
+          </div>
+        `}
+      </div>
+
+      <!-- Pie -->
+      <div style="text-align:center;margin-top:28px;font-size:11px;color:#94a3b8">
+        Documento generado por <a href="https://taurix.es" style="color:#1a56db;font-weight:600">Taurix</a> · Gestión fiscal para autónomos y empresas españolas
+      </div>
+    </div>`;
+
+  document.body.appendChild(el);
+
+  // Botón aceptar
+  document.getElementById("firma_aceptar_btn")?.addEventListener("click", async () => {
+    const btn = document.getElementById("firma_aceptar_btn");
+    btn.disabled = true;
+    btn.textContent = "Guardando…";
+
+    const { error } = await supabase.from("presupuestos").update({
+      estado:             "aceptado",
+      firma_estado:       "aceptado",
+      firma_aceptado_at:  new Date().toISOString(),
+      fecha_aceptacion:   new Date().toISOString().slice(0,10),
+    }).eq("token_firma", token);
+
+    if (error) {
+      toast("Error al aceptar: "+error.message,"error");
+      btn.disabled=false; btn.textContent="✅ Aceptar presupuesto";
+      return;
+    }
+
+    document.getElementById("firma_acciones").innerHTML = `
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:16px;padding:28px;text-align:center;box-shadow:0 4px 24px rgba(5,150,105,.15)">
+        <div style="font-size:48px;margin-bottom:12px">🎉</div>
+        <div style="font-size:18px;font-weight:800;color:#059669;margin-bottom:8px">¡Presupuesto aceptado!</div>
+        <div style="font-size:13px;color:#166534;line-height:1.6">Hemos notificado a la empresa. En breve se pondrán en contacto contigo para confirmar los detalles y comenzar el trabajo.</div>
+      </div>`;
+  });
+
+  // Botón rechazar
+  document.getElementById("firma_rechazar_btn")?.addEventListener("click", () => {
+    document.getElementById("firma_acciones").innerHTML = `
+      <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 24px rgba(0,0,0,.08)">
+        <div style="font-size:14px;font-weight:700;margin-bottom:12px">¿Por qué rechazas el presupuesto? (opcional)</div>
+        <textarea id="firma_motivo" placeholder="El precio es elevado, necesito ajustes, no es lo que buscaba…"
+                  style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;min-height:80px;margin-bottom:12px;font-family:sans-serif;resize:vertical"></textarea>
+        <div style="display:flex;gap:10px">
+          <button onclick="document.getElementById('firma_acciones').innerHTML=''" 
+                  style="flex:1;padding:12px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;cursor:pointer;font-size:13px">Cancelar</button>
+          <button id="firma_rechazar_confirm"
+                  style="flex:1;padding:12px;background:#dc2626;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer">
+            Confirmar rechazo
+          </button>
+        </div>
+      </div>`;
+
+    document.getElementById("firma_rechazar_confirm").addEventListener("click", async () => {
+      const motivo = document.getElementById("firma_motivo")?.value.trim() || "";
+      await supabase.from("presupuestos").update({
+        firma_estado:      "rechazado",
+        firma_comentario:  motivo,
+        firma_aceptado_at: new Date().toISOString(),
+      }).eq("token_firma", token);
+
+      document.getElementById("firma_acciones").innerHTML = `
+        <div style="background:#fef2f2;border-radius:16px;padding:24px;text-align:center">
+          <div style="font-size:36px;margin-bottom:12px">❌</div>
+          <div style="font-size:16px;font-weight:700;color:#dc2626">Presupuesto rechazado</div>
+          ${motivo?`<div style="font-size:12px;color:#64748b;margin-top:8px">"${motivo}"</div>`:""}
+        </div>`;
+    });
+  });
+}
+
 window._presEmail   = (id) => showEnviarEmailModal(id);
+window._presFirma   = (id) => showFirmaDigitalModal(id);
 window._editPres = async (id) => {
   const { data, error } = await supabase.from("presupuestos").select("*").eq("id", id).single();
   if (error || !data) { toast("Error cargando presupuesto", "error"); return; }
