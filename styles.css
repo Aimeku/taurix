@@ -1586,7 +1586,7 @@ html.dark .lp-plan--gestor {
 }
 .cal-cell:hover { background: var(--bg2); }
 .cal-cell--vacio { background: var(--bg2); opacity: .4; }
-.cal-cell--hoy { background: rgba(26,86,219,.04); }
+.cal-cell--hoy { background: rgba(26,86,219,.05); border-left: 2px solid #1a56db !important; }
 .cal-cell-num {
   font-size: 13px;
   font-weight: 600;
@@ -1600,9 +1600,13 @@ html.dark .lp-plan--gestor {
   margin-bottom: 4px;
 }
 .cal-cell-num--hoy {
-  background: var(--accent);
-  color: #fff;
-  font-weight: 800;
+  background: #1a56db;
+  color: #fff !important;
+  font-weight: 900;
+  box-shadow: 0 2px 8px rgba(26,86,219,.4);
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
 }
 .cal-evento {
   font-size: 10px;
