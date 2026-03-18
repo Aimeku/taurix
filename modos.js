@@ -291,20 +291,10 @@ export function aplicarModo(modo) {
 function actualizarToggleBtn(modo) {
   const btn = document.getElementById("modoToggleBtn");
   if (!btn) return;
-  const otro = modo === "empresario" ? "gestor" : "empresario";
-  const otroConfig = MODOS[otro];
-  btn.innerHTML = `
-    <span style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700">
-      ${otroConfig.icon}
-      <span style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-        ${otroConfig.labelCorto}
-      </span>
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-    </span>`;
-  btn.title = `Cambiar a ${otroConfig.label}`;
-
-  // Color según modo actual
-  const cfg = MODOS[modo];
+  const cfg  = MODOS[modo];
+  const otro = MODOS[modo === "empresario" ? "gestor" : "empresario"];
+  btn.textContent = `${otro.icon} ${otro.labelCorto}`;
+  btn.title       = `Cambiar a ${otro.label}`;
   btn.style.borderColor = cfg.color + "44";
   btn.style.color       = cfg.color;
   btn.style.background  = cfg.color + "0d";
