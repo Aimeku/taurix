@@ -10,22 +10,32 @@ import { SESSION, fmt, fmtDate, toast, openModal, closeModal, calcIVA, calcIRPF 
 /* ══════════════════════════
    ROUTER
 ══════════════════════════ */
+let _informesInit = false;
+
 export function initInformesView() {
+  // Guard: solo registrar listeners una vez
+  if (_informesInit) return;
+  _informesInit = true;
+
+  const handlers = {
+    informe_rentabilidad_cliente: showInformeRentabilidadCliente,
+    informe_evolucion_ingresos:   showInformeEvolucionIngresos,
+    informe_gastos_categoria:     showInformeGastosCategoria,
+    informe_prevision_fiscal:     showInformePrevisionFiscal,
+    informe_margen_bruto:         showInformeMargenBruto,
+    informe_dias_cobro:           showInformeDSO,
+    informe_347_previo:           showInforme347,
+    informe_coste_laboral:        showInformeCosteLab,
+    informe_comparativa_anual:    showInformeComparativa,
+  };
+
   document.querySelectorAll(".informe-card").forEach(card => {
-    card.addEventListener("click", () => {
-      const id = card.id;
-      const handlers = {
-        informe_rentabilidad_cliente: showInformeRentabilidadCliente,
-        informe_evolucion_ingresos:   showInformeEvolucionIngresos,
-        informe_gastos_categoria:     showInformeGastosCategoria,
-        informe_prevision_fiscal:     showInformePrevisionFiscal,
-        informe_margen_bruto:         showInformeMargenBruto,
-        informe_dias_cobro:           showInformeDSO,
-        informe_347_previo:           showInforme347,
-        informe_coste_laboral:        showInformeCosteLab,
-        informe_comparativa_anual:    showInformeComparativa,
-      };
-      if (handlers[id]) handlers[id]();
+    // Eliminar cualquier listener previo clonando el nodo
+    const newCard = card.cloneNode(true);
+    card.parentNode.replaceChild(newCard, card);
+    newCard.addEventListener("click", () => {
+      const handler = handlers[newCard.id];
+      if (handler) handler();
     });
   });
 }
