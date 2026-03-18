@@ -1669,3 +1669,7 @@ html.dark .lp-plan--gestor {
   cursor: pointer;
   overflow: hidden;
 }
+
+/* Material autocomplete en trabajos */
+.tj-mat-ac-item:hover { background: var(--bg2); }
+.tj-mat-ac-item:last-child { border-bottom: none !important; }
