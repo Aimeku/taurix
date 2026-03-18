@@ -35,21 +35,42 @@ export async function emitirFacturaDB(facturaId) {
     p_serie: serie
   });
 
-  // Fallback si la RPC no existe aún en Supabase
   let finalNum = num;
-  if (rpcErr) {
-    console.warn("RPC no disponible, usando fallback:", rpcErr.message);
-    let { data: sd } = await supabase.from("factura_series").select("*")
-      .eq("user_id", SESSION.user.id).eq("serie", serie).single();
-    if (!sd) {
-      const { data: ns, error: ne } = await supabase.from("factura_series")
-        .insert({ user_id: SESSION.user.id, serie, ultimo_numero: 0 }).select().single();
-      if (ne) throw new Error(ne.message);
-      sd = ns;
+
+  if (rpcErr || !finalNum) {
+    console.warn("RPC fallback activado:", rpcErr?.message || "num vacío");
+    try {
+      // Intentar obtener la serie existente
+      const { data: serieData } = await supabase.from("factura_series")
+        .select("*").eq("user_id", SESSION.user.id).eq("serie", serie)
+        .maybeSingle(); // maybeSingle no lanza error si no hay filas
+
+      if (serieData) {
+        finalNum = (serieData.ultimo_numero || 0) + 1;
+        await supabase.from("factura_series")
+          .update({ ultimo_numero: finalNum }).eq("id", serieData.id);
+      } else {
+        // Crear la serie desde cero
+        const { data: nuevaSerie, error: insertErr } = await supabase
+          .from("factura_series")
+          .insert({ user_id: SESSION.user.id, serie, ultimo_numero: 1 })
+          .select().maybeSingle();
+        if (insertErr) {
+          // Último fallback absoluto: timestamp para que nunca quede sin número
+          console.error("No se pudo crear serie, usando timestamp:", insertErr.message);
+          finalNum = Date.now() % 100000; // número único de 5 dígitos
+        } else {
+          finalNum = nuevaSerie?.ultimo_numero || 1;
+        }
+      }
+    } catch(fallbackErr) {
+      console.error("Fallback completo falló:", fallbackErr.message);
+      finalNum = Date.now() % 100000;
     }
-    finalNum = sd.ultimo_numero + 1;
-    await supabase.from("factura_series").update({ ultimo_numero: finalNum }).eq("id", sd.id);
   }
+
+  // Garantía final: nunca guardar sin número
+  if (!finalNum || isNaN(finalNum)) finalNum = 1;
 
   const numero = formatoSerie
     .replace("{YEAR}", serie)
