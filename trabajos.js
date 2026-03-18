@@ -815,7 +815,7 @@ export async function generarPDFTrabajo(trabajoId) {
       if (bold) { doc.setFillColor(241,245,249); doc.rect(ML+W*0.55,y,W*0.45,7,"F"); }
       doc.setFont("helvetica", bold?"bold":"normal");
       doc.setFontSize(8.5);
-      doc.setTextColor(bold?...BLUE:...MUTED);
+      if(bold) doc.setTextColor(...BLUE); else doc.setTextColor(...MUTED);
       doc.text(label, ML+W*0.56, y+5);
       doc.setTextColor(...DARK);
       doc.text(fmt(valor), PW-ML-2, y+5, { align:"right" });
