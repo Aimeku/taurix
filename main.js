@@ -46,6 +46,8 @@ import { initPipelineView, refreshPipeline } from "./pipeline.js";
 import { loadEmpleados, setEmpleados, refreshEmpleados, refreshNominas, initNominasView } from "./nominas.js";
 import { initTesoreriaView, refreshTesoreria } from "./tesoreria.js";
 import { initInformesView } from "./informes.js";
+import { initContabilidadView, refreshLibroDiario, refreshSumasSaldos, refreshBalance, refreshPyG } from "./contabilidad.js";
+import { initOtrosModelosView } from "./otros-modelos.js";
 
 
 
@@ -440,6 +442,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ── Informes ── */
   initInformesView();
 
+  /* ── Contabilidad ── */
+  initContabilidadView();
+
+  /* ── Otros modelos fiscales ── */
+  await initOtrosModelosView();
+
   /* ── Pipeline CRM ── */
   initPipelineView();
 
@@ -459,9 +467,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.querySelectorAll(".sn-item[data-view]").forEach(btn => {
     btn.addEventListener("click", async () => {
       const view = btn.dataset.view;
-      if (view === "pipeline")   await refreshPipeline();
-      if (view === "tesoreria")  await refreshTesoreria();
-      if (view === "verifactu")  await refreshVerifactu();
+      if (view === "pipeline")        await refreshPipeline();
+      if (view === "tesoreria")       await refreshTesoreria();
+      if (view === "verifactu")       { const { refreshVerifactu } = await import("./utils.js"); await refreshVerifactu(); }
+      if (view === "otros-modelos")   await initOtrosModelosView();
+      if (view === "contabilidad")    await refreshLibroDiario();
+      if (view === "nominas")         { const { refreshNominas } = await import("./nominas.js"); await refreshNominas(); }
     });
   });
 
