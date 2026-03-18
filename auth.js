@@ -221,3 +221,138 @@ export function showAuthModal() {
 
   setTimeout(()=>document.getElementById("loginEmail")?.focus(),100);
 }
+
+/* ══════════════════════════
+   MODAL NUEVA CONTRASEÑA
+   Se muestra cuando el usuario llega
+   desde el enlace del email de reset
+══════════════════════════ */
+export function showResetPasswordModal() {
+  // Ocultar landing, mostrar solo el modal
+  document.getElementById("landingPage")?.classList.add("hidden");
+  document.getElementById("appShell")?.classList.add("hidden");
+
+  const modal = document.createElement("div");
+  modal.id = "resetPwModal";
+  modal.innerHTML = `
+    <div class="auth-overlay" id="resetPwOverlay" style="z-index:10000">
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="auth-logo-wrap">
+            <img src="Logo_Sin_Texto_transparent.png" alt="Taurix" class="auth-logo-bull"/>
+          </div>
+          <h2 class="auth-title">Nueva contraseña</h2>
+          <p class="auth-sub">Elige una contraseña segura para tu cuenta</p>
+        </div>
+        <div class="auth-error"  id="rpError"   style="display:none"></div>
+        <div class="auth-success" id="rpSuccess" style="display:none"></div>
+
+        <div class="auth-field">
+          <label>Nueva contraseña</label>
+          <div class="auth-pw-wrap">
+            <input type="password" id="rpPw1" placeholder="Mínimo 8 caracteres" autocomplete="new-password"/>
+            <button type="button" class="auth-pw-toggle" data-target="rpPw1">👁</button>
+          </div>
+        </div>
+        <div class="auth-field">
+          <label>Confirmar contraseña</label>
+          <div class="auth-pw-wrap">
+            <input type="password" id="rpPw2" placeholder="Repite la contraseña" autocomplete="new-password"/>
+            <button type="button" class="auth-pw-toggle" data-target="rpPw2">👁</button>
+          </div>
+        </div>
+
+        <!-- Indicador de fortaleza -->
+        <div id="rpStrengthWrap" style="margin-bottom:16px;display:none">
+          <div style="height:4px;background:var(--brd);border-radius:4px;overflow:hidden;margin-bottom:5px">
+            <div id="rpStrengthBar" style="height:100%;width:0%;transition:width .3s,background .3s;border-radius:4px"></div>
+          </div>
+          <div id="rpStrengthLabel" style="font-size:11px;color:var(--t3)"></div>
+        </div>
+
+        <button class="auth-submit" id="rpSubmitBtn"><span>Guardar nueva contraseña</span></button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(modal);
+
+  const showError   = msg => { const e=document.getElementById("rpError");   e.textContent=msg; e.style.display=msg?"":"none"; };
+  const showSuccess = msg => { const e=document.getElementById("rpSuccess"); e.textContent=msg; e.style.display=msg?"":"none"; };
+  const setLoading  = (loading) => {
+    const btn = document.getElementById("rpSubmitBtn");
+    btn.disabled = loading;
+    btn.innerHTML = loading
+      ? `<span class="auth-spinner"></span><span>Guardando…</span>`
+      : `<span>Guardar nueva contraseña</span>`;
+  };
+
+  // Toggle visibilidad contraseña
+  modal.querySelectorAll(".auth-pw-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const input = document.getElementById(btn.dataset.target);
+      input.type = input.type === "password" ? "text" : "password";
+      btn.textContent = input.type === "password" ? "👁" : "🙈";
+    });
+  });
+
+  // Indicador de fortaleza
+  document.getElementById("rpPw1")?.addEventListener("input", e => {
+    const pw = e.target.value;
+    const wrap = document.getElementById("rpStrengthWrap");
+    const bar  = document.getElementById("rpStrengthBar");
+    const lbl  = document.getElementById("rpStrengthLabel");
+    if (!pw) { if(wrap) wrap.style.display="none"; return; }
+    if(wrap) wrap.style.display = "";
+
+    let score = 0;
+    if (pw.length >= 8)  score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+    const levels = [
+      { pct:"20%", color:"#dc2626", label:"Muy débil" },
+      { pct:"40%", color:"#f97316", label:"Débil" },
+      { pct:"60%", color:"#eab308", label:"Regular" },
+      { pct:"80%", color:"#22c55e", label:"Buena" },
+      { pct:"100%",color:"#059669", label:"Excelente" },
+    ];
+    const lvl = levels[Math.min(score, 4)];
+    if(bar) { bar.style.width=lvl.pct; bar.style.background=lvl.color; }
+    if(lbl) { lbl.textContent=`Fortaleza: ${lvl.label}`; lbl.style.color=lvl.color; }
+  });
+
+  // Enter para enviar
+  modal.addEventListener("keydown", e => { if(e.key==="Enter") document.getElementById("rpSubmitBtn")?.click(); });
+
+  document.getElementById("rpSubmitBtn").addEventListener("click", async () => {
+    const pw1 = document.getElementById("rpPw1").value;
+    const pw2 = document.getElementById("rpPw2").value;
+    showError("");
+
+    if (!pw1 || pw1.length < 8) { showError("La contraseña debe tener al menos 8 caracteres."); return; }
+    if (pw1 !== pw2)             { showError("Las contraseñas no coinciden."); return; }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: pw1 });
+      if (error) throw new Error(error.message);
+
+      showSuccess("✅ Contraseña actualizada correctamente. Redirigiendo…");
+      setTimeout(() => {
+        modal.remove();
+        // Limpiar el hash de la URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        // Recargar para entrar con la nueva sesión
+        window.location.reload();
+      }, 1800);
+    } catch(e) {
+      showError(e.message || "Error al actualizar la contraseña.");
+      setLoading(false);
+    }
+  });
+
+  // Focus automático
+  setTimeout(() => document.getElementById("rpPw1")?.focus(), 100);
+}
