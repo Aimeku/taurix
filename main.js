@@ -5,7 +5,7 @@
    empleados, contabilidad, tesorería, pipeline, 347, 349...
    ═══════════════════════════════════════════════════════ */
 
-import { login, logout, getSession, showAuthModal } from "./auth.js";
+import { login, logout, getSession, showAuthModal, showResetPasswordModal } from "./auth.js";
 import { supabase } from "./supabase.js";
 
 import {
@@ -218,6 +218,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (event === "SIGNED_OUT") {
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.remove("hidden");
+    }
+    // Supabase envía PASSWORD_RECOVERY cuando el usuario llega
+    // desde el enlace del email de restablecer contraseña
+    if (event === "PASSWORD_RECOVERY") {
+      showResetPasswordModal();
     }
   });
 
