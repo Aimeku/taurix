@@ -278,7 +278,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (sfName) sfName.textContent = email.split("@")[0];
 
   /* ── Perfil fiscal ── */
-  const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", session.user.id).single();
+  const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", session.user.id).maybeSingle();
   const sfr = document.getElementById("sfRegimeTxt");
   if (sfr && pf?.regime) {
     const labels = { autonomo_ed: "Autónomo · Est. Directa", autonomo_es: "Autónomo · Est. Simplificada", sociedad: "Sociedad", autonomo_mod: "Autónomo · Módulos" };
@@ -302,7 +302,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Navegación ── */
   initNav();
-  window._rebindNav(); // Bind listeners del sidebar dinámico
   initNuevaFactura();
 
   /* ── Cambio de periodo ── */
@@ -534,6 +533,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
   };
+
+  // Llamar ahora que está definida
+  window._rebindNav();
 
   // Toggle modo global
   window._toggleModo = () => toggleModo();
