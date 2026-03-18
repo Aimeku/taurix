@@ -448,66 +448,104 @@
   <section class="lp-precios" id="precios">
     <div class="lp-section-badge">Precios</div>
     <h2 class="lp-section-h2">Simple y transparente.<br>Sin sorpresas.</h2>
-    <p class="lp-section-sub">Empieza gratis, actualiza cuando lo necesites. Sin permanencia.</p>
-    <div class="lp-planes">
-      <div class="lp-plan">
+    <p class="lp-section-sub">Sin permanencia · Cancela cuando quieras · Empieza gratis</p>
+
+    <div class="lp-planes lp-planes--3">
+
+      <!-- ── PLAN 1: BÁSICO ── -->
+      <div class="lp-plan lp-plan--basico">
         <div class="lp-plan-header">
-          <div class="lp-plan-name">Gratuito</div>
-          <div class="lp-plan-price"><span class="lp-plan-eur">0€</span><span class="lp-plan-per">/mes</span></div>
-          <div class="lp-plan-desc">Para empezar y probar sin riesgo</div>
-        </div>
-        <ul class="lp-plan-features">
-          <li><span class="lp-check">✓</span> Hasta <strong>10 facturas al mes</strong></li>
-          <li><span class="lp-check">✓</span> Hasta <strong>3 clientes</strong></li>
-          <li><span class="lp-check">✓</span> Dashboard IVA e IRPF</li>
-          <li><span class="lp-check">✓</span> Modelos 303 y 130</li>
-          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Verifactu</span></li>
-          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Nóminas</span></li>
-          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Contabilidad general</span></li>
-          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Multi-empresa</span></li>
-        </ul>
-        <button class="lp-plan-btn lp-plan-btn--outline" id="ctaPlanGratisBtn">Empezar gratis →</button>
-      </div>
-      <div class="lp-plan lp-plan--pro">
-        <div class="lp-plan-badge">Más popular</div>
-        <div class="lp-plan-header">
-          <div class="lp-plan-name">Pro</div>
-          <div class="lp-plan-price"><span class="lp-plan-eur">12€</span><span class="lp-plan-per">/mes</span></div>
+          <div class="lp-plan-icon">🏢</div>
+          <div class="lp-plan-name">Básico</div>
+          <div class="lp-plan-tagline">Para el empresario</div>
+          <div class="lp-plan-price">
+            <span class="lp-plan-eur">12€</span>
+            <span class="lp-plan-per">/mes</span>
+          </div>
           <div class="lp-plan-promo">🎁 Primer mes gratis</div>
-          <div class="lp-plan-desc">Todo para autónomos y SL pequeñas</div>
+          <div class="lp-plan-desc">Todo lo que necesitas para gestionar tu negocio sin tecnicismos</div>
         </div>
         <ul class="lp-plan-features">
-          <li><span class="lp-check lp-check--pro">✓</span> <strong>Facturas y clientes ilimitados</strong></li>
-          <li><span class="lp-check lp-check--pro">✓</span> <strong>Verifactu certificado</strong></li>
-          <li><span class="lp-check lp-check--pro">✓</span> Modelos 303, 130, 347, 349</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Contabilidad general PGC</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Conciliación bancaria</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Libros oficiales AEAT</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Hasta 3 empresas</li>
-          <li><span class="lp-check lp-check--pro">✓</span> 1 colaborador (gestor)</li>
+          <li><span class="lp-check lp-check--basico">✓</span> <strong>Facturas y clientes ilimitados</strong></li>
+          <li><span class="lp-check lp-check--basico">✓</span> Presupuestos y pipeline comercial</li>
+          <li><span class="lp-check lp-check--basico">✓</span> Control de gastos y proveedores</li>
+          <li><span class="lp-check lp-check--basico">✓</span> Dashboard simple y visual</li>
+          <li><span class="lp-check lp-check--basico">✓</span> IVA e IRPF simplificado</li>
+          <li><span class="lp-check lp-check--basico">✓</span> Tesorería básica</li>
+          <li><span class="lp-check lp-check--basico">✓</span> <strong>Verifactu certificado</strong></li>
+          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Contabilidad PGC</span></li>
+          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Nóminas y RRHH</span></li>
+          <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Modelos avanzados AEAT</span></li>
+        </ul>
+        <button class="lp-plan-btn lp-plan-btn--basico" id="ctaPlanBasicoBtn">Empezar gratis →</button>
+        <div class="lp-plan-note">Sin tarjeta para el mes gratis</div>
+      </div>
+
+      <!-- ── PLAN 2: PRO (ESTRELLA) ── -->
+      <div class="lp-plan lp-plan--pro lp-plan--featured">
+        <div class="lp-plan-badge lp-plan-badge--star">⭐ Plan estrella</div>
+        <div class="lp-plan-header">
+          <div class="lp-plan-icon">🔥</div>
+          <div class="lp-plan-name">Pro</div>
+          <div class="lp-plan-tagline">Para empresa de servicios</div>
+          <div class="lp-plan-price">
+            <span class="lp-plan-eur">39€</span>
+            <span class="lp-plan-per">/mes</span>
+          </div>
+          <div class="lp-plan-promo">🎁 Primer mes gratis</div>
+          <div class="lp-plan-desc">El plan completo para empresas que trabajan con técnicos, proyectos y equipos</div>
+        </div>
+        <ul class="lp-plan-features">
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>Todo del plan Básico</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>🔥 Gestión de trabajos y técnicos</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>Agenda y planificación</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>Material y control de stock</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> Nóminas y RRHH</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Pipeline CRM avanzado</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Automatizaciones</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Banco automático (PSD2)</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Informes avanzados</li>
+          <li><span class="lp-check lp-check--pro">✓</span> Hasta 3 colaboradores</li>
         </ul>
         <button class="lp-plan-btn lp-plan-btn--pro" id="ctaPlanProBtn">Empezar con Pro →</button>
         <div class="lp-plan-note">Sin permanencia · Cancela cuando quieras</div>
       </div>
-      <div class="lp-plan" style="border-color:#7c3aed">
-        <div class="lp-plan-badge" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">Empresas</div>
+
+      <!-- ── PLAN 3: GESTOR / PREMIUM ── -->
+      <div class="lp-plan lp-plan--gestor">
+        <div class="lp-plan-badge lp-plan-badge--gestor">💼 Para gestorías</div>
         <div class="lp-plan-header">
-          <div class="lp-plan-name">Business</div>
-          <div class="lp-plan-price"><span class="lp-plan-eur">39€</span><span class="lp-plan-per">/mes</span></div>
-          <div class="lp-plan-desc">Para SL y empresas con trabajadores</div>
+          <div class="lp-plan-icon">👔</div>
+          <div class="lp-plan-name">Gestor</div>
+          <div class="lp-plan-tagline">Para asesores y gestorías</div>
+          <div class="lp-plan-price">
+            <span class="lp-plan-eur">79€</span>
+            <span class="lp-plan-per">/mes</span>
+          </div>
+          <div class="lp-plan-desc">Gestiona la contabilidad de todos tus clientes desde una sola cuenta</div>
         </div>
         <ul class="lp-plan-features">
-          <li><span class="lp-check lp-check--pro">✓</span> Todo de Pro</li>
-          <li><span class="lp-check lp-check--pro">✓</span> <strong>Nóminas y RRHH</strong></li>
-          <li><span class="lp-check lp-check--pro">✓</span> <strong>Impuesto de Sociedades</strong></li>
-          <li><span class="lp-check lp-check--pro">✓</span> Modelos 111, 115, 200, 202</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Multi-empresa ilimitado</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Hasta 5 colaboradores</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Tesorería y cashflow</li>
-          <li><span class="lp-check lp-check--pro">✓</span> Auditoría de cambios</li>
+          <li><span class="lp-check lp-check--gestor">✓</span> <strong>Todo del plan Pro</strong></li>
+          <li><span class="lp-check lp-check--gestor">✓</span> <strong>Multiempresa ilimitado</strong></li>
+          <li><span class="lp-check lp-check--gestor">✓</span> <strong>Cartera de clientes</strong></li>
+          <li><span class="lp-check lp-check--gestor">✓</span> <strong>Contabilidad PGC completa</strong></li>
+          <li><span class="lp-check lp-check--gestor">✓</span> Modelos AEAT completos (303, 130, 111, 115, 347, 349, 390, 200…)</li>
+          <li><span class="lp-check lp-check--gestor">✓</span> Exportaciones para AEAT</li>
+          <li><span class="lp-check lp-check--gestor">✓</span> Colaboradores ilimitados</li>
+          <li><span class="lp-check lp-check--gestor">✓</span> Modo gestor profesional</li>
+          <li><span class="lp-check lp-check--gestor">✓</span> Soporte prioritario</li>
+          <li><span class="lp-check lp-check--gestor">✓</span> API de integración</li>
         </ul>
-        <button class="lp-plan-btn lp-plan-btn--outline" id="ctaPlanBizBtn" style="border-color:#7c3aed;color:#7c3aed">Empezar con Business →</button>
+        <button class="lp-plan-btn lp-plan-btn--gestor" id="ctaPlanGestorBtn">Contactar →</button>
+        <div class="lp-plan-note">Ideal para gestorías con 10+ clientes</div>
       </div>
+
+    </div>
+
+    <!-- Comparativa extra bajo los planes -->
+    <div class="lp-planes-nota">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Todos los planes incluyen Verifactu certificado (RD 1007/2023), soporte por email y actualizaciones automáticas. Los precios no incluyen IVA.
     </div>
   </section>
 
