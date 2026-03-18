@@ -806,6 +806,10 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
           <span>Libros oficiales</span>
         </button>
+        <button class="sn-item" data-view="amortizaciones">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+          <span>Bienes e Inmovilizado</span>
+        </button>
 
         <div class="sn-separator"></div>
         <div class="sn-section-label">Contabilidad</div>
@@ -1599,6 +1603,7 @@
             </button>
           </div>
         </div>
+        <div id="ivaAlertasEl"></div>
         <div class="modelo-layout">
           <div class="modelo-left">
             <div class="modelo-card">
@@ -1702,11 +1707,15 @@
                 <span id="irpfDeadline">Plazo: —</span>
               </div>
             </div>
+            <div id="irpfAlertasEl" style="margin-top:12px"></div>
             <div class="modelo-card" style="margin-top:16px">
-              <div class="mc-header mc-header--gray"><span>Proyección anual estimada</span></div>
+              <div class="mc-header mc-header--gray"><span>Proyección anual y Renta estimada</span></div>
               <div class="mc-body">
-                <div class="mc-row"><span>Cuota estimada año completo</span><strong id="irpfProyAnual">—</strong></div>
+                <div class="mc-row"><span>Cuota estimada año completo (130)</span><strong id="irpfProyAnual">—</strong></div>
                 <div class="mc-row"><span>Tipo efectivo estimado</span><strong id="irpfTipoEf">—</strong></div>
+                <div class="mc-row"><span>Reserva mensual recomendada</span><strong id="irpfReservaMes" style="color:#dc2626">—</strong></div>
+                <div class="mc-row"><span>Cuota Renta anual estimada (IRPF)</span><strong id="irpfCuotaRenta">—</strong></div>
+                <div class="mc-row"><span>Tipo efectivo declaración renta</span><strong id="irpfTipoEfRenta">—</strong></div>
               </div>
             </div>
           </div>
@@ -2515,6 +2524,78 @@
             <div class="informe-nombre">Comparativa plurianual</div>
             <div class="informe-desc">Compara KPIs fiscales y de negocio entre varios ejercicios. Visualiza la tendencia a largo plazo.</div>
             <span class="informe-badge" style="background:#eff6ff;color:#1d4ed8">Listo</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: AMORTIZACIONES Y BIENES DE INVERSIÓN ═══ -->
+      <div class="view" id="view-amortizaciones">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Bienes de Inversión e Inmovilizado</h1>
+            <p class="view-sub">Registro oficial · Tablas de amortización AEAT · Regularización IVA (arts. 104-110 LIVA)</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-outline" id="exportLibroBienesBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar libro PDF
+            </button>
+            <button class="btn-primary" id="nuevoBienBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nuevo bien / activo
+            </button>
+          </div>
+        </div>
+
+        <!-- KPIs bienes -->
+        <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
+          <div class="kpi-card kpi-blue"><div class="kpi-top"><span class="kpi-lbl">Total invertido</span></div><div class="kpi-val" id="bienesTotal">—</div></div>
+          <div class="kpi-card kpi-red"><div class="kpi-top"><span class="kpi-lbl">Amortización anual</span></div><div class="kpi-val" id="bienesAmortAnual">—</div><div class="kpi-sub">Gasto deducible</div></div>
+          <div class="kpi-card kpi-green"><div class="kpi-top"><span class="kpi-lbl">Valor neto contable</span></div><div class="kpi-val" id="bienesValorNeto">—</div></div>
+          <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">IVA soportado (bienes)</span></div><div class="kpi-val" id="bienesIVA">—</div><div class="kpi-sub">Sujeto a regularización</div></div>
+        </div>
+
+        <div class="alerta-fiscal alerta-fiscal--info" style="margin-bottom:16px">
+          <div class="af-icon">ℹ️</div>
+          <div class="af-body">
+            <div class="af-title">Libro de Bienes de Inversión — Obligación legal</div>
+            <div class="af-desc">Si realizas adquisiciones de bienes de inversión (equipos, mobiliario, vehículos, inmuebles) debes llevar este registro conforme a los arts. 104-110 LIVA. El IVA soportado en la compra puede regularizarse durante 5 años (bienes muebles) o 10 años (inmuebles) si varía el porcentaje de utilización en la actividad. La amortización es gasto deducible en IRPF e IS según las tablas oficiales.</div>
+          </div>
+        </div>
+
+        <div class="section-card no-pad">
+          <table class="data-table" id="bienesTable">
+            <thead>
+              <tr>
+                <th>Bien / Descripción</th>
+                <th>Valor adq.</th>
+                <th>IVA soport.</th>
+                <th>Fecha alta</th>
+                <th>Coef. amort.</th>
+                <th>Cuota anual</th>
+                <th>Amort. acum.</th>
+                <th>% Amortizado</th>
+                <th>Valor neto</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="bienesBody"><tr class="dt-empty"><td colspan="10">Cargando bienes de inversión…</td></tr></tbody>
+          </table>
+        </div>
+
+        <!-- Tablas de amortización de referencia -->
+        <div class="section-card" style="margin-top:20px">
+          <div class="sc-header"><span class="sc-title">📋 Tablas oficiales de amortización (RD 634/2015)</span></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--brd);border-radius:8px;overflow:hidden;margin-top:12px">
+            <div style="padding:8px 12px;background:var(--bg2);font-size:11px;font-weight:700;text-transform:uppercase;color:var(--t3);border-bottom:1px solid var(--brd)">Tipo de bien</div>
+            <div style="padding:8px 12px;background:var(--bg2);font-size:11px;font-weight:700;text-transform:uppercase;color:var(--t3);border-bottom:1px solid var(--brd)">Coef. máximo</div>
+            <div style="padding:8px 12px;background:var(--bg2);font-size:11px;font-weight:700;text-transform:uppercase;color:var(--t3);border-bottom:1px solid var(--brd)">Período máximo</div>
+            <div style="padding:7px 12px;font-size:12px;border-bottom:1px solid var(--brd)">Equipos informáticos</div><div style="padding:7px 12px;font-size:12px;font-weight:700;border-bottom:1px solid var(--brd)">26%</div><div style="padding:7px 12px;font-size:12px;border-bottom:1px solid var(--brd)">10 años</div>
+            <div style="padding:7px 12px;font-size:12px;border-bottom:1px solid var(--brd)">Aplicaciones informáticas</div><div style="padding:7px 12px;font-size:12px;font-weight:700;border-bottom:1px solid var(--brd)">33%</div><div style="padding:7px 12px;font-size:12px;border-bottom:1px solid var(--brd)">6 años</div>
+            <div style="padding:7px 12px;font-size:12px;border-bottom:1px solid var(--brd)">Maquinaria</div><div style="padding:7px 12px;font-size:12px;font-weight:700;border-bottom:1px solid var(--brd)">12%</div><div style="padding:7px 12px;font-size:12px;border-bottom:1px solid var(--brd)">18 años</div>
+            <div style="padding:7px 12px;font-size:12px;border-bottom:1px solid var(--brd)">Elementos de transporte</div><div style="padding:7px 12px;font-size:12px;font-weight:700;border-bottom:1px solid var(--brd)">16%</div><div style="padding:7px 12px;font-size:12px;border-bottom:1px solid var(--brd)">14 años</div>
+            <div style="padding:7px 12px;font-size:12px;border-bottom:1px solid var(--brd)">Mobiliario</div><div style="padding:7px 12px;font-size:12px;font-weight:700;border-bottom:1px solid var(--brd)">10%</div><div style="padding:7px 12px;font-size:12px;border-bottom:1px solid var(--brd)">20 años</div>
+            <div style="padding:7px 12px;font-size:12px">Edificios y construcciones</div><div style="padding:7px 12px;font-size:12px;font-weight:700">3%</div><div style="padding:7px 12px;font-size:12px">68 años</div>
           </div>
         </div>
       </div>
