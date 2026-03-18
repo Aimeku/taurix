@@ -13,6 +13,7 @@
 
 import { supabase } from "./supabase.js";
 import { SESSION, CLIENTES, fmt, fmtDate, toast, openModal, closeModal, getYear } from "./utils.js";
+import { PRODUCTOS } from "./productos.js";
 
 /* ══════════════════════════
    ESTADOS
@@ -310,14 +311,20 @@ export function showNuevoTrabajoModal(prefill = {}) {
     if (prev) prev.textContent = fmt(total);
   };
 
+  // Bind autocomplete on existing material rows
+  document.querySelectorAll(".tj-mat-row").forEach(row => bindMatRowAutocomplete(row, updateTotal));
+
   document.getElementById("tj_addMat")?.addEventListener("click", () => {
     const empty = document.getElementById("tj_matEmpty");
     if (empty) empty.remove();
     const div = document.createElement("div");
-    div.innerHTML = renderMatRow({},matCount++);
-    document.getElementById("tj_materiales")?.appendChild(div.firstElementChild);
-    div.querySelector(".tj-mat-qty")?.addEventListener("input", updateTotal);
-    div.querySelector(".tj-mat-price")?.addEventListener("input", updateTotal);
+    div.innerHTML = renderMatRow({}, matCount++);
+    const newRow = div.firstElementChild;
+    document.getElementById("tj_materiales")?.appendChild(newRow);
+    newRow.querySelector(".tj-mat-qty")?.addEventListener("input", updateTotal);
+    newRow.querySelector(".tj-mat-price")?.addEventListener("input", updateTotal);
+    bindMatRowAutocomplete(newRow, updateTotal);
+    newRow.querySelector(".tj-mat-name")?.focus();
   });
 
   document.getElementById("tj_manoObra")?.addEventListener("input", updateTotal);
@@ -337,9 +344,10 @@ export function showNuevoTrabajoModal(prefill = {}) {
     const clienteNombre = clienteSel?.selectedOptions[0]?.dataset.nombre || "";
 
     const materiales = [...document.querySelectorAll(".tj-mat-row")].map(row => ({
-      nombre:   row.querySelector(".tj-mat-name")?.value||"",
-      cantidad: parseFloat(row.querySelector(".tj-mat-qty")?.value)||1,
-      precio:   parseFloat(row.querySelector(".tj-mat-price")?.value)||0,
+      nombre:      row.querySelector(".tj-mat-name")?.value||"",
+      cantidad:    parseFloat(row.querySelector(".tj-mat-qty")?.value)||1,
+      precio:      parseFloat(row.querySelector(".tj-mat-price")?.value)||0,
+      producto_id: row.dataset.productoId || null,
     })).filter(m => m.nombre);
 
     const manoObra = parseFloat(document.getElementById("tj_manoObra")?.value)||0;
@@ -373,6 +381,24 @@ export function showNuevoTrabajoModal(prefill = {}) {
     }
 
     if (error) { toast("Error: "+error.message,"error"); return; }
+
+    // Descontar stock de productos usados (solo al crear, no al editar)
+    if (!isEdit) {
+      for (const mat of materiales) {
+        if (!mat.producto_id || !mat.cantidad) continue;
+        const prod = (PRODUCTOS||[]).find(p=>p.id===mat.producto_id);
+        if (prod && prod.stock_actual !== null) {
+          const nuevoStock = Math.max(0, prod.stock_actual - mat.cantidad);
+          await supabase.from("productos").update({ stock_actual: nuevoStock })
+            .eq("id", mat.producto_id);
+          // Alerta si stock bajo
+          if (nuevoStock <= (prod.stock_minimo||0)) {
+            toast(`⚠️ Stock bajo en "${prod.nombre}": ${nuevoStock} unidades`, "warn", 5000);
+          }
+        }
+      }
+    }
+
     toast(isEdit?"Trabajo actualizado ✅":"Trabajo creado ✅","success");
     closeModal();
     await refreshTrabajos();
@@ -380,13 +406,91 @@ export function showNuevoTrabajoModal(prefill = {}) {
 }
 
 function renderMatRow(m={}, i=0) {
+  const stockInfo = m.producto_id && PRODUCTOS.find(p=>p.id===m.producto_id);
+  const stockBadge = stockInfo && stockInfo.stock_actual !== null
+    ? `<span style="font-size:10px;color:${stockInfo.stock_actual<=0?"#dc2626":stockInfo.stock_actual<=(stockInfo.stock_minimo||0)?"#d97706":"#059669"};font-weight:700" title="Stock disponible: ${stockInfo.stock_actual} ${stockInfo.unidad||"uds"}">
+        Stock: ${stockInfo.stock_actual}
+      </span>` : "";
+
   return `
-    <div class="tj-mat-row" data-i="${i}" style="display:grid;grid-template-columns:1fr 70px 90px 32px;gap:6px;margin-bottom:6px;align-items:center">
-      <input class="ff-input tj-mat-name" placeholder="Nombre del material" value="${m.nombre||""}" style="font-size:12px"/>
-      <input type="number" class="ff-input tj-mat-qty" placeholder="Cant." value="${m.cantidad||1}" min="0.01" step="0.01" style="font-size:12px;text-align:center"/>
-      <input type="number" class="ff-input tj-mat-price" placeholder="Precio €" value="${m.precio||""}" min="0" step="0.01" style="font-size:12px;text-align:right"/>
+    <div class="tj-mat-row" data-i="${i}" data-producto-id="${m.producto_id||""}"
+         style="display:grid;grid-template-columns:1fr 70px 95px 32px;gap:6px;margin-bottom:6px;align-items:center">
+      <div style="position:relative">
+        <input class="ff-input tj-mat-name" placeholder="Material del catálogo o nombre libre…"
+               value="${m.nombre||""}" autocomplete="off" style="font-size:12px"/>
+        <div class="tj-mat-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--srf);border:1px solid var(--brd);border-radius:8px;z-index:100;max-height:180px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.12)"></div>
+        ${stockBadge ? `<div style="margin-top:2px">${stockBadge}</div>` : ""}
+      </div>
+      <input type="number" class="ff-input tj-mat-qty" placeholder="Cant."
+             value="${m.cantidad||1}" min="0.01" step="0.01"
+             style="font-size:12px;text-align:center"/>
+      <input type="number" class="ff-input tj-mat-price" placeholder="Precio €"
+             value="${m.precio||""}" min="0" step="0.01"
+             style="font-size:12px;text-align:right;font-family:monospace"/>
       <button onclick="window._removeMat(${i})" class="ta-btn ta-del" style="font-size:12px">×</button>
     </div>`;
+}
+
+function bindMatRowAutocomplete(row, updateTotal) {
+  const nameInput = row.querySelector(".tj-mat-name");
+  const qtyInput  = row.querySelector(".tj-mat-qty");
+  const priceInput= row.querySelector(".tj-mat-price");
+  const dropdown  = row.querySelector(".tj-mat-dropdown");
+  if (!nameInput || !dropdown) return;
+
+  nameInput.addEventListener("input", () => {
+    const q = nameInput.value.toLowerCase().trim();
+    if (!q || q.length < 1) { dropdown.style.display="none"; return; }
+
+    const matches = (PRODUCTOS||[]).filter(p =>
+      p.activo !== false && (
+        p.nombre.toLowerCase().includes(q) ||
+        (p.referencia||"").toLowerCase().includes(q) ||
+        (p.codigo_barras||"").toLowerCase().includes(q)
+      )
+    ).slice(0,8);
+
+    if (!matches.length) { dropdown.style.display="none"; return; }
+
+    dropdown.innerHTML = matches.map(p => {
+      const stockOk = p.stock_actual === null || p.stock_actual > 0;
+      const stockTxt = p.stock_actual !== null ? ` · Stock: ${p.stock_actual}` : "";
+      return `<div class="tj-mat-ac-item" data-id="${p.id}" data-nombre="${p.nombre}"
+                   data-precio="${p.precio}" data-unidad="${p.unidad||""}"
+                   style="padding:8px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--brd);opacity:${stockOk?1:0.5}">
+        <div>
+          <div style="font-size:12px;font-weight:600">${p.nombre}</div>
+          <div style="font-size:10px;color:var(--t3)">${p.referencia||p.tipo||""}${stockTxt}</div>
+        </div>
+        <div style="font-size:12px;font-weight:700;font-family:monospace;color:var(--accent)">${fmt(p.precio)}</div>
+      </div>`;
+    }).join("");
+
+    dropdown.querySelectorAll(".tj-mat-ac-item").forEach(item => {
+      item.addEventListener("mousedown", e => {
+        e.preventDefault();
+        nameInput.value  = item.dataset.nombre;
+        priceInput.value = item.dataset.precio;
+        row.dataset.productoId = item.dataset.id;
+        dropdown.style.display = "none";
+        // Show stock badge
+        const prod = PRODUCTOS.find(p=>p.id===item.dataset.id);
+        if (prod && prod.stock_actual !== null) {
+          let badge = row.querySelector(".tj-stock-badge");
+          if (!badge) { badge = document.createElement("div"); badge.className="tj-stock-badge"; badge.style.cssText="margin-top:2px;font-size:10px;font-weight:700"; nameInput.parentElement.appendChild(badge); }
+          const low = prod.stock_actual <= (prod.stock_minimo||0);
+          badge.style.color = prod.stock_actual<=0?"#dc2626":low?"#d97706":"#059669";
+          badge.textContent = prod.stock_actual<=0 ? "⚠️ Sin stock" : low ? `⚠️ Stock bajo: ${prod.stock_actual}` : `✓ Stock disponible: ${prod.stock_actual}`;
+        }
+        updateTotal();
+      });
+    });
+
+    dropdown.style.display = "";
+  });
+
+  nameInput.addEventListener("blur", () => setTimeout(()=>{ dropdown.style.display="none"; }, 200));
+  nameInput.addEventListener("focus", () => { if(nameInput.value) nameInput.dispatchEvent(new Event("input")); });
 }
 
 /* ══════════════════════════
