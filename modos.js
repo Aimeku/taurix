@@ -32,7 +32,7 @@ export const MODOS = {
       { sep: true, label:"Comercial" },
       { view:"clientes",     label:"Clientes",             icon:"users" },
       { view:"presupuestos", label:"Presupuestos",         icon:"file-text", badge:"snBadgePres" },
-      { view:"pipeline",     label:"Pipeline",             icon:"bar-chart" },
+      { view:"pipeline",     label:"Seguimiento comercial", icon:"bar-chart" },
       { view:"trabajos",     label:"Trabajos",             icon:"briefcase" },
       { view:"agenda",       label:"Agenda",               icon:"calendar" },
       { view:"facturas",     label:"Facturas",             icon:"file",   badge:"snBadgeBorradores" },
