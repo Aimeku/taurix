@@ -278,9 +278,14 @@ export function showOnboardingModo() {
   // Crear overlay de onboarding (no un modal normal — es pantalla completa)
   const el = document.createElement("div");
   el.id = "onboardingModoOverlay";
+  // Detect dark mode
+  const isDark = document.documentElement.classList.contains("dark");
+  const bgColor = isDark ? "#0f172a" : "#f8fafc";
+  const textColor = isDark ? "#f1f5f9" : "#0f172a";
+
   el.style.cssText = `
     position:fixed;inset:0;z-index:9999;
-    background:var(--bg1);
+    background:${bgColor};
     display:flex;align-items:center;justify-content:center;
     animation:fadeIn .3s ease;
   `;
