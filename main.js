@@ -504,7 +504,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (view === "amortizaciones")  { const { refreshBienesInversion } = await import("./amortizaciones.js"); await refreshBienesInversion(); }
       if (view === "nominas")         { const { refreshNominas } = await import("./nominas.js"); await refreshNominas(); }
       if (view === "empleados")       { const { refreshEmpleados } = await import("./nominas.js"); await refreshEmpleados(); }
-      if (view === "informes")        initInformesView();
     });
   });
 
