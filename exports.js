@@ -25,7 +25,7 @@ export async function exportFacturaPDF(facturaId) {
   await _cargarJsPDF();
   const { data: f, error: fe } = await supabase.from("facturas").select("*").eq("id",facturaId).single();
   if (fe || !f) { toast("Factura no encontrada","error"); return; }
-  const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id",SESSION.user.id).single();
+  const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id",SESSION.user.id).maybeSingle();
 
   let lineas = [];
   try { lineas = f.lineas ? JSON.parse(f.lineas) : []; } catch(e) { lineas=[]; }
@@ -217,7 +217,7 @@ export async function exportFacturaPDF(facturaId) {
 ══════════════════════════════════════════ */
 export async function exportLibroIngPDF() {
   await _cargarJsPDF();
-  const { data: pf, error: pe } = await supabase.from("perfil_fiscal").select("*").eq("user_id",SESSION.user.id).single();
+  const { data: pf, error: pe } = await supabase.from("perfil_fiscal").select("*").eq("user_id",SESSION.user.id).maybeSingle();
   if (!pf?.nombre_razon_social) { toast("Completa el perfil fiscal primero","warn"); showPerfilModal(); return; }
 
   const year=getYear(), trim=getTrim();
@@ -286,7 +286,7 @@ export async function exportLibroIngPDF() {
 ══════════════════════════════════════════ */
 export async function exportLibroGstPDF() {
   await _cargarJsPDF();
-  const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id",SESSION.user.id).single();
+  const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id",SESSION.user.id).maybeSingle();
   if (!pf?.nombre_razon_social) { toast("Completa el perfil fiscal primero","warn"); showPerfilModal(); return; }
 
   const year=getYear(), trim=getTrim();
