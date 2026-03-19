@@ -53,7 +53,6 @@ import {
   refreshCartera, esModoGestor, getModo
 } from "./modos.js";
 import { initNordigenView, refreshConexionesBancarias, autoSyncBancos } from "./nordigen.js";
-import { initAuditoriaView, refreshAuditoriaView, registrarAccion } from "./auditoria.js";
 import { initTrabajosView, refreshTrabajos } from "./trabajos.js";
 import { initAgendaView, refreshAgenda } from "./agenda.js";
 import { initDocumentosView } from "./documentos.js";
@@ -278,9 +277,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("landingPage")?.classList.add("hidden");
   document.getElementById("appShell")?.classList.remove("hidden");
 
-  // Registrar acceso en auditoría (background, no bloquea)
-  registrarAccion("acceso", "sesion", null, session.user.email).catch(()=>{});
-
   const email = session.user.email;
   const initials = email[0].toUpperCase();
   ["sfAvatar", "topbarAvatar"].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = initials; });
@@ -335,6 +331,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Dashboard accesos rápidos ── */
   document.getElementById("qaGastoRapido")?.addEventListener("click", showGastoRapidoModal);
+  window._gastoRapido = () => showGastoRapidoModal();
 
   /* ── Clientes ── */
   initClientesView();
@@ -447,7 +444,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   /* ── Auditoría ── */
-  document.getElementById("exportAuditoriaBtn")?.addEventListener("click", () => {
+  // exportAuditoriaBtn removed //
     toast("Exportar log de auditoría próximamente", "info");
   });
 
@@ -479,9 +476,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Banco automático view ── */
   initNordigenView();
-
-  /* ── Auditoría ── */
-  initAuditoriaView();
 
   /* ── Trabajos ── */
   initTrabajosView();
@@ -544,7 +538,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (view === "cartera")         await refreshCartera();
         if (view === "trabajos")        await refreshTrabajos();
         if (view === "agenda")          await refreshAgenda();
-        if (view === "auditoria")       await refreshAuditoriaView();
         if (view === "informes")        initInformesView();
       });
     });
