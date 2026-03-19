@@ -65,15 +65,15 @@ function addLinea(prefill = {}) {
   row.className = "linea-row";
   row.dataset.lineaId = id;
   row.innerHTML = `
-    <input type="text"   class="linea-desc ff-input"  placeholder="Descripción del producto o servicio" value="${linea.descripcion}" data-field="descripcion"/>
+    <input autocomplete="off" type="text"   class="linea-desc ff-input"  placeholder="Descripción del producto o servicio" value="${linea.descripcion}" data-field="descripcion"/>
     <select class="linea-tipo ff-select" data-field="tipo" title="Tipo de línea">
       <option value="servicio" ${linea.tipo==="servicio"?"selected":""}>🔧 Servicio</option>
       <option value="producto" ${linea.tipo==="producto"?"selected":""}>📦 Producto</option>
     </select>
-    <input type="number" class="linea-qty  ff-input"  value="${linea.cantidad}" min="0.01" step="0.01" data-field="cantidad"/>
+    <input autocomplete="off" type="number" class="linea-qty  ff-input"  value="${linea.cantidad}" min="0.01" step="0.01" data-field="cantidad"/>
     <div class="linea-price-wrap">
       <span class="linea-euro">€</span>
-      <input type="number" class="linea-price ff-input" value="${linea.precio||""}" placeholder="0.00" step="0.01" data-field="precio"/>
+      <input autocomplete="off" type="number" class="linea-price ff-input" value="${linea.precio||""}" placeholder="0.00" step="0.01" data-field="precio"/>
     </div>
     <select class="linea-iva ff-select" data-field="iva" ${sinIva?"disabled":""}>
       <option value="21" ${linea.iva===21?"selected":""}>21%</option>
@@ -378,7 +378,7 @@ function initIrpfToggle() {
 async function loadPerfilForPreview() {
   if (!SESSION) return;
   if (!PERFIL_FISCAL_CACHE) {
-    const { data, error } = await supabase.from("perfil_fiscal").select("*").eq("user_id",SESSION.user.id).maybeSingle();
+    const { data, error } = await supabase.from("perfil_fiscal").select("*").eq("user_id",SESSION.user.id).single();
     if (error && error.code!=="PGRST116") console.warn("perfil preview:", error.message);
     PERFIL_FISCAL_CACHE = data;
   }
