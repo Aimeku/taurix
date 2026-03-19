@@ -277,8 +277,15 @@ function renderProximosEventos() {
 /* ══════════════════════════
    MODAL NUEVO / EDITAR EVENTO
 ══════════════════════════ */
-export function showNuevoEventoModal(prefill = {}) {
+export async function showNuevoEventoModal(prefill = {}) {
   const isEdit = !!prefill.id;
+
+  // Cargar técnicos si no están cargados aún
+  if (!TECNICOS.length) {
+    const { data } = await supabase.from("empleados")
+      .select("id,nombre").eq("user_id", SESSION.user.id).eq("activo", true);
+    TECNICOS = data || [];
+  }
 
   const clienteOpts = CLIENTES.map(c =>
     `<option value="${c.id}" data-nombre="${c.nombre}" ${prefill.cliente_id===c.id?"selected":""}>${c.nombre}</option>`
@@ -545,8 +552,14 @@ export function initAgendaView() {
     });
   });
 
-  // Nuevo evento
-  document.getElementById("nuevoEventoBtn")?.addEventListener("click", () => showNuevoEventoModal());
+  // Nuevo evento — cargar datos si hace falta antes de abrir el modal
+  document.getElementById("nuevoEventoBtn")?.addEventListener("click", async () => {
+    if (!EVENTOS.length && !document.getElementById("agendaNavLabel")?.textContent) {
+      await refreshAgenda(); // asegurar que los datos están cargados
+    }
+    showNuevoEventoModal();
+  });
 
-  // No auto-refresh — se carga cuando el usuario navega a la vista
+  // Llamar refreshAgenda al iniciar para que el calendario se pinte
+  refreshAgenda();
 }
