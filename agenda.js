@@ -63,6 +63,9 @@ export async function loadAgenda() {
       .eq("user_id", SESSION.user.id).eq("activo", true),
   ]);
 
+  if (eventosRes.error) {
+    console.warn("agenda_eventos:", eventosRes.error.message, "— ¿ejecutaste el SQL?");
+  }
   EVENTOS  = eventosRes.data  || [];
   TECNICOS = tecnicosRes.data || [];
   return EVENTOS;
@@ -545,5 +548,5 @@ export function initAgendaView() {
   // Nuevo evento
   document.getElementById("nuevoEventoBtn")?.addEventListener("click", () => showNuevoEventoModal());
 
-  refreshAgenda();
+  // No auto-refresh — se carga cuando el usuario navega a la vista
 }
