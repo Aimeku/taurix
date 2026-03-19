@@ -24,7 +24,7 @@ export async function emitirFacturaDB(facturaId) {
   const { data: f, error: fe } = await supabase.from("facturas").select("*").eq("id", facturaId).single();
   if (fe || !f) throw new Error(fe?.message || "Factura no encontrada");
 
-  const { data: pfRaw } = await supabase.from("perfil_fiscal").select("serie_formato").eq("user_id", SESSION.user.id).single();
+  const { data: pfRaw } = await supabase.from("perfil_fiscal").select("serie_formato").eq("user_id", SESSION.user.id).maybeSingle();
   const formatoSerie = pfRaw?.serie_formato || "{YEAR}-{NUM4}";
 
   const serie = new Date(f.fecha).getFullYear().toString();
@@ -564,7 +564,7 @@ export function showGastoRapidoModal() {
        "{YEAR}/{NUM3}"     → 2025/001
 ══════════════════════════════════════════ */
 export async function showSerieConfigModal() {
-  const { data: pf } = await supabase.from("perfil_fiscal").select("serie_formato").eq("user_id", SESSION.user.id).single();
+  const { data: pf } = await supabase.from("perfil_fiscal").select("serie_formato").eq("user_id", SESSION.user.id).maybeSingle();
   const formato = pf?.serie_formato || "{YEAR}-{NUM4}";
 
   // Calcular preview con el número 1
