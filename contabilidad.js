@@ -1075,7 +1075,7 @@ export function renderPlanCuentas() {
   panel.innerHTML = `
     <!-- Búsqueda en el plan de cuentas -->
     <div style="margin-bottom:16px;position:relative">
-      <input id="planSearch" class="ff-input" style="padding-left:34px"
+      <input autocomplete="off" id="planSearch" class="ff-input" style="padding-left:34px"
              placeholder="🔍 Buscar cuenta por código o nombre…"
              oninput="window._filterPlanCuentas(this.value)"/>
       <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t3);pointer-events:none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -1137,9 +1137,9 @@ export function showAsientoManualModal() {
       <div class="modal-bd">
         <div class="modal-grid2" style="margin-bottom:14px">
           <div class="modal-field"><label>Fecha *</label>
-            <input type="date" id="am_fecha" class="ff-input" value="${new Date().toISOString().slice(0,10)}"/></div>
+            <input autocomplete="off" type="date" id="am_fecha" class="ff-input" value="${new Date().toISOString().slice(0,10)}"/></div>
           <div class="modal-field"><label>Concepto *</label>
-            <input id="am_concepto" class="ff-input" placeholder="Descripción del asiento"/></div>
+            <input autocomplete="off" id="am_concepto" class="ff-input" placeholder="Descripción del asiento"/></div>
         </div>
 
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);margin-bottom:8px">Líneas del asiento</div>
@@ -1181,10 +1181,10 @@ export function showAsientoManualModal() {
           <option value="">— Seleccionar cuenta PGC —</option>
           ${cuentaOpts}
         </select>
-        <input type="number" class="ff-input am_debe" data-idx="${i}" step="0.01" min="0" placeholder="0,00"
+        <input autocomplete="off" type="number" class="ff-input am_debe" data-idx="${i}" step="0.01" min="0" placeholder="0,00"
                style="text-align:right;font-family:monospace;font-size:13px;color:#059669"
                oninput="window._amUpdateCuadre()"/>
-        <input type="number" class="ff-input am_haber" data-idx="${i}" step="0.01" min="0" placeholder="0,00"
+        <input autocomplete="off" type="number" class="ff-input am_haber" data-idx="${i}" step="0.01" min="0" placeholder="0,00"
                style="text-align:right;font-family:monospace;font-size:13px;color:#dc2626"
                oninput="window._amUpdateCuadre()"/>
         <button onclick="window._amDelLinea(${i})" class="ta-btn ta-del" style="font-size:12px" title="Eliminar línea"
