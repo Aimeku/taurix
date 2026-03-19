@@ -489,7 +489,7 @@ export async function checkRecordatoriosTrimestrales() {
    (Con logo, régimen, NIF, multi-empresa)
 ══════════════════════════ */
 export async function showPerfilModal() {
-  const { data: p } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).single();
+  const { data: p } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).maybeSingle();
   const logoActual = p?.logo_url || "";
 
   openModal(`
