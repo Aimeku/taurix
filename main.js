@@ -444,7 +444,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   /* ── Auditoría ── */
-  document.getElementById("exportAuditoriaBtn")?.addEventListener("click", () => {
+  // exportAuditoriaBtn removed //
     toast("Exportar log de auditoría próximamente", "info");
   });
 
@@ -627,8 +627,8 @@ function showNuevaEmpresaModal() {
       <div class="modal-bd">
         <p class="modal-note">Gestiona múltiples empresas desde una sola cuenta. Cada empresa tiene sus propios datos, facturas y libros.</p>
         <div class="modal-grid2">
-          <div class="modal-field"><label>Nombre / Razón social *</label><input id="ne_nombre" class="ff-input" placeholder="Mi empresa S.L."/></div>
-          <div class="modal-field"><label>CIF *</label><input id="ne_nif" class="ff-input" placeholder="B12345678"/></div>
+          <div class="modal-field"><label>Nombre / Razón social *</label><input autocomplete="off" id="ne_nombre" class="ff-input" placeholder="Mi empresa S.L."/></div>
+          <div class="modal-field"><label>CIF *</label><input autocomplete="off" id="ne_nif" class="ff-input" placeholder="B12345678"/></div>
         </div>
         <div class="modal-field"><label>Régimen fiscal</label>
           <select id="ne_regime" class="ff-select">
@@ -636,7 +636,7 @@ function showNuevaEmpresaModal() {
             <option value="autonomo_ed">Autónomo · Estimación Directa</option>
           </select>
         </div>
-        <div class="modal-field"><label>Domicilio fiscal</label><input id="ne_dir" class="ff-input" placeholder="Calle, CP, Ciudad"/></div>
+        <div class="modal-field"><label>Domicilio fiscal</label><input autocomplete="off" id="ne_dir" class="ff-input" placeholder="Calle, CP, Ciudad"/></div>
       </div>
       <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
