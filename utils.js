@@ -92,7 +92,7 @@ export function toastConDeshacer(msg, onUndo, ms = 5000) {
    openModal inyecta HTML en #modalEl y muestra el overlay.
    closeModal limpia y oculta.
 ══════════════════════════ */
-export function openModal(html, { noCloseOnBackdrop = false } = {}) {
+export function openModal(html, { noCloseOnBackdrop = true } = {}) {
   const c = document.getElementById("modalEl");
   if (!c) { console.error("modalEl no encontrado en el DOM"); return; }
   c.innerHTML = html;
