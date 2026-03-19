@@ -80,7 +80,7 @@ export function showAuthModal() {
   const modal = document.createElement("div");
   modal.id = "authModal";
   modal.innerHTML = `
-    <div class="auth-overlay" id="authOverlay">
+    <div class="auth-overlay" id="authOverlay" onclick="event.stopPropagation();event.preventDefault()">
       <div class="auth-card" onclick="event.stopPropagation()">
         <div class="auth-header">
           <div class="auth-logo-wrap">
@@ -224,7 +224,7 @@ export function showAuthModal() {
   document.getElementById("authCloseBtn").addEventListener("click",()=>modal.remove());
   // No cerrar al hacer clic fuera — solo con el botón X
   document.getElementById("authOverlay").addEventListener("click", e => e.stopPropagation());
-  document.addEventListener("keydown",function esc(e){if(e.key==="Escape"){modal.remove();document.removeEventListener("keydown",esc);}});
+  // Escape desactivado — solo se cierra con el botón ×
 
   supabase.auth.onAuthStateChange((event,session)=>{
     if((event==="SIGNED_IN"||event==="TOKEN_REFRESHED")&&session){ modal.remove(); window.location.reload(); }
