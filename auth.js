@@ -24,8 +24,10 @@ export async function login() {
 export async function loginEmail(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    if (error.message.includes("Invalid login credentials")) throw new Error("Email o contraseña incorrectos.");
-    if (error.message.includes("Email not confirmed"))       throw new Error("Confirma tu email antes de entrar. Revisa tu bandeja de entrada.");
+    if (error.message.includes("Email not confirmed"))
+      throw new Error("Debes confirmar tu email antes de entrar. Revisa tu bandeja de entrada (también el spam).");
+    if (error.message.includes("Invalid login credentials"))
+      throw new Error("Email o contraseña incorrectos. Si acabas de registrarte, confirma tu email primero.");
     throw new Error(error.message);
   }
   return data;
@@ -195,7 +197,15 @@ export function showAuthModal() {
     setLoading(btn,true,"Crear cuenta gratis");
     try {
       const {needsConfirm}=await registerEmail(email,pw1);
-      if(needsConfirm){ showSuccess(`✅ Cuenta creada. Revisa tu email (${email}) para confirmarla y luego inicia sesión.`); switchTab("login"); }
+      if(needsConfirm){
+        showSuccess(`✅ Cuenta creada. Te hemos enviado un email a ${email} — confírmalo y luego inicia sesión aquí.`);
+        switchTab("login");
+        // Rellenar email en el login para facilitar el acceso
+        setTimeout(() => {
+          const loginEmailInput = document.getElementById("loginEmail");
+          if (loginEmailInput) loginEmailInput.value = email;
+        }, 100);
+      }
       else { modal.remove(); window.location.reload(); }
     } catch(e){ showError(e.message); setLoading(btn,false,"Crear cuenta gratis"); }
   });
