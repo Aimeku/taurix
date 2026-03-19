@@ -279,10 +279,19 @@ async function drawChartAnual(year) {
   });
   let acum=0; const acumData=byMes.map(m=>{acum+=m.ing;return acum;});
   if (_chartAnual) { _chartAnual.destroy(); _chartAnual=null; }
+
+  // Reset canvas para evitar que se estire al recrear el chart
+  const parent = canvas.parentElement;
+  canvas.remove();
+  const newCanvas = document.createElement("canvas");
+  newCanvas.id = "chartEvolucion";
+  parent.appendChild(newCanvas);
+  const freshCanvas = newCanvas;
+
   const isDark=document.documentElement.classList.contains("dark");
   const gc=isDark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.05)";
   const lc=isDark?"#9ca3af":"#6b7280";
-  _chartAnual = new window.Chart(canvas, {
+  _chartAnual = new window.Chart(freshCanvas, {
     data: {
       labels:["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
       datasets:[
