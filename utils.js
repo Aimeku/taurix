@@ -401,7 +401,7 @@ export async function showPerfilModal() {
               ${logoActual ? `<img src="${logoActual}" style="max-width:96px;max-height:56px;object-fit:contain"/>` : `<span style="font-size:11px;color:var(--t4);text-align:center;padding:8px">Click para<br>subir logo</span>`}
             </div>
             <div>
-              <input type="file" id="pf_logo_input" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none"/>
+              <input autocomplete="off" type="file" id="pf_logo_input" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none"/>
               <button type="button" id="pf_logo_upload_btn" class="btn-outline" style="font-size:12px;padding:7px 14px;margin-bottom:8px">📁 ${logoActual ? "Cambiar logo" : "Subir logo"}</button>
               ${logoActual ? `<button type="button" id="pf_logo_remove" class="btn-outline" style="font-size:12px;padding:7px 14px;margin-left:6px;color:var(--red);border-color:var(--red-mid)">🗑️ Quitar</button>` : ""}
               <div style="font-size:11.5px;color:var(--t4);line-height:1.5;margin-top:4px">PNG, JPG o SVG · Máx. 500KB · Fondo transparente recomendado</div>
@@ -409,18 +409,18 @@ export async function showPerfilModal() {
           </div>
         </div>
         <div class="modal-grid2">
-          <div class="modal-field"><label>Nombre o Razón Social *</label><input id="pf_nombre" class="ff-input" value="${p?.nombre_razon_social || ""}"/></div>
-          <div class="modal-field"><label>NIF / CIF *</label><input id="pf_nif" class="ff-input" value="${p?.nif || ""}"/></div>
+          <div class="modal-field"><label>Nombre o Razón Social *</label><input autocomplete="off" id="pf_nombre" class="ff-input" value="${p?.nombre_razon_social || ""}"/></div>
+          <div class="modal-field"><label>NIF / CIF *</label><input autocomplete="off" id="pf_nif" class="ff-input" value="${p?.nif || ""}"/></div>
         </div>
-        <div class="modal-field"><label>Actividad (epígrafe IAE)</label><input id="pf_act" class="ff-input" value="${p?.actividad || ""}" placeholder="Ej: Desarrollo de software · IAE 763"/></div>
-        <div class="modal-field"><label>Domicilio Fiscal</label><textarea id="pf_dir" class="ff-input">${p?.domicilio_fiscal || ""}</textarea></div>
+        <div class="modal-field"><label>Actividad (epígrafe IAE)</label><input autocomplete="off" id="pf_act" class="ff-input" value="${p?.actividad || ""}" placeholder="Ej: Desarrollo de software · IAE 763"/></div>
+        <div class="modal-field"><label>Domicilio Fiscal</label><textarea autocomplete="off" id="pf_dir" class="ff-input">${p?.domicilio_fiscal || ""}</textarea></div>
         <div class="modal-grid2">
-          <div class="modal-field"><label>Teléfono</label><input id="pf_tel" class="ff-input" value="${p?.telefono || ""}"/></div>
-          <div class="modal-field"><label>Email fiscal</label><input type="email" id="pf_email" class="ff-input" value="${p?.email || ""}"/></div>
+          <div class="modal-field"><label>Teléfono</label><input autocomplete="off" id="pf_tel" class="ff-input" value="${p?.telefono || ""}"/></div>
+          <div class="modal-field"><label>Email fiscal</label><input autocomplete="off" type="email" id="pf_email" class="ff-input" value="${p?.email || ""}"/></div>
         </div>
         <div class="modal-grid2">
-          <div class="modal-field"><label>IBAN (para facturas)</label><input id="pf_iban" class="ff-input" value="${p?.iban || ""}" placeholder="ES00 0000 0000 0000 0000 0000"/></div>
-          <div class="modal-field"><label>BIC / SWIFT</label><input id="pf_bic" class="ff-input" value="${p?.bic || ""}" placeholder="XXXXXXXX"/></div>
+          <div class="modal-field"><label>IBAN (para facturas)</label><input autocomplete="off" id="pf_iban" class="ff-input" value="${p?.iban || ""}" placeholder="ES00 0000 0000 0000 0000 0000"/></div>
+          <div class="modal-field"><label>BIC / SWIFT</label><input autocomplete="off" id="pf_bic" class="ff-input" value="${p?.bic || ""}" placeholder="XXXXXXXX"/></div>
         </div>
         <div class="modal-field"><label>Régimen fiscal</label>
           <select id="pf_regime" class="ff-select">
@@ -431,8 +431,8 @@ export async function showPerfilModal() {
           </select>
         </div>
         <div class="modal-grid2">
-          <div class="modal-field"><label>Nº de registro mercantil</label><input id="pf_regmercantil" class="ff-input" value="${p?.registro_mercantil || ""}" placeholder="Tomo 0000, Folio 00..."/></div>
-          <div class="modal-field"><label>Código LEI (si aplica)</label><input id="pf_lei" class="ff-input" value="${p?.lei || ""}" placeholder="Identificador Legal de Entidad"/></div>
+          <div class="modal-field"><label>Nº de registro mercantil</label><input autocomplete="off" id="pf_regmercantil" class="ff-input" value="${p?.registro_mercantil || ""}" placeholder="Tomo 0000, Folio 00..."/></div>
+          <div class="modal-field"><label>Código LEI (si aplica)</label><input autocomplete="off" id="pf_lei" class="ff-input" value="${p?.lei || ""}" placeholder="Identificador Legal de Entidad"/></div>
         </div>
       </div>
       <div class="modal-ft" style="justify-content:space-between">
@@ -471,7 +471,7 @@ export async function showPerfilModal() {
         <div class="modal-hd"><span class="modal-title">⚠️ Eliminar cuenta</span><button class="modal-x" onclick="window._cm()">×</button></div>
         <div class="modal-bd">
           <p style="font-size:14px;color:var(--t2);line-height:1.7;margin-bottom:12px">Esta acción es <strong>irreversible</strong>. Se eliminarán todos tus datos.</p>
-          <div class="modal-field"><label>Escribe <strong>ELIMINAR</strong> para confirmar</label><input id="deleteConfirmInput" class="ff-input" placeholder="ELIMINAR"/></div>
+          <div class="modal-field"><label>Escribe <strong>ELIMINAR</strong> para confirmar</label><input autocomplete="off" id="deleteConfirmInput" class="ff-input" placeholder="ELIMINAR"/></div>
         </div>
         <div class="modal-ft">
           <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
