@@ -138,9 +138,8 @@ function renderMes(wrap) {
               ${eventos.slice(0,3).map(e => {
                 const tipo = TIPOS.find(t=>t.id===e.tipo) || TIPOS[5];
                 return `<div class="cal-evento" style="background:${tipo.color};color:#fff"
-                             data-id="${e.id}"
-                             onclick="event.stopPropagation();window._verEvento(this.dataset.id)"
-                             title="${e.titulo.replace(/"/g,'&quot;')}">
+                             onclick="event.stopPropagation();window._verEvento('${e.id}')"
+                             title="${e.titulo}">
                   ${e.hora_inicio?e.hora_inicio.slice(0,5)+' ':''} ${e.titulo}
                 </div>`;
               }).join("")}
@@ -185,8 +184,7 @@ function renderSemana(wrap) {
               ${eventos.map(e => {
                 const tipo = TIPOS.find(t=>t.id===e.tipo) || TIPOS[5];
                 return `<div class="cal-evento-sem" style="background:${tipo.color}"
-                              data-id="${e.id}"
-                              onclick="event.stopPropagation();window._verEvento(this.dataset.id)">
+                              onclick="event.stopPropagation();window._verEvento('${e.id}')">
                   <div style="font-weight:700;font-size:11px">${e.titulo}</div>
                   ${e.hora_inicio?`<div style="font-size:10px;opacity:.85">${e.hora_inicio.slice(0,5)}${e.hora_fin?' - '+e.hora_fin.slice(0,5):''}</div>`:''}
                 </div>`;
@@ -216,8 +214,7 @@ function renderDia(wrap) {
           const tec  = TECNICOS.find(x=>x.id===e.tecnico_id);
           return `
             <div style="display:flex;gap:14px;padding:14px;border-left:4px solid ${tipo.color};background:${tipo.bg};border-radius:0 12px 12px 0;margin-bottom:10px;cursor:pointer"
-                 data-id="${e.id}"
-                 onclick="window._verEvento(this.dataset.id)">
+                 onclick="window._verEvento('${e.id}')">
               <div style="text-align:center;min-width:50px">
                 <div style="font-size:20px">${tipo.icon}</div>
                 ${e.hora_inicio?`<div style="font-size:12px;font-weight:700;color:${tipo.color}">${e.hora_inicio.slice(0,5)}</div>`:''}
@@ -257,11 +254,10 @@ function renderProximosEventos() {
   wrap.innerHTML = proximos.map(e => {
     const tipo  = TIPOS.find(t=>t.id===e.tipo) || TIPOS[5];
     const esHoy = e.fecha === hoyStr;
-    const dias  = Math.ceil((new Date(e.fecha + "T12:00:00") - HOY) / 86400000);
+    const dias  = Math.ceil((new Date(e.fecha) - HOY) / 86400000);
     return `
       <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--brd);cursor:pointer"
-           data-id="${e.id}"
-           onclick="window._verEvento(this.dataset.id)">
+           onclick="window._verEvento('${e.id}')">
         <div style="width:36px;height:36px;background:${tipo.color}18;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${tipo.icon}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.titulo}</div>
@@ -314,7 +310,7 @@ export async function showNuevoEventoModal(prefill = {}) {
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             ${TIPOS.map(t => `
               <label style="cursor:pointer">
-                <input type="radio" name="ev_tipo" value="${t.id}"
+                <input autocomplete="off" type="radio" name="ev_tipo" value="${t.id}"
                        ${(prefill.tipo||"visita")===t.id?"checked":""}
                        style="display:none"/>
                 <span class="ev-tipo-btn" data-tipo="${t.id}"
@@ -327,27 +323,27 @@ export async function showNuevoEventoModal(prefill = {}) {
 
         <div class="modal-field">
           <label>Título *</label>
-          <input id="ev_titulo" class="ff-input" value="${prefill.titulo||""}"
+          <input autocomplete="off" id="ev_titulo" class="ff-input" value="${prefill.titulo||""}"
                  placeholder="Ej: Revisión caldera · Instalación split · Reunión cliente"/>
         </div>
 
         <div class="modal-grid2">
           <div class="modal-field"><label>Fecha *</label>
-            <input type="date" id="ev_fecha" class="ff-input" value="${prefill.fecha||toLocalDateStr(new Date())}"/>
+            <input autocomplete="off" type="date" id="ev_fecha" class="ff-input" value="${prefill.fecha||toLocalDateStr(new Date())}"/>
           </div>
           <div class="modal-field"><label>Todo el día</label>
             <label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer">
-              <input type="checkbox" id="ev_todo_dia" ${prefill.todo_dia?"checked":""} style="width:16px;height:16px"/>
+              <input autocomplete="off" type="checkbox" id="ev_todo_dia" ${prefill.todo_dia?"checked":""} style="width:16px;height:16px"/>
               <span style="font-size:13px">Sin hora específica</span>
             </label>
           </div>
           <div class="modal-field" id="ev_hora_wrap" ${prefill.todo_dia?'style="display:none"':""}>
             <label>Hora inicio</label>
-            <input type="time" id="ev_hora_inicio" class="ff-input" value="${prefill.hora_inicio||"09:00"}"/>
+            <input autocomplete="off" type="time" id="ev_hora_inicio" class="ff-input" value="${prefill.hora_inicio||"09:00"}"/>
           </div>
           <div class="modal-field" id="ev_hora_fin_wrap" ${prefill.todo_dia?'style="display:none"':""}>
             <label>Hora fin</label>
-            <input type="time" id="ev_hora_fin" class="ff-input" value="${prefill.hora_fin||"10:00"}"/>
+            <input autocomplete="off" type="time" id="ev_hora_fin" class="ff-input" value="${prefill.hora_fin||"10:00"}"/>
           </div>
         </div>
 
@@ -365,13 +361,13 @@ export async function showNuevoEventoModal(prefill = {}) {
 
         <div class="modal-field">
           <label>Dirección / ubicación</label>
-          <input id="ev_direccion" class="ff-input" value="${prefill.direccion||""}"
+          <input autocomplete="off" id="ev_direccion" class="ff-input" value="${prefill.direccion||""}"
                  placeholder="Calle, número, ciudad…"/>
         </div>
 
         <div class="modal-field">
           <label>Notas</label>
-          <textarea id="ev_notas" class="ff-input ff-textarea" style="min-height:64px"
+          <textarea autocomplete="off" id="ev_notas" class="ff-input ff-textarea" style="min-height:64px"
                     placeholder="Observaciones, acceso, material necesario…">${prefill.descripcion||""}</textarea>
         </div>
 
@@ -381,7 +377,7 @@ export async function showNuevoEventoModal(prefill = {}) {
           <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
             ${["#3b82f6","#059669","#f59e0b","#dc2626","#8b5cf6","#ec4899","#0ea5e9","#6b7280"].map(c =>
               `<label style="cursor:pointer">
-                <input type="radio" name="ev_color" value="${c}" ${(prefill.color||"#3b82f6")===c?"checked":""}
+                <input autocomplete="off" type="radio" name="ev_color" value="${c}" ${(prefill.color||"#3b82f6")===c?"checked":""}
                        style="display:none"/>
                 <span style="display:block;width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;border:2px solid ${(prefill.color||"#3b82f6")===c?"#0f172a":"transparent"};transition:border .15s"
                       onclick="this.parentElement.querySelector('input').checked=true;document.querySelectorAll('[name=ev_color]').forEach(r=>{r.nextElementSibling.style.borderColor=r.checked?'#0f172a':'transparent'})">
@@ -461,8 +457,8 @@ export async function showNuevoEventoModal(prefill = {}) {
    VER EVENTO (detalle)
 ══════════════════════════ */
 window._verEvento = async (id) => {
-  const ev   = EVENTOS.find(e => String(e.id) === String(id));
-  if (!ev) { console.warn("Evento no encontrado:", id); return; }
+  const ev   = EVENTOS.find(e=>e.id===id);
+  if (!ev) return;
   const tipo = TIPOS.find(t=>t.id===ev.tipo)||TIPOS[5];
   const tec  = TECNICOS.find(x=>x.id===ev.tecnico_id);
 
@@ -499,7 +495,7 @@ window._verEvento = async (id) => {
 };
 
 window._editEvento = async (id) => {
-  const ev = EVENTOS.find(e => String(e.id) === String(id));
+  const ev = EVENTOS.find(e=>e.id===id);
   if (ev) showNuevoEventoModal(ev);
 };
 
@@ -558,9 +554,12 @@ export function initAgendaView() {
 
   // Nuevo evento — cargar datos si hace falta antes de abrir el modal
   document.getElementById("nuevoEventoBtn")?.addEventListener("click", async () => {
-    if (!TECNICOS.length) await loadAgenda();
+    if (!EVENTOS.length && !document.getElementById("agendaNavLabel")?.textContent) {
+      await refreshAgenda(); // asegurar que los datos están cargados
+    }
     showNuevoEventoModal();
   });
 
-  // NO llamar refreshAgenda() aquí — main.js lo llama al navegar a la vista
+  // Llamar refreshAgenda al iniciar para que el calendario se pinte
+  refreshAgenda();
 }
