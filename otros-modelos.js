@@ -284,7 +284,7 @@ export async function exportModelo190PDF() {
 ══════════════════════════ */
 async function generarPDFModelo({ numero, titulo, subtitulo, year, trim, resultado, filas, plazo, nota }) {
   await _cargarJsPDF();
-  const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).single();
+  const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).maybeSingle();
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
