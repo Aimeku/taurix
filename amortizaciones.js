@@ -131,33 +131,33 @@ export function showNuevoBienModal(prefill = {}) {
 
         <div class="modal-grid2">
           <div class="modal-field"><label>Nombre / Descripción *</label>
-            <input id="bi_nombre" class="ff-input" value="${prefill.nombre || ""}" placeholder="Ej: MacBook Pro 14', Mesa escritorio…"/></div>
+            <input autocomplete="off" id="bi_nombre" class="ff-input" value="${prefill.nombre || ""}" placeholder="Ej: MacBook Pro 14', Mesa escritorio…"/></div>
           <div class="modal-field"><label>Referencia / Nº serie</label>
-            <input id="bi_ref" class="ff-input" value="${prefill.referencia || ""}" placeholder="Nº serie, modelo…"/></div>
+            <input autocomplete="off" id="bi_ref" class="ff-input" value="${prefill.referencia || ""}" placeholder="Nº serie, modelo…"/></div>
         </div>
         <div class="modal-field"><label>Tipo de bien (tabla de amortización)</label>
           <select id="bi_tipo" class="ff-select">${tipoOptions}</select>
         </div>
         <div class="modal-grid3">
           <div class="modal-field"><label>Valor de adquisición (€) *</label>
-            <input type="number" id="bi_valor" class="ff-input" value="${prefill.valor_adquisicion || ""}" step="0.01"/></div>
+            <input autocomplete="off" type="number" id="bi_valor" class="ff-input" value="${prefill.valor_adquisicion || ""}" step="0.01"/></div>
           <div class="modal-field"><label>IVA soportado (€)</label>
-            <input type="number" id="bi_iva" class="ff-input" value="${prefill.iva_soportado || ""}" step="0.01" placeholder="0.00"/></div>
+            <input autocomplete="off" type="number" id="bi_iva" class="ff-input" value="${prefill.iva_soportado || ""}" step="0.01" placeholder="0.00"/></div>
           <div class="modal-field"><label>Coeficiente de amortización %</label>
-            <input type="number" id="bi_coef" class="ff-input" value="${prefill.coeficiente || ""}" step="0.5" min="1" max="100" placeholder="Dejar vacío = máximo legal"/>
+            <input autocomplete="off" type="number" id="bi_coef" class="ff-input" value="${prefill.coeficiente || ""}" step="0.5" min="1" max="100" placeholder="Dejar vacío = máximo legal"/>
             <div id="bi_coef_info" style="font-size:11px;color:var(--t3);margin-top:3px"></div>
           </div>
         </div>
         <div class="modal-grid2">
           <div class="modal-field"><label>Fecha de alta / compra *</label>
-            <input type="date" id="bi_fecha" class="ff-input" value="${prefill.fecha_alta || new Date().toISOString().slice(0,10)}"/></div>
+            <input autocomplete="off" type="date" id="bi_fecha" class="ff-input" value="${prefill.fecha_alta || new Date().toISOString().slice(0,10)}"/></div>
           <div class="modal-field"><label>% Afectación a la actividad</label>
-            <input type="number" id="bi_afectacion" class="ff-input" value="${prefill.pct_afectacion || 100}" min="1" max="100" step="1"/>
+            <input autocomplete="off" type="number" id="bi_afectacion" class="ff-input" value="${prefill.pct_afectacion || 100}" min="1" max="100" step="1"/>
             <div style="font-size:11px;color:var(--t3);margin-top:3px">Solo el % afecto es deducible fiscalmente</div>
           </div>
         </div>
         <div class="modal-field"><label>Descripción de uso en la actividad</label>
-          <input id="bi_uso" class="ff-input" value="${prefill.uso_actividad || ""}" placeholder="Ej: Equipo de trabajo para desarrollo de software"/></div>
+          <input autocomplete="off" id="bi_uso" class="ff-input" value="${prefill.uso_actividad || ""}" placeholder="Ej: Equipo de trabajo para desarrollo de software"/></div>
 
         <!-- Preview amortización -->
         <div id="bi_preview" style="background:var(--bg2);border-radius:10px;padding:14px;margin-top:12px">
