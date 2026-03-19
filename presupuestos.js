@@ -269,13 +269,13 @@ export function showNuevoPresupuestoModal(prefill = {}) {
             </select>
           </div>
           <div class="modal-field"><label>Nombre cliente (texto libre)</label>
-            <input id="pm_cliente_nombre" class="ff-input" value="${prefill.cliente_nombre || ""}" placeholder="O escribe directamente"/></div>
+            <input autocomplete="off" id="pm_cliente_nombre" class="ff-input" value="${prefill.cliente_nombre || ""}" placeholder="O escribe directamente"/></div>
         </div>
         <div class="modal-grid3" style="margin-bottom:16px">
           <div class="modal-field"><label>Fecha *</label>
-            <input type="date" id="pm_fecha" class="ff-input" value="${prefill.fecha || new Date().toISOString().slice(0, 10)}"/></div>
+            <input autocomplete="off" type="date" id="pm_fecha" class="ff-input" value="${prefill.fecha || new Date().toISOString().slice(0, 10)}"/></div>
           <div class="modal-field"><label>Válido hasta</label>
-            <input type="date" id="pm_validez" class="ff-input" value="${prefill.fecha_validez || ""}"/></div>
+            <input autocomplete="off" type="date" id="pm_validez" class="ff-input" value="${prefill.fecha_validez || ""}"/></div>
           <div class="modal-field"><label>Estado</label>
             <select id="pm_estado" class="ff-select">
               <option value="borrador"  ${(prefill.estado || "borrador") === "borrador"  ? "selected" : ""}>Borrador</option>
@@ -288,7 +288,7 @@ export function showNuevoPresupuestoModal(prefill = {}) {
 
         <div class="modal-field" style="margin-bottom:16px">
           <label>Concepto / asunto *</label>
-          <input id="pm_concepto" class="ff-input" value="${prefill.concepto || ""}" placeholder="Asunto general del presupuesto (ej: Desarrollo web corporativo)"/>
+          <input autocomplete="off" id="pm_concepto" class="ff-input" value="${prefill.concepto || ""}" placeholder="Asunto general del presupuesto (ej: Desarrollo web corporativo)"/>
         </div>
 
         <!-- LÍNEAS -->
@@ -327,7 +327,7 @@ export function showNuevoPresupuestoModal(prefill = {}) {
             <div style="display:flex;align-items:center;gap:6px">
               <div id="scannerQtyWrap" style="display:flex;align-items:center;gap:4px">
                 <span style="font-size:12px;color:var(--t3);white-space:nowrap">Cant.:</span>
-                <input id="pm_scanQty" type="number" min="1" step="1" value="1"
+                <input autocomplete="off" id="pm_scanQty" type="number" min="1" step="1" value="1"
                   class="ff-input" style="width:58px;text-align:center;font-size:13px;font-weight:700"
                   title="Cantidad a añadir cuando se escanee"/>
               </div>
@@ -361,7 +361,7 @@ export function showNuevoPresupuestoModal(prefill = {}) {
 
         <div class="modal-field" style="margin-top:16px">
           <label>Notas / condiciones</label>
-          <textarea id="pm_notas" class="ff-input ff-textarea" style="min-height:70px"
+          <textarea autocomplete="off" id="pm_notas" class="ff-input ff-textarea" style="min-height:70px"
             placeholder="Condiciones de pago, plazos, garantías…">${prefill.notas || ""}</textarea>
         </div>
       </div>
@@ -417,13 +417,13 @@ export function showNuevoPresupuestoModal(prefill = {}) {
     if (esDescuento) row.style.cssText = "border-left:3px solid var(--red,#dc2626);background:var(--bg2,#f9fafb)";
 
     row.innerHTML = `
-      <input type="text" class="linea-desc ff-input" value="${l.descripcion}"
+      <input autocomplete="off" type="text" class="linea-desc ff-input" value="${l.descripcion}"
         data-field="descripcion" placeholder="${esDescuento ? "Motivo del descuento" : "Descripción del producto o servicio"}"/>
-      <input type="number" class="linea-qty ff-input" value="${l.cantidad}" min="0.01" step="0.01" data-field="cantidad"
+      <input autocomplete="off" type="number" class="linea-qty ff-input" value="${l.cantidad}" min="0.01" step="0.01" data-field="cantidad"
         ${esDescuento ? 'style="display:none"' : ""}/>
       <div class="linea-price-wrap">
         <span class="linea-euro">${esDescuento ? "-€" : "€"}</span>
-        <input type="number" class="linea-price ff-input" value="${l.precio || ""}"
+        <input autocomplete="off" type="number" class="linea-price ff-input" value="${l.precio || ""}"
           placeholder="${esDescuento ? "Importe" : "0.00"}" step="0.01" data-field="precio"/>
       </div>
       <select class="linea-iva ff-select" data-field="iva" ${esDescuento ? "disabled" : ""}>
@@ -529,20 +529,20 @@ export function showNuevoPresupuestoModal(prefill = {}) {
         <div class="modal-hd"><span class="modal-title">💰 Añadir descuento</span><button class="modal-x" onclick="window._cm()">×</button></div>
         <div class="modal-bd">
           <div class="modal-field"><label>Motivo del descuento</label>
-            <input id="desc_motivo" class="ff-input" placeholder="Ej: Descuento por volumen" value="Descuento"/></div>
+            <input autocomplete="off" id="desc_motivo" class="ff-input" placeholder="Ej: Descuento por volumen" value="Descuento"/></div>
           <div class="modal-field" style="margin-top:12px"><label>Tipo de descuento</label>
             <div style="display:flex;gap:8px;margin-top:6px">
               <label style="flex:1;display:flex;align-items:center;gap:6px;padding:10px;border:2px solid var(--brand);border-radius:8px;cursor:pointer;font-weight:600;font-size:13px">
-                <input type="radio" name="desc_tipo" value="importe" checked/> Importe fijo (€)
+                <input autocomplete="off" type="radio" name="desc_tipo" value="importe" checked/> Importe fijo (€)
               </label>
               <label style="flex:1;display:flex;align-items:center;gap:6px;padding:10px;border:1.5px solid var(--brd);border-radius:8px;cursor:pointer;font-size:13px" id="desc_pct_lbl">
-                <input type="radio" name="desc_tipo" value="porcentaje"/> Porcentaje (%)
+                <input autocomplete="off" type="radio" name="desc_tipo" value="porcentaje"/> Porcentaje (%)
               </label>
             </div>
           </div>
           <div class="modal-field" style="margin-top:12px">
             <label id="desc_val_lbl">Importe a descontar (€)</label>
-            <input type="number" id="desc_valor" class="ff-input" placeholder="0.00" step="0.01" min="0" style="font-size:16px;font-weight:700"/>
+            <input autocomplete="off" type="number" id="desc_valor" class="ff-input" placeholder="0.00" step="0.01" min="0" style="font-size:16px;font-weight:700"/>
           </div>
           <div id="desc_preview" style="background:var(--bg2);border-radius:8px;padding:10px 14px;margin-top:8px;font-size:13px;display:none">
             Descuento: <strong id="desc_preview_val" style="color:var(--red,#dc2626)"></strong>
@@ -845,9 +845,9 @@ async function convertirAAlbaran(presId) {
           <em>Pendiente de facturar</em>.
         </p>
         <div class="modal-field"><label>Fecha del albarán *</label>
-          <input type="date" id="alb_fecha" class="ff-input" value="${new Date().toISOString().slice(0, 10)}"/></div>
+          <input autocomplete="off" type="date" id="alb_fecha" class="ff-input" value="${new Date().toISOString().slice(0, 10)}"/></div>
         <div class="modal-field" style="margin-top:10px"><label>Referencia de albarán</label>
-          <input id="alb_ref" class="ff-input" placeholder="Ej: ALB-001 (opcional)"/></div>
+          <input autocomplete="off" id="alb_ref" class="ff-input" placeholder="Ej: ALB-001 (opcional)"/></div>
       </div>
       <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
@@ -906,7 +906,7 @@ async function convertirAFactura(presId) {
           La factura quedará en borrador lista para emitir.
         </p>
         <div class="modal-field"><label>Fecha de factura *</label>
-          <input type="date" id="ctf_fecha" class="ff-input" value="${new Date().toISOString().slice(0, 10)}"/></div>
+          <input autocomplete="off" type="date" id="ctf_fecha" class="ff-input" value="${new Date().toISOString().slice(0, 10)}"/></div>
       </div>
       <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
@@ -1194,25 +1194,25 @@ export async function showEnviarEmailModal(presId) {
         </div>
         <div class="modal-grid2">
           <div class="modal-field"><label>Email del cliente *</label>
-            <input id="em_to" class="ff-input" type="email" value="${emailTo}" placeholder="cliente@empresa.com"/></div>
+            <input autocomplete="off" id="em_to" class="ff-input" type="email" value="${emailTo}" placeholder="cliente@empresa.com"/></div>
           <div class="modal-field"><label>CC (opcional)</label>
-            <input id="em_cc" class="ff-input" type="text" placeholder="copia@empresa.com"/></div>
+            <input autocomplete="off" id="em_cc" class="ff-input" type="text" placeholder="copia@empresa.com"/></div>
         </div>
         <div class="modal-field"><label>Abrir con</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-            <label class="email-client-opt"><input type="radio" name="em_client" value="gmail" checked/><span>📧 Gmail</span></label>
-            <label class="email-client-opt"><input type="radio" name="em_client" value="outlook"/><span>📘 Outlook</span></label>
-            <label class="email-client-opt"><input type="radio" name="em_client" value="yahoo"/><span>💜 Yahoo</span></label>
-            <label class="email-client-opt"><input type="radio" name="em_client" value="local"/><span>🖥️ App sistema</span></label>
+            <label class="email-client-opt"><input autocomplete="off" type="radio" name="em_client" value="gmail" checked/><span>📧 Gmail</span></label>
+            <label class="email-client-opt"><input autocomplete="off" type="radio" name="em_client" value="outlook"/><span>📘 Outlook</span></label>
+            <label class="email-client-opt"><input autocomplete="off" type="radio" name="em_client" value="yahoo"/><span>💜 Yahoo</span></label>
+            <label class="email-client-opt"><input autocomplete="off" type="radio" name="em_client" value="local"/><span>🖥️ App sistema</span></label>
           </div>
         </div>
         <div class="modal-field"><label>Asunto</label>
-          <input id="em_subject" class="ff-input" value="Presupuesto — ${p.concepto||""}"/></div>
+          <input autocomplete="off" id="em_subject" class="ff-input" value="Presupuesto — ${p.concepto||""}"/></div>
         <div class="modal-field"><label>Mensaje</label>
-          <textarea id="em_body" class="ff-input ff-textarea" style="min-height:130px">${_defaultEmailBody(p, perfil)}</textarea></div>
+          <textarea autocomplete="off" id="em_body" class="ff-input ff-textarea" style="min-height:130px">${_defaultEmailBody(p, perfil)}</textarea></div>
         <div class="email-options-row">
           <label class="email-check-lbl">
-            <input type="checkbox" id="em_marcar_enviado" checked/>
+            <input autocomplete="off" type="checkbox" id="em_marcar_enviado" checked/>
             <span>📤 Marcar como "Enviado"</span>
           </label>
         </div>
@@ -1300,7 +1300,7 @@ async function albaranAFactura(presId) {
           para <strong>${p.cliente_nombre || "—"}</strong>.
         </p>
         <div class="modal-field"><label>Fecha de factura *</label>
-          <input type="date" id="af_fecha" class="ff-input" value="${new Date().toISOString().slice(0,10)}"/></div>
+          <input autocomplete="off" type="date" id="af_fecha" class="ff-input" value="${new Date().toISOString().slice(0,10)}"/></div>
       </div>
       <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
@@ -1615,7 +1615,7 @@ export async function showFirmaDigitalModal(presId) {
         <div class="modal-field">
           <label>Enlace para el cliente</label>
           <div style="display:flex;gap:6px">
-            <input id="firma_enlace" class="ff-input" value="${enlace}" readonly
+            <input autocomplete="off" id="firma_enlace" class="ff-input" value="${enlace}" readonly
                    style="font-size:12px;font-family:monospace;background:var(--bg2)"/>
             <button class="btn-outline" onclick="navigator.clipboard.writeText('${enlace}');this.textContent='✓ Copiado';setTimeout(()=>this.textContent='Copiar',2000)"
                     style="white-space:nowrap;font-size:12px">Copiar</button>
@@ -1626,7 +1626,7 @@ export async function showFirmaDigitalModal(presId) {
         <div class="modal-field" style="margin-top:12px">
           <label>O enviar por email directamente</label>
           <div style="display:flex;gap:6px;margin-top:4px">
-            <input id="firma_email" class="ff-input" type="email"
+            <input autocomplete="off" id="firma_email" class="ff-input" type="email"
                    placeholder="email@cliente.com"
                    value="${CLIENTES.find(c=>c.id===p.cliente_id)?.email||p.cliente_email||""}"/>
             <button class="btn-primary" id="firma_send_btn" style="white-space:nowrap;font-size:12px">
@@ -1913,7 +1913,7 @@ function _mostrarPaginaFirma(p, token) {
     document.getElementById("firma_acciones").innerHTML = `
       <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 24px rgba(0,0,0,.08)">
         <div style="font-size:14px;font-weight:700;margin-bottom:12px">¿Por qué rechazas el presupuesto? (opcional)</div>
-        <textarea id="firma_motivo" placeholder="El precio es elevado, necesito ajustes, no es lo que buscaba…"
+        <textarea autocomplete="off" id="firma_motivo" placeholder="El precio es elevado, necesito ajustes, no es lo que buscaba…"
                   style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;min-height:80px;margin-bottom:12px;font-family:sans-serif;resize:vertical"></textarea>
         <div style="display:flex;gap:10px">
           <button onclick="document.getElementById('firma_acciones').innerHTML=''" 
