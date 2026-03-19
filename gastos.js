@@ -74,12 +74,12 @@ export function showNuevoProveedorModal(prefill = {}) {
       </div>
       <div class="modal-bd">
         <div class="modal-grid2">
-          <div class="modal-field"><label>Nombre / Razón social *</label><input id="mpv_nombre" class="ff-input" value="${prefill.nombre || ""}" placeholder="Nombre del proveedor"/></div>
-          <div class="modal-field"><label>NIF / CIF</label><input id="mpv_nif" class="ff-input" value="${prefill.nif || ""}" placeholder="B12345678"/></div>
+          <div class="modal-field"><label>Nombre / Razón social *</label><input autocomplete="off" id="mpv_nombre" class="ff-input" value="${prefill.nombre || ""}" placeholder="Nombre del proveedor"/></div>
+          <div class="modal-field"><label>NIF / CIF</label><input autocomplete="off" id="mpv_nif" class="ff-input" value="${prefill.nif || ""}" placeholder="B12345678"/></div>
         </div>
         <div class="modal-grid2">
-          <div class="modal-field"><label>Email</label><input type="email" id="mpv_email" class="ff-input" value="${prefill.email || ""}" placeholder="proveedor@empresa.com"/></div>
-          <div class="modal-field"><label>Teléfono</label><input id="mpv_tel" class="ff-input" value="${prefill.telefono || ""}" placeholder="+34 600 000 000"/></div>
+          <div class="modal-field"><label>Email</label><input autocomplete="off" type="email" id="mpv_email" class="ff-input" value="${prefill.email || ""}" placeholder="proveedor@empresa.com"/></div>
+          <div class="modal-field"><label>Teléfono</label><input autocomplete="off" id="mpv_tel" class="ff-input" value="${prefill.telefono || ""}" placeholder="+34 600 000 000"/></div>
         </div>
         <div class="modal-grid2">
           <div class="modal-field"><label>Categoría</label>
@@ -88,10 +88,10 @@ export function showNuevoProveedorModal(prefill = {}) {
                 `<option value="${c}" ${prefill.categoria === c ? "selected" : ""}>${c}</option>`).join("")}
             </select>
           </div>
-          <div class="modal-field"><label>IBAN / Cuenta bancaria</label><input id="mpv_iban" class="ff-input" value="${prefill.iban || ""}" placeholder="ES00 0000 0000 0000 0000 0000"/></div>
+          <div class="modal-field"><label>IBAN / Cuenta bancaria</label><input autocomplete="off" id="mpv_iban" class="ff-input" value="${prefill.iban || ""}" placeholder="ES00 0000 0000 0000 0000 0000"/></div>
         </div>
-        <div class="modal-field"><label>Dirección</label><input id="mpv_dir" class="ff-input" value="${prefill.direccion || ""}" placeholder="Dirección fiscal"/></div>
-        <div class="modal-field"><label>Notas</label><textarea id="mpv_notas" class="ff-input ff-textarea" style="min-height:60px" placeholder="Notas sobre este proveedor…">${prefill.notas || ""}</textarea></div>
+        <div class="modal-field"><label>Dirección</label><input autocomplete="off" id="mpv_dir" class="ff-input" value="${prefill.direccion || ""}" placeholder="Dirección fiscal"/></div>
+        <div class="modal-field"><label>Notas</label><textarea autocomplete="off" id="mpv_notas" class="ff-input ff-textarea" style="min-height:60px" placeholder="Notas sobre este proveedor…">${prefill.notas || ""}</textarea></div>
       </div>
       <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
@@ -196,7 +196,7 @@ export function showNuevoGastoRecModal(prefill = {}) {
       </div>
       <div class="modal-bd">
         <div class="modal-grid2">
-          <div class="modal-field"><label>Nombre *</label><input id="mgr_nombre" class="ff-input" value="${prefill.nombre || ""}" placeholder="Ej: Suscripción Adobe, Alquiler oficina…"/></div>
+          <div class="modal-field"><label>Nombre *</label><input autocomplete="off" id="mgr_nombre" class="ff-input" value="${prefill.nombre || ""}" placeholder="Ej: Suscripción Adobe, Alquiler oficina…"/></div>
           <div class="modal-field"><label>Proveedor</label>
             <select id="mgr_prov" class="ff-select">
               <option value="">— Sin proveedor —</option>
@@ -205,7 +205,7 @@ export function showNuevoGastoRecModal(prefill = {}) {
           </div>
         </div>
         <div class="modal-grid3">
-          <div class="modal-field"><label>Importe (€) *</label><input type="number" id="mgr_importe" class="ff-input" value="${prefill.importe || ""}" step="0.01" placeholder="0.00"/></div>
+          <div class="modal-field"><label>Importe (€) *</label><input autocomplete="off" type="number" id="mgr_importe" class="ff-input" value="${prefill.importe || ""}" step="0.01" placeholder="0.00"/></div>
           <div class="modal-field"><label>IVA</label>
             <select id="mgr_iva" class="ff-select">
               <option value="21" ${(prefill.iva === 21 || !prefill.iva) ? "selected" : ""}>21%</option>
@@ -224,7 +224,7 @@ export function showNuevoGastoRecModal(prefill = {}) {
           </div>
         </div>
         <div class="modal-grid2">
-          <div class="modal-field"><label>Primera / próxima fecha</label><input type="date" id="mgr_fecha" class="ff-input" value="${prefill.proxima_fecha || new Date().toISOString().slice(0, 10)}"/></div>
+          <div class="modal-field"><label>Primera / próxima fecha</label><input autocomplete="off" type="date" id="mgr_fecha" class="ff-input" value="${prefill.proxima_fecha || new Date().toISOString().slice(0, 10)}"/></div>
           <div class="modal-field"><label>Categoría</label>
             <select id="mgr_cat" class="ff-select">
               ${["Software / SaaS","Alquiler","Suministros","Seguros","Nóminas","Marketing","Otros"].map(c =>
@@ -232,7 +232,7 @@ export function showNuevoGastoRecModal(prefill = {}) {
             </select>
           </div>
         </div>
-        <div class="modal-field"><label>Notas</label><input id="mgr_notas" class="ff-input" value="${prefill.notas || ""}" placeholder="Referencia de contrato, detalles…"/></div>
+        <div class="modal-field"><label>Notas</label><input autocomplete="off" id="mgr_notas" class="ff-input" value="${prefill.notas || ""}" placeholder="Referencia de contrato, detalles…"/></div>
       </div>
       <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
