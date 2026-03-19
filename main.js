@@ -444,7 +444,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   /* ── Auditoría ── */
-  // exportAuditoriaBtn removed //
+  document.getElementById("exportAuditoriaBtn")?.addEventListener("click", () => {
     toast("Exportar log de auditoría próximamente", "info");
   });
 
