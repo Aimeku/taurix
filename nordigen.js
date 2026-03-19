@@ -171,7 +171,7 @@ export function showConectarBancoModal() {
         <!-- Buscador de banco -->
         <div class="modal-field" style="margin-bottom:16px">
           <label>Busca tu banco</label>
-          <input id="bancoBusqueda" class="ff-input" placeholder="🔍 BBVA, Santander, CaixaBank…"
+          <input autocomplete="off" id="bancoBusqueda" class="ff-input" placeholder="🔍 BBVA, Santander, CaixaBank…"
                  oninput="window._filtrarBancos(this.value)"/>
         </div>
 
