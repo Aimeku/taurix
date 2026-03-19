@@ -92,7 +92,7 @@ export function toastConDeshacer(msg, onUndo, ms = 5000) {
    openModal inyecta HTML en #modalEl y muestra el overlay.
    closeModal limpia y oculta.
 ══════════════════════════ */
-export function openModal(html) {
+export function openModal(html, { noCloseOnBackdrop = false } = {}) {
   const c = document.getElementById("modalEl");
   if (!c) { console.error("modalEl no encontrado en el DOM"); return; }
   c.innerHTML = html;
@@ -105,7 +105,7 @@ export function openModal(html) {
   c.style.zIndex = "1000";
   c.style.backdropFilter = "blur(10px)";
   // Cerrar al click en el fondo
-  c.onclick = (e) => { if (e.target === c) closeModal(); };
+  c.onclick = noCloseOnBackdrop ? null : (e) => { if (e.target === c) closeModal(); };
 }
 
 export function closeModal() {
@@ -440,7 +440,7 @@ export async function showPerfilModal() {
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
         <button class="btn-modal-save" id="pf_save">Guardar perfil</button>
       </div>
-    </div>`);
+    </div>`, { noCloseOnBackdrop: true });
 
   let _logoBase64 = logoActual;
   const logoPreview = document.getElementById("pf_logo_preview");
