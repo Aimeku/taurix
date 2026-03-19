@@ -72,7 +72,7 @@ export function showNuevoClienteModal(prefill = {}) {
       <div class="modal-bd">
         <p class="modal-note">Los clientes se asocian automáticamente a las facturas para agilizar la facturación.</p>
         <div class="modal-grid2">
-          <div class="modal-field"><label>Nombre *</label><input id="mc_nombre" value="${prefill.nombre||""}" placeholder="Nombre o razón social"/></div>
+          <div class="modal-field"><label>Nombre *</label><input autocomplete="off" id="mc_nombre" value="${prefill.nombre||""}" placeholder="Nombre o razón social"/></div>
           <div class="modal-field"><label>Tipo</label>
             <select id="mc_tipo">
               <option value="empresa"    ${prefill.tipo==="empresa"?"selected":""}>Empresa / Autónomo</option>
@@ -81,7 +81,7 @@ export function showNuevoClienteModal(prefill = {}) {
           </div>
         </div>
         <div class="modal-grid2">
-          <div class="modal-field"><label>NIF / CIF / VAT</label><input id="mc_nif" value="${prefill.nif||""}" placeholder="Ej: B12345678"/></div>
+          <div class="modal-field"><label>NIF / CIF / VAT</label><input autocomplete="off" id="mc_nif" value="${prefill.nif||""}" placeholder="Ej: B12345678"/></div>
           <div class="modal-field"><label>País</label>
             <select id="mc_pais">
               ${["ES:🇪🇸 España","DE:🇩🇪 Alemania","FR:🇫🇷 Francia","IT:🇮🇹 Italia","PT:🇵🇹 Portugal","US:🇺🇸 EE.UU.","GB:🇬🇧 Reino Unido","MX:🇲🇽 México","OTHER:🌍 Otro"]
@@ -90,10 +90,10 @@ export function showNuevoClienteModal(prefill = {}) {
           </div>
         </div>
         <div class="modal-grid2">
-          <div class="modal-field"><label>Email</label><input type="email" id="mc_email" value="${prefill.email||""}" placeholder="cliente@empresa.com"/></div>
-          <div class="modal-field"><label>Teléfono</label><input id="mc_tel" value="${prefill.telefono||""}" placeholder="+34 600 000 000"/></div>
+          <div class="modal-field"><label>Email</label><input autocomplete="off" type="email" id="mc_email" value="${prefill.email||""}" placeholder="cliente@empresa.com"/></div>
+          <div class="modal-field"><label>Teléfono</label><input autocomplete="off" id="mc_tel" value="${prefill.telefono||""}" placeholder="+34 600 000 000"/></div>
         </div>
-        <div class="modal-field"><label>Dirección</label><input id="mc_dir" value="${prefill.direccion||""}" placeholder="Calle, número, ciudad, CP"/></div>
+        <div class="modal-field"><label>Dirección</label><input autocomplete="off" id="mc_dir" value="${prefill.direccion||""}" placeholder="Calle, número, ciudad, CP"/></div>
       </div>
       <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
