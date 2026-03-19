@@ -313,16 +313,16 @@ export function showInvitarColaboradorModal() {
       </div>
       <div class="modal-bd">
         <div class="modal-field"><label>Email del colaborador *</label>
-          <input id="inv_email" type="email" class="ff-input" placeholder="gestor@asesoriaejemplo.com"/>
+          <input autocomplete="off" id="inv_email" type="email" class="ff-input" placeholder="gestor@asesoriaejemplo.com"/>
         </div>
         <div class="modal-field"><label>Nombre (opcional)</label>
-          <input id="inv_nombre" class="ff-input" placeholder="Ej: María García — Gestoría López"/>
+          <input autocomplete="off" id="inv_nombre" class="ff-input" placeholder="Ej: María García — Gestoría López"/>
         </div>
         <div class="modal-field"><label>Rol *</label>
           <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px" id="inv_roles">
             ${Object.entries(ROLES).filter(([k]) => k !== "owner").map(([key, rol]) => `
               <label style="display:flex;align-items:flex-start;gap:12px;padding:12px;border:1.5px solid var(--brd);border-radius:10px;cursor:pointer;transition:all .15s" id="inv_rol_wrap_${key}">
-                <input type="radio" name="inv_rol" value="${key}" ${key === "manager" ? "checked" : ""}
+                <input autocomplete="off" type="radio" name="inv_rol" value="${key}" ${key === "manager" ? "checked" : ""}
                        onchange="window._onRolChange('${key}')"
                        style="margin-top:3px;accent-color:${rol.color}"/>
                 <div style="flex:1">
