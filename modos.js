@@ -101,7 +101,6 @@ export const MODOS = {
       { view:"productos",    label:"Catálogo",             icon:"package" },
       { view:"documentos",   label:"Documentos",           icon:"folder" },
       { view:"colaboradores",label:"Colaboradores",        icon:"users3", badge:"colaboradoresBadge" },
-      { view:"auditoria",    label:"Auditoría",            icon:"shield3" },
     ]
   }
 };
