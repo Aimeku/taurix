@@ -138,8 +138,9 @@ function renderMes(wrap) {
               ${eventos.slice(0,3).map(e => {
                 const tipo = TIPOS.find(t=>t.id===e.tipo) || TIPOS[5];
                 return `<div class="cal-evento" style="background:${tipo.color};color:#fff"
-                             onclick="event.stopPropagation();window._verEvento('${e.id}')"
-                             title="${e.titulo}">
+                             data-id="${e.id}"
+                             onclick="event.stopPropagation();window._verEvento(this.dataset.id)"
+                             title="${e.titulo.replace(/"/g,'&quot;')}">
                   ${e.hora_inicio?e.hora_inicio.slice(0,5)+' ':''} ${e.titulo}
                 </div>`;
               }).join("")}
@@ -184,7 +185,8 @@ function renderSemana(wrap) {
               ${eventos.map(e => {
                 const tipo = TIPOS.find(t=>t.id===e.tipo) || TIPOS[5];
                 return `<div class="cal-evento-sem" style="background:${tipo.color}"
-                              onclick="event.stopPropagation();window._verEvento('${e.id}')">
+                              data-id="${e.id}"
+                              onclick="event.stopPropagation();window._verEvento(this.dataset.id)">
                   <div style="font-weight:700;font-size:11px">${e.titulo}</div>
                   ${e.hora_inicio?`<div style="font-size:10px;opacity:.85">${e.hora_inicio.slice(0,5)}${e.hora_fin?' - '+e.hora_fin.slice(0,5):''}</div>`:''}
                 </div>`;
@@ -214,7 +216,8 @@ function renderDia(wrap) {
           const tec  = TECNICOS.find(x=>x.id===e.tecnico_id);
           return `
             <div style="display:flex;gap:14px;padding:14px;border-left:4px solid ${tipo.color};background:${tipo.bg};border-radius:0 12px 12px 0;margin-bottom:10px;cursor:pointer"
-                 onclick="window._verEvento('${e.id}')">
+                 data-id="${e.id}"
+                 onclick="window._verEvento(this.dataset.id)">
               <div style="text-align:center;min-width:50px">
                 <div style="font-size:20px">${tipo.icon}</div>
                 ${e.hora_inicio?`<div style="font-size:12px;font-weight:700;color:${tipo.color}">${e.hora_inicio.slice(0,5)}</div>`:''}
@@ -254,10 +257,11 @@ function renderProximosEventos() {
   wrap.innerHTML = proximos.map(e => {
     const tipo  = TIPOS.find(t=>t.id===e.tipo) || TIPOS[5];
     const esHoy = e.fecha === hoyStr;
-    const dias  = Math.ceil((new Date(e.fecha) - HOY) / 86400000);
+    const dias  = Math.ceil((new Date(e.fecha + "T12:00:00") - HOY) / 86400000);
     return `
       <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--brd);cursor:pointer"
-           onclick="window._verEvento('${e.id}')">
+           data-id="${e.id}"
+           onclick="window._verEvento(this.dataset.id)">
         <div style="width:36px;height:36px;background:${tipo.color}18;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${tipo.icon}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.titulo}</div>
@@ -457,8 +461,8 @@ export async function showNuevoEventoModal(prefill = {}) {
    VER EVENTO (detalle)
 ══════════════════════════ */
 window._verEvento = async (id) => {
-  const ev   = EVENTOS.find(e=>e.id===id);
-  if (!ev) return;
+  const ev   = EVENTOS.find(e => String(e.id) === String(id));
+  if (!ev) { console.warn("Evento no encontrado:", id); return; }
   const tipo = TIPOS.find(t=>t.id===ev.tipo)||TIPOS[5];
   const tec  = TECNICOS.find(x=>x.id===ev.tecnico_id);
 
@@ -495,7 +499,7 @@ window._verEvento = async (id) => {
 };
 
 window._editEvento = async (id) => {
-  const ev = EVENTOS.find(e=>e.id===id);
+  const ev = EVENTOS.find(e => String(e.id) === String(id));
   if (ev) showNuevoEventoModal(ev);
 };
 
@@ -554,12 +558,9 @@ export function initAgendaView() {
 
   // Nuevo evento — cargar datos si hace falta antes de abrir el modal
   document.getElementById("nuevoEventoBtn")?.addEventListener("click", async () => {
-    if (!EVENTOS.length && !document.getElementById("agendaNavLabel")?.textContent) {
-      await refreshAgenda(); // asegurar que los datos están cargados
-    }
+    if (!TECNICOS.length) await loadAgenda();
     showNuevoEventoModal();
   });
 
-  // Llamar refreshAgenda al iniciar para que el calendario se pinte
-  refreshAgenda();
+  // NO llamar refreshAgenda() aquí — main.js lo llama al navegar a la vista
 }
