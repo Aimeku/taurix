@@ -147,7 +147,7 @@ export function showUploadModal() {
           <div style="font-size:14px;font-weight:600;color:var(--t1)">Arrastra archivos aquí</div>
           <div style="font-size:12px;color:var(--t3);margin-top:4px">o haz click para seleccionar</div>
           <div style="font-size:11px;color:var(--t4);margin-top:6px">PDF, JPG, PNG, Excel, Word — Máx. 50MB</div>
-          <input type="file" id="uploadInput" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.docx,.doc,.csv" style="display:none"/>
+          <input autocomplete="off" type="file" id="uploadInput" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.docx,.doc,.csv" style="display:none"/>
         </div>
 
         <!-- Archivos seleccionados -->
@@ -160,11 +160,11 @@ export function showUploadModal() {
             </select>
           </div>
           <div class="modal-field"><label>Vincular a (opcional)</label>
-            <input id="uploadVinculo" class="ff-input" placeholder="Ej: FAC-2025-001, nómina enero…"/>
+            <input autocomplete="off" id="uploadVinculo" class="ff-input" placeholder="Ej: FAC-2025-001, nómina enero…"/>
           </div>
         </div>
         <div class="modal-field"><label>Notas (opcional)</label>
-          <input id="uploadNotas" class="ff-input" placeholder="Descripción del documento…"/>
+          <input autocomplete="off" id="uploadNotas" class="ff-input" placeholder="Descripción del documento…"/>
         </div>
 
         <!-- Barra de progreso -->
