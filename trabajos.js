@@ -40,6 +40,7 @@ let VISTA      = "kanban"; // "kanban" | "lista"
    LOAD
 ══════════════════════════ */
 export async function loadTrabajos() {
+  if (!SESSION) return [];
   const [trabajosRes, tecnicosRes] = await Promise.all([
     supabase.from("trabajos").select("*")
       .eq("user_id", SESSION.user.id)
