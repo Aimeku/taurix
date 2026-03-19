@@ -83,13 +83,13 @@ export function showNuevoProductoModal(prefill = {}) {
       <div class="modal-bd">
         <div class="modal-grid2">
           <div class="modal-field"><label>Nombre *</label>
-            <input id="mpd_nombre" class="ff-input" value="${prefill.nombre || ""}" placeholder="Nombre del producto o servicio"/></div>
+            <input autocomplete="off" id="mpd_nombre" class="ff-input" value="${prefill.nombre || ""}" placeholder="Nombre del producto o servicio"/></div>
           <div class="modal-field"><label>Referencia / SKU</label>
-            <input id="mpd_ref" class="ff-input" value="${prefill.referencia || ""}" placeholder="Ej: SRV-001"/></div>
+            <input autocomplete="off" id="mpd_ref" class="ff-input" value="${prefill.referencia || ""}" placeholder="Ej: SRV-001"/></div>
         </div>
         <div class="modal-grid2">
           <div class="modal-field"><label>Código de barras <span style="font-weight:400;color:var(--t4)">(EAN, ISBN…)</span></label>
-            <input id="mpd_barras" class="ff-input mono" value="${prefill.codigo_barras || ""}" placeholder="Ej: 8400000123456"/></div>
+            <input autocomplete="off" id="mpd_barras" class="ff-input mono" value="${prefill.codigo_barras || ""}" placeholder="Ej: 8400000123456"/></div>
           <div class="modal-field"><label>Tipo</label>
             <select id="mpd_tipo" class="ff-select">
               <option value="servicio"    ${tipoInit === "servicio"    ? "selected" : ""}>Servicio</option>
@@ -99,14 +99,14 @@ export function showNuevoProductoModal(prefill = {}) {
           </div>
         </div>
         <div class="modal-field"><label>Descripción</label>
-          <textarea id="mpd_desc" class="ff-input ff-textarea" style="min-height:60px"
+          <textarea autocomplete="off" id="mpd_desc" class="ff-input ff-textarea" style="min-height:60px"
             placeholder="Descripción que aparecerá en las líneas del documento">${prefill.descripcion || ""}</textarea>
         </div>
         <div class="modal-grid3">
           <div class="modal-field"><label>Precio de venta (€) *</label>
-            <input type="number" id="mpd_precio" class="ff-input" value="${prefill.precio || ""}" step="0.01" placeholder="0.00"/></div>
+            <input autocomplete="off" type="number" id="mpd_precio" class="ff-input" value="${prefill.precio || ""}" step="0.01" placeholder="0.00"/></div>
           <div class="modal-field"><label>Precio de coste (€)</label>
-            <input type="number" id="mpd_coste" class="ff-input" value="${prefill.precio_coste || ""}" step="0.01" placeholder="0.00"/></div>
+            <input autocomplete="off" type="number" id="mpd_coste" class="ff-input" value="${prefill.precio_coste || ""}" step="0.01" placeholder="0.00"/></div>
           <div class="modal-field"><label>IVA</label>
             <select id="mpd_iva" class="ff-select">
               <option value="21" ${(prefill.iva === 21 || prefill.iva === undefined) ? "selected" : ""}>21%</option>
@@ -121,9 +121,9 @@ export function showNuevoProductoModal(prefill = {}) {
           <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">📦 Control de stock</div>
           <div class="modal-grid3">
             <div class="modal-field"><label>Stock actual</label>
-              <input type="number" id="mpd_stock" class="ff-input" value="${prefill.stock_actual ?? ""}" step="1" min="0" placeholder="0"/></div>
+              <input autocomplete="off" type="number" id="mpd_stock" class="ff-input" value="${prefill.stock_actual ?? ""}" step="1" min="0" placeholder="0"/></div>
             <div class="modal-field"><label>Stock mínimo <span style="font-weight:400;color:var(--t4)">(alerta)</span></label>
-              <input type="number" id="mpd_stockMin" class="ff-input" value="${prefill.stock_minimo ?? ""}" step="1" min="0" placeholder="0"/></div>
+              <input autocomplete="off" type="number" id="mpd_stockMin" class="ff-input" value="${prefill.stock_minimo ?? ""}" step="1" min="0" placeholder="0"/></div>
             <div class="modal-field"><label>Unidad</label>
               <select id="mpd_unidad" class="ff-select">
                 ${unidades.map(u => `<option value="${u}" ${prefill.unidad === u ? "selected" : ""}>${u}</option>`).join("")}
@@ -141,7 +141,7 @@ export function showNuevoProductoModal(prefill = {}) {
             </div>
             <div class="modal-field" style="justify-content:flex-end;padding-top:18px">
               <label style="flex-direction:row;align-items:center;gap:6px;cursor:pointer">
-                <input type="checkbox" id="mpd_activo" ${prefill.activo !== false ? "checked" : ""}/>
+                <input autocomplete="off" type="checkbox" id="mpd_activo" ${prefill.activo !== false ? "checked" : ""}/>
                 <span style="font-size:13px;font-weight:500">Producto activo</span>
               </label>
             </div>
@@ -149,7 +149,7 @@ export function showNuevoProductoModal(prefill = {}) {
         </div>
         <div id="mpd_activoStock" style="${tipoInit === "producto" ? "" : "display:none"};margin-top:10px">
           <label style="flex-direction:row;align-items:center;gap:6px;cursor:pointer;display:flex">
-            <input type="checkbox" id="mpd_activo2" ${prefill.activo !== false ? "checked" : ""}/>
+            <input autocomplete="off" type="checkbox" id="mpd_activo2" ${prefill.activo !== false ? "checked" : ""}/>
             <span style="font-size:13px;font-weight:500">Producto activo</span>
           </label>
         </div>
@@ -341,7 +341,7 @@ export function showImportarProductosModal() {
             <div style="font-size:12px;color:var(--t3);margin-top:4px">o haz click para seleccionar</div>
             <div id="importFileName" style="margin-top:8px;font-size:12px;color:var(--accent);font-weight:600"></div>
           </div>
-          <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" style="display:none"/>
+          <input autocomplete="off" type="file" id="importFileInput" accept=".xlsx,.xls,.csv" style="display:none"/>
         </div>
 
         <!-- Paso 3: Preview -->
@@ -390,7 +390,7 @@ export function showImportarProductosModal() {
           <!-- Opciones -->
           <div style="margin-top:14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
             <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-              <input type="checkbox" id="importActualizar" style="width:14px;height:14px"/>
+              <input autocomplete="off" type="checkbox" id="importActualizar" style="width:14px;height:14px"/>
               <span>Actualizar productos existentes si coincide la referencia o código de barras</span>
             </label>
           </div>
