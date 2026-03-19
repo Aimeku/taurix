@@ -79,7 +79,7 @@ export function showAuthModal() {
   modal.id = "authModal";
   modal.innerHTML = `
     <div class="auth-overlay" id="authOverlay">
-      <div class="auth-card">
+      <div class="auth-card" onclick="event.stopPropagation()">
         <div class="auth-header">
           <div class="auth-logo-wrap">
             <img src="Logo_Sin_Texto_transparent.png" alt="Taurix" class="auth-logo-bull"/>
@@ -212,6 +212,8 @@ export function showAuthModal() {
   });
 
   document.getElementById("authCloseBtn").addEventListener("click",()=>modal.remove());
+  // No cerrar al hacer clic fuera — solo con el botón X
+  document.getElementById("authOverlay").addEventListener("click", e => e.stopPropagation());
   document.addEventListener("keydown",function esc(e){if(e.key==="Escape"){modal.remove();document.removeEventListener("keydown",esc);}});
 
   supabase.auth.onAuthStateChange((event,session)=>{
