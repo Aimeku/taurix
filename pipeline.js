@@ -201,7 +201,7 @@ function showOportunidadModal(prefill = {}) {
       <div class="modal-bd">
         <div class="modal-grid2">
           <div class="modal-field"><label>Nombre de la oportunidad *</label>
-            <input id="op_nombre" class="ff-input" value="${prefill.nombre || ""}" placeholder="Ej: Proyecto web Empresa XYZ"/></div>
+            <input autocomplete="off" id="op_nombre" class="ff-input" value="${prefill.nombre || ""}" placeholder="Ej: Proyecto web Empresa XYZ"/></div>
           <div class="modal-field"><label>Cliente</label>
             <select id="op_cliente" class="ff-select">
               <option value="">— Sin cliente asignado —</option>
@@ -211,7 +211,7 @@ function showOportunidadModal(prefill = {}) {
         </div>
         <div class="modal-grid3">
           <div class="modal-field"><label>Valor estimado (€)</label>
-            <input type="number" id="op_valor" class="ff-input" value="${prefill.valor || ""}" step="0.01" placeholder="0.00"/></div>
+            <input autocomplete="off" type="number" id="op_valor" class="ff-input" value="${prefill.valor || ""}" step="0.01" placeholder="0.00"/></div>
           <div class="modal-field"><label>Etapa</label>
             <select id="op_etapa" class="ff-select">
               ${ETAPAS.map(e => `<option value="${e.id}" ${(prefill.etapa || "prospecto") === e.id ? "selected" : ""}>${e.label}</option>`).join("")}
@@ -227,9 +227,9 @@ function showOportunidadModal(prefill = {}) {
         </div>
         <div class="modal-grid2">
           <div class="modal-field"><label>Fecha de cierre estimada</label>
-            <input type="date" id="op_fecha_cierre" class="ff-input" value="${prefill.fecha_cierre || ""}"/></div>
+            <input autocomplete="off" type="date" id="op_fecha_cierre" class="ff-input" value="${prefill.fecha_cierre || ""}"/></div>
           <div class="modal-field"><label>Responsable</label>
-            <input id="op_responsable" class="ff-input" value="${prefill.responsable || ""}" placeholder="Nombre del responsable"/></div>
+            <input autocomplete="off" id="op_responsable" class="ff-input" value="${prefill.responsable || ""}" placeholder="Nombre del responsable"/></div>
         </div>
         <div class="modal-field"><label>Origen del lead</label>
           <select id="op_origen" class="ff-select">
@@ -238,9 +238,9 @@ function showOportunidadModal(prefill = {}) {
           </select>
         </div>
         <div class="modal-field"><label>Etiquetas <span style="font-weight:400;color:var(--t4)">(separadas por coma)</span></label>
-          <input id="op_etiquetas" class="ff-input" value="${prefill.etiquetas ? (typeof prefill.etiquetas === "string" ? JSON.parse(prefill.etiquetas).join(", ") : prefill.etiquetas.join(", ")) : ""}" placeholder="Urgente, Recurrente, Gran cuenta…"/></div>
+          <input autocomplete="off" id="op_etiquetas" class="ff-input" value="${prefill.etiquetas ? (typeof prefill.etiquetas === "string" ? JSON.parse(prefill.etiquetas).join(", ") : prefill.etiquetas.join(", ")) : ""}" placeholder="Urgente, Recurrente, Gran cuenta…"/></div>
         <div class="modal-field"><label>Descripción / Notas</label>
-          <textarea id="op_notas" class="ff-input ff-textarea" style="min-height:80px" 
+          <textarea autocomplete="off" id="op_notas" class="ff-input ff-textarea" style="min-height:80px" 
             placeholder="Detalles de la oportunidad, requisitos del cliente, próximos pasos…">${prefill.notas || ""}</textarea>
         </div>
       </div>
@@ -357,7 +357,7 @@ function showOportunidadDetalle(op) {
               <option>📝 Nota</option>
               <option>📅 Seguimiento</option>
             </select>
-            <input id="op_act_nota" class="ff-input" style="flex:1" placeholder="¿Qué pasó? ¿Próximos pasos?"/>
+            <input autocomplete="off" id="op_act_nota" class="ff-input" style="flex:1" placeholder="¿Qué pasó? ¿Próximos pasos?"/>
             <button class="btn-primary" style="padding:8px 14px;font-size:13px" id="op_act_save">Añadir</button>
           </div>
         </div>
