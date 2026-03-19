@@ -854,7 +854,7 @@
             <div class="qa-icon qa-icon--green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><line x1="16" y1="13" x2="8" y2="13"/></svg></div>
             <div class="qa-text"><div class="qa-label">Presupuesto</div><div class="qa-sub">Crear oferta</div></div>
           </div>
-          <div class="qa-card" id="qaGastoRapido">
+          <div class="qa-card" id="qaGastoRapido" onclick="window._gastoRapido()" style="cursor:pointer">
             <div class="qa-icon qa-icon--amber"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
             <div class="qa-text"><div class="qa-label">Gasto rápido</div><div class="qa-sub">Registrar en segundos</div></div>
           </div>
@@ -882,7 +882,7 @@
                 <span class="cleg cleg-red">Gastos</span>
               </div>
             </div>
-            <div class="bar-chart-wrap"><canvas id="chartEvolucion" height="260"></canvas></div>
+            <div class="bar-chart-wrap" style="height:180px"><canvas id="chartEvolucion"></canvas></div>
           </div>
           <div class="chart-card">
             <div class="chart-header"><span class="chart-title">Estado del trimestre</span></div>
@@ -2933,74 +2933,7 @@
       </div>
 
       <!-- ═══ VIEW: AUDITORÍA ═══ -->
-      <div class="view" id="view-auditoria">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">Auditoría</h1>
-            <p class="view-sub">Registro completo · Inmutable · Trazabilidad total de cambios</p>
-          </div>
-          <div class="view-actions">
-            <button class="btn-outline" id="auditoriaLimpiarBtn" style="font-size:12px">✕ Limpiar filtros</button>
-            <button class="btn-outline" id="exportAuditoriaBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Exportar log
-            </button>
-          </div>
-        </div>
 
-        <!-- Info banner -->
-        <div class="alerta-fiscal alerta-fiscal--info" style="margin-bottom:20px">
-          <div class="af-icon">🔒</div>
-          <div class="af-body">
-            <div class="af-title">Registro de auditoría inmutable</div>
-            <div class="af-desc">Cada acción queda registrada automáticamente con timestamp, usuario y valores antes/después. Los registros no pueden ser modificados ni eliminados. Cumple con los requisitos del RD 1007/2023 (Verifactu) y la normativa de conservación de documentación fiscal.</div>
-          </div>
-        </div>
-
-        <!-- KPIs -->
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px">
-          <div class="kpi-card" style="border:1px solid var(--brd)"><div class="kpi-top"><span class="kpi-lbl">Total registros</span></div><div class="kpi-val" id="auditTotal">—</div></div>
-          <div class="kpi-card" style="border:1px solid var(--brd)"><div class="kpi-top"><span class="kpi-lbl">Hoy</span></div><div class="kpi-val" id="auditHoy">—</div></div>
-          <div class="kpi-card" style="border:1px solid #86efac"><div class="kpi-top"><span class="kpi-lbl">✚ Creaciones</span></div><div class="kpi-val" id="auditCreados" style="color:#059669">—</div></div>
-          <div class="kpi-card" style="border:1px solid #93c5fd"><div class="kpi-top"><span class="kpi-lbl">✎ Ediciones</span></div><div class="kpi-val" id="auditEditados" style="color:#3b82f6">—</div></div>
-          <div class="kpi-card" style="border:1px solid #fca5a5"><div class="kpi-top"><span class="kpi-lbl">✕ Eliminaciones</span></div><div class="kpi-val" id="auditEliminados" style="color:#dc2626">—</div></div>
-        </div>
-
-        <!-- Filtros -->
-        <div class="filter-bar" style="margin-bottom:16px;flex-wrap:wrap;gap:8px">
-          <input class="ff-input" id="auditoriaBusqueda" placeholder="🔍 Buscar por referencia…" style="max-width:220px"/>
-          <select id="auditoriaAccion" class="ff-select" style="max-width:160px">
-            <option value="">Todas las acciones</option>
-            <option value="crear">✚ Creación</option>
-            <option value="editar">✎ Modificación</option>
-            <option value="eliminar">✕ Eliminación</option>
-            <option value="emitir">▶ Emisión</option>
-            <option value="acceso">⚷ Acceso</option>
-            <option value="exportar">↓ Exportación</option>
-          </select>
-          <select id="auditoriaEntidad" class="ff-select" style="max-width:160px">
-            <option value="">Todas las entidades</option>
-            <option value="facturas">🧾 Facturas</option>
-            <option value="presupuestos">📋 Presupuestos</option>
-            <option value="clientes">👤 Clientes</option>
-            <option value="gastos">💳 Gastos</option>
-            <option value="trabajos">🔧 Trabajos</option>
-            <option value="empleados">👷 Empleados</option>
-            <option value="nominas">💰 Nóminas</option>
-            <option value="productos">📦 Productos</option>
-          </select>
-          <input type="date" id="auditoriaDesde" class="ff-input" style="max-width:150px" title="Desde"/>
-          <input type="date" id="auditoriaHasta" class="ff-input" style="max-width:150px" title="Hasta"/>
-        </div>
-
-        <!-- Timeline -->
-        <div class="section-card no-pad">
-          <div id="auditoriaBody" style="padding:8px 0">
-            <div style="text-align:center;padding:32px;color:var(--t3)">Cargando registros…</div>
-          </div>
-          <div id="auditoriaPaginacion"></div>
-        </div>
-      </div>
 
       <!-- ═══ VIEWtml lang="es">
 <head>
