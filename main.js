@@ -598,7 +598,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   checkFiscalDeadlines();
   await checkOnboarding();
-});
+;
 
 /* ══════════════════════════
    RETA CALCULATOR
