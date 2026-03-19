@@ -448,19 +448,19 @@ export function showEmpleadoModal(prefill = {}) {
       <div class="modal-bd">
         <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);margin-bottom:10px">Datos personales</div>
         <div class="modal-grid2">
-          <div class="modal-field"><label>Nombre completo *</label><input id="em_nombre" class="ff-input" value="${prefill.nombre || ""}" placeholder="Nombre Apellido Apellido"/></div>
-          <div class="modal-field"><label>NIF / NIE</label><input id="em_nif" class="ff-input" value="${prefill.nif || ""}" placeholder="12345678A"/></div>
+          <div class="modal-field"><label>Nombre completo *</label><input autocomplete="off" id="em_nombre" class="ff-input" value="${prefill.nombre || ""}" placeholder="Nombre Apellido Apellido"/></div>
+          <div class="modal-field"><label>NIF / NIE</label><input autocomplete="off" id="em_nif" class="ff-input" value="${prefill.nif || ""}" placeholder="12345678A"/></div>
         </div>
         <div class="modal-grid2">
-          <div class="modal-field"><label>Email</label><input type="email" id="em_email" class="ff-input" value="${prefill.email || ""}"/></div>
-          <div class="modal-field"><label>Teléfono</label><input id="em_tel" class="ff-input" value="${prefill.telefono || ""}"/></div>
+          <div class="modal-field"><label>Email</label><input autocomplete="off" type="email" id="em_email" class="ff-input" value="${prefill.email || ""}"/></div>
+          <div class="modal-field"><label>Teléfono</label><input autocomplete="off" id="em_tel" class="ff-input" value="${prefill.telefono || ""}"/></div>
         </div>
-        <div class="modal-field"><label>IBAN (para transferencia nómina)</label><input id="em_iban" class="ff-input" value="${prefill.iban || ""}" placeholder="ES00 0000 0000 0000 0000 0000"/></div>
+        <div class="modal-field"><label>IBAN (para transferencia nómina)</label><input autocomplete="off" id="em_iban" class="ff-input" value="${prefill.iban || ""}" placeholder="ES00 0000 0000 0000 0000 0000"/></div>
 
         <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);margin:16px 0 10px">Datos laborales</div>
         <div class="modal-grid2">
-          <div class="modal-field"><label>Puesto / Cargo</label><input id="em_puesto" class="ff-input" value="${prefill.puesto || ""}" placeholder="Desarrollador Senior"/></div>
-          <div class="modal-field"><label>Departamento</label><input id="em_departamento" class="ff-input" value="${prefill.departamento || ""}" placeholder="Tecnología"/></div>
+          <div class="modal-field"><label>Puesto / Cargo</label><input autocomplete="off" id="em_puesto" class="ff-input" value="${prefill.puesto || ""}" placeholder="Desarrollador Senior"/></div>
+          <div class="modal-field"><label>Departamento</label><input autocomplete="off" id="em_departamento" class="ff-input" value="${prefill.departamento || ""}" placeholder="Tecnología"/></div>
         </div>
         <div class="modal-grid3">
           <div class="modal-field"><label>Tipo de contrato</label>
@@ -489,16 +489,16 @@ export function showEmpleadoModal(prefill = {}) {
         </div>
         <div class="modal-grid2">
           <div class="modal-field"><label>Salario bruto ANUAL (€) *</label>
-            <input type="number" id="em_salario" class="ff-input" value="${prefill.salario_bruto_anual || ""}" step="0.01" placeholder="24000.00"/></div>
+            <input autocomplete="off" type="number" id="em_salario" class="ff-input" value="${prefill.salario_bruto_anual || ""}" step="0.01" placeholder="24000.00"/></div>
           <div class="modal-field"><label>Categoría profesional</label>
-            <input id="em_categoria" class="ff-input" value="${prefill.categoria || ""}" placeholder="Grupo 1 / Titulado superior"/></div>
+            <input autocomplete="off" id="em_categoria" class="ff-input" value="${prefill.categoria || ""}" placeholder="Grupo 1 / Titulado superior"/></div>
         </div>
         <div class="modal-grid2">
-          <div class="modal-field"><label>Fecha de alta *</label><input type="date" id="em_alta" class="ff-input" value="${prefill.fecha_alta || ""}"/></div>
-          <div class="modal-field"><label>Nº Afiliación SS (NAF)</label><input id="em_nss" class="ff-input" value="${prefill.nss || ""}" placeholder="28/0000000000/00"/></div>
+          <div class="modal-field"><label>Fecha de alta *</label><input autocomplete="off" type="date" id="em_alta" class="ff-input" value="${prefill.fecha_alta || ""}"/></div>
+          <div class="modal-field"><label>Nº Afiliación SS (NAF)</label><input autocomplete="off" id="em_nss" class="ff-input" value="${prefill.nss || ""}" placeholder="28/0000000000/00"/></div>
         </div>
         <div class="modal-field"><label>CCC Empresa (Código Cuenta Cotización)</label>
-          <input id="em_ccc" class="ff-input" value="${prefill.ccc || ""}" placeholder="28/000000000/00"/></div>
+          <input autocomplete="off" id="em_ccc" class="ff-input" value="${prefill.ccc || ""}" placeholder="28/000000000/00"/></div>
 
         <!-- Preview nómina estimada -->
         <div id="em_preview" style="background:var(--bg2);border-radius:10px;padding:14px;margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
@@ -578,7 +578,7 @@ export function showEmpleadoModal(prefill = {}) {
         <div class="modal">
           <div class="modal-hd"><span class="modal-title">Baja de empleado</span><button class="modal-x" onclick="window._cm()">×</button></div>
           <div class="modal-bd">
-            <div class="modal-field"><label>Fecha de baja *</label><input type="date" id="em_baja_fecha" class="ff-input" value="${new Date().toISOString().slice(0, 10)}"/></div>
+            <div class="modal-field"><label>Fecha de baja *</label><input autocomplete="off" type="date" id="em_baja_fecha" class="ff-input" value="${new Date().toISOString().slice(0, 10)}"/></div>
             <div class="modal-field"><label>Causa de la baja</label>
               <select id="em_baja_causa" class="ff-select">
                 ${["Despido procedente", "Despido improcedente", "Baja voluntaria", "Fin de contrato", "Jubilación", "Mutuo acuerdo", "Otro"].map(c => `<option>${c}</option>`).join("")}
