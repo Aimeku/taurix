@@ -313,21 +313,24 @@ export function showInvitarColaboradorModal() {
       </div>
       <div class="modal-bd">
         <div class="modal-field"><label>Email del colaborador *</label>
-          <input autocomplete="off" id="inv_email" type="email" class="ff-input" placeholder="gestor@asesoriaejemplo.com"/>
+          <input id="inv_email" type="email" class="ff-input" placeholder="gestor@asesoriaejemplo.com"/>
         </div>
         <div class="modal-field"><label>Nombre (opcional)</label>
-          <input autocomplete="off" id="inv_nombre" class="ff-input" placeholder="Ej: María García — Gestoría López"/>
+          <input id="inv_nombre" class="ff-input" placeholder="Ej: María García — Gestoría López"/>
         </div>
         <div class="modal-field"><label>Rol *</label>
           <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px" id="inv_roles">
             ${Object.entries(ROLES).filter(([k]) => k !== "owner").map(([key, rol]) => `
-              <label style="display:flex;align-items:flex-start;gap:12px;padding:12px;border:1.5px solid var(--brd);border-radius:10px;cursor:pointer;transition:all .15s" id="inv_rol_wrap_${key}">
-                <input autocomplete="off" type="radio" name="inv_rol" value="${key}" ${key === "manager" ? "checked" : ""}
+              <label style="display:flex;align-items:center;gap:14px;padding:14px 16px;border:1.5px solid var(--brd);border-radius:12px;cursor:pointer;transition:all .15s" id="inv_rol_wrap_${key}">
+                <input type="radio" name="inv_rol" value="${key}" ${key === "manager" ? "checked" : ""}
                        onchange="window._onRolChange('${key}')"
-                       style="margin-top:3px;accent-color:${rol.color}"/>
-                <div style="flex:1">
-                  <div style="font-size:13px;font-weight:700;color:var(--t1)">${rol.icon} ${rol.label}</div>
-                  <div style="font-size:12px;color:var(--t3);margin-top:2px">${rol.desc}</div>
+                       style="width:18px;height:18px;flex-shrink:0;accent-color:${rol.color};cursor:pointer"/>
+                <div style="display:flex;align-items:center;gap:10px;flex:1">
+                  <span style="font-size:22px;flex-shrink:0">${rol.icon}</span>
+                  <div>
+                    <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:2px">${rol.label}</div>
+                    <div style="font-size:12px;color:var(--t3);line-height:1.4">${rol.desc}</div>
+                  </div>
                 </div>
               </label>`).join("")}
           </div>
