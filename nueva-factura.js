@@ -378,7 +378,7 @@ function initIrpfToggle() {
 async function loadPerfilForPreview() {
   if (!SESSION) return;
   if (!PERFIL_FISCAL_CACHE) {
-    const { data, error } = await supabase.from("perfil_fiscal").select("*").eq("user_id",SESSION.user.id).single();
+    const { data, error } = await supabase.from("perfil_fiscal").select("*").eq("user_id",SESSION.user.id).maybeSingle();
     if (error && error.code!=="PGRST116") console.warn("perfil preview:", error.message);
     PERFIL_FISCAL_CACHE = data;
   }
