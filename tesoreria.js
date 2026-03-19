@@ -244,7 +244,7 @@ export function showImportarBancoModal() {
             <div style="font-size:12px;color:var(--t3);margin-top:4px">o haz click para seleccionar</div>
             <div id="imp_filename" style="font-size:12px;color:var(--accent);margin-top:8px;font-weight:600"></div>
           </div>
-          <input type="file" id="imp_file" accept=".csv,.txt" style="display:none"/>
+          <input autocomplete="off" type="file" id="imp_file" accept=".csv,.txt" style="display:none"/>
         </div>
 
         <div id="imp_preview" style="display:none">
@@ -391,7 +391,7 @@ window._conciliarMov = async (id) => {
       <div class="modal-bd">
         <p class="modal-note">Vincula este movimiento bancario con una factura registrada en Taurix.</p>
         <div class="modal-field"><label>Buscar factura</label>
-          <input id="conc_search" class="ff-input" placeholder="Número, cliente, importe…"/>
+          <input autocomplete="off" id="conc_search" class="ff-input" placeholder="Número, cliente, importe…"/>
         </div>
         <div id="conc_results" style="margin-top:10px;max-height:200px;overflow-y:auto"></div>
       </div>
@@ -458,12 +458,12 @@ function showCuentaModal(prefill = {}) {
       <div class="modal-bd">
         <div class="modal-grid2">
           <div class="modal-field"><label>Nombre / Alias *</label>
-            <input id="cb_nombre" class="ff-input" value="${prefill.nombre || ""}" placeholder="Cuenta principal, Cuenta gastos…"/></div>
+            <input autocomplete="off" id="cb_nombre" class="ff-input" value="${prefill.nombre || ""}" placeholder="Cuenta principal, Cuenta gastos…"/></div>
           <div class="modal-field"><label>Banco</label>
-            <input id="cb_banco" class="ff-input" value="${prefill.banco || ""}" placeholder="BBVA, Santander, CaixaBank…"/></div>
+            <input autocomplete="off" id="cb_banco" class="ff-input" value="${prefill.banco || ""}" placeholder="BBVA, Santander, CaixaBank…"/></div>
         </div>
         <div class="modal-field"><label>IBAN</label>
-          <input id="cb_iban" class="ff-input" value="${prefill.iban || ""}" placeholder="ES00 0000 0000 0000 0000 0000"/></div>
+          <input autocomplete="off" id="cb_iban" class="ff-input" value="${prefill.iban || ""}" placeholder="ES00 0000 0000 0000 0000 0000"/></div>
         <div class="modal-grid2">
           <div class="modal-field"><label>Tipo de cuenta</label>
             <select id="cb_tipo" class="ff-select">
@@ -474,7 +474,7 @@ function showCuentaModal(prefill = {}) {
             </select>
           </div>
           <div class="modal-field"><label>Saldo actual (€)</label>
-            <input type="number" id="cb_saldo" class="ff-input" value="${prefill.saldo_actual || 0}" step="0.01"/></div>
+            <input autocomplete="off" type="number" id="cb_saldo" class="ff-input" value="${prefill.saldo_actual || 0}" step="0.01"/></div>
         </div>
         <div class="modal-field"><label>Moneda</label>
           <select id="cb_moneda" class="ff-select">
