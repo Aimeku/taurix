@@ -212,43 +212,45 @@ window._sendRecordatorio = (facturaId, clienteNombre) => {
 ══════════════════════════ */
 document.addEventListener("DOMContentLoaded", async () => {
 
-  /* ── Detección de recovery link — DEBE ir antes del onAuthStateChange ── */
-  // Supabase pone el token en el hash: #access_token=...&type=recovery
-  // Hay que detectarlo antes de que getSession() consuma el hash
-  const _hashParams = new URLSearchParams(window.location.hash.replace("#", "?").slice(1));
-  const _tokenType  = _hashParams.get("type");
-  if (_tokenType === "recovery") {
-    // Limpiar el hash de la URL para que no se reprocese al recargar
-    window.history.replaceState({}, document.title, window.location.pathname);
-    // Establecer la sesión con el token del hash y mostrar el modal
-    supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
-        showResetPasswordModal();
-      }
-    });
-    // También intentar obtener la sesión directamente del hash
-    const { data: { session: recSession } } = await supabase.auth.getSession();
-    if (recSession) {
-      showResetPasswordModal();
-    }
-    return; // No continuar con el init normal
-  }
-
   /* ── Auth listener ── */
-  // NOTA: NO usar reload() aquí — causa bucle infinito.
-  // La sesión ya se gestiona con getSession() más abajo.
-  // Solo escuchamos SIGNED_OUT para limpiar la UI.
+  // PASSWORD_RECOVERY debe interceptarse AQUÍ antes de getSession()
+  // Si Supabase detecta el token de recovery en el hash, dispara este evento
+  // y hay que mostrar el modal de nueva contraseña SIN dejar entrar a la app
+  let _isRecoveryFlow = false;
   supabase.auth.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY") {
+      _isRecoveryFlow = true;
+      // Ocultar todo y mostrar solo el modal de nueva contraseña
+      document.getElementById("appShell")?.classList.add("hidden");
+      document.getElementById("landingPage")?.classList.add("hidden");
+      // Limpiar hash de la URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      showResetPasswordModal();
+      return;
+    }
     if (event === "SIGNED_OUT") {
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.remove("hidden");
     }
-    // Supabase envía PASSWORD_RECOVERY cuando el usuario llega
-    // desde el enlace del email de restablecer contraseña
-    if (event === "PASSWORD_RECOVERY") {
-      showResetPasswordModal();
-    }
   });
+
+  /* ── Comprobar si venimos de un link de recovery en el hash ── */
+  // Supabase v2 a veces no dispara PASSWORD_RECOVERY si el hash ya fue procesado
+  // Lo detectamos manualmente como fallback
+  const _hash = window.location.hash;
+  if (_hash.includes("type=recovery") || _hash.includes("type=magiclink")) {
+    _isRecoveryFlow = true;
+    window.history.replaceState({}, document.title, window.location.pathname);
+    // Esperar a que Supabase procese el token del hash
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const { data: { session: recSess } } = await supabase.auth.getSession();
+    if (recSess) {
+      document.getElementById("appShell")?.classList.add("hidden");
+      document.getElementById("landingPage")?.classList.add("hidden");
+      showResetPasswordModal();
+      return;
+    }
+  }
 
   /* ── CTA / landing ── */
   ["ctaNavBtn", "ctaHeroBtn", "ctaHeroSecBtn", "ctaPlanGratisBtn",
@@ -292,6 +294,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   /* ── Sesión ── */
+  // Si estamos en flujo de recovery, no continuar con la app normal
+  if (_isRecoveryFlow) return;
   const session = await getSession();
   if (!session) return;
   setSession(session);
