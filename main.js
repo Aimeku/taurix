@@ -212,6 +212,28 @@ window._sendRecordatorio = (facturaId, clienteNombre) => {
 ══════════════════════════ */
 document.addEventListener("DOMContentLoaded", async () => {
 
+  /* ── Detección de recovery link — DEBE ir antes del onAuthStateChange ── */
+  // Supabase pone el token en el hash: #access_token=...&type=recovery
+  // Hay que detectarlo antes de que getSession() consuma el hash
+  const _hashParams = new URLSearchParams(window.location.hash.replace("#", "?").slice(1));
+  const _tokenType  = _hashParams.get("type");
+  if (_tokenType === "recovery") {
+    // Limpiar el hash de la URL para que no se reprocese al recargar
+    window.history.replaceState({}, document.title, window.location.pathname);
+    // Establecer la sesión con el token del hash y mostrar el modal
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+        showResetPasswordModal();
+      }
+    });
+    // También intentar obtener la sesión directamente del hash
+    const { data: { session: recSession } } = await supabase.auth.getSession();
+    if (recSession) {
+      showResetPasswordModal();
+    }
+    return; // No continuar con el init normal
+  }
+
   /* ── Auth listener ── */
   // NOTA: NO usar reload() aquí — causa bucle infinito.
   // La sesión ya se gestiona con getSession() más abajo.
@@ -552,6 +574,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   };
 
+  // Re-init vistas que dependen del sidebar al reconstruirse
+  const _reinitVistas = () => {
+    initTrabajosView();
+    initAgendaView();
+  };
+  window._rebindNav_orig = window._rebindNav;
+  window._rebindNav = () => {
+    window._rebindNav_orig();
+    _reinitVistas();
+  };
   // Llamar ahora que está definida
   window._rebindNav();
 
@@ -583,6 +615,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await fullRefresh();
   await refreshProductos();
+  // Precarga de trabajos y agenda para que no salgan en blanco
+  try { await refreshTrabajos(); } catch(e) { console.warn('refreshTrabajos:', e.message); }
+  try { await refreshAgenda();   } catch(e) { console.warn('refreshAgenda:', e.message); }
   await refreshProveedores();
   await refreshGastosRecurrentes();
   await refreshEmpleados();
