@@ -25,9 +25,9 @@ export async function loginEmail(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     if (error.message.includes("Email not confirmed"))
-      throw new Error("Debes confirmar tu email antes de entrar. Revisa tu bandeja de entrada (también el spam).");
+      throw new Error("Email o contraseña incorrectos.");
     if (error.message.includes("Invalid login credentials"))
-      throw new Error("Email o contraseña incorrectos. Si acabas de registrarte, confirma tu email primero.");
+      throw new Error("Email o contraseña incorrectos.");
     throw new Error(error.message);
   }
   return data;
