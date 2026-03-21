@@ -222,16 +222,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.getElementById("landingPage")?.classList.add("hidden");
       window.history.replaceState({}, document.title, window.location.pathname);
       document.getElementById("resetPwModal")?.remove();
-      showResetPasswordModal();
-      return;
-    }
-    if (event === "SIGNED_IN" && _isRecoveryFlow) {
-      // PKCE: después de intercambiar el code, llega SIGNED_IN con sesión de recovery
-      document.getElementById("appShell")?.classList.add("hidden");
-      document.getElementById("landingPage")?.classList.add("hidden");
-      window.history.replaceState({}, document.title, window.location.pathname);
-      document.getElementById("resetPwModal")?.remove();
-      showResetPasswordModal();
+      // Pasar la sesión directamente al modal para que updateUser funcione
+      showResetPasswordModal(session);
       return;
     }
     if (event === "SIGNED_OUT") {
