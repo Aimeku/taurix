@@ -254,12 +254,12 @@ function renderProximosEventos() {
   wrap.innerHTML = proximos.map(e => {
     const tipo  = TIPOS.find(t=>t.id===e.tipo) || TIPOS[5];
     const esHoy = e.fecha === hoyStr;
-    const dias  = Math.ceil((new Date(e.fecha) - HOY) / 86400000);
+    const dias  = Math.ceil((new Date(e.fecha + "T12:00:00") - HOY) / 86400000);
     return `
-      <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--brd);cursor:pointer"
-           onclick="window._verEvento('${e.id}')">
-        <div style="width:36px;height:36px;background:${tipo.color}18;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${tipo.icon}</div>
-        <div style="flex:1;min-width:0">
+      <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--brd);align-items:center">
+        <div style="width:36px;height:36px;background:${tipo.color}18;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;cursor:pointer"
+             data-id="${e.id}" onclick="window._verEvento(this.dataset.id)">${tipo.icon}</div>
+        <div style="flex:1;min-width:0;cursor:pointer" data-id="${e.id}" onclick="window._verEvento(this.dataset.id)">
           <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.titulo}</div>
           <div style="font-size:11px;color:var(--t3)">
             ${esHoy?`<span style="color:${tipo.color};font-weight:700">Hoy</span>`:fmtDate(e.fecha)}
@@ -267,8 +267,12 @@ function renderProximosEventos() {
             ${e.cliente_nombre?` · ${e.cliente_nombre}`:''}
           </div>
         </div>
-        <div style="font-size:10px;color:${esHoy?tipo.color:"var(--t4)"};font-weight:${esHoy?700:400};white-space:nowrap">
-          ${esHoy?"Hoy":dias===1?"Mañana":`${dias}d`}
+        <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
+          <div style="font-size:10px;color:${esHoy?tipo.color:"var(--t4)"};font-weight:${esHoy?700:400};white-space:nowrap;margin-right:4px">
+            ${esHoy?"Hoy":dias===1?"Mañana":`${dias}d`}
+          </div>
+          <button class="ta-btn" data-id="${e.id}" onclick="event.stopPropagation();window._editEvento(this.dataset.id)" title="Editar" style="padding:3px 7px;font-size:11px">✏️</button>
+          <button class="ta-btn ta-del" data-id="${e.id}" onclick="event.stopPropagation();window._delEvento(this.dataset.id)" title="Eliminar" style="padding:3px 7px;font-size:11px">🗑️</button>
         </div>
       </div>`;
   }).join("");
