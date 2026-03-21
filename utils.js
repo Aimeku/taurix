@@ -487,8 +487,16 @@ export async function showPerfilModal() {
         const uid = SESSION.user.id;
         const tables = ["facturas","clientes","perfil_fiscal","cierres_trimestrales","factura_series",
                         "presupuestos","productos","proveedores","gastos_recurrentes",
-                        "nominas","empleados","verifactu_registro","empresas"];
-        for (const t of tables) await supabase.from(t).delete().eq("user_id", uid);
+                        "nominas","empleados","verifactu_registro","empresas",
+                        "agenda_eventos","trabajos","pipeline_oportunidades","pipeline_actividad",
+                        "colaboradores","conexiones_bancarias","cuentas_bancarias",
+                        "movimientos_bancarios","documentos","bienes_inversion"];
+        for (const t of tables) {
+          try { await supabase.from(t).delete().eq("user_id", uid); } catch(e) {}
+        }
+        // Eliminar el usuario de auth.users completamente
+        const { error: delErr } = await supabase.rpc("delete_user");
+        if (delErr) console.warn("delete_user RPC:", delErr.message);
         await supabase.auth.signOut();
         localStorage.clear();
         closeModal();
