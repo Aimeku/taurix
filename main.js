@@ -212,56 +212,19 @@ window._sendRecordatorio = (facturaId, clienteNombre) => {
 ══════════════════════════ */
 document.addEventListener("DOMContentLoaded", async () => {
 
-  /* ── Detección de flujo de reset de contraseña ── */
-  // Supabase redirige a /?reset=1#access_token=...&type=recovery
-  // Detectamos AMBAS señales: el parámetro ?reset=1 Y el hash type=recovery
+  /* ── Auth listener — PRIMERO, antes de cualquier detección ── */
   let _isRecoveryFlow = false;
+  let _authRecovery   = false;
 
-  const _urlParams = new URLSearchParams(window.location.search);
-  const _hashStr   = window.location.hash;
-  const _isReset   = _urlParams.get("reset") === "1";
-  const _hasRecoveryHash = _hashStr.includes("type=recovery");
-
-  if (_isReset || _hasRecoveryHash) {
-    _isRecoveryFlow = true;
-    // NO limpiar el hash todavía — Supabase necesita leerlo para crear la sesión
-    // Ocultar todo mientras procesamos
-    document.getElementById("appShell")?.classList.add("hidden");
-    document.getElementById("landingPage")?.classList.add("hidden");
-
-    // Esperar a que Supabase procese el token del hash y cree la sesión
-    // NO limpiar el hash — Supabase lo necesita para establecer la sesión
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    
-    // Verificar sesión — Supabase debería haberla creado desde el hash
-    const { data: { session: recSess } } = await supabase.auth.getSession();
-    
-    if (recSess) {
-      // Solo limpiar el hash DESPUÉS de tener la sesión confirmada
-      window.history.replaceState({}, document.title, window.location.pathname);
-      showResetPasswordModal();
-    } else {
-      // Sin sesión — el link puede haber expirado
-      window.history.replaceState({}, document.title, window.location.pathname);
-      document.getElementById("landingPage")?.classList.remove("hidden");
-      showAuthModal();
-      // Mostrar mensaje de error en el modal de login
-      setTimeout(() => {
-        const errEl = document.getElementById("authError");
-        if (errEl) { errEl.textContent = "El enlace de recuperación ha expirado. Solicita uno nuevo."; errEl.style.display = ""; }
-      }, 300);
-    }
-    return;
-  }
-
-  /* ── Auth listener ── */
-  let _authRecovery = false;
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === "PASSWORD_RECOVERY") {
-      _authRecovery = true;
+      _isRecoveryFlow = true;
+      _authRecovery   = true;
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.add("hidden");
       window.history.replaceState({}, document.title, window.location.pathname);
+      // Quitar cualquier modal previo y mostrar el de nueva contraseña
+      document.getElementById("resetPwModal")?.remove();
       showResetPasswordModal();
       return;
     }
@@ -270,6 +233,39 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.getElementById("landingPage")?.classList.remove("hidden");
     }
   });
+
+  /* ── Detectar llegada desde link de recovery ── */
+  const _urlParams = new URLSearchParams(window.location.search);
+  if (_urlParams.get("reset") === "1") {
+    _isRecoveryFlow = true;
+    // Ocultar UI inmediatamente
+    document.getElementById("appShell")?.classList.add("hidden");
+    document.getElementById("landingPage")?.classList.add("hidden");
+    // Limpiar el parámetro de la URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+    // Esperar hasta 6 segundos al evento PASSWORD_RECOVERY de Supabase
+    await new Promise(resolve => {
+      let elapsed = 0;
+      const check = setInterval(() => {
+        elapsed += 200;
+        if (_authRecovery) {
+          clearInterval(check);
+          resolve();
+        } else if (elapsed >= 6000) {
+          clearInterval(check);
+          // Timeout — no llegó el evento, mostrar login
+          document.getElementById("landingPage")?.classList.remove("hidden");
+          showAuthModal();
+          setTimeout(() => {
+            const e = document.getElementById("authError");
+            if (e) { e.textContent = "El enlace ha expirado. Solicita uno nuevo."; e.style.display = ""; }
+          }, 300);
+          resolve();
+        }
+      }, 200);
+    });
+    return;
+  }
 
   /* ── CTA / landing ── */
   ["ctaNavBtn", "ctaHeroBtn", "ctaHeroSecBtn", "ctaPlanGratisBtn",
