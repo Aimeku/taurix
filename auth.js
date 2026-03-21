@@ -4,18 +4,8 @@ import { supabase } from "./supabase.js";
    GOOGLE OAUTH
 ══════════════════════════ */
 export async function login() {
-  try {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: "https://taurix.es/",
-        queryParams: { prompt: "consent", access_type: "offline" },
-      },
-    });
-    if (error) throw error;
-  } catch (err) {
-    console.error("Login Google error:", err.message);
-  }
+  // Google OAuth desactivado
+  console.warn("Google OAuth desactivado");
 }
 
 /* ══════════════════════════
@@ -50,7 +40,7 @@ export async function registerEmail(email, password) {
 
 export async function resetPassword(email) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: "https://taurix.es/",
+    redirectTo: "https://taurix.es/?reset=1",
   });
   if (error) throw new Error(error.message);
 }
@@ -143,7 +133,16 @@ export function showAuthModal() {
       </div>
     </div>
   `;
+  // Ocultar botón de Google si existe
+  const googleBtn = modal.querySelector(".auth-google-btn, #googleLoginBtn, [data-provider='google']");
+  if (googleBtn) googleBtn.style.display = "none";
+  const googleSep = modal.querySelector(".auth-divider, .auth-or");
+  if (googleSep) googleSep.style.display = "none";
+
   document.body.appendChild(modal);
+  
+  // Ocultar botón de Google después de añadir al DOM
+  modal.querySelectorAll(".auth-google-btn, [data-provider='google']").forEach(el => el.style.display = "none");
 
   const showError   = msg => { const e=document.getElementById("authError");   e.textContent=msg; e.style.display=msg?"":"none"; document.getElementById("authSuccess").style.display="none"; };
   const showSuccess = msg => { const e=document.getElementById("authSuccess"); e.textContent=msg; e.style.display=msg?"":"none"; document.getElementById("authError").style.display="none"; };
@@ -285,7 +284,16 @@ export function showResetPasswordModal() {
       </div>
     </div>`;
 
+  // Ocultar botón de Google si existe
+  const googleBtn = modal.querySelector(".auth-google-btn, #googleLoginBtn, [data-provider='google']");
+  if (googleBtn) googleBtn.style.display = "none";
+  const googleSep = modal.querySelector(".auth-divider, .auth-or");
+  if (googleSep) googleSep.style.display = "none";
+
   document.body.appendChild(modal);
+  
+  // Ocultar botón de Google después de añadir al DOM
+  modal.querySelectorAll(".auth-google-btn, [data-provider='google']").forEach(el => el.style.display = "none");
 
   const showError   = msg => { const e=document.getElementById("rpError");   e.textContent=msg; e.style.display=msg?"":"none"; };
   const showSuccess = msg => { const e=document.getElementById("rpSuccess"); e.textContent=msg; e.style.display=msg?"":"none"; };
