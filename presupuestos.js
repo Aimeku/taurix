@@ -172,8 +172,8 @@ export async function refreshPresupuestos() {
               : ""}
             <button class="ta-btn ta-email" onclick="window._presEmail('${p.id}')" title="Enviar por email">📧 Email</button>
             <button class="ta-btn" onclick="window._presPDF('${p.id}')" title="Descargar PDF presupuesto">PDF Pre</button>
+            <button class="ta-btn" onclick="window._dupPres('${p.id}')" title="Duplicar">Duplicar</button>
             <button class="ta-btn" onclick="window._editPres('${p.id}')" title="Editar">✏️ Editar</button>
-            <button class="ta-btn" onclick="window._dupPres('${p.id}')" title="Duplicar">Dupl</button>
             <button class="ta-btn ta-del" onclick="window._delPres('${p.id}')" title="Eliminar">🗑️ Borrar</button>
           </div>
         </td>
