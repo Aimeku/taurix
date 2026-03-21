@@ -230,27 +230,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("landingPage")?.classList.add("hidden");
 
     // Esperar a que Supabase procese el token del hash y cree la sesión
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // NO limpiar el hash — Supabase lo necesita para establecer la sesión
+    await new Promise(resolve => setTimeout(resolve, 1200));
     
-    // Verificar que la sesión se creó correctamente
+    // Verificar sesión — Supabase debería haberla creado desde el hash
     const { data: { session: recSess } } = await supabase.auth.getSession();
     
-    // Ahora sí limpiar la URL
-    window.history.replaceState({}, document.title, window.location.pathname);
-    
     if (recSess) {
+      // Solo limpiar el hash DESPUÉS de tener la sesión confirmada
+      window.history.replaceState({}, document.title, window.location.pathname);
       showResetPasswordModal();
     } else {
-      // Si no hay sesión, esperar un poco más e intentar de nuevo
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const { data: { session: recSess2 } } = await supabase.auth.getSession();
-      if (recSess2) {
-        showResetPasswordModal();
-      } else {
-        // Mostrar el modal de login con mensaje de error
-        document.getElementById("landingPage")?.classList.remove("hidden");
-        showAuthModal();
-      }
+      // Sin sesión — el link puede haber expirado
+      window.history.replaceState({}, document.title, window.location.pathname);
+      document.getElementById("landingPage")?.classList.remove("hidden");
+      showAuthModal();
+      // Mostrar mensaje de error en el modal de login
+      setTimeout(() => {
+        const errEl = document.getElementById("authError");
+        if (errEl) { errEl.textContent = "El enlace de recuperación ha expirado. Solicita uno nuevo."; errEl.style.display = ""; }
+      }, 300);
     }
     return;
   }
