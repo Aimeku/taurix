@@ -163,12 +163,12 @@ export async function refreshPresupuestos() {
         <td>
           <div class="tbl-act">
             ${p.estado !== "aceptado" && p.estado !== "albaran"
-              ? `<button class="ta-btn ta-emit" onclick="window._presTofact('${p.id}')" title="Convertir a factura">PDF Fac</button>
-                 <button class="ta-btn" onclick="window._presAlbaran('${p.id}')" title="Convertir a albarán">Albarán</button>`
+              ? `<button class="ta-btn ta-emit" onclick="window._presTofact('${p.id}')" title="Convertir a factura">Convertir Fac</button>
+                 <button class="ta-btn" onclick="window._presAlbaran('${p.id}')" title="Convertir a albarán">Convertir Alb</button>`
               : ""}
             ${p.estado === "albaran"
-              ? `<button class="ta-btn ta-emit" onclick="window._albaranToFact('${p.id}')" title="Emitir factura desde albarán" style="background:var(--green-lt,#d1fae5);color:var(--green,#059669)">Facturar</button>
-                 <button class="ta-btn" onclick="window._pdfAlbaran('${p.id}')" title="PDF Albarán">PDF</button>`
+              ? `<button class="ta-btn ta-emit" onclick="window._albaranToFact('${p.id}')" title="Emitir factura desde albarán" style="background:var(--green-lt,#d1fae5);color:var(--green,#059669)">Convertir Fac</button>
+                 <button class="ta-btn" onclick="window._pdfAlbaran('${p.id}')" title="PDF Albarán">PDF Alb</button>`
               : ""}
             <button class="ta-btn ta-email" onclick="window._presEmail('${p.id}')" title="Enviar por email">📧 Email</button>
             <button class="ta-btn" onclick="window._presPDF('${p.id}')" title="Descargar PDF presupuesto">PDF Pre</button>
