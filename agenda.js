@@ -493,6 +493,7 @@ window._verEvento = async (id) => {
       </div>
       <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cerrar</button>
+        <button class="btn-modal-danger" onclick="window._cm();window._delEvento('${ev.id}')">🗑️ Eliminar</button>
         <button class="btn-outline" onclick="window._cm();window._editEvento('${ev.id}')">✏️ Editar</button>
       </div>
     </div>`);
