@@ -238,7 +238,7 @@ export function showAuthModal() {
    Se muestra cuando el usuario llega
    desde el enlace del email de reset
 ══════════════════════════ */
-export function showResetPasswordModal() {
+export function showResetPasswordModal(recoverySession = null) {
   document.getElementById("landingPage")?.classList.add("hidden");
   document.getElementById("appShell")?.classList.add("hidden");
 
@@ -340,18 +340,16 @@ export function showResetPasswordModal() {
 
     setLoading(true);
     try {
-      // Intentar el updateUser directamente — si hay sesión de recovery funcionará
-      const { error } = await supabase.auth.updateUser({ password: pw1 });
-      if (error) {
-        // Si falla por sesión, intentar recuperarla y reintentar
-        if (error.message.includes("session") || error.message.includes("Auth")) {
-          await new Promise(r => setTimeout(r, 1000));
-          const { error: error2 } = await supabase.auth.updateUser({ password: pw1 });
-          if (error2) throw new Error(error2.message);
-        } else {
-          throw new Error(error.message);
-        }
+      // Si tenemos la sesión de recovery, establecerla explícitamente
+      if (recoverySession?.access_token) {
+        await supabase.auth.setSession({
+          access_token:  recoverySession.access_token,
+          refresh_token: recoverySession.refresh_token,
+        });
       }
+
+      const { error } = await supabase.auth.updateUser({ password: pw1 });
+      if (error) throw new Error(error.message);
 
       showSuccess("✅ Contraseña actualizada. Redirigiendo…");
       setTimeout(() => {
