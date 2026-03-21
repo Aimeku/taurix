@@ -18,10 +18,11 @@ export const supabase = createClient(
   SUPABASE_ANON_KEY,
   {
     auth: {
-      persistSession: true,       // Mantiene sesión al recargar
-      autoRefreshToken: true,     // Renueva tokens automáticamente
-      detectSessionInUrl: true,   // Detecta tokens en URL (recovery, OAuth)
-      flowType: "implicit",       // Necesario para recovery links funcionen correctamente
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: "pkce",
+      storage: window.localStorage,
     },
     global: {
       headers: {
