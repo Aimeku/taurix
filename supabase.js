@@ -20,7 +20,8 @@ export const supabase = createClient(
     auth: {
       persistSession: true,       // Mantiene sesión al recargar
       autoRefreshToken: true,     // Renueva tokens automáticamente
-      detectSessionInUrl: true,   // Necesario para OAuth (Google)
+      detectSessionInUrl: true,   // Detecta tokens en URL (recovery, OAuth)
+      flowType: "implicit",       // Necesario para recovery links funcionen correctamente
     },
     global: {
       headers: {
