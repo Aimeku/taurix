@@ -238,7 +238,6 @@ export function showAuthModal() {
    desde el enlace del email de reset
 ══════════════════════════ */
 export function showResetPasswordModal() {
-  // Ocultar landing, mostrar solo el modal
   document.getElementById("landingPage")?.classList.add("hidden");
   document.getElementById("appShell")?.classList.add("hidden");
 
@@ -272,7 +271,6 @@ export function showResetPasswordModal() {
           </div>
         </div>
 
-        <!-- Indicador de fortaleza -->
         <div id="rpStrengthWrap" style="margin-bottom:20px;display:none">
           <div style="height:4px;background:var(--brd);border-radius:4px;overflow:hidden;margin-bottom:6px">
             <div id="rpStrengthBar" style="height:100%;width:0%;transition:width .3s,background .3s;border-radius:4px"></div>
@@ -284,16 +282,7 @@ export function showResetPasswordModal() {
       </div>
     </div>`;
 
-  // Ocultar botón de Google si existe
-  const googleBtn = modal.querySelector(".auth-google-btn, #googleLoginBtn, [data-provider='google']");
-  if (googleBtn) googleBtn.style.display = "none";
-  const googleSep = modal.querySelector(".auth-divider, .auth-or");
-  if (googleSep) googleSep.style.display = "none";
-
   document.body.appendChild(modal);
-  
-  // Ocultar botón de Google después de añadir al DOM
-  modal.querySelectorAll(".auth-google-btn, [data-provider='google']").forEach(el => el.style.display = "none");
 
   const showError   = msg => { const e=document.getElementById("rpError");   e.textContent=msg; e.style.display=msg?"":"none"; };
   const showSuccess = msg => { const e=document.getElementById("rpSuccess"); e.textContent=msg; e.style.display=msg?"":"none"; };
@@ -305,7 +294,6 @@ export function showResetPasswordModal() {
       : `<span>Guardar nueva contraseña</span>`;
   };
 
-  // Toggle visibilidad contraseña
   modal.querySelectorAll(".auth-pw-toggle").forEach(btn => {
     btn.addEventListener("click", () => {
       const input = document.getElementById(btn.dataset.target);
@@ -314,7 +302,6 @@ export function showResetPasswordModal() {
     });
   });
 
-  // Indicador de fortaleza
   document.getElementById("rpPw1")?.addEventListener("input", e => {
     const pw = e.target.value;
     const wrap = document.getElementById("rpStrengthWrap");
@@ -322,14 +309,12 @@ export function showResetPasswordModal() {
     const lbl  = document.getElementById("rpStrengthLabel");
     if (!pw) { if(wrap) wrap.style.display="none"; return; }
     if(wrap) wrap.style.display = "";
-
     let score = 0;
     if (pw.length >= 8)  score++;
     if (pw.length >= 12) score++;
     if (/[A-Z]/.test(pw)) score++;
     if (/[0-9]/.test(pw)) score++;
     if (/[^A-Za-z0-9]/.test(pw)) score++;
-
     const levels = [
       { pct:"20%", color:"#dc2626", label:"Muy débil" },
       { pct:"40%", color:"#f97316", label:"Débil" },
@@ -342,7 +327,6 @@ export function showResetPasswordModal() {
     if(lbl) { lbl.textContent=`Fortaleza: ${lvl.label}`; lbl.style.color=lvl.color; }
   });
 
-  // Enter para enviar
   modal.addEventListener("keydown", e => { if(e.key==="Enter") document.getElementById("rpSubmitBtn")?.click(); });
 
   document.getElementById("rpSubmitBtn").addEventListener("click", async () => {
@@ -355,47 +339,39 @@ export function showResetPasswordModal() {
 
     setLoading(true);
     try {
-      // Verificar que hay sesión activa antes de intentar el cambio
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      // Obtener sesión activa
+      let { data: { session } } = await supabase.auth.getSession();
       
-      if (!currentSession) {
-        // Intentar recuperar la sesión desde el hash si todavía está
-        const hash = window.location.hash;
-        if (hash.includes("access_token")) {
-          // Supabase debería haberla procesado, esperar un poco más
-          await new Promise(r => setTimeout(r, 1000));
-          const { data: { session: retrySession } } = await supabase.auth.getSession();
-          if (!retrySession) {
-            showError("La sesión ha expirado. Por favor solicita un nuevo enlace de recuperación.");
-            setLoading(false);
-            return;
-          }
-        } else {
-          showError("La sesión ha expirado. Por favor solicita un nuevo enlace de recuperación.");
-          setLoading(false);
-          return;
+      // Si no hay sesión, esperar hasta 3 segundos a que Supabase la cree
+      if (!session) {
+        for (let i = 0; i < 6; i++) {
+          await new Promise(r => setTimeout(r, 500));
+          const res = await supabase.auth.getSession();
+          session = res.data.session;
+          if (session) break;
         }
+      }
+
+      if (!session) {
+        showError("El enlace ha expirado. Por favor solicita un nuevo enlace de recuperación.");
+        setLoading(false);
+        return;
       }
 
       const { error } = await supabase.auth.updateUser({ password: pw1 });
       if (error) throw new Error(error.message);
 
-      showSuccess("✅ Contraseña actualizada correctamente. Redirigiendo…");
+      showSuccess("✅ Contraseña actualizada. Redirigiendo…");
       setTimeout(() => {
         modal.remove();
         window.history.replaceState({}, document.title, window.location.pathname);
         window.location.reload();
       }, 1800);
     } catch(e) {
-      if (e.message.includes("session") || e.message.includes("Auth")) {
-        showError("La sesión ha expirado. Por favor solicita un nuevo enlace de recuperación.");
-      } else {
-        showError(e.message || "Error al actualizar la contraseña.");
-      }
+      showError(e.message || "Error al actualizar la contraseña.");
       setLoading(false);
     }
   });
 
-  // Focus automático
   setTimeout(() => document.getElementById("rpPw1")?.focus(), 100);
 }
