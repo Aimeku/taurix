@@ -213,8 +213,6 @@ window._sendRecordatorio = (facturaId, clienteNombre) => {
 document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Auth listener — PRIMERO, antes de getSession() ── */
-  // PASSWORD_RECOVERY se dispara cuando Supabase procesa el token del link
-  // En ese momento la sesión YA está establecida y updateUser funcionará
   let _isRecoveryFlow = false;
 
   supabase.auth.onAuthStateChange((event, session) => {
@@ -227,11 +225,32 @@ document.addEventListener("DOMContentLoaded", async () => {
       showResetPasswordModal();
       return;
     }
+    if (event === "SIGNED_IN" && _isRecoveryFlow) {
+      // PKCE: después de intercambiar el code, llega SIGNED_IN con sesión de recovery
+      document.getElementById("appShell")?.classList.add("hidden");
+      document.getElementById("landingPage")?.classList.add("hidden");
+      window.history.replaceState({}, document.title, window.location.pathname);
+      document.getElementById("resetPwModal")?.remove();
+      showResetPasswordModal();
+      return;
+    }
     if (event === "SIGNED_OUT") {
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.remove("hidden");
     }
   });
+
+  /* ── Detectar PKCE recovery code en URL ── */
+  const _urlCode = new URLSearchParams(window.location.search);
+  if (_urlCode.get("code") && _urlCode.get("type") === "recovery" ||
+      _urlCode.get("code") && document.referrer.includes("supabase.co")) {
+    _isRecoveryFlow = true;
+    document.getElementById("appShell")?.classList.add("hidden");
+    document.getElementById("landingPage")?.classList.add("hidden");
+    // Supabase intercambiará el code automáticamente via detectSessionInUrl
+    // El evento PASSWORD_RECOVERY o SIGNED_IN llegará en onAuthStateChange
+    return;
+  }
 
   /* ── CTA / landing ── */
   ["ctaNavBtn", "ctaHeroBtn", "ctaHeroSecBtn", "ctaPlanGratisBtn",
