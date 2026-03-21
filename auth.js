@@ -246,26 +246,26 @@ export function showResetPasswordModal() {
   modal.id = "resetPwModal";
   modal.innerHTML = `
     <div class="auth-overlay" id="resetPwOverlay" style="z-index:10000">
-      <div class="auth-card">
-        <div class="auth-header">
-          <div class="auth-logo-wrap">
+      <div class="auth-card" style="padding:40px 36px;max-width:420px;width:90%">
+        <div class="auth-header" style="margin-bottom:28px">
+          <div class="auth-logo-wrap" style="margin-bottom:20px">
             <img src="Logo_Sin_Texto_transparent.png" alt="Taurix" class="auth-logo-bull"/>
           </div>
-          <h2 class="auth-title">Nueva contraseña</h2>
+          <h2 class="auth-title" style="margin-bottom:8px">Nueva contraseña</h2>
           <p class="auth-sub">Elige una contraseña segura para tu cuenta</p>
         </div>
-        <div class="auth-error"  id="rpError"   style="display:none"></div>
-        <div class="auth-success" id="rpSuccess" style="display:none"></div>
+        <div class="auth-error"  id="rpError"   style="display:none;margin-bottom:16px"></div>
+        <div class="auth-success" id="rpSuccess" style="display:none;margin-bottom:16px"></div>
 
-        <div class="auth-field">
-          <label>Nueva contraseña</label>
+        <div class="auth-field" style="margin-bottom:18px">
+          <label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--t2)">Nueva contraseña</label>
           <div class="auth-pw-wrap">
             <input type="password" id="rpPw1" placeholder="Mínimo 8 caracteres" autocomplete="new-password"/>
             <button type="button" class="auth-pw-toggle" data-target="rpPw1">👁</button>
           </div>
         </div>
-        <div class="auth-field">
-          <label>Confirmar contraseña</label>
+        <div class="auth-field" style="margin-bottom:18px">
+          <label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--t2)">Confirmar contraseña</label>
           <div class="auth-pw-wrap">
             <input type="password" id="rpPw2" placeholder="Repite la contraseña" autocomplete="new-password"/>
             <button type="button" class="auth-pw-toggle" data-target="rpPw2">👁</button>
@@ -273,14 +273,14 @@ export function showResetPasswordModal() {
         </div>
 
         <!-- Indicador de fortaleza -->
-        <div id="rpStrengthWrap" style="margin-bottom:16px;display:none">
-          <div style="height:4px;background:var(--brd);border-radius:4px;overflow:hidden;margin-bottom:5px">
+        <div id="rpStrengthWrap" style="margin-bottom:20px;display:none">
+          <div style="height:4px;background:var(--brd);border-radius:4px;overflow:hidden;margin-bottom:6px">
             <div id="rpStrengthBar" style="height:100%;width:0%;transition:width .3s,background .3s;border-radius:4px"></div>
           </div>
           <div id="rpStrengthLabel" style="font-size:11px;color:var(--t3)"></div>
         </div>
 
-        <button class="auth-submit" id="rpSubmitBtn"><span>Guardar nueva contraseña</span></button>
+        <button class="auth-submit" id="rpSubmitBtn" style="margin-top:8px"><span>Guardar nueva contraseña</span></button>
       </div>
     </div>`;
 
