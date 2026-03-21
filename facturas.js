@@ -178,18 +178,19 @@ export async function refreshFacturas() {
     let acciones = "";
     if (cerrado) {
       acciones = `<div class="tbl-act">
-        <button class="ta-btn" onclick="window._pdfFact('${f.id}')" title="Descargar PDF">📄</button>
+        <button class="ta-btn" onclick="window._pdfFact('${f.id}')" title="Descargar PDF">📄 PDF Fac</button>
         <span class="ta-locked">🔒</span>
       </div>`;
     } else if (f.estado !== "emitida") {
       acciones = `<div class="tbl-act">
         <button class="ta-btn ta-emit" onclick="window._emitir('${f.id}')">📤 Emitir</button>
+        <button class="ta-btn" onclick="window._pdfFact('${f.id}')" title="Descargar PDF borrador">📄 PDF Fac</button>
         <button class="ta-btn" onclick="window._editFact('${f.id}')">✏️</button>
         <button class="ta-btn ta-del" onclick="window._delFact('${f.id}')">🗑️</button>
       </div>`;
     } else {
       acciones = `<div class="tbl-act">
-        <button class="ta-btn" onclick="window._pdfFact('${f.id}')" title="Descargar PDF">📄</button>
+        <button class="ta-btn" onclick="window._pdfFact('${f.id}')" title="Descargar PDF">📄 PDF Fac</button>
         ${f.tipo==="emitida"?`<button class="ta-btn ${f.cobrada?"ta-cobrada":"ta-pendiente"}" onclick="window._toggleCobro('${f.id}',${!f.cobrada})" title="${f.cobrada?"Cobrada":"Pendiente"}">${f.cobrada?"✅":"⏳"}</button>`:""}
         <button class="ta-btn" onclick="window._duplicarFact('${f.id}')" title="Duplicar factura">📋</button>
         ${f.tipo==="emitida"?`<button class="ta-btn" onclick="window._notaCredito('${f.id}')" title="Nota de crédito / Rectificativa" style="color:#dc2626">🔄</button>`:""}
@@ -300,10 +301,10 @@ window._notaCredito = async (id) => {
         </div>
         <div class="modal-grid2">
           <div class="modal-field"><label>Base a rectificar (€)</label>
-            <input autocomplete="off" type="number" id="nc_base" class="ff-input" value="${f.base}" step="0.01" max="${f.base}"/>
+            <input type="number" id="nc_base" class="ff-input" value="${f.base}" step="0.01" max="${f.base}"/>
           </div>
           <div class="modal-field"><label>Fecha</label>
-            <input autocomplete="off" type="date" id="nc_fecha" class="ff-input" value="${new Date().toISOString().slice(0,10)}"/>
+            <input type="date" id="nc_fecha" class="ff-input" value="${new Date().toISOString().slice(0,10)}"/>
           </div>
         </div>
       </div>
@@ -400,12 +401,12 @@ window._editFact = async id => {
     <div class="modal">
       <div class="modal-hd"><span class="modal-title">✏️ Editar factura</span><button class="modal-x" onclick="window._cm()">×</button></div>
       <div class="modal-bd">
-        <div class="modal-field"><label>Concepto</label><input autocomplete="off" id="_ef_concepto" value="${f.concepto||""}"/></div>
+        <div class="modal-field"><label>Concepto</label><input id="_ef_concepto" value="${f.concepto||""}"/></div>
         <div class="modal-grid2">
-          <div class="modal-field"><label>Base imponible (€)</label><input autocomplete="off" type="number" id="_ef_base" value="${f.base}" step="0.01"/></div>
-          <div class="modal-field"><label>Fecha</label><input autocomplete="off" type="date" id="_ef_fecha" value="${f.fecha}"/></div>
+          <div class="modal-field"><label>Base imponible (€)</label><input type="number" id="_ef_base" value="${f.base}" step="0.01"/></div>
+          <div class="modal-field"><label>Fecha</label><input type="date" id="_ef_fecha" value="${f.fecha}"/></div>
         </div>
-        <div class="modal-field"><label>Notas</label><textarea autocomplete="off" id="_ef_notas">${f.notas||""}</textarea></div>
+        <div class="modal-field"><label>Notas</label><textarea id="_ef_notas">${f.notas||""}</textarea></div>
       </div>
       <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
@@ -464,14 +465,14 @@ export function showGastoRapidoModal() {
         <p class="modal-note">Para tiques, gasolina, parking, dietas y otros gastos menores sin factura completa.</p>
         <div class="modal-field">
           <label>Descripción *</label>
-          <input autocomplete="off" id="gr_concepto" placeholder="Ej: Gasolina · Parking aeropuerto · Dieta viaje…"/>
+          <input id="gr_concepto" placeholder="Ej: Gasolina · Parking aeropuerto · Dieta viaje…"/>
         </div>
         <div class="modal-grid2">
           <div class="modal-field">
             <label>Importe total con IVA (€) *</label>
-            <input autocomplete="off" type="number" id="gr_total" placeholder="0.00" step="0.01" min="0.01"/>
+            <input type="number" id="gr_total" placeholder="0.00" step="0.01" min="0.01"/>
           </div>
-          <div class="modal-field"><label>Fecha *</label><input autocomplete="off" type="date" id="gr_fecha" value="${new Date().toISOString().slice(0,10)}"/></div>
+          <div class="modal-field"><label>Fecha *</label><input type="date" id="gr_fecha" value="${new Date().toISOString().slice(0,10)}"/></div>
         </div>
         <div class="modal-grid2">
           <div class="modal-field"><label>Tipo de gasto</label>
@@ -493,7 +494,7 @@ export function showGastoRapidoModal() {
             </select>
           </div>
         </div>
-        <div class="modal-field"><label>Proveedor (opcional)</label><input autocomplete="off" id="gr_proveedor" placeholder="Nombre del establecimiento"/></div>
+        <div class="modal-field"><label>Proveedor (opcional)</label><input id="gr_proveedor" placeholder="Nombre del establecimiento"/></div>
       </div>
       <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
@@ -591,7 +592,7 @@ export async function showSerieConfigModal() {
 
         <div class="modal-field">
           <label>Formato del número de factura</label>
-          <input autocomplete="off" id="serie_formato" value="${formato}" placeholder="Ej: F-{YEAR}-{NUM4}"/>
+          <input id="serie_formato" value="${formato}" placeholder="Ej: F-{YEAR}-{NUM4}"/>
         </div>
 
         <div style="background:var(--surface-2);border-radius:8px;padding:12px 14px;margin-top:4px;font-size:13px">
