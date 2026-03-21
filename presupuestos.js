@@ -163,18 +163,18 @@ export async function refreshPresupuestos() {
         <td>
           <div class="tbl-act">
             ${p.estado !== "aceptado" && p.estado !== "albaran"
-              ? `<button class="ta-btn ta-emit" onclick="window._presTofact('${p.id}')" title="Convertir a factura">📄→🧾</button>
-                 <button class="ta-btn" onclick="window._presAlbaran('${p.id}')" title="Convertir a albarán" style="font-size:13px">📋</button>`
+              ? `<button class="ta-btn ta-emit" onclick="window._presTofact('${p.id}')" title="Convertir a factura">PDF Fac</button>
+                 <button class="ta-btn" onclick="window._presAlbaran('${p.id}')" title="Convertir a albarán">Albarán</button>`
               : ""}
             ${p.estado === "albaran"
               ? `<button class="ta-btn ta-emit" onclick="window._albaranToFact('${p.id}')" title="Emitir factura desde albarán" style="background:var(--green-lt,#d1fae5);color:var(--green,#059669)">Facturar</button>
                  <button class="ta-btn" onclick="window._pdfAlbaran('${p.id}')" title="PDF Albarán">PDF</button>`
               : ""}
-            <button class="ta-btn ta-email" onclick="window._presEmail('${p.id}')" title="Enviar por email">📧</button>
-            <button class="ta-btn" onclick="window._presPDF('${p.id}')" title="Descargar PDF presupuesto">📄</button>
-            <button class="ta-btn" onclick="window._editPres('${p.id}')" title="Editar">✏️</button>
-            <button class="ta-btn" onclick="window._dupPres('${p.id}')" title="Duplicar">📋</button>
-            <button class="ta-btn ta-del" onclick="window._delPres('${p.id}')" title="Eliminar">🗑️</button>
+            <button class="ta-btn ta-email" onclick="window._presEmail('${p.id}')" title="Enviar por email">Email</button>
+            <button class="ta-btn" onclick="window._presPDF('${p.id}')" title="Descargar PDF presupuesto">PDF Pre</button>
+            <button class="ta-btn" onclick="window._editPres('${p.id}')" title="Editar">Editar</button>
+            <button class="ta-btn" onclick="window._dupPres('${p.id}')" title="Duplicar">Dupl</button>
+            <button class="ta-btn ta-del" onclick="window._delPres('${p.id}')" title="Eliminar">Borrar</button>
           </div>
         </td>
       </tr>`;
