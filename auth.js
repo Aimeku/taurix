@@ -40,7 +40,7 @@ export async function registerEmail(email, password) {
 
 export async function resetPassword(email) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: "https://taurix.es/?reset=1",
+    redirectTo: "https://taurix.es/",
   });
   if (error) throw new Error(error.message);
 }
@@ -339,27 +339,18 @@ export function showResetPasswordModal() {
 
     setLoading(true);
     try {
-      // Obtener sesión activa
-      let { data: { session } } = await supabase.auth.getSession();
-      
-      // Si no hay sesión, esperar hasta 3 segundos a que Supabase la cree
-      if (!session) {
-        for (let i = 0; i < 6; i++) {
-          await new Promise(r => setTimeout(r, 500));
-          const res = await supabase.auth.getSession();
-          session = res.data.session;
-          if (session) break;
+      // Intentar el updateUser directamente — si hay sesión de recovery funcionará
+      const { error } = await supabase.auth.updateUser({ password: pw1 });
+      if (error) {
+        // Si falla por sesión, intentar recuperarla y reintentar
+        if (error.message.includes("session") || error.message.includes("Auth")) {
+          await new Promise(r => setTimeout(r, 1000));
+          const { error: error2 } = await supabase.auth.updateUser({ password: pw1 });
+          if (error2) throw new Error(error2.message);
+        } else {
+          throw new Error(error.message);
         }
       }
-
-      if (!session) {
-        showError("El enlace ha expirado. Por favor solicita un nuevo enlace de recuperación.");
-        setLoading(false);
-        return;
-      }
-
-      const { error } = await supabase.auth.updateUser({ password: pw1 });
-      if (error) throw new Error(error.message);
 
       showSuccess("✅ Contraseña actualizada. Redirigiendo…");
       setTimeout(() => {
