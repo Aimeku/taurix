@@ -355,19 +355,43 @@ export function showResetPasswordModal() {
 
     setLoading(true);
     try {
+      // Verificar que hay sesión activa antes de intentar el cambio
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (!currentSession) {
+        // Intentar recuperar la sesión desde el hash si todavía está
+        const hash = window.location.hash;
+        if (hash.includes("access_token")) {
+          // Supabase debería haberla procesado, esperar un poco más
+          await new Promise(r => setTimeout(r, 1000));
+          const { data: { session: retrySession } } = await supabase.auth.getSession();
+          if (!retrySession) {
+            showError("La sesión ha expirado. Por favor solicita un nuevo enlace de recuperación.");
+            setLoading(false);
+            return;
+          }
+        } else {
+          showError("La sesión ha expirado. Por favor solicita un nuevo enlace de recuperación.");
+          setLoading(false);
+          return;
+        }
+      }
+
       const { error } = await supabase.auth.updateUser({ password: pw1 });
       if (error) throw new Error(error.message);
 
       showSuccess("✅ Contraseña actualizada correctamente. Redirigiendo…");
       setTimeout(() => {
         modal.remove();
-        // Limpiar el hash de la URL
         window.history.replaceState({}, document.title, window.location.pathname);
-        // Recargar para entrar con la nueva sesión
         window.location.reload();
       }, 1800);
     } catch(e) {
-      showError(e.message || "Error al actualizar la contraseña.");
+      if (e.message.includes("session") || e.message.includes("Auth")) {
+        showError("La sesión ha expirado. Por favor solicita un nuevo enlace de recuperación.");
+      } else {
+        showError(e.message || "Error al actualizar la contraseña.");
+      }
       setLoading(false);
     }
   });
