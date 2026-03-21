@@ -212,18 +212,17 @@ window._sendRecordatorio = (facturaId, clienteNombre) => {
 ══════════════════════════ */
 document.addEventListener("DOMContentLoaded", async () => {
 
-  /* ── Auth listener — PRIMERO, antes de cualquier detección ── */
+  /* ── Auth listener — PRIMERO, antes de getSession() ── */
+  // PASSWORD_RECOVERY se dispara cuando Supabase procesa el token del link
+  // En ese momento la sesión YA está establecida y updateUser funcionará
   let _isRecoveryFlow = false;
-  let _authRecovery   = false;
 
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === "PASSWORD_RECOVERY") {
       _isRecoveryFlow = true;
-      _authRecovery   = true;
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.add("hidden");
       window.history.replaceState({}, document.title, window.location.pathname);
-      // Quitar cualquier modal previo y mostrar el de nueva contraseña
       document.getElementById("resetPwModal")?.remove();
       showResetPasswordModal();
       return;
@@ -233,39 +232,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.getElementById("landingPage")?.classList.remove("hidden");
     }
   });
-
-  /* ── Detectar llegada desde link de recovery ── */
-  const _urlParams = new URLSearchParams(window.location.search);
-  if (_urlParams.get("reset") === "1") {
-    _isRecoveryFlow = true;
-    // Ocultar UI inmediatamente
-    document.getElementById("appShell")?.classList.add("hidden");
-    document.getElementById("landingPage")?.classList.add("hidden");
-    // Limpiar el parámetro de la URL
-    window.history.replaceState({}, document.title, window.location.pathname);
-    // Esperar hasta 6 segundos al evento PASSWORD_RECOVERY de Supabase
-    await new Promise(resolve => {
-      let elapsed = 0;
-      const check = setInterval(() => {
-        elapsed += 200;
-        if (_authRecovery) {
-          clearInterval(check);
-          resolve();
-        } else if (elapsed >= 6000) {
-          clearInterval(check);
-          // Timeout — no llegó el evento, mostrar login
-          document.getElementById("landingPage")?.classList.remove("hidden");
-          showAuthModal();
-          setTimeout(() => {
-            const e = document.getElementById("authError");
-            if (e) { e.textContent = "El enlace ha expirado. Solicita uno nuevo."; e.style.display = ""; }
-          }, 300);
-          resolve();
-        }
-      }, 200);
-    });
-    return;
-  }
 
   /* ── CTA / landing ── */
   ["ctaNavBtn", "ctaHeroBtn", "ctaHeroSecBtn", "ctaPlanGratisBtn",
@@ -309,8 +275,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   /* ── Sesión ── */
-  // Si estamos en flujo de recovery, no continuar con la app normal
-  if (_isRecoveryFlow || _authRecovery) return;
+  // Si ya se activó el recovery flow, no continuar con la app
+  if (_isRecoveryFlow) return;
   const session = await getSession();
   if (!session) return;
   setSession(session);
