@@ -41,6 +41,7 @@ export async function registerEmail(email, password) {
 export async function resetPassword(email) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: "https://taurix.es/",
+    captchaToken: undefined,
   });
   if (error) throw new Error(error.message);
 }
