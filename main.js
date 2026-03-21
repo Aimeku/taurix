@@ -212,18 +212,37 @@ window._sendRecordatorio = (facturaId, clienteNombre) => {
 ══════════════════════════ */
 document.addEventListener("DOMContentLoaded", async () => {
 
-  /* ── Auth listener ── */
-  // PASSWORD_RECOVERY debe interceptarse AQUÍ antes de getSession()
-  // Si Supabase detecta el token de recovery en el hash, dispara este evento
-  // y hay que mostrar el modal de nueva contraseña SIN dejar entrar a la app
+  /* ── Detección de flujo de reset de contraseña ── */
+  // Supabase redirige a /?reset=1#access_token=...&type=recovery
+  // Detectamos AMBAS señales: el parámetro ?reset=1 Y el hash type=recovery
   let _isRecoveryFlow = false;
+
+  const _urlParams = new URLSearchParams(window.location.search);
+  const _hashStr   = window.location.hash;
+  const _isReset   = _urlParams.get("reset") === "1";
+  const _hasRecoveryHash = _hashStr.includes("type=recovery");
+
+  if (_isReset || _hasRecoveryHash) {
+    _isRecoveryFlow = true;
+    // Limpiar la URL completamente
+    window.history.replaceState({}, document.title, window.location.pathname);
+    // Ocultar todo
+    document.getElementById("appShell")?.classList.add("hidden");
+    document.getElementById("landingPage")?.classList.add("hidden");
+
+    // Esperar a que Supabase procese el token y tenga sesión activa
+    await new Promise(resolve => setTimeout(resolve, 400));
+    showResetPasswordModal();
+    return;
+  }
+
+  /* ── Auth listener ── */
+  let _authRecovery = false;
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === "PASSWORD_RECOVERY") {
-      _isRecoveryFlow = true;
-      // Ocultar todo y mostrar solo el modal de nueva contraseña
+      _authRecovery = true;
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.add("hidden");
-      // Limpiar hash de la URL
       window.history.replaceState({}, document.title, window.location.pathname);
       showResetPasswordModal();
       return;
@@ -233,24 +252,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.getElementById("landingPage")?.classList.remove("hidden");
     }
   });
-
-  /* ── Comprobar si venimos de un link de recovery en el hash ── */
-  // Supabase v2 a veces no dispara PASSWORD_RECOVERY si el hash ya fue procesado
-  // Lo detectamos manualmente como fallback
-  const _hash = window.location.hash;
-  if (_hash.includes("type=recovery") || _hash.includes("type=magiclink")) {
-    _isRecoveryFlow = true;
-    window.history.replaceState({}, document.title, window.location.pathname);
-    // Esperar a que Supabase procese el token del hash
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const { data: { session: recSess } } = await supabase.auth.getSession();
-    if (recSess) {
-      document.getElementById("appShell")?.classList.add("hidden");
-      document.getElementById("landingPage")?.classList.add("hidden");
-      showResetPasswordModal();
-      return;
-    }
-  }
 
   /* ── CTA / landing ── */
   ["ctaNavBtn", "ctaHeroBtn", "ctaHeroSecBtn", "ctaPlanGratisBtn",
@@ -295,7 +296,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Sesión ── */
   // Si estamos en flujo de recovery, no continuar con la app normal
-  if (_isRecoveryFlow) return;
+  if (_isRecoveryFlow || _authRecovery) return;
   const session = await getSession();
   if (!session) return;
   setSession(session);
