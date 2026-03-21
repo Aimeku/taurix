@@ -224,15 +224,34 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (_isReset || _hasRecoveryHash) {
     _isRecoveryFlow = true;
-    // Limpiar la URL completamente
-    window.history.replaceState({}, document.title, window.location.pathname);
-    // Ocultar todo
+    // NO limpiar el hash todavía — Supabase necesita leerlo para crear la sesión
+    // Ocultar todo mientras procesamos
     document.getElementById("appShell")?.classList.add("hidden");
     document.getElementById("landingPage")?.classList.add("hidden");
 
-    // Esperar a que Supabase procese el token y tenga sesión activa
-    await new Promise(resolve => setTimeout(resolve, 400));
-    showResetPasswordModal();
+    // Esperar a que Supabase procese el token del hash y cree la sesión
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Verificar que la sesión se creó correctamente
+    const { data: { session: recSess } } = await supabase.auth.getSession();
+    
+    // Ahora sí limpiar la URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+    
+    if (recSess) {
+      showResetPasswordModal();
+    } else {
+      // Si no hay sesión, esperar un poco más e intentar de nuevo
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { data: { session: recSess2 } } = await supabase.auth.getSession();
+      if (recSess2) {
+        showResetPasswordModal();
+      } else {
+        // Mostrar el modal de login con mensaje de error
+        document.getElementById("landingPage")?.classList.remove("hidden");
+        showAuthModal();
+      }
+    }
     return;
   }
 
