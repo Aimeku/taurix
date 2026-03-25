@@ -25,21 +25,22 @@ export const MODOS = {
     color:     "#1a56db",
     desc:      "Vista simple y visual. Todo lo que necesitas para gestionar tu negocio.",
     sidebar: [
-      // Lo que ve un autónomo/empresario — sin tecnicismos
-      { sep: true, label: null },                          // inicio sin label
-      { view:"dashboard",    label:"Dashboard",            icon:"grid" },
-      { view:"alertas",      label:"Alertas",              icon:"bell",   badge:"snBadgeAlertas" },
-      { sep: true, label:"Comercial" },
-      { view:"clientes",     label:"Clientes",             icon:"users" },
-      { view:"presupuestos", label:"Presupuestos",         icon:"file-text", badge:"snBadgePres" },
-      { view:"nuevo-presupuesto",label:"Nuevo presupuesto", icon:"plus-circle" },
-      { view:"pipeline",     label:"Seguimiento comercial", icon:"bar-chart" },
-      { view:"trabajos",     label:"Trabajos",             icon:"briefcase" },
-      { view:"agenda",       label:"Agenda",               icon:"calendar" },
-      { view:"facturas",     label:"Facturas",             icon:"file",   badge:"snBadgeBorradores" },
-      { view:"nueva-factura",label:"Nueva factura",        icon:"plus-circle" },
-      { view:"albaranes",    label:"Albaranes",             icon:"clipboard" },
-      { view:"recurrentes",  label:"Facturas recurrentes",  icon:"refresh" },
+      { sep: true, label: null },
+      { view:"dashboard",         label:"Dashboard",            icon:"grid" },
+      { view:"alertas",           label:"Alertas",              icon:"bell",        badge:"snBadgeAlertas" },
+      { sep: true, label:"Clientes y presupuestos" },
+      { view:"clientes",          label:"Clientes",             icon:"users" },
+      { view:"presupuestos",      label:"Presupuestos",         icon:"file-text",   badge:"snBadgePres" },
+      { view:"nuevo-presupuesto", label:"Nuevo presupuesto",    icon:"plus-circle" },
+      { view:"albaranes",         label:"Albaranes",            icon:"clipboard" },
+      { sep: true, label:"Facturas" },
+      { view:"facturas",          label:"Facturas",             icon:"file",        badge:"snBadgeBorradores" },
+      { view:"nueva-factura",     label:"Nueva factura",        icon:"plus-circle" },
+      { view:"recurrentes",       label:"Facturas recurrentes", icon:"refresh" },
+      { sep: true, label:"Trabajo y agenda" },
+      { view:"trabajos",          label:"Trabajos",             icon:"briefcase" },
+      { view:"agenda",            label:"Agenda",               icon:"calendar" },
+      { view:"pipeline",          label:"Seguimiento comercial",icon:"bar-chart" },
       { sep: true, label:"Gastos" },
       { action:"gastoRapido",label:"Gasto rápido",        icon:"zap",    accent:true },
       { view:"gastos",       label:"Proveedores / Gastos",  icon:"credit-card", badge:"snBadgeVencidos" },
@@ -69,18 +70,20 @@ export const MODOS = {
       { view:"cartera",      label:"Cartera de clientes",  icon:"briefcase", badge:"carteraBadge", gestor:true },
       { view:"dashboard",    label:"Dashboard",            icon:"grid" },
       { view:"alertas",      label:"Alertas fiscales",     icon:"bell",   badge:"snBadgeAlertas" },
-      { sep: true, label:"Comercial" },
-      { view:"clientes",     label:"Clientes",             icon:"users" },
-      { view:"presupuestos", label:"Presupuestos",         icon:"file-text", badge:"snBadgePres" },
-      { view:"nuevo-presupuesto",label:"Nuevo presupuesto", icon:"plus-circle" },
-      { view:"pipeline",     label:"Pipeline CRM",         icon:"bar-chart" },
-      { view:"trabajos",     label:"Trabajos",             icon:"briefcase" },
-      { view:"agenda",       label:"Agenda",               icon:"calendar" },
-      { view:"facturas",     label:"Facturas",             icon:"file",   badge:"snBadgeBorradores" },
-      { view:"nueva-factura",label:"Nueva factura",        icon:"plus-circle" },
-      { view:"albaranes",    label:"Albaranes",             icon:"clipboard" },
-      { view:"recurrentes",  label:"Facturas recurrentes",  icon:"refresh" },
-      { view:"verifactu",    label:"Verifactu",            icon:"shield" },
+      { sep: true, label:"Clientes y presupuestos" },
+      { view:"clientes",          label:"Clientes",             icon:"users" },
+      { view:"presupuestos",      label:"Presupuestos",         icon:"file-text",   badge:"snBadgePres" },
+      { view:"nuevo-presupuesto", label:"Nuevo presupuesto",    icon:"plus-circle" },
+      { view:"albaranes",         label:"Albaranes",            icon:"clipboard" },
+      { sep: true, label:"Facturas" },
+      { view:"facturas",          label:"Facturas",             icon:"file",        badge:"snBadgeBorradores" },
+      { view:"nueva-factura",     label:"Nueva factura",        icon:"plus-circle" },
+      { view:"recurrentes",       label:"Facturas recurrentes", icon:"refresh" },
+      { view:"verifactu",         label:"Verifactu",            icon:"shield" },
+      { sep: true, label:"Trabajo y agenda" },
+      { view:"trabajos",          label:"Trabajos",             icon:"briefcase" },
+      { view:"agenda",            label:"Agenda",               icon:"calendar" },
+      { view:"pipeline",          label:"Pipeline CRM",         icon:"bar-chart" },
       { sep: true, label:"Gastos y tesorería" },
       { action:"gastoRapido",label:"Gasto rápido",        icon:"zap",    accent:true },
       { view:"gastos",       label:"Proveedores / Gastos",  icon:"credit-card", badge:"snBadgeVencidos" },
@@ -301,12 +304,22 @@ function actualizarToggleBtn(modo) {
   if (!btn) return;
   const cfg  = MODOS[modo];
   const otro = MODOS[modo === "empresario" ? "gestor" : "empresario"];
-  // Mostrar modo ACTUAL con etiqueta "Ahora:" para que quede claro
-  btn.innerHTML = `<span style="font-size:9px;opacity:.7;display:block;line-height:1.1">Ahora:</span><span>${cfg.icon} ${cfg.labelCorto}</span>`;
-  btn.title         = `Modo actual: ${cfg.label}. Pulsa para cambiar a ${otro.label}`;
+  // Mostrar modo ACTUAL (no el otro)
+  btn.innerHTML = `<span style="font-size:8.5px;opacity:.65;display:block;line-height:1;text-transform:uppercase;letter-spacing:.04em;font-weight:600">Ahora:</span><span style="font-size:11px;font-weight:800;line-height:1.3">${cfg.icon} ${cfg.labelCorto}</span>`;
+  btn.title         = `Estás en ${cfg.label}. Pulsa para cambiar a ${otro.label}`;
   btn.style.borderColor = cfg.color + "55";
   btn.style.color       = cfg.color;
   btn.style.background  = cfg.color + "0d";
+  btn.style.width       = "auto";
+  btn.style.minWidth    = "110px";
+  btn.style.maxWidth    = "160px";
+  btn.style.height      = "38px";
+  btn.style.padding     = "0 12px";
+  btn.style.display     = "inline-flex";
+  btn.style.flexDirection = "column";
+  btn.style.alignItems  = "flex-start";
+  btn.style.justifyContent = "center";
+  btn.style.whiteSpace  = "nowrap";
 }
 
 export function toggleModo() {
