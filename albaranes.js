@@ -13,25 +13,45 @@ import { SESSION, fmt, fmtDate, toast, openModal, closeModal, getYear, getTrim, 
 export async function refreshAlbaranes() {
   const year = getYear(), trim = getTrim();
   const { ini, fin } = getFechaRango(year, trim);
-  const search = (document.getElementById("albaranSearch")?.value || "").toLowerCase();
+  const search      = (document.getElementById("albaranSearch")?.value || "").toLowerCase();
+  const factFilter  = document.getElementById("albaranFilterFacturado")?.value || "";
+  const clienteF    = (document.getElementById("albaranFilterCliente")?.value || "").toLowerCase();
+  const desdeF      = document.getElementById("albaranFilterDesde")?.value || "";
+  const hastaF      = document.getElementById("albaranFilterHasta")?.value || "";
+  const minF        = parseFloat(document.getElementById("albaranFilterMin")?.value) || 0;
+  const maxF        = parseFloat(document.getElementById("albaranFilterMax")?.value) || 0;
 
   const { data, error } = await supabase.from("presupuestos")
     .select("*")
     .eq("user_id", SESSION.user.id)
     .eq("estado", "albaran")
-    .gte("fecha", ini).lte("fecha", fin)
+    .gte("fecha", desdeF || ini).lte("fecha", hastaF || fin)
     .order("fecha", { ascending: false });
 
   if (error) { console.error("albaranes:", error.message); return; }
 
   let albaranes = data || [];
-  if (search) {
-    albaranes = albaranes.filter(a =>
-      (a.concepto || "").toLowerCase().includes(search) ||
-      (a.numero || "").toLowerCase().includes(search) ||
-      (a.albaran_numero || "").toLowerCase().includes(search) ||
-      (a.cliente_nombre || "").toLowerCase().includes(search)
-    );
+  if (search) albaranes = albaranes.filter(a =>
+    (a.concepto || "").toLowerCase().includes(search) ||
+    (a.numero || "").toLowerCase().includes(search) ||
+    (a.albaran_numero || "").toLowerCase().includes(search) ||
+    (a.cliente_nombre || "").toLowerCase().includes(search)
+  );
+  if (factFilter === "si") albaranes = albaranes.filter(a => !!a.factura_id);
+  if (factFilter === "no") albaranes = albaranes.filter(a => !a.factura_id);
+  if (clienteF) albaranes = albaranes.filter(a => (a.cliente_nombre || "").toLowerCase().includes(clienteF));
+  if (minF > 0) albaranes = albaranes.filter(a => (a.base + a.base * (a.iva || 21) / 100) >= minF);
+  if (maxF > 0) albaranes = albaranes.filter(a => (a.base + a.base * (a.iva || 21) / 100) <= maxF);
+
+  // Poblar select clientes
+  const selCli = document.getElementById("albaranFilterCliente");
+  if (selCli && selCli.options.length <= 1 && (data||[]).length) {
+    const nombres = [...new Set((data||[]).map(a => a.cliente_nombre).filter(Boolean))].sort();
+    nombres.forEach(n => {
+      const opt = document.createElement("option");
+      opt.value = n.toLowerCase(); opt.textContent = n;
+      selCli.appendChild(opt);
+    });
   }
 
   const countEl = document.getElementById("albaranesCount");
@@ -277,5 +297,14 @@ export function initAlbaranesView() {
   document.getElementById("nuevoAlbaranBtn")?.addEventListener("click", () => {
     toast("Para crear un albarán, acepta un presupuesto y conviértelo desde la vista de Presupuestos", "info", 5000);
   });
-  document.getElementById("albaranSearch")?.addEventListener("input", () => refreshAlbaranes());
+  ["albaranSearch","albaranFilterFacturado","albaranFilterCliente","albaranFilterDesde","albaranFilterHasta","albaranFilterMin","albaranFilterMax"]
+    .forEach(id => {
+      document.getElementById(id)?.addEventListener("input",  () => refreshAlbaranes());
+      document.getElementById(id)?.addEventListener("change", () => refreshAlbaranes());
+    });
+  document.getElementById("albaranFilterReset")?.addEventListener("click", () => {
+    ["albaranSearch","albaranFilterFacturado","albaranFilterCliente","albaranFilterDesde","albaranFilterHasta","albaranFilterMin","albaranFilterMax"]
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+    refreshAlbaranes();
+  });
 }
