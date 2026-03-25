@@ -22,6 +22,7 @@ const STATIC_ASSETS = [
   "/clientes.js",
   "/nueva-factura.js",
   "/presupuestos.js",
+  "/nuevo-presupuesto.js",
   "/productos.js",
   "/gastos.js",
   "/exports.js",
