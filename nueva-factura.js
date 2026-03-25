@@ -14,7 +14,7 @@ import { refreshClientes, populateClienteSelect } from "./clientes.js";
 import { refreshDashboard } from "./dashboard.js";
 import { refreshFacturas } from "./facturas.js";
 import { PRODUCTOS, buscarProductoPorCodigo } from "./productos.js";
-import { renderSelectorPlantillas } from "./plantillas-usuario.js";
+import { PLANTILLAS, loadPlantillas, getPlantillaData, renderSelectorPlantillas } from "./plantillas-usuario.js";
 
 /* ── Estado interno del formulario ── */
 let LINEAS = [];
@@ -97,28 +97,48 @@ function addLinea(prefill = {}) {
   if (descInput && PRODUCTOS && PRODUCTOS.length > 0) {
     const dropdown = document.createElement("div");
     dropdown.className = "csc-dropdown prod-autocomplete";
-    dropdown.style.cssText = "position:absolute;z-index:200;width:100%;top:100%;left:0";
+    dropdown.style.cssText = "position:absolute;z-index:300;width:320px;top:100%;left:0;max-height:280px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.15);border-radius:10px;border:1px solid var(--brd);background:var(--srf)";
     descInput.parentElement.style.position = "relative";
     descInput.parentElement.appendChild(dropdown);
 
     descInput.addEventListener("input", () => {
-      const q = descInput.value.toLowerCase();
-      if (!q || q.length < 2) { dropdown.style.display = "none"; return; }
+      const q = descInput.value.toLowerCase().trim();
+      if (!q || q.length < 1) {
+        // Mostrar todos los productos disponibles al enfocar con campo vacío
+        dropdown.style.display = "none"; return;
+      }
       const matches = PRODUCTOS.filter(p =>
         p.activo !== false && (
           p.nombre.toLowerCase().includes(q) ||
-          (p.referencia || "").toLowerCase().includes(q)
+          (p.referencia || "").toLowerCase().includes(q) ||
+          (p.descripcion || "").toLowerCase().includes(q) ||
+          (p.codigo_barras || "").includes(q)
         )
-      ).slice(0, 6);
-      if (!matches.length) { dropdown.style.display = "none"; return; }
-      dropdown.innerHTML = matches.map(p => `
-        <div class="csd-item prod-ac-item" data-id="${p.id}" style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div class="csd-name">${p.nombre}</div>
-            <div class="csd-meta">${p.referencia ? p.referencia + " · " : ""}${p.tipo}</div>
+      ).slice(0, 8);
+      if (!matches.length) {
+        dropdown.innerHTML = `<div style="padding:12px 14px;font-size:12px;color:var(--t3)">Sin resultados para "${q}"</div>`;
+        dropdown.style.display = ""; return;
+      }
+      dropdown.innerHTML = matches.map(p => {
+        const stockInfo = p.tipo !== "servicio" && p.stock_actual !== null && p.stock_actual !== undefined
+          ? `<span style="font-size:10px;padding:1px 6px;border-radius:4px;font-weight:600;background:${p.stock_actual > 0 ? '#dcfce7' : '#fee2e2'};color:${p.stock_actual > 0 ? '#166534' : '#991b1b'};margin-left:6px">Stock: ${p.stock_actual}</span>`
+          : "";
+        return `<div class="csd-item prod-ac-item" data-id="${p.id}"
+          style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--brd);transition:background .1s"
+          onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background=''">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:13px;color:var(--t1)">${p.nombre}${stockInfo}</div>
+              ${p.descripcion ? `<div style="font-size:11px;color:var(--t3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">${p.descripcion}</div>` : ""}
+              ${p.referencia ? `<div style="font-size:10px;color:var(--t4);font-family:monospace">Ref: ${p.referencia}</div>` : ""}
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-size:13px;font-weight:800;color:var(--accent);font-family:monospace">${fmt(p.precio)}</div>
+              <div style="font-size:10px;color:var(--t3)">IVA ${p.iva}%</div>
+            </div>
           </div>
-          <div style="font-size:12px;font-weight:700;color:var(--brand)">${fmt(p.precio)}</div>
-        </div>`).join("");
+        </div>`;
+      }).join("");
       dropdown.querySelectorAll(".prod-ac-item").forEach(item => {
         item.addEventListener("mousedown", e => {
           e.preventDefault();
@@ -126,10 +146,10 @@ function addLinea(prefill = {}) {
           if (!p) return;
           const linea = LINEAS.find(l => l.id === id);
           if (linea) {
-            linea.descripcion = p.nombre;
+            linea.descripcion = p.descripcion || p.nombre;
             linea.precio = p.precio;
             linea.iva = p.iva;
-            descInput.value = p.nombre;
+            descInput.value = p.descripcion || p.nombre;
             const priceInput = row.querySelector("[data-field='precio']");
             const ivaSelect  = row.querySelector("[data-field='iva']");
             if (priceInput) priceInput.value = p.precio;
@@ -143,7 +163,55 @@ function addLinea(prefill = {}) {
       });
       dropdown.style.display = "";
     });
-    descInput.addEventListener("blur", () => setTimeout(() => { dropdown.style.display = "none"; }, 200));
+    // Mostrar catálogo al hacer focus
+    descInput.addEventListener("focus", () => {
+      if (!descInput.value.trim() && PRODUCTOS.length > 0) {
+        const top8 = PRODUCTOS.filter(p => p.activo !== false).slice(0, 8);
+        dropdown.innerHTML = `<div style="padding:8px 14px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--brd)">📦 Catálogo de productos</div>` +
+          top8.map(p => {
+            const stockInfo = p.tipo !== "servicio" && p.stock_actual !== null && p.stock_actual !== undefined
+              ? `<span style="font-size:10px;padding:1px 6px;border-radius:4px;font-weight:600;background:${p.stock_actual > 0 ? '#dcfce7' : '#fee2e2'};color:${p.stock_actual > 0 ? '#166534' : '#991b1b'};margin-left:6px">Stock: ${p.stock_actual}</span>`
+              : "";
+            return `<div class="csd-item prod-ac-item" data-id="${p.id}"
+              style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--brd)"
+              onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background=''">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+                <div style="flex:1;min-width:0">
+                  <div style="font-weight:600;font-size:13px;color:var(--t1)">${p.nombre}${stockInfo}</div>
+                  ${p.descripcion ? `<div style="font-size:11px;color:var(--t3);margin-top:1px">${p.descripcion.substring(0,60)}</div>` : ""}
+                </div>
+                <div style="text-align:right;flex-shrink:0">
+                  <div style="font-size:13px;font-weight:800;color:var(--accent);font-family:monospace">${fmt(p.precio)}</div>
+                  <div style="font-size:10px;color:var(--t3)">IVA ${p.iva}%</div>
+                </div>
+              </div>
+            </div>`;
+          }).join("");
+        dropdown.querySelectorAll(".prod-ac-item").forEach(item => {
+          item.addEventListener("mousedown", e => {
+            e.preventDefault();
+            const p = PRODUCTOS.find(x => x.id === item.dataset.id);
+            if (!p) return;
+            const linea = LINEAS.find(l => l.id === id);
+            if (linea) {
+              linea.descripcion = p.descripcion || p.nombre;
+              linea.precio = p.precio; linea.iva = p.iva;
+              descInput.value = p.descripcion || p.nombre;
+              const priceInput = row.querySelector("[data-field='precio']");
+              const ivaSelect  = row.querySelector("[data-field='iva']");
+              if (priceInput) priceInput.value = p.precio;
+              if (ivaSelect)  ivaSelect.value  = p.iva;
+              const rowEl = document.getElementById(`ltRow${id}`);
+              if (rowEl) rowEl.textContent = fmt(linea.cantidad * linea.precio);
+              updateTotalesUI(); updatePreview();
+            }
+            dropdown.style.display = "none";
+          });
+        });
+        dropdown.style.display = "";
+      }
+    });
+    descInput.addEventListener("blur", () => setTimeout(() => { dropdown.style.display = "none"; }, 220));
   }
   container.appendChild(row);
   updateTotalesUI();
@@ -608,30 +676,24 @@ export function initNuevaFactura() {
   document.getElementById("nfEmitirBtn")?.addEventListener("click",  ()=>saveFactura());
   if (LINEAS.length===0) addLinea();
 
-  // Selector de plantilla integrado
+  // Selector de plantilla en el formulario
   renderSelectorPlantillas("nfPlantillaSelectorWrap", (data) => {
     LINEAS=[]; lineaIdCounter=0;
-    const container=document.getElementById("lineasContainer");
-    if (container) container.innerHTML="";
+    const c=document.getElementById("lineasContainer"); if(c) c.innerHTML="";
     if (data) {
       (data.lineas||[]).forEach(l=>addLinea(l));
       const no=document.getElementById("nfNotas"); if(no&&data.notas) no.value=data.notas;
       toast("✅ Plantilla aplicada","success",2000);
-    } else {
-      addLinea();
-    }
+    } else { addLinea(); }
     updateTotalesUI(); updatePreview();
   });
 }
 
-/* ══════════════════════════
-   APLICAR PLANTILLA (llamada externa)
-══════════════════════════ */
+/* ── Aplicar plantilla desde fuera (ej: plantillas-usuario.js) ── */
 function _applyPlantillaToNF(data) {
   if (!data) return;
   LINEAS=[]; lineaIdCounter=0;
-  const container=document.getElementById("lineasContainer");
-  if (container) container.innerHTML="";
+  const c=document.getElementById("lineasContainer"); if(c) c.innerHTML="";
   (data.lineas||[]).forEach(l=>addLinea(l));
   if (!LINEAS.length) addLinea();
   const no=document.getElementById("nfNotas"); if(no&&data.notas) no.value=data.notas;
