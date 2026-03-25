@@ -99,9 +99,9 @@ export function showNuevoProductoModal(prefill = {}) {
           </div>
           <div class="modal-field"><label>Tipo</label>
             <select id="mpd_tipo" class="ff-select">
-              <option value="servicio"    ${tipoInit === "servicio"    ? "selected" : ""}>Servicio</option>
-              <option value="producto"    ${tipoInit === "producto"    ? "selected" : ""}>Producto físico</option>
-              <option value="suscripcion" ${tipoInit === "suscripcion" ? "selected" : ""}>Suscripción</option>
+              <option value="producto"    ${tipoInit === "producto"    ? "selected" : ""}>📦 Producto físico</option>
+              <option value="servicio"    ${tipoInit === "servicio"    ? "selected" : ""}>🔧 Servicio</option>
+              <option value="suscripcion" ${tipoInit === "suscripcion" ? "selected" : ""}>🔄 Suscripción</option>
             </select>
           </div>
         </div>
@@ -109,17 +109,33 @@ export function showNuevoProductoModal(prefill = {}) {
           <textarea autocomplete="off" id="mpd_desc" class="ff-input ff-textarea" style="min-height:60px"
             placeholder="Descripción que aparecerá en las líneas del documento">${prefill.descripcion || ""}</textarea>
         </div>
-        <div class="modal-grid3">
-          <div class="modal-field"><label>Precio de venta (€) *</label>
+
+        <!-- Precios separados -->
+        <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">💰 Precios</div>
+        <div class="modal-grid2">
+          <div class="modal-field"><label>Precio de venta (€) * <span style="font-weight:400;color:var(--t4)">sin IVA</span></label>
             <input autocomplete="off" type="number" id="mpd_precio" class="ff-input" value="${prefill.precio || ""}" step="0.01" placeholder="0.00"/></div>
-          <div class="modal-field"><label>Precio de coste (€)</label>
+          <div class="modal-field"><label>Precio de coste (€) <span style="font-weight:400;color:var(--t4)">sin IVA</span></label>
             <input autocomplete="off" type="number" id="mpd_coste" class="ff-input" value="${prefill.precio_coste || ""}" step="0.01" placeholder="0.00"/></div>
-          <div class="modal-field"><label>IVA</label>
+        </div>
+
+        <!-- Impuestos separados -->
+        <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">🏛️ Impuestos</div>
+        <div class="modal-grid2">
+          <div class="modal-field"><label>IVA aplicable</label>
             <select id="mpd_iva" class="ff-select">
-              <option value="21" ${(prefill.iva === 21 || prefill.iva === undefined) ? "selected" : ""}>21%</option>
-              <option value="10" ${prefill.iva === 10 ? "selected" : ""}>10%</option>
-              <option value="4"  ${prefill.iva === 4  ? "selected" : ""}>4%</option>
-              <option value="0"  ${prefill.iva === 0  ? "selected" : ""}>0%</option>
+              <option value="21" ${(prefill.iva === 21 || prefill.iva === undefined) ? "selected" : ""}>21% — General</option>
+              <option value="10" ${prefill.iva === 10 ? "selected" : ""}>10% — Reducido</option>
+              <option value="4"  ${prefill.iva === 4  ? "selected" : ""}>4% — Superreducido</option>
+              <option value="0"  ${prefill.iva === 0  ? "selected" : ""}>0% — Exento</option>
+            </select>
+          </div>
+          <div class="modal-field"><label>Recargo de equivalencia</label>
+            <select id="mpd_recargo" class="ff-select">
+              <option value="0" ${(!prefill.recargo_equivalencia || prefill.recargo_equivalencia === 0) ? "selected" : ""}>Sin recargo</option>
+              <option value="5.2" ${prefill.recargo_equivalencia === 5.2 ? "selected" : ""}>5,2% (IVA 21%)</option>
+              <option value="1.4" ${prefill.recargo_equivalencia === 1.4 ? "selected" : ""}>1,4% (IVA 10%)</option>
+              <option value="0.5" ${prefill.recargo_equivalencia === 0.5 ? "selected" : ""}>0,5% (IVA 4%)</option>
             </select>
           </div>
         </div>
@@ -146,17 +162,14 @@ export function showNuevoProductoModal(prefill = {}) {
                 ${unidades.map(u => `<option value="${u}" ${prefill.unidad === u ? "selected" : ""}>${u}</option>`).join("")}
               </select>
             </div>
-            <div class="modal-field" style="justify-content:flex-end;padding-top:18px">
-              <label style="flex-direction:row;align-items:center;gap:6px;cursor:pointer">
-                <input autocomplete="off" type="checkbox" id="mpd_activo" ${prefill.activo !== false ? "checked" : ""}/>
-                <span style="font-size:13px;font-weight:500">Producto activo</span>
-              </label>
-            </div>
+            <div></div>
           </div>
         </div>
-        <div id="mpd_activoStock" style="${tipoInit === "producto" ? "" : "display:none"};margin-top:10px">
+
+        <!-- Activo: solo visible para producto físico -->
+        <div id="mpd_activoWrap" style="${tipoInit === "producto" ? "" : "display:none"};margin-top:10px">
           <label style="flex-direction:row;align-items:center;gap:6px;cursor:pointer;display:flex">
-            <input autocomplete="off" type="checkbox" id="mpd_activo2" ${prefill.activo !== false ? "checked" : ""}/>
+            <input autocomplete="off" type="checkbox" id="mpd_activo" ${prefill.activo !== false ? "checked" : ""}/>
             <span style="font-size:13px;font-weight:500">Producto activo</span>
           </label>
         </div>
@@ -179,7 +192,7 @@ export function showNuevoProductoModal(prefill = {}) {
     const isP = e.target.value === "producto";
     document.getElementById("mpd_stockSection").style.display = isP ? "" : "none";
     document.getElementById("mpd_unidadRow").style.display    = isP ? "none" : "";
-    document.getElementById("mpd_activoStock").style.display  = isP ? "" : "none";
+    document.getElementById("mpd_activoWrap").style.display   = isP ? "" : "none";
   });
 
   const updatePreview = () => {
@@ -238,7 +251,7 @@ export function showNuevoProductoModal(prefill = {}) {
 
     const tipo       = document.getElementById("mpd_tipo").value;
     const isProducto = tipo === "producto";
-    const activo     = isProducto ? document.getElementById("mpd_activo2").checked : document.getElementById("mpd_activo").checked;
+    const activo     = isProducto ? (document.getElementById("mpd_activo")?.checked ?? true) : true;
     const unidad     = isProducto ? (document.getElementById("mpd_unidad")?.value || "unidad") : (document.getElementById("mpd_unidadSrv")?.value || "unidad");
     const costeVal   = parseFloat(document.getElementById("mpd_coste")?.value);
     const stockVal   = parseInt(document.getElementById("mpd_stock")?.value);
