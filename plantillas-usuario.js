@@ -420,11 +420,6 @@ export function showPlantillaModal(prefill = {}) {
     _pv();
   };
 
-  const LABELS = {
-    es: { tipo:"FACTURA", de:"EMISOR", para:"CLIENTE", desc:"Descripción", cant:"Cant.", precio:"Precio", iva:"IVA", total:"Total", base:"Base imponible", totalDoc:"TOTAL", notas:"Notas / Condiciones", pie:"Pie de página" },
-    en: { tipo:"INVOICE", de:"FROM",   para:"BILL TO", desc:"Description", cant:"Qty.", precio:"Price",  iva:"VAT", total:"Total", base:"Subtotal",       totalDoc:"TOTAL", notas:"Notes / Terms",     pie:"Footer" },
-  };
-
   // ── Sync color picker ↔ hex ──
   ["plt_color_cab","plt_color_txtcab","plt_color_acento","plt_color_fondo"].forEach(id => {
     const pick = document.getElementById(id);
