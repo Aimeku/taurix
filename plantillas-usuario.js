@@ -602,8 +602,8 @@ export function showPlantillaModal(prefill = {}) {
     if (pieTxt)  pieTxt.textContent    = pie||"Texto legal de pie de página";
 
     // Fondo documento
-    const preview = document.getElementById("plt_preview");
-    if (preview) preview.style.background = colorFondo;
+    const previewEl = document.getElementById("plt_preview");
+    if (previewEl) previewEl.style.background = colorFondo;
   }
 
   // Conectar todos los inputs al preview
