@@ -1980,10 +1980,68 @@ function _mostrarPaginaFirma(p, token) {
 window._presEmail   = (id) => showEnviarEmailModal(id);
 window._presFirma   = (id) => showFirmaDigitalModal(id);
 window._editPres = async (id) => {
+  // Llamada desde plantillas-usuario.js: "new_from_template_<id>"
+  if (typeof id === "string" && id.startsWith("new_from_template_")) {
+    const plantillaId = id.replace("new_from_template_", "");
+    // Importar dinámicamente para evitar dependencia circular
+    const { PLANTILLAS, getPlantillaData } = await import("./plantillas-usuario.js");
+    const data = getPlantillaData(plantillaId);
+    if (!data) { toast("Plantilla no encontrada", "error"); return; }
+    showNuevoPresupuestoModal({
+      concepto: data.concepto || "",
+      notas:    data.notas    || "",
+      lineas:   data.lineas   || [],
+      fecha:    new Date().toISOString().slice(0, 10),
+      estado:   "borrador",
+    });
+    return;
+  }
   const { data, error } = await supabase.from("presupuestos").select("*").eq("id", id).single();
   if (error || !data) { toast("Error cargando presupuesto", "error"); return; }
   const lineas = data.lineas ? JSON.parse(data.lineas) : [];
   showNuevoPresupuestoModal({ ...data, lineas });
+};
+
+/* ══════════════════════════
+   APLICAR PLANTILLA AL PRESUPUESTO ABIERTO
+   Llamado desde plantillas-usuario.js si el modal
+   ya está abierto (uso futuro del selector en línea)
+══════════════════════════ */
+window._applyPlantillaToPresupuesto = (data) => {
+  if (!data) return;
+  // Si el modal de presupuesto está abierto, rellenar sus campos
+  const conceptoEl = document.getElementById("pm_concepto");
+  const notasEl    = document.getElementById("pm_notas");
+  const container  = document.getElementById("pm_lineasContainer");
+
+  if (!conceptoEl && !container) {
+    // El modal no está abierto todavía — abrir nuevo con datos
+    showNuevoPresupuestoModal({
+      concepto: data.concepto || "",
+      notas:    data.notas    || "",
+      lineas:   data.lineas   || [],
+      fecha:    new Date().toISOString().slice(0, 10),
+      estado:   "borrador",
+    });
+    return;
+  }
+
+  if (conceptoEl && data.concepto) conceptoEl.value = data.concepto;
+  if (notasEl    && data.notas)    notasEl.value    = data.notas;
+
+  // Rellenar líneas si el modal tiene el contenedor
+  if (container && data.lineas?.length) {
+    container.innerHTML = "";
+    // Reutilizar el mecanismo interno del modal de presupuesto
+    // disparando el evento de añadir línea por cada una
+    data.lineas.forEach(l => {
+      if (window._pmAddLinea) {
+        window._pmAddLinea(l);
+      }
+    });
+  }
+
+  toast("✅ Plantilla aplicada al presupuesto", "success", 3000);
 };
 window._dupPres = async (id) => {
   const { data, error } = await supabase.from("presupuestos").select("*").eq("id", id).single();
