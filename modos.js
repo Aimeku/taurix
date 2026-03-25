@@ -25,28 +25,29 @@ export const MODOS = {
     color:     "#1a56db",
     desc:      "Vista simple y visual. Todo lo que necesitas para gestionar tu negocio.",
     sidebar: [
-      // Lo que ve un autónomo/empresario — sin tecnicismos
-      { sep: true, label: null },                          // inicio sin label
+      { sep: true, label: null },
       { view:"dashboard",    label:"Dashboard",            icon:"grid" },
       { view:"alertas",      label:"Alertas",              icon:"bell",   badge:"snBadgeAlertas" },
-      { sep: true, label:"Comercial" },
+      { sep: true, label:"Clientes y presupuestos" },
       { view:"clientes",     label:"Clientes",             icon:"users" },
       { view:"presupuestos", label:"Presupuestos",         icon:"file-text", badge:"snBadgePres" },
-      { view:"nuevo-presupuesto",label:"Nuevo presupuesto", icon:"plus-circle" },
-      { view:"pipeline",     label:"Seguimiento comercial", icon:"bar-chart" },
-      { view:"trabajos",     label:"Trabajos",             icon:"briefcase" },
-      { view:"agenda",       label:"Agenda",               icon:"calendar" },
+      { view:"nuevo-presupuesto",label:"Nuevo presupuesto",icon:"plus-circle" },
+      { view:"albaranes",    label:"Albaranes",            icon:"clipboard" },
+      { sep: true, label:"Facturas" },
       { view:"facturas",     label:"Facturas",             icon:"file",   badge:"snBadgeBorradores" },
       { view:"nueva-factura",label:"Nueva factura",        icon:"plus-circle" },
-      { view:"albaranes",    label:"Albaranes",             icon:"clipboard" },
-      { view:"recurrentes",  label:"Facturas recurrentes",  icon:"refresh" },
+      { view:"recurrentes",  label:"Facturas recurrentes", icon:"refresh" },
+      { sep: true, label:"Trabajo y agenda" },
+      { view:"trabajos",     label:"Trabajos",             icon:"briefcase" },
+      { view:"agenda",       label:"Agenda",               icon:"calendar" },
+      { view:"pipeline",     label:"Seguimiento comercial",icon:"bar-chart" },
       { sep: true, label:"Gastos" },
       { action:"gastoRapido",label:"Gasto rápido",        icon:"zap",    accent:true },
-      { view:"gastos",       label:"Proveedores / Gastos",  icon:"credit-card", badge:"snBadgeVencidos" },
+      { view:"gastos",       label:"Proveedores / Gastos", icon:"credit-card", badge:"snBadgeVencidos" },
       { view:"tesoreria",    label:"Tesorería",            icon:"bank" },
       { sep: true, label:"Catálogo" },
       { view:"productos",    label:"Productos / Servicios",icon:"package" },
-      { view:"plantillas",   label:"Mis plantillas",        icon:"layout" },
+      { view:"plantillas",   label:"Mis plantillas",       icon:"layout" },
       { sep: true, label:"Equipo" },
       { view:"empleados",    label:"Empleados",            icon:"users2" },
       { view:"nominas",      label:"Nóminas",              icon:"card" },
@@ -69,18 +70,20 @@ export const MODOS = {
       { view:"cartera",      label:"Cartera de clientes",  icon:"briefcase", badge:"carteraBadge", gestor:true },
       { view:"dashboard",    label:"Dashboard",            icon:"grid" },
       { view:"alertas",      label:"Alertas fiscales",     icon:"bell",   badge:"snBadgeAlertas" },
-      { sep: true, label:"Comercial" },
+      { sep: true, label:"Clientes y presupuestos" },
       { view:"clientes",     label:"Clientes",             icon:"users" },
       { view:"presupuestos", label:"Presupuestos",         icon:"file-text", badge:"snBadgePres" },
-      { view:"nuevo-presupuesto",label:"Nuevo presupuesto", icon:"plus-circle" },
-      { view:"pipeline",     label:"Pipeline CRM",         icon:"bar-chart" },
-      { view:"trabajos",     label:"Trabajos",             icon:"briefcase" },
-      { view:"agenda",       label:"Agenda",               icon:"calendar" },
+      { view:"nuevo-presupuesto",label:"Nuevo presupuesto",icon:"plus-circle" },
+      { view:"albaranes",    label:"Albaranes",            icon:"clipboard" },
+      { sep: true, label:"Facturas" },
       { view:"facturas",     label:"Facturas",             icon:"file",   badge:"snBadgeBorradores" },
       { view:"nueva-factura",label:"Nueva factura",        icon:"plus-circle" },
-      { view:"albaranes",    label:"Albaranes",             icon:"clipboard" },
-      { view:"recurrentes",  label:"Facturas recurrentes",  icon:"refresh" },
+      { view:"recurrentes",  label:"Facturas recurrentes", icon:"refresh" },
       { view:"verifactu",    label:"Verifactu",            icon:"shield" },
+      { sep: true, label:"Trabajo y agenda" },
+      { view:"trabajos",     label:"Trabajos",             icon:"briefcase" },
+      { view:"agenda",       label:"Agenda",               icon:"calendar" },
+      { view:"pipeline",     label:"Pipeline CRM",         icon:"bar-chart" },
       { sep: true, label:"Gastos y tesorería" },
       { action:"gastoRapido",label:"Gasto rápido",        icon:"zap",    accent:true },
       { view:"gastos",       label:"Proveedores / Gastos",  icon:"credit-card", badge:"snBadgeVencidos" },
@@ -302,16 +305,22 @@ function actualizarToggleBtn(modo) {
   const cfg  = MODOS[modo];
   const otro = MODOS[modo === "empresario" ? "gestor" : "empresario"];
 
-  // Actualizar icono y label del modo ACTUAL
-  const iconEl  = document.getElementById("modoActualIcon");
-  const labelEl = document.getElementById("modoActualLabel");
-  if (iconEl)  iconEl.textContent  = cfg.icon;
-  if (labelEl) labelEl.textContent = cfg.labelCorto;
+  // Mostrar modo actual + hint de a dónde cambia
+  btn.innerHTML = `
+    <span style="font-size:13px;line-height:1">${cfg.icon}</span>
+    <span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.25;gap:1px">
+      <span style="font-size:9px;opacity:.65;text-transform:uppercase;letter-spacing:.05em">Modo actual</span>
+      <span style="font-size:11px;font-weight:800">${cfg.labelCorto}</span>
+    </span>
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+      style="opacity:.5;flex-shrink:0"><path d="M7 16L3 12l4-4M17 8l4 4-4 4"/></svg>`;
 
-  // Colorear el botón con el color del modo activo
-  btn.style.borderColor = cfg.color + "66";
-  btn.style.background  = cfg.color + "10";
-  btn.title = `Modo actual: ${cfg.label}. Click para cambiar a ${otro.label}`;
+  btn.title         = `Ahora: ${cfg.label} — Click para cambiar a ${otro.label}`;
+  btn.style.cssText = `
+    display:flex;align-items:center;gap:6px;padding:0 10px;height:34px;
+    border-radius:8px;border:1.5px solid ${cfg.color}55;
+    background:${cfg.color}0e;cursor:pointer;white-space:nowrap;
+    color:${cfg.color};transition:all .2s;`;
 }
 
 export function toggleModo() {
