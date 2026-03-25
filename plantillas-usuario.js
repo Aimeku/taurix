@@ -762,6 +762,11 @@ window._usarPlantillaPres = (id) => {
 };
 
 /* ══════════════════════════
+   ALIAS — compatibilidad con imports de nueva-factura y nuevo-presupuesto
+══════════════════════════ */
+export const renderSelectorPlantillas = renderPlantillaSelector;
+
+/* ══════════════════════════
    INIT
 ══════════════════════════ */
 export function initPlantillasView() {
