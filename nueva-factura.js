@@ -405,7 +405,7 @@ async function loadPerfilForPreview() {
 /* ══════════════════════════
    GUARDAR / EMITIR
 ══════════════════════════ */
-async function saveFactura(emitirDirecto = false) {
+async function saveFactura() {
   if (!LINEAS.length || LINEAS.every(l=>!l.precio||l.precio<=0)) {
     toast("Añade al menos una línea con precio","error"); return;
   }
@@ -440,8 +440,8 @@ async function saveFactura(emitirDirecto = false) {
   const ivaMain   = ivaEntry ? parseInt(ivaEntry[0]) : 0;
   const concepto  = LINEAS.filter(l=>l.descripcion).map(l=>l.descripcion).join(" · ") || "Factura";
 
-  const btn = document.getElementById(emitirDirecto?"nfEmitirBtn":"nfGuardarBtn");
-  if (btn) { btn.disabled=true; btn.innerHTML=`<span class="spin"></span> Guardando…`; }
+  const btn = document.getElementById("nfEmitirBtn");
+  if (btn) { btn.disabled=true; btn.innerHTML=`<span class="spin"></span> Emitiendo factura…`; }
 
   // Crear cliente nuevo si procede
   let cId = clienteSeleccionadoId;
@@ -458,6 +458,7 @@ async function saveFactura(emitirDirecto = false) {
   const resolvedNif    = cId ? (CLIENTES.find(c=>c.id===cId)?.nif   ||clienteNif)    : clienteNif;
   const resolvedDir    = cId ? (CLIENTES.find(c=>c.id===cId)?.direccion||clienteDir)  : clienteDir;
 
+  // Crear factura como borrador temporal para que emitirFacturaDB pueda asignar número
   const { data: fData, error } = await supabase.from("facturas").insert({
     user_id: SESSION.user.id, concepto, base: baseTotal,
     iva: ivaMain, irpf_retencion: irpf, tipo, fecha,
@@ -474,28 +475,25 @@ async function saveFactura(emitirDirecto = false) {
   }).select().single();
 
   if (error) {
-    if (btn) { btn.disabled=false; btn.textContent=emitirDirecto?"Guardar y emitir":"Guardar borrador"; }
+    if (btn) { btn.disabled=false; btn.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Emitir factura`; }
     toast("Error guardando: "+error.message,"error"); return;
   }
 
-  if (emitirDirecto && fData) {
+  // Emitir directamente — asignar número definitivo
+  if (fData) {
     try {
       const num = await emitirFacturaDB(fData.id);
-      toast(`Factura emitida: ${num}`,"success");
+      toast(`✅ Factura emitida: ${num}`,"success");
     } catch(e) {
-      toast("Guardada pero error al emitir: "+e.message,"warn");
+      toast("Error al emitir: "+e.message,"error");
     }
-  } else {
-    toast("Factura guardada como borrador","success");
   }
 
   // Reset formulario
   resetForm();
   if (btn) {
     btn.disabled=false;
-    btn.innerHTML = emitirDirecto
-      ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Guardar y emitir directamente`
-      : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg> Guardar como borrador`;
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Emitir factura`;
   }
   await refreshDashboard(); await refreshFacturas();
   switchView("facturas");
@@ -606,7 +604,6 @@ export function initNuevaFactura() {
     if(nfScanFeedback){ nfScanFeedback.style.color="var(--t3)"; nfScanFeedback.style.opacity="1"; nfScanFeedback.textContent="🎯 Listo para escanear"; }
   });
   nfScanInput?.addEventListener("blur", () => { if(nfScanFeedback) nfScanFeedback.style.opacity="0"; });
-  document.getElementById("nfGuardarBtn")?.addEventListener("click", ()=>saveFactura(false));
-  document.getElementById("nfEmitirBtn")?.addEventListener("click",  ()=>saveFactura(true));
+  document.getElementById("nfEmitirBtn")?.addEventListener("click",  ()=>saveFactura());
   if (LINEAS.length===0) addLinea();
 }
