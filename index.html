@@ -1264,6 +1264,92 @@
         </div>
       </div>
 
+      <!-- ═══ VIEW: NUEVO PRESUPUESTO ═══ -->
+      <div class="view" id="view-nuevo-presupuesto">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Nuevo presupuesto</h1>
+            <p class="view-sub">Vista previa en tiempo real · Líneas ilimitadas · Guardar cliente</p>
+          </div>
+        </div>
+
+        <div class="nf-layout">
+          <div class="nf-form-col">
+            <!-- CLIENTE -->
+            <div class="form-block">
+              <div class="fb-title">👤 Cliente</div>
+              <div class="cliente-search-wrap">
+                <div class="csc-input-wrap">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input type="text" id="npClienteSearch" class="csc-input" placeholder="Buscar cliente existente…"/>
+                  <button id="npClienteLimpiar" class="csc-clear" style="display:none">×</button>
+                </div>
+                <div class="csc-dropdown" id="npClienteDropdown" style="display:none"></div>
+              </div>
+              <div class="ff-grid2">
+                <div class="ff-field"><label>Nombre / Razón social *</label><input id="npClienteNombre" class="ff-input" placeholder="Nombre del cliente"/></div>
+                <div class="ff-field"><label>NIF / CIF</label><input id="npClienteNif" class="ff-input" placeholder="B12345678"/></div>
+              </div>
+              <div class="ff-field"><label>Dirección</label><input id="npClienteDir" class="ff-input" placeholder="Calle, número, CP, ciudad"/></div>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--t2);margin-top:8px">
+                <input type="checkbox" id="npGuardarCliente"/>
+                <span>💾 Guardar este cliente en mi lista</span>
+              </label>
+            </div>
+
+            <!-- DATOS -->
+            <div class="form-block">
+              <div class="fb-title">📋 Datos del presupuesto</div>
+              <div class="ff-field"><label>Concepto / Asunto *</label><input id="npConcepto" class="ff-input" placeholder="Desarrollo web corporativo"/></div>
+              <div class="ff-grid2">
+                <div class="ff-field"><label>Fecha *</label><input type="date" id="npFecha" class="ff-input"/></div>
+                <div class="ff-field"><label>Válido hasta</label><input type="date" id="npValidez" class="ff-input"/></div>
+              </div>
+              <div class="ff-field"><label>Notas / Condiciones</label>
+                <textarea id="npNotas" class="ff-input ff-textarea" placeholder="Forma de pago, plazos, condiciones…"></textarea>
+              </div>
+            </div>
+
+            <!-- LÍNEAS -->
+            <div class="form-block">
+              <div class="fb-title-row">
+                <div class="fb-title">📝 Líneas del presupuesto</div>
+                <button id="npAddLineaBtn" class="btn-add-linea">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Añadir línea
+                </button>
+              </div>
+              <div class="lineas-header">
+                <div>Descripción</div><div>Cant.</div><div>Precio unit.</div><div>IVA</div><div>Total</div><div></div>
+              </div>
+              <div id="npLineasContainer"></div>
+              <div class="lineas-totales">
+                <div class="lt-row"><span>Base imponible</span><strong id="npBase">0,00 €</strong></div>
+                <div class="lt-row"><span>IVA</span><strong id="npIva">0,00 €</strong></div>
+                <div class="lt-row lt-total"><span>TOTAL</span><strong id="npTotal">0,00 €</strong></div>
+              </div>
+            </div>
+
+            <!-- GUARDAR -->
+            <div class="nf-actions-col">
+              <button class="btn-primary btn-lg-block" id="npGuardarBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg>
+                Guardar presupuesto
+              </button>
+            </div>
+          </div>
+
+          <!-- PREVIEW -->
+          <div class="nf-preview-col">
+            <div class="nf-preview-card" id="npPreviewContent">
+              <div style="padding:40px 20px;text-align:center;color:var(--t4);font-size:13px">
+                Rellena los datos para ver la vista previa
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ═══ VIEW: FACTURAS ═══ -->
       <div class="view" id="view-facturas">
         <div class="view-header">
@@ -1573,13 +1659,9 @@
               <div class="fpv-pie" id="pvOpNote"></div>
             </div>
             <div class="nf-actions-col">
-              <button id="nfGuardarBtn" class="btn-primary btn-lg-block">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg>
-                Guardar como borrador
-              </button>
-              <button id="nfEmitirBtn" class="btn-outline btn-lg-block" style="margin-top:10px">
+              <button id="nfEmitirBtn" class="btn-primary btn-lg-block">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                Guardar y emitir · Firmar Verifactu
+                Emitir factura
               </button>
             </div>
           </div>
@@ -2971,60 +3053,6 @@
         </div>
       </div>
 
-      <!-- ═══ VIEW: BANCO AUTOMÁTICO ═══ -->
-      <div class="view" id="view-banco-auto">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">Banco — Importar movimientos</h1>
-            <p class="view-sub">Opcional · Importa tus movimientos bancarios automáticamente, sin introducirlos a mano</p>
-          </div>
-          <div class="view-actions">
-            <button class="btn-primary" id="conectarBancoMainBtn">
-              🏦 Conectar mi banco
-            </button>
-          </div>
-        </div>
-
-        <!-- Estado de la integración -->
-        <div class="alerta-fiscal alerta-fiscal--info" style="margin-bottom:20px">
-          <div class="af-icon">🏦</div>
-          <div class="af-body">
-            <div class="af-title">Importa tus movimientos bancarios automáticamente</div>
-            <div class="af-desc">Conecta tu banco con acceso de solo lectura. Los movimientos se importan automáticamente cada vez que abres Taurix. Compatible con BBVA, Santander, CaixaBank, Bankinter, ING, Sabadell y +2.000 bancos. Sin introducir datos a mano. <button onclick="window._showNordigenSetupGuide()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;font-weight:600;padding:0">Ver cómo configurarlo →</button></div>
-          </div>
-        </div>
-
-        <!-- Conexiones activas -->
-        <div class="section-card">
-          <div class="sc-header">
-            <span class="sc-title">🏦 Bancos conectados</span>
-            <button class="btn-outline" onclick="window._showConectarBanco()" style="font-size:12px">+ Conectar banco</button>
-          </div>
-          <div id="conexionesBancariasWrap" style="padding:4px 0"></div>
-        </div>
-
-        <!-- Info últimas sincronizaciones -->
-        <div class="section-card" style="margin-top:16px">
-          <div class="sc-header"><span class="sc-title">📋 Cómo funciona</span></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;padding:8px 0">
-            <div style="text-align:center;padding:16px">
-              <div style="font-size:32px;margin-bottom:8px">🔒</div>
-              <div style="font-size:13px;font-weight:700;margin-bottom:4px">Solo lectura</div>
-              <div style="font-size:12px;color:var(--t3)">Nunca puede hacer transferencias. Solo lee tus movimientos con tu permiso explícito.</div>
-            </div>
-            <div style="text-align:center;padding:16px">
-              <div style="font-size:32px;margin-bottom:8px">🔄</div>
-              <div style="font-size:13px;font-weight:700;margin-bottom:4px">Automático</div>
-              <div style="font-size:12px;color:var(--t3)">Los movimientos entran solos al abrir Taurix. No tienes que exportar ni importar CSVs.</div>
-            </div>
-            <div style="text-align:center;padding:16px">
-              <div style="font-size:32px;margin-bottom:8px">📋</div>
-              <div style="font-size:13px;font-weight:700;margin-bottom:4px">Conciliación</div>
-              <div style="font-size:12px;color:var(--t3)">Los movimientos van directamente a Tesorería para conciliarlos con tus facturas.</div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- ═══ VIEW: AUDITORÍA ═══ -->
 
