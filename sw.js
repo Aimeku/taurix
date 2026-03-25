@@ -4,8 +4,8 @@
    datos de Supabase. Soporte offline básico.
    ═══════════════════════════════════════════════════════ */
 
-const CACHE_NAME    = "taurix-v7";
-const CACHE_STATIC  = "taurix-static-v7";
+const CACHE_NAME    = "taurix-v8";
+const CACHE_STATIC  = "taurix-static-v8";
 
 // Assets que se cachean al instalar
 const STATIC_ASSETS = [
@@ -59,15 +59,29 @@ self.addEventListener("install", event => {
   );
 });
 
-// ── ACTIVATE: limpiar caches antiguas ──
+// ── ACTIVATE: limpiar TODOS los caches antiguos y tomar control inmediato ──
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
+        // Eliminar cualquier caché que no sea el actual
         keys.filter(k => k !== CACHE_STATIC && k !== CACHE_NAME)
-            .map(k => caches.delete(k))
+            .map(k => {
+              console.log("[SW] Eliminando caché antiguo:", k);
+              return caches.delete(k);
+            })
       )
-    ).then(() => self.clients.claim())
+    ).then(async () => {
+      // Limpiar también entradas JS/CSS del caché actual que puedan ser corruptas
+      const cache = await caches.open(CACHE_STATIC);
+      const keys  = await cache.keys();
+      await Promise.all(
+        keys.filter(req => req.url.match(/\.(js|css)$/))
+            .map(req => cache.delete(req))
+      );
+      console.log("[SW] Caché JS/CSS limpiado. Versión:", CACHE_STATIC);
+      return self.clients.claim();
+    })
   );
 });
 
