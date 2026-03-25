@@ -12,6 +12,8 @@ import {
   openModal, closeModal, switchView
 } from "./utils.js";
 import { PRODUCTOS, buscarProductoPorCodigo } from "./productos.js";
+import { renderSelectorPlantillas } from "./plantillas-usuario.js";
+import { PLANTILLAS, loadPlantillas, getPlantillaData, renderSelectorPlantillas } from "./plantillas-usuario.js";
 import { refreshPresupuestos } from "./presupuestos.js";
 import { refreshClientes } from "./clientes.js";
 import { PLANTILLAS, loadPlantillas, getPlantillaData } from "./plantillas-usuario.js";
@@ -498,5 +500,19 @@ export function initNuevoPresupuesto() {
   document.getElementById("npGuardarBtn")?.addEventListener("click", ()=>savePresupuesto());
 
   if (LINEAS.length===0) addLinea();
-  _renderNpPlantillaSelector();
+
+  // Selector de plantilla integrado
+  renderSelectorPlantillas("npPlantillaSelectorWrap", (data) => {
+    LINEAS=[]; lineaIdCounter=0;
+    const c=document.getElementById("npLineasContainer"); if(c) c.innerHTML="";
+    if (data) {
+      (data.lineas||[]).forEach(l=>addLinea(l));
+      const co=document.getElementById("npConcepto"); if(co&&data.concepto) co.value=data.concepto;
+      const no=document.getElementById("npNotas");    if(no&&data.notas)    no.value=data.notas;
+      toast("✅ Plantilla aplicada","success",2000);
+    } else {
+      addLinea();
+    }
+    updateTotalesUI(); updatePreview();
+  });
 }
