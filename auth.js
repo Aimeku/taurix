@@ -80,111 +80,273 @@ export function showAuthModal() {
   modal.innerHTML = `
     <div class="auth-overlay" id="authOverlay" onclick="event.stopPropagation()">
       <div class="auth-card" onclick="event.stopPropagation()">
+
         <div class="auth-header">
-          <div class="auth-logo-wrap"><img src="Logo_Sin_Texto_transparent.png" alt="Taurix" class="auth-logo-bull"/></div>
+          <div class="auth-logo-wrap">
+            <img src="Logo_Sin_Texto_transparent.png" alt="Taurix" class="auth-logo-bull"/>
+          </div>
           <h2 class="auth-title" id="authTitle">Accede a Taurix</h2>
           <p class="auth-sub" id="authSub">La herramienta fiscal que mereces</p>
         </div>
+
+        <!-- TABS: solo Iniciar sesión / Crear cuenta -->
         <div class="auth-tabs" id="authTabs">
-          <button class="auth-tab active" data-tab="login">Entrar</button>
-          <button class="auth-tab" data-tab="otp">Código email</button>
+          <button class="auth-tab active" data-tab="login">Iniciar sesión</button>
           <button class="auth-tab" data-tab="register">Crear cuenta</button>
         </div>
-        <div class="auth-error" id="authError" style="display:none"></div>
+
+        <div class="auth-error"   id="authError"   style="display:none"></div>
         <div class="auth-success" id="authSuccess" style="display:none"></div>
-        <!-- LOGIN --><div class="auth-panel" id="panelLogin">
-          <div class="auth-field"><label>Email</label><input type="email" id="loginEmail" placeholder="tu@email.com" autocomplete="email"/></div>
-          <div class="auth-field"><label>Contraseña</label><div class="auth-pw-wrap"><input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"/><button type="button" class="auth-pw-toggle" data-target="loginPassword">👁</button></div></div>
-          <button class="auth-forgot" id="authForgotBtn">¿Olvidaste la contraseña?</button>
-          <button class="auth-submit" id="loginSubmitBtn"><span>Entrar</span></button>
-          <p class="auth-switch">¿Sin contraseña? <button class="auth-link" data-tab="otp">Usa un código por email →</button></p>
-        </div>
-        <!-- OTP --><div class="auth-panel" id="panelOtp" style="display:none">
-          <div id="otpStep1">
-            <p style="font-size:13.5px;color:var(--t2);margin-bottom:18px;line-height:1.6">Te enviaremos un código de 6 dígitos a tu email. No necesitas contraseña.</p>
-            <div class="auth-field"><label>Email</label><input type="email" id="otpEmail" placeholder="tu@email.com" autocomplete="email"/></div>
-            <button class="auth-submit" id="otpSendBtn"><span>📧 Enviar código</span></button>
-          </div>
-          <div id="otpStep2" style="display:none">
-            <p style="font-size:13.5px;color:var(--t2);margin-bottom:4px;line-height:1.6">Código enviado a:</p>
-            <p style="font-size:15px;font-weight:700;color:var(--t1);margin-bottom:18px" id="otpEmailDisplay">—</p>
-            <div class="auth-field"><label>Código de verificación</label>
-              <input type="text" id="otpCode" placeholder="000000" maxlength="6" style="font-size:28px;font-weight:800;letter-spacing:10px;text-align:center;font-family:var(--font-mono)" autocomplete="one-time-code" inputmode="numeric"/>
+
+        <!-- ── PANEL LOGIN: email → OTP ── -->
+        <div class="auth-panel" id="panelLogin">
+          <!-- Paso 1: introducir email -->
+          <div id="loginStep1">
+            <p style="font-size:13px;color:var(--t3);line-height:1.6;margin-bottom:18px">
+              Introduce tu email y te enviamos un código de acceso. Sin contraseñas que recordar.
+            </p>
+            <div class="auth-field">
+              <label>Email</label>
+              <input type="email" id="loginEmail" placeholder="tu@email.com" autocomplete="email"/>
             </div>
-            <button class="auth-submit" id="otpVerifyBtn"><span>Verificar código</span></button>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:20px;font-size:13px;color:var(--t2)">
+              <input type="checkbox" id="loginRemember" checked style="width:15px;height:15px;accent-color:var(--accent)"/>
+              <span>Recordar mi sesión en este dispositivo</span>
+            </label>
+            <button class="auth-submit" id="loginSendBtn"><span>📧 Enviar código de acceso</span></button>
+            <p style="text-align:center;margin-top:14px;font-size:12px;color:var(--t4)">
+              ¿Primera vez? <button class="auth-link" data-tab="register" style="font-size:12px">Crea tu cuenta gratis →</button>
+            </p>
+          </div>
+
+          <!-- Paso 2: introducir código OTP -->
+          <div id="loginStep2" style="display:none">
+            <div style="text-align:center;margin-bottom:20px">
+              <div style="font-size:32px;margin-bottom:10px">📨</div>
+              <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:4px">Código enviado</div>
+              <div style="font-size:13px;color:var(--t3)">Revisa tu email en</div>
+              <div style="font-size:15px;font-weight:700;color:var(--accent);margin-top:4px" id="loginEmailDisplay">—</div>
+            </div>
+            <div class="auth-field">
+              <label style="text-align:center;display:block">Código de 6 dígitos</label>
+              <input type="text" id="loginOtpCode"
+                placeholder="000000" maxlength="6"
+                style="font-size:32px;font-weight:800;letter-spacing:12px;text-align:center;font-family:monospace"
+                autocomplete="one-time-code" inputmode="numeric"/>
+            </div>
+            <button class="auth-submit" id="loginVerifyBtn"><span>Verificar y entrar</span></button>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
-              <button class="auth-forgot" id="otpResendBtn" style="margin:0" disabled>Reenviar (<span id="otpCountdown">60</span>s)</button>
-              <button class="auth-forgot" id="otpBackBtn" style="margin:0">← Cambiar email</button>
+              <button class="auth-forgot" id="loginResendBtn" style="margin:0" disabled>
+                Reenviar (<span id="loginCountdown">60</span>s)
+              </button>
+              <button class="auth-forgot" id="loginBackBtn" style="margin:0">← Cambiar email</button>
             </div>
           </div>
         </div>
-        <!-- REGISTER --><div class="auth-panel" id="panelRegister" style="display:none">
-          <div class="auth-field"><label>Email</label><input type="email" id="registerEmail" placeholder="tu@email.com" autocomplete="email"/></div>
-          <div class="auth-field"><label>Contraseña <span style="color:var(--t4);font-weight:400">(mín. 6 caracteres)</span></label><div class="auth-pw-wrap"><input type="password" id="registerPassword" placeholder="••••••••" autocomplete="new-password"/><button type="button" class="auth-pw-toggle" data-target="registerPassword">👁</button></div></div>
-          <div class="auth-field"><label>Confirmar contraseña</label><div class="auth-pw-wrap"><input type="password" id="registerPassword2" placeholder="••••••••" autocomplete="new-password"/><button type="button" class="auth-pw-toggle" data-target="registerPassword2">👁</button></div></div>
+
+        <!-- ── PANEL REGISTER ── -->
+        <div class="auth-panel" id="panelRegister" style="display:none">
+          <p style="font-size:13px;color:var(--t3);line-height:1.6;margin-bottom:18px">
+            Crea tu cuenta gratis. Te enviaremos un código para confirmar tu email.
+          </p>
+          <div class="auth-field">
+            <label>Email</label>
+            <input type="email" id="registerEmail" placeholder="tu@email.com" autocomplete="email"/>
+          </div>
+          <div class="auth-field">
+            <label>Contraseña <span style="color:var(--t4);font-weight:400">(mín. 6 caracteres)</span></label>
+            <div class="auth-pw-wrap">
+              <input type="password" id="registerPassword" placeholder="••••••••" autocomplete="new-password"/>
+              <button type="button" class="auth-pw-toggle" data-target="registerPassword">👁</button>
+            </div>
+          </div>
+          <div class="auth-field">
+            <label>Confirmar contraseña</label>
+            <div class="auth-pw-wrap">
+              <input type="password" id="registerPassword2" placeholder="••••••••" autocomplete="new-password"/>
+              <button type="button" class="auth-pw-toggle" data-target="registerPassword2">👁</button>
+            </div>
+          </div>
           <button class="auth-submit" id="registerSubmitBtn"><span>Crear cuenta gratis</span></button>
-          <p class="auth-switch">¿Ya tienes cuenta? <button class="auth-link" data-tab="login">Inicia sesión →</button></p>
+          <p style="text-align:center;margin-top:14px;font-size:12px;color:var(--t4)">
+            ¿Ya tienes cuenta? <button class="auth-link" data-tab="login" style="font-size:12px">Inicia sesión →</button>
+          </p>
         </div>
-        <!-- FORGOT --><div class="auth-panel" id="panelForgot" style="display:none">
-          <p style="font-size:13.5px;color:var(--t2);margin-bottom:18px;line-height:1.6">Te enviaremos un enlace para restablecer tu contraseña.</p>
-          <div class="auth-field"><label>Email</label><input type="email" id="forgotEmail" placeholder="tu@email.com"/></div>
+
+        <!-- ── PANEL FORGOT (oculto, se activa desde link) ── -->
+        <div class="auth-panel" id="panelForgot" style="display:none">
+          <p style="font-size:13.5px;color:var(--t2);margin-bottom:18px;line-height:1.6">
+            Te enviaremos un enlace para restablecer tu contraseña.
+          </p>
+          <div class="auth-field">
+            <label>Email</label>
+            <input type="email" id="forgotEmail" placeholder="tu@email.com"/>
+          </div>
           <button class="auth-submit" id="forgotSubmitBtn"><span>Enviar enlace</span></button>
-          <button class="auth-forgot" id="backToLoginBtn">← Volver</button>
+          <button class="auth-forgot" id="backToLoginBtn" style="margin-top:10px">← Volver</button>
         </div>
+
         <button class="auth-close" id="authCloseBtn">×</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
 
-  const showError=msg=>{const e=document.getElementById("authError");e.textContent=msg;e.style.display=msg?"":"none";document.getElementById("authSuccess").style.display="none";};
-  const showSuccess=msg=>{const e=document.getElementById("authSuccess");e.textContent=msg;e.style.display=msg?"":"none";document.getElementById("authError").style.display="none";};
-  const setLoading=(btn,loading,label)=>{btn.disabled=loading;btn.innerHTML=loading?`<span class="auth-spinner"></span><span>Un momento…</span>`:`<span>${label}</span>`;};
-  const switchTab=tab=>{
-    document.querySelectorAll(".auth-tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===tab));
-    ["login","register","forgot","otp"].forEach(p=>{const el=document.getElementById("panel"+p.charAt(0).toUpperCase()+p.slice(1));if(el)el.style.display=p===tab?"":"none";});
-    document.getElementById("authTabs").style.display=tab==="forgot"?"none":"";
-    showError("");showSuccess("");
-    const titles={login:"Accede a Taurix",register:"Crea tu cuenta gratis",forgot:"Recuperar contraseña",otp:"Acceso con código"};
-    document.getElementById("authTitle").textContent=titles[tab]||"Accede a Taurix";
+  // ── helpers ──
+  const showError   = msg => { const e = document.getElementById("authError");   e.textContent = msg; e.style.display = msg ? "" : "none"; document.getElementById("authSuccess").style.display = "none"; };
+  const showSuccess = msg => { const e = document.getElementById("authSuccess"); e.textContent = msg; e.style.display = msg ? "" : "none"; document.getElementById("authError").style.display   = "none"; };
+  const setLoading  = (btn, loading, label) => { btn.disabled = loading; btn.innerHTML = loading ? `<span class="auth-spinner"></span><span>Un momento…</span>` : `<span>${label}</span>`; };
+
+  const switchTab = (tab) => {
+    document.querySelectorAll(".auth-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === tab));
+    ["login","register","forgot"].forEach(p => {
+      const el = document.getElementById("panel" + p.charAt(0).toUpperCase() + p.slice(1));
+      if (el) el.style.display = p === tab ? "" : "none";
+    });
+    document.getElementById("authTabs").style.display = tab === "forgot" ? "none" : "";
+    showError(""); showSuccess("");
+    const titles = { login: "Iniciar sesión", register: "Crear tu cuenta gratis", forgot: "Recuperar contraseña" };
+    document.getElementById("authTitle").textContent = titles[tab] || "Accede a Taurix";
+    const subs   = { login: "Te enviamos un código a tu email", register: "Sin tarjeta de crédito", forgot: "Te enviamos un enlace de recuperación" };
+    document.getElementById("authSub").textContent = subs[tab] || "";
   };
-  document.querySelectorAll(".auth-tab,.auth-link").forEach(el=>el.addEventListener("click",()=>switchTab(el.dataset.tab)));
-  document.querySelectorAll(".auth-pw-toggle").forEach(btn=>btn.addEventListener("click",()=>{const input=document.getElementById(btn.dataset.target);input.type=input.type==="password"?"text":"password";btn.textContent=input.type==="password"?"👁":"🙈";}));
 
-  // Login
-  const doLogin=async()=>{const email=document.getElementById("loginEmail").value.trim();const pw=document.getElementById("loginPassword").value;if(!email||!pw){showError("Email y contraseña obligatorios.");return;}const btn=document.getElementById("loginSubmitBtn");setLoading(btn,true,"Entrar");try{await loginEmail(email,pw);}catch(e){showError(e.message);setLoading(btn,false,"Entrar");}};
-  document.getElementById("loginSubmitBtn").addEventListener("click",doLogin);
-  document.getElementById("loginPassword")?.addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
+  document.querySelectorAll(".auth-tab, .auth-link").forEach(el =>
+    el.addEventListener("click", () => switchTab(el.dataset.tab))
+  );
+  document.querySelectorAll(".auth-pw-toggle").forEach(btn =>
+    btn.addEventListener("click", () => {
+      const input = document.getElementById(btn.dataset.target);
+      input.type = input.type === "password" ? "text" : "password";
+      btn.textContent = input.type === "password" ? "👁" : "🙈";
+    })
+  );
 
-  // OTP
-  let _otpEmail="",_otpTimer=null;
-  document.getElementById("otpSendBtn").addEventListener("click",async()=>{
-    const email=document.getElementById("otpEmail").value.trim();if(!email){showError("Introduce tu email.");return;}
-    const btn=document.getElementById("otpSendBtn");setLoading(btn,true,"📧 Enviar código");
-    try{await sendOTP(email);_otpEmail=email;document.getElementById("otpEmailDisplay").textContent=email;document.getElementById("otpStep1").style.display="none";document.getElementById("otpStep2").style.display="";showSuccess("📧 Código enviado — revisa tu bandeja (y spam).");startCountdown();setTimeout(()=>document.getElementById("otpCode")?.focus(),200);}catch(e){showError(e.message);}
-    setLoading(btn,false,"📧 Enviar código");
+  // ── LOGIN: paso 1 — enviar OTP ──
+  let _loginEmail = "", _loginTimer = null;
+
+  const doSendLoginOTP = async () => {
+    const email = document.getElementById("loginEmail").value.trim();
+    if (!email) { showError("Introduce tu email."); return; }
+    const btn = document.getElementById("loginSendBtn");
+    setLoading(btn, true, "📧 Enviar código de acceso");
+    try {
+      await sendOTP(email);
+      _loginEmail = email;
+      document.getElementById("loginEmailDisplay").textContent = email;
+      document.getElementById("loginStep1").style.display = "none";
+      document.getElementById("loginStep2").style.display = "";
+      showSuccess("📧 Código enviado — revisa tu bandeja (y spam).");
+      startLoginCountdown();
+      setTimeout(() => document.getElementById("loginOtpCode")?.focus(), 200);
+    } catch(e) { showError(e.message); }
+    setLoading(btn, false, "📧 Enviar código de acceso");
+  };
+
+  document.getElementById("loginSendBtn").addEventListener("click", doSendLoginOTP);
+  document.getElementById("loginEmail")?.addEventListener("keydown", e => { if (e.key === "Enter") doSendLoginOTP(); });
+
+  // ── LOGIN: paso 2 — verificar OTP ──
+  const doVerifyLogin = async () => {
+    const code = document.getElementById("loginOtpCode").value.trim();
+    if (!code || code.length < 6) { showError("Introduce el código de 6 dígitos."); return; }
+    const btn = document.getElementById("loginVerifyBtn");
+    setLoading(btn, true, "Verificar y entrar");
+    try {
+      const remember = document.getElementById("loginRemember")?.checked !== false;
+      await verifyOTP(_loginEmail, code);
+      // Si no quiere recordar sesión, no persistimos
+      if (!remember) {
+        // Supabase no tiene opción directa de no persistir en verifyOTP,
+        // pero podemos limpiar al cerrar tab vía onAuthStateChange
+        sessionStorage.setItem("taurix_no_persist", "1");
+      } else {
+        sessionStorage.removeItem("taurix_no_persist");
+      }
+    } catch(e) { showError(e.message); setLoading(btn, false, "Verificar y entrar"); }
+  };
+
+  document.getElementById("loginVerifyBtn").addEventListener("click", doVerifyLogin);
+  document.getElementById("loginOtpCode")?.addEventListener("input", e => {
+    const v = e.target.value.replace(/\D/g, "").slice(0, 6);
+    e.target.value = v;
+    if (v.length === 6) doVerifyLogin();
   });
-  document.getElementById("otpVerifyBtn").addEventListener("click",async()=>{
-    const code=document.getElementById("otpCode").value.trim();if(!code||code.length<6){showError("Introduce el código de 6 dígitos.");return;}
-    const btn=document.getElementById("otpVerifyBtn");setLoading(btn,true,"Verificar código");
-    try{await verifyOTP(_otpEmail,code);}catch(e){showError(e.message);setLoading(btn,false,"Verificar código");}
+
+  document.getElementById("loginBackBtn")?.addEventListener("click", () => {
+    document.getElementById("loginStep1").style.display = "";
+    document.getElementById("loginStep2").style.display = "none";
+    showError(""); showSuccess("");
   });
-  document.getElementById("otpCode")?.addEventListener("input",e=>{const v=e.target.value.replace(/\D/g,"").slice(0,6);e.target.value=v;if(v.length===6)document.getElementById("otpVerifyBtn")?.click();});
-  function startCountdown(){let s=60;const btn=document.getElementById("otpResendBtn"),sp=document.getElementById("otpCountdown");btn.disabled=true;if(_otpTimer)clearInterval(_otpTimer);_otpTimer=setInterval(()=>{s--;if(sp)sp.textContent=s;if(s<=0){clearInterval(_otpTimer);btn.disabled=false;btn.innerHTML="Reenviar código";}},1000);}
-  document.getElementById("otpResendBtn")?.addEventListener("click",async()=>{if(!_otpEmail)return;const btn=document.getElementById("otpResendBtn");btn.disabled=true;btn.textContent="Enviando…";try{await sendOTP(_otpEmail);showSuccess("📧 Nuevo código enviado.");startCountdown();}catch(e){showError(e.message);btn.disabled=false;btn.textContent="Reenviar código";}});
-  document.getElementById("otpBackBtn")?.addEventListener("click",()=>{document.getElementById("otpStep1").style.display="";document.getElementById("otpStep2").style.display="none";showError("");showSuccess("");});
 
-  // Register
-  document.getElementById("registerSubmitBtn").addEventListener("click",async()=>{const email=document.getElementById("registerEmail").value.trim();const pw=document.getElementById("registerPassword").value;const pw2=document.getElementById("registerPassword2").value;if(!email||!pw){showError("Email y contraseña obligatorios.");return;}if(pw!==pw2){showError("Las contraseñas no coinciden.");return;}if(pw.length<6){showError("Mín. 6 caracteres.");return;}const btn=document.getElementById("registerSubmitBtn");setLoading(btn,true,"Crear cuenta gratis");try{const{needsConfirm}=await registerEmail(email,pw);if(needsConfirm){showSuccess(`✅ Cuenta creada. Confirma tu email en ${email}.`);switchTab("login");setTimeout(()=>{const li=document.getElementById("loginEmail");if(li)li.value=email;},100);}else{modal.remove();window.location.reload();}}catch(e){showError(e.message);setLoading(btn,false,"Crear cuenta gratis");}});
+  function startLoginCountdown() {
+    let s = 60;
+    const btn = document.getElementById("loginResendBtn");
+    const sp  = document.getElementById("loginCountdown");
+    if (btn) btn.disabled = true;
+    if (_loginTimer) clearInterval(_loginTimer);
+    _loginTimer = setInterval(() => {
+      s--;
+      if (sp) sp.textContent = s;
+      if (s <= 0) {
+        clearInterval(_loginTimer);
+        if (btn) { btn.disabled = false; btn.innerHTML = "Reenviar código"; }
+      }
+    }, 1000);
+  }
 
-  // Forgot
-  document.getElementById("authForgotBtn").addEventListener("click",()=>switchTab("forgot"));
-  document.getElementById("backToLoginBtn").addEventListener("click",()=>switchTab("login"));
-  document.getElementById("forgotSubmitBtn").addEventListener("click",async()=>{const email=document.getElementById("forgotEmail").value.trim();if(!email){showError("Introduce tu email.");return;}const btn=document.getElementById("forgotSubmitBtn");setLoading(btn,true,"Enviar enlace");try{await resetPassword(email);showSuccess(`📧 Enlace enviado a ${email}.`);setLoading(btn,false,"Enviar enlace");}catch(e){showError(e.message);setLoading(btn,false,"Enviar enlace");}});
+  document.getElementById("loginResendBtn")?.addEventListener("click", async () => {
+    if (!_loginEmail) return;
+    const btn = document.getElementById("loginResendBtn");
+    btn.disabled = true; btn.textContent = "Enviando…";
+    try { await sendOTP(_loginEmail); showSuccess("📧 Nuevo código enviado."); startLoginCountdown(); }
+    catch(e) { showError(e.message); btn.disabled = false; btn.textContent = "Reenviar código"; }
+  });
 
-  document.getElementById("authCloseBtn").addEventListener("click",()=>modal.remove());
-  document.getElementById("authOverlay").addEventListener("click",e=>e.stopPropagation());
-  supabase.auth.onAuthStateChange((event,session)=>{if((event==="SIGNED_IN"||event==="TOKEN_REFRESHED")&&session){modal.remove();window.location.reload();}});
-  setTimeout(()=>document.getElementById("loginEmail")?.focus(),100);
+  // ── REGISTER ──
+  document.getElementById("registerSubmitBtn").addEventListener("click", async () => {
+    const email = document.getElementById("registerEmail").value.trim();
+    const pw    = document.getElementById("registerPassword").value;
+    const pw2   = document.getElementById("registerPassword2").value;
+    if (!email || !pw) { showError("Email y contraseña obligatorios."); return; }
+    if (pw !== pw2)    { showError("Las contraseñas no coinciden."); return; }
+    if (pw.length < 6) { showError("Mín. 6 caracteres."); return; }
+    const btn = document.getElementById("registerSubmitBtn");
+    setLoading(btn, true, "Crear cuenta gratis");
+    try {
+      const { needsConfirm } = await registerEmail(email, pw);
+      if (needsConfirm) {
+        showSuccess(`✅ Cuenta creada. Confirma tu email en ${email}.`);
+        switchTab("login");
+        setTimeout(() => { const li = document.getElementById("loginEmail"); if (li) li.value = email; }, 100);
+      } else {
+        modal.remove(); window.location.reload();
+      }
+    } catch(e) { showError(e.message); setLoading(btn, false, "Crear cuenta gratis"); }
+  });
+
+  // ── FORGOT ──
+  document.getElementById("forgotSubmitBtn").addEventListener("click", async () => {
+    const email = document.getElementById("forgotEmail").value.trim();
+    if (!email) { showError("Introduce tu email."); return; }
+    const btn = document.getElementById("forgotSubmitBtn");
+    setLoading(btn, true, "Enviar enlace");
+    try { await resetPassword(email); showSuccess(`📧 Enlace enviado a ${email}.`); setLoading(btn, false, "Enviar enlace"); }
+    catch(e) { showError(e.message); setLoading(btn, false, "Enviar enlace"); }
+  });
+  document.getElementById("backToLoginBtn").addEventListener("click", () => switchTab("login"));
+
+  // ── Cierre ──
+  document.getElementById("authCloseBtn").addEventListener("click", () => modal.remove());
+  document.getElementById("authOverlay").addEventListener("click", e => e.stopPropagation());
+
+  supabase.auth.onAuthStateChange((event, session) => {
+    if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session) {
+      modal.remove();
+      window.location.reload();
+    }
+  });
+
+  setTimeout(() => document.getElementById("loginEmail")?.focus(), 100);
 }
 
 /* ══════════════════════════
