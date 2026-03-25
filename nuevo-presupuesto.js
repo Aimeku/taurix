@@ -12,6 +12,7 @@ import {
 import { PRODUCTOS, buscarProductoPorCodigo } from "./productos.js";
 import { refreshPresupuestos } from "./presupuestos.js";
 import { refreshClientes, populateClienteSelect } from "./clientes.js";
+import { PLANTILLAS, loadPlantillas, getPlantillaData } from "./plantillas-usuario.js";
 
 let LINEAS = [];
 let lineaIdCounter = 0;
@@ -338,6 +339,60 @@ function initClienteSearch() {
 /* ══════════════════════════
    INIT
 ══════════════════════════ */
+/* ══════════════════════════
+   SELECTOR DE PLANTILLA inline
+══════════════════════════ */
+async function renderNpPlantillaSelector() {
+  const wrap = document.getElementById("npPlantillaSelector");
+  if (!wrap) return;
+
+  // Asegurar plantillas cargadas
+  if (!PLANTILLAS.length) await loadPlantillas();
+
+  if (!PLANTILLAS.length) {
+    wrap.innerHTML = `<span style="font-size:12px;color:var(--t4)">Sin plantillas — <a href="#" onclick="window._switchView('plantillas');return false" style="color:var(--accent)">crea una aquí</a></span>`;
+    return;
+  }
+
+  wrap.innerHTML = [
+    ...PLANTILLAS.map(p => `
+      <button class="np-plt-btn btn-outline" data-plt-id="${p.id}"
+        style="font-size:12px;padding:5px 12px;border-radius:8px;display:flex;align-items:center;gap:5px">
+        📋 ${p.nombre}
+      </button>`),
+    `<button class="np-plt-btn btn-outline" data-plt-id=""
+      style="font-size:12px;padding:5px 12px;border-radius:8px;color:var(--t4)">
+      ✕ En blanco
+    </button>`
+  ].join("");
+
+  wrap.querySelectorAll(".np-plt-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      wrap.querySelectorAll(".np-plt-btn").forEach(b => {
+        b.style.background = ""; b.style.borderColor = ""; b.style.color = "";
+      });
+      if (btn.dataset.pltId) {
+        btn.style.background   = "var(--accent)";
+        btn.style.borderColor  = "var(--accent)";
+        btn.style.color        = "#fff";
+        const data = getPlantillaData(btn.dataset.pltId);
+        if (data) window._applyPlantillaToNuevoPresupuesto?.(data);
+      } else {
+        // En blanco: resetear líneas
+        LINEAS = []; lineaIdCounter = 0;
+        const c = document.getElementById("npLineasContainer");
+        if (c) c.innerHTML = "";
+        addLinea();
+        const conceptoEl = document.getElementById("npConcepto");
+        const notasEl    = document.getElementById("npNotas");
+        if (conceptoEl) conceptoEl.value = "";
+        if (notasEl)    notasEl.value    = "";
+        updateTotalesUI(); updatePreview();
+      }
+    });
+  });
+}
+
 export function initNuevoPresupuesto() {
   const fechaEl = document.getElementById("npFecha");
   if (fechaEl && !fechaEl.value) fechaEl.value = new Date().toISOString().slice(0, 10);
@@ -352,72 +407,6 @@ export function initNuevoPresupuesto() {
   document.getElementById("npAddLineaBtn")?.addEventListener("click", () => addLinea());
   document.getElementById("npGuardarBtn")?.addEventListener("click", () => savePresupuesto());
 
-  // ── Escáner de código de barras ──
-  const scanInput    = document.getElementById("npScanInput");
-  const scanFeedback = document.getElementById("npScanFeedback");
-
-  const procesarCodigo = () => {
-    const codigo = scanInput?.value.trim().replace(/[
-	]/g, "");
-    if (!codigo) return;
-    const prod = buscarProductoPorCodigo ? buscarProductoPorCodigo(codigo) : null;
-    const qty  = Math.max(1, parseInt(document.getElementById("npScanQty")?.value) || 1);
-
-    if (prod) {
-      let yaExiste = false;
-      LINEAS.forEach(l => {
-        if (l.descripcion === prod.nombre) {
-          l.cantidad += qty;
-          const row = document.querySelector(`.linea-row[data-linea-id="${l.id}"]`);
-          if (row) { const q = row.querySelector("[data-field='cantidad']"); if (q) q.value = l.cantidad; }
-          yaExiste = true;
-        }
-      });
-      if (!yaExiste) addLinea({ descripcion: prod.nombre, cantidad: qty, precio: prod.precio, iva: prod.iva });
-      updateTotalesUI(); updatePreview();
-      if (scanFeedback) {
-        scanFeedback.style.color = "#059669"; scanFeedback.style.opacity = "1";
-        scanFeedback.textContent = `✅ ${yaExiste ? "Cantidad actualizada" : "Añadido"}: ${prod.nombre}${qty > 1 ? " × " + qty : ""} — ${fmt(prod.precio)}`;
-        setTimeout(() => { if (scanFeedback) scanFeedback.style.opacity = "0"; }, 3000);
-      }
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator(); const g = ctx.createGain();
-        osc.connect(g); g.connect(ctx.destination); osc.frequency.value = 880;
-        g.gain.setValueAtTime(0.15, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.12);
-      } catch(e) {}
-    } else {
-      if (scanFeedback) {
-        scanFeedback.style.color = "#dc2626"; scanFeedback.style.opacity = "1";
-        scanFeedback.textContent = `❌ Código "${codigo}" no encontrado en el catálogo`;
-        setTimeout(() => { if (scanFeedback) scanFeedback.style.opacity = "0"; }, 3000);
-      }
-      if (scanInput) { scanInput.style.borderColor = "#dc2626"; scanInput.style.background = "#fef2f2"; setTimeout(() => { scanInput.style.borderColor = ""; scanInput.style.background = ""; }, 1200); }
-    }
-    if (scanInput) { scanInput.value = ""; scanInput.focus(); }
-  };
-
-  scanInput?.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); procesarCodigo(); } });
-  scanInput?.addEventListener("focus",   () => { if (scanFeedback) { scanFeedback.style.color = "var(--t3)"; scanFeedback.style.opacity = "1"; scanFeedback.textContent = "🎯 Listo para escanear"; } });
-  scanInput?.addEventListener("blur",    () => { if (scanFeedback) scanFeedback.style.opacity = "0"; });
-
-  // ── Aplicar plantilla de usuario ──
-  window._applyPlantillaToNuevoPresupuesto = (data) => {
-    if (!data) return;
-    LINEAS = []; lineaIdCounter = 0;
-    const container = document.getElementById("npLineasContainer");
-    if (container) container.innerHTML = "";
-    (data.lineas || []).forEach(l => addLinea(l));
-    if (!LINEAS.length) addLinea();
-    const conceptoEl = document.getElementById("npConcepto");
-    const notasEl    = document.getElementById("npNotas");
-    if (conceptoEl && data.concepto) conceptoEl.value = data.concepto;
-    if (notasEl    && data.notas)    notasEl.value    = data.notas;
-    updateTotalesUI(); updatePreview();
-    toast("✅ Plantilla aplicada", "success", 2500);
-  };
-  window._applyPlantillaToPresupuesto = window._applyPlantillaToNuevoPresupuesto;
-
   if (LINEAS.length === 0) addLinea();
+  renderNpPlantillaSelector();
 }
