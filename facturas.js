@@ -178,23 +178,23 @@ export async function refreshFacturas() {
     let acciones = "";
     if (cerrado) {
       acciones = `<div class="tbl-act">
-        <button class="ta-btn" onclick="window._pdfFact('${f.id}')" title="Descargar PDF">📄 PDF Fac</button>
+        <button class="ta-btn" onclick="window._pdfFact('${f.id}')" title="Descargar PDF">📄 PDF</button>
         <span class="ta-locked">🔒</span>
       </div>`;
     } else if (f.estado !== "emitida") {
+      // Borrador (solo de recurrentes) — se puede emitir o eliminar, NO editar
       acciones = `<div class="tbl-act">
         <button class="ta-btn ta-emit" onclick="window._emitir('${f.id}')">📤 Emitir</button>
-        <button class="ta-btn" onclick="window._pdfFact('${f.id}')" title="Descargar PDF borrador">📄 PDF Fac</button>
-        <button class="ta-btn" onclick="window._editFact('${f.id}')">✏️</button>
+        <button class="ta-btn" onclick="window._pdfFact('${f.id}')" title="PDF borrador">📄 PDF</button>
         <button class="ta-btn ta-del" onclick="window._delFact('${f.id}')">🗑️</button>
       </div>`;
     } else {
+      // Emitida — INMUTABLE: solo PDF, cobro, duplicar, nota de crédito
       acciones = `<div class="tbl-act">
-        <button class="ta-btn" onclick="window._pdfFact('${f.id}')" title="Descargar PDF">📄 PDF Fac</button>
-        ${f.tipo==="emitida"?`<button class="ta-btn ${f.cobrada?"ta-cobrada":"ta-pendiente"}" onclick="window._toggleCobro('${f.id}',${!f.cobrada})" title="${f.cobrada?"Cobrada":"Pendiente"}">${f.cobrada?"✅":"⏳"}</button>`:""}
+        <button class="ta-btn" onclick="window._pdfFact('${f.id}')" title="Descargar PDF">📄 PDF</button>
+        ${f.tipo==="emitida"?`<button class="ta-btn ${f.cobrada?"ta-cobrada":"ta-pendiente"}" onclick="window._toggleCobro('${f.id}',${!f.cobrada})" title="${f.cobrada?"Marcar pendiente":"Marcar cobrada"}">${f.cobrada?"✅":"⏳"}</button>`:""}
         <button class="ta-btn" onclick="window._duplicarFact('${f.id}')" title="Duplicar factura">📋</button>
         ${f.tipo==="emitida"?`<button class="ta-btn" onclick="window._notaCredito('${f.id}')" title="Nota de crédito / Rectificativa" style="color:#dc2626">🔄</button>`:""}
-        <button class="ta-btn ta-del" onclick="window._delFact('${f.id}')">🗑️</button>
       </div>`;
     }
 
