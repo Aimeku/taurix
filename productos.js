@@ -89,7 +89,14 @@ export function showNuevoProductoModal(prefill = {}) {
         </div>
         <div class="modal-grid2">
           <div class="modal-field"><label>Código de barras <span style="font-weight:400;color:var(--t4)">(EAN, ISBN…)</span></label>
-            <input autocomplete="off" id="mpd_barras" class="ff-input mono" value="${prefill.codigo_barras || ""}" placeholder="Ej: 8400000123456"/></div>
+            <div style="display:flex;gap:6px">
+              <input autocomplete="off" id="mpd_barras" class="ff-input mono" value="${prefill.codigo_barras || ""}" placeholder="Ej: 8400000123456" style="flex:1"/>
+              <button type="button" id="mpd_genBarras" class="btn-outline" style="white-space:nowrap;font-size:11px;padding:6px 10px" title="Generar código de barras EAN-13 automáticamente">
+                🔖 Generar
+              </button>
+            </div>
+            <div id="mpd_barrasPreview" style="display:none;margin-top:8px;text-align:center;padding:12px;background:#fff;border:1px solid var(--brd);border-radius:8px"></div>
+          </div>
           <div class="modal-field"><label>Tipo</label>
             <select id="mpd_tipo" class="ff-select">
               <option value="servicio"    ${tipoInit === "servicio"    ? "selected" : ""}>Servicio</option>
@@ -196,6 +203,33 @@ export function showNuevoProductoModal(prefill = {}) {
   document.getElementById("mpd_coste")?.addEventListener("input",  updatePreview);
   document.getElementById("mpd_iva")?.addEventListener("change",   updatePreview);
   updatePreview();
+
+  // ── Generar código de barras EAN-13 ──
+  document.getElementById("mpd_genBarras")?.addEventListener("click", async () => {
+    const { generarEAN13, renderBarcodeSVG } = await import("./barcode-utils.js");
+    const code = generarEAN13();
+    const input = document.getElementById("mpd_barras");
+    if (input) input.value = code;
+    const previewEl = document.getElementById("mpd_barrasPreview");
+    if (previewEl) {
+      previewEl.style.display = "";
+      previewEl.innerHTML = renderBarcodeSVG(code, { width: 220, height: 70 });
+    }
+  });
+
+  // Si ya tiene código de barras EAN-13, mostrar preview visual
+  if (prefill.codigo_barras && prefill.codigo_barras.length === 13) {
+    setTimeout(async () => {
+      try {
+        const { renderBarcodeSVG } = await import("./barcode-utils.js");
+        const previewEl = document.getElementById("mpd_barrasPreview");
+        if (previewEl) {
+          previewEl.style.display = "";
+          previewEl.innerHTML = renderBarcodeSVG(prefill.codigo_barras, { width: 220, height: 70 });
+        }
+      } catch(e) { /* barcode-utils not available yet */ }
+    }, 150);
+  }
 
   document.getElementById("mpd_save").addEventListener("click", async () => {
     const nombre = document.getElementById("mpd_nombre").value.trim();
