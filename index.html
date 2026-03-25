@@ -745,8 +745,9 @@
       <button id="installPwaBtn" class="topbar-icon-btn" title="Instalar Taurix como app" style="display:none" onclick="window._installPWA()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v13M7 11l5 5 5-5"/><path d="M3 21h18"/></svg>
       </button>
-      <button id="modoToggleBtn" class="topbar-icon-btn" title="Cambiar modo" onclick="window._toggleModo()" style="width:auto;max-width:110px;padding:0 8px;font-size:10px;font-weight:700;overflow:hidden;white-space:nowrap">
-        <span>💼 Gestor</span>
+      <button id="modoToggleBtn" onclick="window._toggleModo()"
+        style="display:flex;align-items:center;gap:6px;padding:0 10px;height:34px;border-radius:8px;border:1.5px solid var(--brd);background:var(--bg2);cursor:pointer;white-space:nowrap;font-weight:700;font-size:11px">
+        🏢 <span>Empresario</span>
       </button>
       <button id="darkModeBtn" class="topbar-icon-btn" title="Modo oscuro">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -1275,6 +1276,9 @@
 
         <div class="nf-layout">
           <div class="nf-form-col">
+            <!-- SELECTOR PLANTILLA -->
+            <div id="npPlantillaSelectorWrap" style="margin-bottom:8px"></div>
+
             <!-- CLIENTE -->
             <div class="form-block">
               <div class="fb-title">👤 Cliente</div>
@@ -1319,21 +1323,11 @@
                   Añadir línea
                 </button>
               </div>
-              <div class="lineas-header" style="grid-template-columns:1fr 56px 88px 60px 56px 78px 30px;font-size:10px">
-                <div>Descripción</div><div>Cant.</div><div>Precio</div>
-                <div style="color:#dc2626">Dto %</div>
-                <div>IVA</div><div style="text-align:right">Total</div><div></div>
+              <div class="lineas-header">
+                <div>Descripción</div><div>Cant.</div><div>Precio unit.</div><div>IVA</div><div>Total</div><div></div>
               </div>
               <div id="npLineasContainer"></div>
               <div class="lineas-totales">
-                <!-- Subtotal bruto — visible solo con descuento -->
-                <div class="lt-row" id="npSubtotalRow" style="display:none;color:var(--t3)">
-                  <span>Subtotal</span><strong id="npSubtotal">0,00 €</strong>
-                </div>
-                <!-- Descuento — visible solo con descuento -->
-                <div class="lt-row" id="npDescuentoRow" style="display:none;color:#dc2626">
-                  <span>Descuento</span><strong id="npDescuento" style="color:#dc2626">- 0,00 €</strong>
-                </div>
                 <div class="lt-row"><span>Base imponible</span><strong id="npBase">0,00 €</strong></div>
                 <div class="lt-row"><span>IVA</span><strong id="npIva">0,00 €</strong></div>
                 <div class="lt-row lt-total"><span>TOTAL</span><strong id="npTotal">0,00 €</strong></div>
@@ -1429,6 +1423,9 @@
         <div class="nf-layout">
           <!-- COLUMNA FORMULARIO -->
           <div class="nf-form-col">
+            <!-- SELECTOR PLANTILLA -->
+            <div id="nfPlantillaSelectorWrap" style="margin-bottom:8px"></div>
+
             <!-- TIPO OPERACIÓN -->
             <div class="form-block">
               <div class="fb-title">Tipo de operación</div>
