@@ -461,7 +461,7 @@
           <div class="lp-plan-name">Básico</div>
           <div class="lp-plan-tagline">Para el autónomo y empresario</div>
           <div class="lp-plan-price">
-            <span class="lp-plan-eur">12€</span>
+            <span class="lp-plan-eur">12,29€</span>
             <span class="lp-plan-per">/mes</span>
           </div>
           <div class="lp-plan-promo">🎁 Primer mes gratis</div>
@@ -477,7 +477,7 @@
           <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Gestión de trabajos y técnicos</span></li>
           <li><span class="lp-cross">✗</span> <span class="lp-feat-off">Nóminas y equipo</span></li>
         </ul>
-        <button class="lp-plan-btn lp-plan-btn--basico" id="ctaPlanBasicoBtn">Empezar gratis →</button>
+        <button class="lp-plan-btn lp-plan-btn--basico" id="ctaPlanBasicoBtn">Empezar con Básico →</button>
         <div class="lp-plan-note">Sin tarjeta para el mes gratis</div>
       </div>
 
@@ -488,12 +488,11 @@
           <div class="lp-plan-name">Pro</div>
           <div class="lp-plan-tagline">Para empresa de servicios</div>
           <div class="lp-plan-price">
-            <span class="lp-plan-eur">39€</span>
+            <span class="lp-plan-eur">29€</span>
             <span class="lp-plan-per">/mes</span>
           </div>
           <div class="lp-plan-promo">🎁 Primer mes gratis</div>
           <!-- Claim de ahorro -->
-          <div class="lp-plan-claim">⏱ Ahorra +10h/mes de gestión</div>
           <div class="lp-plan-desc">Para empresas que trabajan con técnicos, proyectos y equipos en campo</div>
         </div>
         <ul class="lp-plan-features">
@@ -506,7 +505,7 @@
           <li><span class="lp-check lp-check--pro">✓</span> <strong>Controla todo tu negocio desde un solo sitio</strong></li>
         </ul>
         <button class="lp-plan-btn lp-plan-btn--pro" id="ctaPlanProBtn">Empezar con Pro →</button>
-        <div class="lp-plan-note">Sin permanencia · Cancela cuando quieras</div>
+        <div class="lp-plan-note">Sin tarjeta para el mes gratis</div>
       </div>
 
       <!-- ── PLAN 3: GESTOR ── -->
@@ -516,7 +515,7 @@
           <div class="lp-plan-name">Gestor</div>
           <div class="lp-plan-tagline">Tú y tu asesor, en la misma página</div>
           <div class="lp-plan-price">
-            <span class="lp-plan-eur">79€</span>
+            <span class="lp-plan-eur">59€</span>
             <span class="lp-plan-per">/mes</span>
           </div>
           <div class="lp-plan-promo">🎁 Primer mes gratis</div>
@@ -530,8 +529,8 @@
           <li><span class="lp-check lp-check--gestor">✓</span> Todos los modelos AEAT listos para presentar</li>
           <li><span class="lp-check lp-check--gestor">✓</span> Soporte prioritario</li>
         </ul>
-        <button class="lp-plan-btn lp-plan-btn--gestor" id="ctaPlanGestorBtn">Solicitar demo →</button>
-        <div class="lp-plan-note">Ideal para gestorías con varios clientes</div>
+        <button class="lp-plan-btn lp-plan-btn--gestor" id="ctaPlanGestorBtn">Empezar con Gestor →</button>
+        <div class="lp-plan-note">Sin tarjeta para el mes gratis</div>
       </div>
 
     </div>
@@ -539,7 +538,7 @@
     <!-- Nota bajo los planes -->
     <div class="lp-planes-nota">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      Todos los planes incluyen Verifactu certificado (RD 1007/2023), soporte por email y actualizaciones automáticas. Precios sin IVA.
+      Todos los planes incluyen Verifactu certificado (RD 1007/2023), soporte por email y actualizaciones automáticas.
     </div>
   </section>
 
@@ -745,14 +744,8 @@
       <button id="installPwaBtn" class="topbar-icon-btn" title="Instalar Taurix como app" style="display:none" onclick="window._installPWA()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v13M7 11l5 5 5-5"/><path d="M3 21h18"/></svg>
       </button>
-      <button id="modoToggleBtn" onclick="window._toggleModo()"
-        style="display:flex;align-items:center;gap:8px;padding:0 14px;height:38px;min-width:140px;border-radius:9px;border:1.5px solid var(--brd);background:var(--bg2);cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0">
-        <span id="modoActualIcon" style="font-size:15px;flex-shrink:0">🏢</span>
-        <span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.3">
-          <span style="font-size:9px;font-weight:600;color:var(--t4);text-transform:uppercase;letter-spacing:.05em">Modo actual</span>
-          <span id="modoActualLabel" style="font-size:12px;font-weight:800;color:var(--t1)">Empresario</span>
-        </span>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--t4);flex-shrink:0;margin-left:auto"><path d="M7 16L3 12l4-4M17 8l4 4-4 4"/></svg>
+      <button id="modoToggleBtn" class="topbar-icon-btn" title="Cambiar modo" onclick="window._toggleModo()" style="width:auto;max-width:110px;padding:0 8px;font-size:10px;font-weight:700;overflow:hidden;white-space:nowrap">
+        <span>💼 Gestor</span>
       </button>
       <button id="darkModeBtn" class="topbar-icon-btn" title="Modo oscuro">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -1281,9 +1274,6 @@
 
         <div class="nf-layout">
           <div class="nf-form-col">
-            <!-- SELECTOR PLANTILLA -->
-            <div id="npPlantillaSelectorWrap" style="margin-bottom:8px"></div>
-
             <!-- CLIENTE -->
             <div class="form-block">
               <div class="fb-title">👤 Cliente</div>
@@ -1428,9 +1418,6 @@
         <div class="nf-layout">
           <!-- COLUMNA FORMULARIO -->
           <div class="nf-form-col">
-            <!-- SELECTOR PLANTILLA -->
-            <div id="nfPlantillaSelectorWrap" style="margin-bottom:8px"></div>
-
             <!-- TIPO OPERACIÓN -->
             <div class="form-block">
               <div class="fb-title">Tipo de operación</div>
