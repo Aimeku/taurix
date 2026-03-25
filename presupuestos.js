@@ -271,6 +271,18 @@ export function showNuevoPresupuestoModal(prefill = {}) {
           <div class="modal-field"><label>Nombre cliente (texto libre)</label>
             <input id="pm_cliente_nombre" class="ff-input" value="${prefill.cliente_nombre || ""}" placeholder="O escribe directamente"/></div>
         </div>
+        <div class="modal-grid2" style="margin-bottom:8px">
+          <div class="modal-field"><label>NIF / CIF cliente</label>
+            <input id="pm_cliente_nif" class="ff-input" value="${prefill.cliente_nif || ""}" placeholder="B12345678"/></div>
+          <div class="modal-field"><label>Dirección cliente</label>
+            <input id="pm_cliente_dir" class="ff-input" value="${prefill.cliente_direccion || ""}" placeholder="Calle, CP, Ciudad"/></div>
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--t2)">
+            <input type="checkbox" id="pm_guardarCliente"/>
+            <span>💾 Guardar este cliente en mi lista de clientes</span>
+          </label>
+        </div>
         <div class="modal-grid3" style="margin-bottom:16px">
           <div class="modal-field"><label>Fecha *</label>
             <input type="date" id="pm_fecha" class="ff-input" value="${prefill.fecha || new Date().toISOString().slice(0, 10)}"/></div>
@@ -789,6 +801,8 @@ export function showNuevoPresupuestoModal(prefill = {}) {
 
     const cSel = document.getElementById("pm_cliente").value;
     const cNom = document.getElementById("pm_cliente_nombre").value.trim();
+    const cNif = document.getElementById("pm_cliente_nif")?.value.trim() || "";
+    const cDir = document.getElementById("pm_cliente_dir")?.value.trim() || "";
     const clienteObj = CLIENTES.find(c => c.id === cSel);
 
     const payload = {
@@ -798,6 +812,8 @@ export function showNuevoPresupuestoModal(prefill = {}) {
       estado:         document.getElementById("pm_estado").value,
       cliente_id:     cSel || null,
       cliente_nombre: cNom || clienteObj?.nombre || "",
+      cliente_nif:    cNif || clienteObj?.nif || "",
+      cliente_direccion: cDir || clienteObj?.direccion || "",
       base, iva,
       lineas:         JSON.stringify(lineas),
       notas:          document.getElementById("pm_notas").value.trim(),
@@ -821,6 +837,24 @@ export function showNuevoPresupuestoModal(prefill = {}) {
       ({ error: err } = await supabase.from("presupuestos").insert(payload));
     }
     if (err) { toast("Error: " + err.message, "error"); return; }
+
+    // Guardar cliente si se marcó el checkbox y es nuevo
+    const guardarCliente = document.getElementById("pm_guardarCliente")?.checked;
+    const nombreFinal = cNom || clienteObj?.nombre;
+    if (guardarCliente && nombreFinal && !cSel) {
+      const { error: ce } = await supabase.from("clientes").insert({
+        user_id: SESSION.user.id,
+        nombre: nombreFinal,
+        nif: cNif || null,
+        direccion: cDir || null,
+      });
+      if (!ce) {
+        toast("Cliente guardado en tu lista ✅", "info", 3000);
+        const { refreshClientes } = await import("./clientes.js");
+        await refreshClientes();
+      }
+    }
+
     toast(isEdit ? "Presupuesto actualizado ✅" : "Presupuesto creado ✅", "success");
     closeModal();
     await refreshPresupuestos();
