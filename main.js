@@ -61,6 +61,9 @@ import { initOtrosModelosView } from "./otros-modelos.js";
 import { initAmortizacionesView } from "./amortizaciones.js";
 import { initValidacionesModal, validarIdentificadorFiscal, validarIBAN } from "./validaciones.js";
 import { exportarDatos303, exportarDatos130, GASTOS_DEDUCIBLES } from "./fiscal.js";
+import { initRecurrentesView, refreshRecurrentes } from "./facturas-recurrentes.js";
+import { initPlantillasView, refreshPlantillas } from "./plantillas-usuario.js";
+import { initAlbaranesView, refreshAlbaranes } from "./albaranes.js";
 
 
 
@@ -358,6 +361,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ── Presupuestos ── */
   initPresupuestosView();
 
+  /* ── Albaranes ── */
+  initAlbaranesView();
+
+  /* ── Facturas recurrentes ── */
+  initRecurrentesView();
+
+  /* ── Plantillas de usuario ── */
+  initPlantillasView();
+
   /* ── Productos ── */
   initProductosView();
 
@@ -557,6 +569,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (view === "trabajos")        await refreshTrabajos();
         if (view === "agenda")          await refreshAgenda();
         if (view === "informes")        initInformesView();
+        if (view === "albaranes")       await refreshAlbaranes();
+        if (view === "recurrentes")     await refreshRecurrentes();
+        if (view === "plantillas")      await refreshPlantillas();
       });
     });
     // Gasto rápido button
