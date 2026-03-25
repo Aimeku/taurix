@@ -641,17 +641,42 @@ window._delPlantilla    = id  => {
     await refreshPlantillas();
   });
 };
-window._usarPlantillaFactura = id => {
+window._usarPlantillaFactura = (id) => {
   const data = getPlantillaData(id);
   if (!data) return;
-  window._switchView?.("nueva-factura");
-  setTimeout(()=>window._applyPlantillaToFactura?.(data),200);
+  // Si ya estamos en nueva-factura, aplicar directamente
+  if (window._applyPlantillaToFactura) {
+    window._switchView?.("nueva-factura");
+    // Pequeño delay para que la vista se active si no lo estaba
+    setTimeout(() => window._applyPlantillaToFactura(data), 150);
+  } else {
+    window._switchView?.("nueva-factura");
+    // _applyPlantillaToFactura se registra en initNuevaFactura, esperar a que esté
+    let tries = 0;
+    const poll = setInterval(() => {
+      tries++;
+      if (window._applyPlantillaToFactura) {
+        clearInterval(poll);
+        window._applyPlantillaToFactura(data);
+      } else if (tries > 20) clearInterval(poll);
+    }, 100);
+  }
 };
-window._usarPlantillaPres = id => {
+
+window._usarPlantillaPres = (id) => {
   const data = getPlantillaData(id);
   if (!data) return;
   window._switchView?.("presupuestos");
-  setTimeout(()=>window._editPres?.("new_from_template_"+id),200);
+  // Abrir modal de nuevo presupuesto con los datos de la plantilla
+  setTimeout(() => {
+    if (window._applyPlantillaToPresupuesto) {
+      window._applyPlantillaToPresupuesto(data);
+    } else if (window._editPres) {
+      // Fallback: usar el mecanismo de _editPres con prefijo especial no funciona
+      // aquí directamente llamamos a showNuevoPresupuestoModal si está disponible
+      window._editPres("new_from_template_" + id);
+    }
+  }, 150);
 };
 
 /* ══════════════════════════
