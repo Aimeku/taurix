@@ -514,6 +514,42 @@ function resetForm() {
 }
 
 /* ══════════════════════════
+   APLICAR PLANTILLA DE USUARIO
+   Llamado desde plantillas-usuario.js
+   cuando el usuario pulsa "📤 Factura"
+══════════════════════════ */
+window._applyPlantillaToFactura = (data) => {
+  if (!data) return;
+
+  // 1. Limpiar líneas actuales
+  LINEAS = [];
+  lineaIdCounter = 0;
+  const container = document.getElementById("lineasContainer");
+  if (container) container.innerHTML = "";
+
+  // 2. Añadir líneas de la plantilla
+  const lineas = data.lineas || [];
+  if (lineas.length) {
+    lineas.forEach(l => addLinea(l));
+  } else {
+    addLinea(); // al menos una vacía
+  }
+
+  // 3. Notas
+  const notasEl = document.getElementById("nfNotas");
+  if (notasEl && data.notas) notasEl.value = data.notas;
+
+  // 4. Concepto: prellenar búsqueda de cliente con el concepto si está vacío
+  // (el concepto va en las líneas, no hay campo único de concepto en nueva-factura)
+
+  // 5. Toast confirmación
+  toast("✅ Plantilla aplicada — revisa las líneas y emite", "success", 3000);
+
+  updateTotalesUI();
+  updatePreview();
+};
+
+/* ══════════════════════════
    INIT
 ══════════════════════════ */
 export function initNuevaFactura() {
