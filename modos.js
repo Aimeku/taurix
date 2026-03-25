@@ -40,7 +40,6 @@ export const MODOS = {
       { view:"nueva-factura",label:"Nueva factura",        icon:"plus-circle" },
       { view:"albaranes",    label:"Albaranes",             icon:"clipboard" },
       { view:"recurrentes",  label:"Facturas recurrentes",  icon:"refresh" },
-      { view:"proforma",     label:"Facturas proforma",     icon:"file-text" },
       { sep: true, label:"Gastos" },
       { action:"gastoRapido",label:"Gasto rápido",        icon:"zap",    accent:true },
       { view:"gastos",       label:"Proveedores / Gastos",  icon:"credit-card", badge:"snBadgeVencidos" },
@@ -81,7 +80,6 @@ export const MODOS = {
       { view:"nueva-factura",label:"Nueva factura",        icon:"plus-circle" },
       { view:"albaranes",    label:"Albaranes",             icon:"clipboard" },
       { view:"recurrentes",  label:"Facturas recurrentes",  icon:"refresh" },
-      { view:"proforma",     label:"Facturas proforma",    icon:"file-text" },
       { view:"verifactu",    label:"Verifactu",            icon:"shield" },
       { sep: true, label:"Gastos y tesorería" },
       { action:"gastoRapido",label:"Gasto rápido",        icon:"zap",    accent:true },
@@ -303,9 +301,10 @@ function actualizarToggleBtn(modo) {
   if (!btn) return;
   const cfg  = MODOS[modo];
   const otro = MODOS[modo === "empresario" ? "gestor" : "empresario"];
-  btn.textContent = `${otro.icon} ${otro.labelCorto}`;
-  btn.title       = `Cambiar a ${otro.label}`;
-  btn.style.borderColor = cfg.color + "44";
+  // Mostrar modo ACTUAL con etiqueta "Ahora:" para que quede claro
+  btn.innerHTML = `<span style="font-size:9px;opacity:.7;display:block;line-height:1.1">Ahora:</span><span>${cfg.icon} ${cfg.labelCorto}</span>`;
+  btn.title         = `Modo actual: ${cfg.label}. Pulsa para cambiar a ${otro.label}`;
+  btn.style.borderColor = cfg.color + "55";
   btn.style.color       = cfg.color;
   btn.style.background  = cfg.color + "0d";
 }
