@@ -52,10 +52,10 @@ import {
   initModos, aplicarModo, toggleModo, showOnboardingModo,
   refreshCartera, esModoGestor, getModo
 } from "./modos.js";
-import { initNordigenView, refreshConexionesBancarias, autoSyncBancos } from "./nordigen.js";
 import { initTrabajosView, refreshTrabajos } from "./trabajos.js";
 import { initAgendaView, refreshAgenda } from "./agenda.js";
 import { initDocumentosView } from "./documentos.js";
+import { initNuevoPresupuesto } from "./nuevo-presupuesto.js";
 import { initContabilidadView, refreshLibroDiario, refreshSumasSaldos, refreshBalance, refreshPyG } from "./contabilidad.js";
 import { initOtrosModelosView } from "./otros-modelos.js";
 import { initAmortizacionesView } from "./amortizaciones.js";
@@ -452,14 +452,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     toast("Módulo RRHH disponible en plan Business", "info");
   });
 
-  /* ── Tesorería ── */
-  document.getElementById("importarBancoBtn")?.addEventListener("click", () => {
-    toast("Importación CSV bancario: arrastra el fichero aquí (próximamente)", "info");
-  });
-  document.getElementById("nuevaCuentaBtn")?.addEventListener("click", () => {
-    toast("Gestión de cuentas bancarias próximamente", "info");
-  });
-
   /* ── Pipeline ── */
   document.getElementById("nuevaOportunidadBtn")?.addEventListener("click", () => {
     toast("Pipeline CRM próximamente", "info");
@@ -504,8 +496,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ── Colaboradores view ── */
   initColaboradoresView();
 
-  /* ── Banco automático view ── */
-  initNordigenView();
+  /* ── Nuevo presupuesto ── */
+  initNuevoPresupuesto();
 
   /* ── Trabajos ── */
   initTrabajosView();
@@ -564,7 +556,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (view === "nominas")         { const { refreshNominas } = await import("./nominas.js"); await refreshNominas(); }
         if (view === "empleados")       { const { refreshEmpleados } = await import("./nominas.js"); if(refreshEmpleados) await refreshEmpleados(); }
         if (view === "colaboradores")   await refreshColaboradoresView();
-        if (view === "banco-auto")      await refreshConexionesBancarias();
         if (view === "cartera")         await refreshCartera();
         if (view === "trabajos")        await refreshTrabajos();
         if (view === "agenda")          await refreshAgenda();
