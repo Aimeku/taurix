@@ -435,6 +435,26 @@ export async function showPerfilModal() {
           <div class="modal-field"><label>Código LEI (si aplica)</label><input autocomplete="off" id="pf_lei" class="ff-input" value="${p?.lei || ""}" placeholder="Identificador Legal de Entidad"/></div>
         </div>
       </div>
+
+      <!-- Verifactu toggle -->
+      <div style="margin:0;padding:16px 24px;border-top:1px solid var(--brd);background:var(--bg2)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:700;color:var(--t1);display:flex;align-items:center;gap:8px">
+              <span class="verifactu-badge" style="font-size:10px;padding:2px 8px">✓ VERIFACTU</span>
+              Activar Verifactu automático
+            </div>
+            <div style="font-size:12px;color:var(--t3);margin-top:4px;line-height:1.5">
+              Cuando actives esta opción, cada factura que emitas quedará firmada digitalmente y encadenada de forma automática conforme al RD 1007/2023. Puedes activarlo o desactivarlo en cualquier momento.
+            </div>
+          </div>
+          <label class="irpf-toggle" style="flex-shrink:0">
+            <input type="checkbox" id="pf_verifactu" ${p?.verifactu_activo ? "checked" : ""}/>
+            <span class="irpf-toggle-slider" style="background:${p?.verifactu_activo ? 'var(--accent)' : 'var(--brd)'}"></span>
+          </label>
+        </div>
+      </div>
+
       <div class="modal-ft" style="justify-content:space-between">
         <button class="btn-modal-danger" id="pf_delete_account" style="margin-right:auto">🗑️ Eliminar cuenta</button>
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
@@ -527,6 +547,7 @@ export async function showPerfilModal() {
       bic:                document.getElementById("pf_bic").value.trim(),
       registro_mercantil: document.getElementById("pf_regmercantil").value.trim(),
       lei:                document.getElementById("pf_lei").value.trim(),
+      verifactu_activo:   document.getElementById("pf_verifactu")?.checked || false,
       logo_url:           _logoBase64,
       regime,
       updated_at:         new Date().toISOString()
@@ -541,7 +562,7 @@ export async function showPerfilModal() {
           telefono: document.getElementById("pf_tel").value.trim(), email: document.getElementById("pf_email").value.trim(),
           iban: document.getElementById("pf_iban").value.trim(), bic: document.getElementById("pf_bic").value.trim(),
           registro_mercantil: document.getElementById("pf_regmercantil").value.trim(),
-          lei: document.getElementById("pf_lei").value.trim(), logo_url: _logoBase64, regime, updated_at: new Date().toISOString()
+          lei: document.getElementById("pf_lei").value.trim(), logo_url: _logoBase64, regime, verifactu_activo: document.getElementById("pf_verifactu")?.checked||false, updated_at: new Date().toISOString()
         }).eq("user_id", SESSION.user.id);
         if (ue2) { toast("Error guardando perfil: " + ue2.message, "error"); return; }
       } else {
