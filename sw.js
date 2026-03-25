@@ -4,8 +4,8 @@
    datos de Supabase. Soporte offline básico.
    ═══════════════════════════════════════════════════════ */
 
-const CACHE_NAME    = "taurix-v6";
-const CACHE_STATIC  = "taurix-static-v6";
+const CACHE_NAME    = "taurix-v7";
+const CACHE_STATIC  = "taurix-static-v7";
 
 // Assets que se cachean al instalar
 const STATIC_ASSETS = [
