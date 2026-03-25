@@ -339,60 +339,6 @@ function initClienteSearch() {
 /* ══════════════════════════
    INIT
 ══════════════════════════ */
-/* ══════════════════════════
-   SELECTOR DE PLANTILLA inline
-══════════════════════════ */
-async function renderNpPlantillaSelector() {
-  const wrap = document.getElementById("npPlantillaSelector");
-  if (!wrap) return;
-
-  // Asegurar plantillas cargadas
-  if (!PLANTILLAS.length) await loadPlantillas();
-
-  if (!PLANTILLAS.length) {
-    wrap.innerHTML = `<span style="font-size:12px;color:var(--t4)">Sin plantillas — <a href="#" onclick="window._switchView('plantillas');return false" style="color:var(--accent)">crea una aquí</a></span>`;
-    return;
-  }
-
-  wrap.innerHTML = [
-    ...PLANTILLAS.map(p => `
-      <button class="np-plt-btn btn-outline" data-plt-id="${p.id}"
-        style="font-size:12px;padding:5px 12px;border-radius:8px;display:flex;align-items:center;gap:5px">
-        📋 ${p.nombre}
-      </button>`),
-    `<button class="np-plt-btn btn-outline" data-plt-id=""
-      style="font-size:12px;padding:5px 12px;border-radius:8px;color:var(--t4)">
-      ✕ En blanco
-    </button>`
-  ].join("");
-
-  wrap.querySelectorAll(".np-plt-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      wrap.querySelectorAll(".np-plt-btn").forEach(b => {
-        b.style.background = ""; b.style.borderColor = ""; b.style.color = "";
-      });
-      if (btn.dataset.pltId) {
-        btn.style.background   = "var(--accent)";
-        btn.style.borderColor  = "var(--accent)";
-        btn.style.color        = "#fff";
-        const data = getPlantillaData(btn.dataset.pltId);
-        if (data) window._applyPlantillaToNuevoPresupuesto?.(data);
-      } else {
-        // En blanco: resetear líneas
-        LINEAS = []; lineaIdCounter = 0;
-        const c = document.getElementById("npLineasContainer");
-        if (c) c.innerHTML = "";
-        addLinea();
-        const conceptoEl = document.getElementById("npConcepto");
-        const notasEl    = document.getElementById("npNotas");
-        if (conceptoEl) conceptoEl.value = "";
-        if (notasEl)    notasEl.value    = "";
-        updateTotalesUI(); updatePreview();
-      }
-    });
-  });
-}
-
 export function initNuevoPresupuesto() {
   const fechaEl = document.getElementById("npFecha");
   if (fechaEl && !fechaEl.value) fechaEl.value = new Date().toISOString().slice(0, 10);
@@ -408,5 +354,58 @@ export function initNuevoPresupuesto() {
   document.getElementById("npGuardarBtn")?.addEventListener("click", () => savePresupuesto());
 
   if (LINEAS.length === 0) addLinea();
-  renderNpPlantillaSelector();
+  _renderNpPlantillaSelector();
 }
+
+/* ══════════════════════════
+   SELECTOR DE PLANTILLA — nuevo presupuesto
+══════════════════════════ */
+async function _renderNpPlantillaSelector() {
+  const wrap = document.getElementById("npPlantillaSelector");
+  if (!wrap) return;
+  if (!PLANTILLAS.length) await loadPlantillas();
+  if (!PLANTILLAS.length) {
+    wrap.innerHTML = `<span style="font-size:12px;color:var(--t4)">Sin plantillas — <a href="#" onclick="window._switchView('plantillas');return false" style="color:var(--accent)">crea una aquí</a></span>`;
+    return;
+  }
+  wrap.innerHTML = [
+    ...PLANTILLAS.map(p => `<button class="np-plt-btn btn-outline" data-plt-id="${p.id}" style="font-size:12px;padding:5px 12px;border-radius:8px">📋 ${p.nombre}</button>`),
+    `<button class="np-plt-btn btn-outline" data-plt-id="" style="font-size:12px;padding:5px 12px;border-radius:8px;color:var(--t4)">✕ En blanco</button>`
+  ].join("");
+  wrap.querySelectorAll(".np-plt-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      wrap.querySelectorAll(".np-plt-btn").forEach(b => { b.style.background=""; b.style.borderColor=""; b.style.color=""; });
+      if (btn.dataset.pltId) {
+        btn.style.background="var(--accent)"; btn.style.borderColor="var(--accent)"; btn.style.color="#fff";
+        const data = getPlantillaData(btn.dataset.pltId);
+        if (data) _applyPlantillaToNP(data);
+      } else {
+        LINEAS=[]; lineaIdCounter=0;
+        const c=document.getElementById("npLineasContainer"); if(c) c.innerHTML="";
+        const co=document.getElementById("npConcepto"); if(co) co.value="";
+        const no=document.getElementById("npNotas"); if(no) no.value="";
+        addLinea(); updateTotalesUI(); updatePreview();
+      }
+    });
+  });
+}
+
+/* ══════════════════════════
+   APLICAR PLANTILLA — nuevo presupuesto
+══════════════════════════ */
+function _applyPlantillaToNP(data) {
+  if (!data) return;
+  LINEAS=[]; lineaIdCounter=0;
+  const c = document.getElementById("npLineasContainer");
+  if (c) c.innerHTML="";
+  (data.lineas||[]).forEach(l => addLinea(l));
+  if (!LINEAS.length) addLinea();
+  const co=document.getElementById("npConcepto"); if(co && data.concepto) co.value=data.concepto;
+  const no=document.getElementById("npNotas");    if(no && data.notas)    no.value=data.notas;
+  updateTotalesUI(); updatePreview();
+  toast("✅ Plantilla aplicada", "success", 2500);
+}
+
+// Exponer globalmente
+window._applyPlantillaToPresupuesto = _applyPlantillaToNP;
+window._applyPlantillaToNuevoPresupuesto = _applyPlantillaToNP;
