@@ -4,8 +4,8 @@
    datos de Supabase. Soporte offline básico.
    ═══════════════════════════════════════════════════════ */
 
-const CACHE_NAME    = "taurix-v3";
-const CACHE_STATIC  = "taurix-static-v3";
+const CACHE_NAME    = "taurix-v4";
+const CACHE_STATIC  = "taurix-static-v4";
 
 // Assets que se cachean al instalar
 const STATIC_ASSETS = [
@@ -32,6 +32,10 @@ const STATIC_ASSETS = [
   "/contabilidad.js",
   "/otros-modelos.js",
   "/amortizaciones.js",
+  "/facturas-recurrentes.js",
+  "/plantillas-usuario.js",
+  "/albaranes.js",
+  "/barcode-utils.js",
   "/validaciones.js",
   "/alertas.js",
   "/documentos.js",
