@@ -14,7 +14,7 @@ import { refreshClientes, populateClienteSelect } from "./clientes.js";
 import { refreshDashboard } from "./dashboard.js";
 import { refreshFacturas } from "./facturas.js";
 import { PRODUCTOS, buscarProductoPorCodigo } from "./productos.js";
-import { PLANTILLAS, loadPlantillas, getPlantillaData } from "./plantillas-usuario.js";
+import { renderSelectorPlantillas } from "./plantillas-usuario.js";
 
 /* ── Estado interno del formulario ── */
 let LINEAS = [];
@@ -607,57 +607,35 @@ export function initNuevaFactura() {
   nfScanInput?.addEventListener("blur", () => { if(nfScanFeedback) nfScanFeedback.style.opacity="0"; });
   document.getElementById("nfEmitirBtn")?.addEventListener("click",  ()=>saveFactura());
   if (LINEAS.length===0) addLinea();
-  // Cargar selector de plantillas
-  _renderNfPlantillaSelector();
-}
 
-/* ══════════════════════════
-   SELECTOR DE PLANTILLA — nueva factura
-══════════════════════════ */
-async function _renderNfPlantillaSelector() {
-  const wrap = document.getElementById("nfPlantillaSelector");
-  if (!wrap) return;
-  if (!PLANTILLAS.length) await loadPlantillas();
-  if (!PLANTILLAS.length) {
-    wrap.innerHTML = `<span style="font-size:12px;color:var(--t4)">Sin plantillas — <a href="#" onclick="window._switchView('plantillas');return false" style="color:var(--accent)">crea una aquí</a></span>`;
-    return;
-  }
-  wrap.innerHTML = [
-    ...PLANTILLAS.map(p => `<button class="nf-plt-btn btn-outline" data-plt-id="${p.id}" style="font-size:12px;padding:5px 12px;border-radius:8px">📋 ${p.nombre}</button>`),
-    `<button class="nf-plt-btn btn-outline" data-plt-id="" style="font-size:12px;padding:5px 12px;border-radius:8px;color:var(--t4)">✕ En blanco</button>`
-  ].join("");
-  wrap.querySelectorAll(".nf-plt-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      wrap.querySelectorAll(".nf-plt-btn").forEach(b => { b.style.background=""; b.style.borderColor=""; b.style.color=""; });
-      if (btn.dataset.pltId) {
-        btn.style.background="var(--accent)"; btn.style.borderColor="var(--accent)"; btn.style.color="#fff";
-        const data = getPlantillaData(btn.dataset.pltId);
-        if (data) _applyPlantillaToNF(data);
-      } else {
-        LINEAS=[]; lineaIdCounter=0;
-        document.getElementById("lineasContainer").innerHTML="";
-        const n=document.getElementById("nfNotas"); if(n) n.value="";
-        addLinea(); updateTotalesUI(); updatePreview();
-      }
-    });
+  // Selector de plantilla integrado
+  renderSelectorPlantillas("nfPlantillaSelectorWrap", (data) => {
+    LINEAS=[]; lineaIdCounter=0;
+    const container=document.getElementById("lineasContainer");
+    if (container) container.innerHTML="";
+    if (data) {
+      (data.lineas||[]).forEach(l=>addLinea(l));
+      const no=document.getElementById("nfNotas"); if(no&&data.notas) no.value=data.notas;
+      toast("✅ Plantilla aplicada","success",2000);
+    } else {
+      addLinea();
+    }
+    updateTotalesUI(); updatePreview();
   });
 }
 
 /* ══════════════════════════
-   APLICAR PLANTILLA — nueva factura
+   APLICAR PLANTILLA (llamada externa)
 ══════════════════════════ */
 function _applyPlantillaToNF(data) {
   if (!data) return;
   LINEAS=[]; lineaIdCounter=0;
-  const container = document.getElementById("lineasContainer");
+  const container=document.getElementById("lineasContainer");
   if (container) container.innerHTML="";
-  (data.lineas||[]).forEach(l => addLinea(l));
+  (data.lineas||[]).forEach(l=>addLinea(l));
   if (!LINEAS.length) addLinea();
-  const notasEl = document.getElementById("nfNotas");
-  if (notasEl && data.notas) notasEl.value = data.notas;
+  const no=document.getElementById("nfNotas"); if(no&&data.notas) no.value=data.notas;
   updateTotalesUI(); updatePreview();
-  toast("✅ Plantilla aplicada", "success", 2500);
+  toast("✅ Plantilla aplicada","success",2000);
 }
-
-// Exponer globalmente para llamadas desde plantillas-usuario.js
 window._applyPlantillaToFactura = _applyPlantillaToNF;
