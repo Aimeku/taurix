@@ -745,8 +745,8 @@
       <button id="installPwaBtn" class="topbar-icon-btn" title="Instalar Taurix como app" style="display:none" onclick="window._installPWA()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v13M7 11l5 5 5-5"/><path d="M3 21h18"/></svg>
       </button>
-      <button id="modoToggleBtn" class="topbar-icon-btn" onclick="window._toggleModo()" style="width:auto;min-width:130px;max-width:180px;padding:0 12px;height:36px;font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden">
-        🏢 Empresario
+      <button id="modoToggleBtn" class="topbar-icon-btn" title="Cambiar modo" onclick="window._toggleModo()" style="width:auto;max-width:110px;padding:0 8px;font-size:10px;font-weight:700;overflow:hidden;white-space:nowrap">
+        <span>💼 Gestor</span>
       </button>
       <button id="darkModeBtn" class="topbar-icon-btn" title="Modo oscuro">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -1148,8 +1148,8 @@
           <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">Pendientes</span></div><div class="kpi-val" id="presKpiPendientes">—</div></div>
           <div class="kpi-card kpi-indigo"><div class="kpi-top"><span class="kpi-lbl">Tasa de conversión</span></div><div class="kpi-val" id="presKpiTasa">—</div></div>
         </div>
-        <div class="filter-bar">
-          <input type="text" id="presSearch" class="search-input" placeholder="Buscar por concepto, número, cliente…" style="min-width:220px"/>
+        <div class="filter-bar" style="flex-wrap:wrap;gap:8px">
+          <input type="text" id="presSearch" class="search-input" placeholder="Buscar concepto, cliente, número…" style="min-width:220px;flex:1"/>
           <select id="presFilterEstado" class="filter-sel">
             <option value="">Todos los estados</option>
             <option value="borrador">Borrador</option>
@@ -1158,6 +1158,20 @@
             <option value="rechazado">Rechazado</option>
             <option value="albaran">Albarán</option>
           </select>
+          <select id="presFilterCliente" class="filter-sel">
+            <option value="">Todos los clientes</option>
+          </select>
+          <button id="presFilterReset" class="btn-outline" style="font-size:11px;padding:4px 10px;color:var(--t3)">✕ Limpiar</button>
+        </div>
+        <div class="filter-bar filter-bar--secondary" style="flex-wrap:wrap;gap:8px">
+          <span class="filter-lbl">Fecha:</span>
+          <input type="date" id="presFilterDesde" class="filter-date"/>
+          <span class="filter-sep">—</span>
+          <input type="date" id="presFilterHasta" class="filter-date"/>
+          <span class="filter-lbl" style="margin-left:12px">Importe (€):</span>
+          <input type="number" id="presFilterMin" class="filter-amt" placeholder="Mín" step="0.01"/>
+          <span class="filter-sep">—</span>
+          <input type="number" id="presFilterMax" class="filter-amt" placeholder="Máx" step="0.01"/>
         </div>
         <div class="section-card no-pad">
           <table class="data-table" id="presTable">
@@ -1192,8 +1206,27 @@
             <div class="af-desc">Un albarán documenta la entrega de mercancía o servicio. Cuando el cliente confirma, puedes convertirlo en factura con un clic.</div>
           </div>
         </div>
-        <div class="filter-bar">
-          <input type="text" id="albaranSearch" class="search-input" placeholder="Buscar por concepto, cliente, número…" style="min-width:220px"/>
+        <div class="filter-bar" style="flex-wrap:wrap;gap:8px">
+          <input type="text" id="albaranSearch" class="search-input" placeholder="Buscar concepto, cliente, número…" style="min-width:220px;flex:1"/>
+          <select id="albaranFilterFacturado" class="filter-sel">
+            <option value="">Todos</option>
+            <option value="no">⏳ Pendiente de facturar</option>
+            <option value="si">✅ Facturado</option>
+          </select>
+          <select id="albaranFilterCliente" class="filter-sel">
+            <option value="">Todos los clientes</option>
+          </select>
+          <button id="albaranFilterReset" class="btn-outline" style="font-size:11px;padding:4px 10px;color:var(--t3)">✕ Limpiar</button>
+        </div>
+        <div class="filter-bar filter-bar--secondary" style="flex-wrap:wrap;gap:8px">
+          <span class="filter-lbl">Fecha:</span>
+          <input type="date" id="albaranFilterDesde" class="filter-date"/>
+          <span class="filter-sep">—</span>
+          <input type="date" id="albaranFilterHasta" class="filter-date"/>
+          <span class="filter-lbl" style="margin-left:12px">Importe (€):</span>
+          <input type="number" id="albaranFilterMin" class="filter-amt" placeholder="Mín" step="0.01"/>
+          <span class="filter-sep">—</span>
+          <input type="number" id="albaranFilterMax" class="filter-amt" placeholder="Máx" step="0.01"/>
         </div>
         <div class="section-card no-pad">
           <table class="data-table" id="albaranesTable">
@@ -1238,6 +1271,71 @@
         </div>
       </div>
 
+      <!-- ═══ VIEW: FACTURAS PROFORMA ═══ -->
+      <div class="view" id="view-proforma">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Facturas Proforma</h1>
+            <p class="view-sub" id="proformaCount">— proformas registradas</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-primary" id="nuevaProformaBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nueva proforma
+            </button>
+          </div>
+        </div>
+
+        <!-- Info -->
+        <div class="alerta-fiscal alerta-fiscal--info" style="margin-bottom:20px">
+          <div class="af-icon">📋</div>
+          <div class="af-body">
+            <div class="af-title">¿Qué es una factura proforma?</div>
+            <div class="af-desc">Una proforma es un documento previo a la factura que muestra el detalle de una operación sin valor fiscal. Se usa para que el cliente confirme el pedido antes de emitir la factura definitiva. Cuando el cliente confirma, puedes convertirla en factura real con un clic.</div>
+          </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
+          <div class="kpi-card kpi-blue"><div class="kpi-top"><span class="kpi-lbl">Total proformas</span></div><div class="kpi-val" id="pfKpiTotal">—</div></div>
+          <div class="kpi-card kpi-green"><div class="kpi-top"><span class="kpi-lbl">Confirmadas</span></div><div class="kpi-val" id="pfKpiConfirmadas">0</div></div>
+          <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">Pendientes</span></div><div class="kpi-val" id="pfKpiPendientes">0</div></div>
+          <div class="kpi-card kpi-rose"><div class="kpi-top"><span class="kpi-lbl">Convertidas a factura</span></div><div class="kpi-val" id="pfKpiConvertidas">0</div></div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filter-bar" style="flex-wrap:wrap;gap:8px">
+          <input type="text" id="proformaSearch" class="search-input" placeholder="Buscar concepto, cliente, número…" style="min-width:220px;flex:1"/>
+          <select id="proformaFilterEstado" class="filter-sel">
+            <option value="">Todos los estados</option>
+            <option value="borrador">Borrador</option>
+            <option value="enviada">Enviada</option>
+            <option value="confirmada">Confirmada</option>
+            <option value="rechazada">Rechazada</option>
+            <option value="convertida">Convertida a factura</option>
+            <option value="caducada">Caducada</option>
+          </select>
+          <button id="proformaFilterReset" class="btn-outline" style="font-size:11px;padding:4px 10px;color:var(--t3)">✕ Limpiar</button>
+        </div>
+        <div class="filter-bar filter-bar--secondary" style="flex-wrap:wrap;gap:8px;margin-top:6px">
+          <span class="filter-lbl">Fecha:</span>
+          <input type="date" id="proformaFilterDesde" class="filter-date"/>
+          <span class="filter-sep">—</span>
+          <input type="date" id="proformaFilterHasta" class="filter-date"/>
+        </div>
+
+        <!-- Tabla -->
+        <div class="section-card no-pad" style="margin-top:12px">
+          <table class="data-table" id="proformaTable">
+            <thead><tr>
+              <th>Fecha</th><th>Nº Proforma</th><th>Concepto</th><th>Cliente</th>
+              <th>Importe</th><th>Estado</th><th>Válida hasta</th><th>Factura</th><th>Acciones</th>
+            </tr></thead>
+            <tbody id="proformaBody"><tr class="dt-empty"><td colspan="9">Cargando proformas…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- ═══ VIEW: MIS PLANTILLAS ═══ -->
       <div class="view" id="view-plantillas">
         <div class="view-header">
@@ -1275,6 +1373,9 @@
 
         <div class="nf-layout">
           <div class="nf-form-col">
+            <!-- SELECTOR PLANTILLA -->
+            <div id="npPlantillaSelectorWrap" style="margin-bottom:8px"></div>
+
             <!-- CLIENTE -->
             <div class="form-block">
               <div class="fb-title">👤 Cliente</div>
@@ -1419,6 +1520,9 @@
         <div class="nf-layout">
           <!-- COLUMNA FORMULARIO -->
           <div class="nf-form-col">
+            <!-- SELECTOR PLANTILLA -->
+            <div id="nfPlantillaSelectorWrap" style="margin-bottom:8px"></div>
+
             <!-- TIPO OPERACIÓN -->
             <div class="form-block">
               <div class="fb-title">Tipo de operación</div>
