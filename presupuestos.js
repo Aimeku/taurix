@@ -97,14 +97,14 @@ async function savePlantilla(plantilla) {
 export async function refreshPresupuestos() {
   const year = getYear(), trim = getTrim();
   const { ini, fin } = getFechaRango(year, trim);
-  const search     = (document.getElementById("presSearch")?.value || "").toLowerCase();
-  const estadof    = document.getElementById("presFilterEstado")?.value || "";
-  const clientef   = (document.getElementById("presFilterCliente")?.value || "").toLowerCase();
-  const desdef     = document.getElementById("presFilterDesde")?.value || "";
-  const hastaf     = document.getElementById("presFilterHasta")?.value || "";
-  const minf       = parseFloat(document.getElementById("presFilterMin")?.value) || 0;
-  const maxf       = parseFloat(document.getElementById("presFilterMax")?.value) || 0;
-  const desde      = (paginaActual - 1) * POR_PAGINA;
+  const search    = (document.getElementById("presSearch")?.value || "").toLowerCase();
+  const estadof   = document.getElementById("presFilterEstado")?.value || "";
+  const clientef  = (document.getElementById("presFilterCliente")?.value || "").toLowerCase();
+  const desdef    = document.getElementById("presFilterDesde")?.value || "";
+  const hastaf    = document.getElementById("presFilterHasta")?.value || "";
+  const minf      = parseFloat(document.getElementById("presFilterMin")?.value) || 0;
+  const maxf      = parseFloat(document.getElementById("presFilterMax")?.value) || 0;
+  const desde     = (paginaActual - 1) * POR_PAGINA;
 
   let q = supabase.from("presupuestos").select("*", { count: "exact" })
     .eq("user_id", SESSION.user.id)
@@ -118,26 +118,20 @@ export async function refreshPresupuestos() {
   if (error) { console.error("refreshPresupuestos:", error.message); return; }
 
   let presupuestos = data || [];
-  if (search) presupuestos = presupuestos.filter(p =>
+  if (search)   presupuestos = presupuestos.filter(p =>
     (p.concepto      || "").toLowerCase().includes(search) ||
     (p.numero        || "").toLowerCase().includes(search) ||
     (p.cliente_nombre|| "").toLowerCase().includes(search)
   );
-  if (clientef) presupuestos = presupuestos.filter(p =>
-    (p.cliente_nombre || "").toLowerCase().includes(clientef)
-  );
-  if (minf > 0) presupuestos = presupuestos.filter(p => (p.base + p.base * p.iva / 100) >= minf);
-  if (maxf > 0) presupuestos = presupuestos.filter(p => (p.base + p.base * p.iva / 100) <= maxf);
+  if (clientef) presupuestos = presupuestos.filter(p => (p.cliente_nombre||"").toLowerCase().includes(clientef));
+  if (minf > 0) presupuestos = presupuestos.filter(p => (p.base + p.base*p.iva/100) >= minf);
+  if (maxf > 0) presupuestos = presupuestos.filter(p => (p.base + p.base*p.iva/100) <= maxf);
 
-  // Poblar select de clientes si está vacío
-  const selCliente = document.getElementById("presFilterCliente");
-  if (selCliente && selCliente.options.length <= 1 && (data||[]).length) {
-    const nombres = [...new Set((data||[]).map(p => p.cliente_nombre).filter(Boolean))].sort();
-    nombres.forEach(n => {
-      const opt = document.createElement("option");
-      opt.value = n.toLowerCase(); opt.textContent = n;
-      selCliente.appendChild(opt);
-    });
+  // Poblar select clientes
+  const selCli = document.getElementById("presFilterCliente");
+  if (selCli && selCli.options.length <= 1 && (data||[]).length) {
+    const nombres = [...new Set((data||[]).map(p=>p.cliente_nombre).filter(Boolean))].sort();
+    nombres.forEach(n => { const o=document.createElement("option"); o.value=n.toLowerCase(); o.textContent=n; selCli.appendChild(o); });
   }
 
   const countEl = document.getElementById("presCount");
@@ -1250,8 +1244,10 @@ export async function showEnviarEmailModal(presId) {
         <div class="modal-grid2">
           <div class="modal-field"><label>Email del cliente *</label>
             <input id="em_to" class="ff-input" type="email" value="${emailTo}" placeholder="cliente@empresa.com"/></div>
-          <div class="modal-field"><label>CC (opcional)</label>
-            <input id="em_cc" class="ff-input" type="text" placeholder="copia@empresa.com"/></div>
+          <div class="modal-field"><label>CC (separados por coma)</label>
+            <input id="em_cc" class="ff-input" type="text" placeholder="cc1@empresa.com, cc2@empresa.com, cc3@empresa.com"/>
+            <div style="font-size:11px;color:var(--t3);margin-top:3px">Puedes añadir varios separados por comas</div>
+          </div>
         </div>
         <div class="modal-field"><label>Abrir con</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
@@ -1284,7 +1280,9 @@ export async function showEnviarEmailModal(presId) {
 
   document.getElementById("em_send")?.addEventListener("click", async () => {
     const to      = document.getElementById("em_to").value.trim();
-    const cc      = document.getElementById("em_cc").value.trim();
+    // CC múltiple: limpiar y unir con coma
+    const ccRaw   = document.getElementById("em_cc").value;
+    const cc      = ccRaw.split(",").map(e=>e.trim()).filter(e=>e&&e.includes("@")).join(",");
     const subject = document.getElementById("em_subject").value.trim();
     const body    = document.getElementById("em_body").value.trim();
     const marcarEnv = document.getElementById("em_marcar_enviado").checked;
@@ -2031,19 +2029,18 @@ window._delPres = (id) => {
 };
 
 export function initPresupuestosView() {
-  // Filtros avanzados
-  ["presSearch","presFilterEstado","presFilterCliente","presFilterDesde","presFilterHasta","presFilterMin","presFilterMax"].forEach(id => {
-    document.getElementById(id)?.addEventListener("input",  () => { paginaActual = 1; refreshPresupuestos(); });
-    document.getElementById(id)?.addEventListener("change", () => { paginaActual = 1; refreshPresupuestos(); });
-  });
-  document.getElementById("presFilterReset")?.addEventListener("click", () => {
-    ["presSearch","presFilterEstado","presFilterCliente","presFilterDesde","presFilterHasta","presFilterMin","presFilterMax"]
-      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
-    paginaActual = 1; refreshPresupuestos();
-  });
   document.getElementById("nuevoPresBtn")?.addEventListener("click", () => {
     if (window._switchView) window._switchView("nuevo-presupuesto");
-    else if (window.switchView) window.switchView("nuevo-presupuesto");
+  });
+  ["presSearch","presFilterEstado","presFilterCliente","presFilterDesde","presFilterHasta","presFilterMin","presFilterMax"]
+    .forEach(id => {
+      document.getElementById(id)?.addEventListener("input",  () => { paginaActual=1; refreshPresupuestos(); });
+      document.getElementById(id)?.addEventListener("change", () => { paginaActual=1; refreshPresupuestos(); });
+    });
+  document.getElementById("presFilterReset")?.addEventListener("click", () => {
+    ["presSearch","presFilterEstado","presFilterCliente","presFilterDesde","presFilterHasta","presFilterMin","presFilterMax"]
+      .forEach(id => { const el=document.getElementById(id); if(el) el.value=""; });
+    paginaActual=1; refreshPresupuestos();
   });
   document.getElementById("presSearch")?.addEventListener("input",   () => refreshPresupuestos());
   document.getElementById("presFilterEstado")?.addEventListener("change", () => refreshPresupuestos());
