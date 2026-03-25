@@ -1,0 +1,110 @@
+<!-- ═══════════════════════════════════════════════════════
+     TAURIX — NUEVAS VISTAS HTML
+     Añadir estas vistas dentro de <main class="app-main">
+     en index.html, justo después de view-presupuestos
+     ═══════════════════════════════════════════════════════ -->
+
+
+<!-- ═══ VIEW: ALBARANES ═══ -->
+<div class="view" id="view-albaranes">
+  <div class="view-header">
+    <div class="view-title-group">
+      <h1 class="view-title">Albaranes</h1>
+      <p class="view-sub" id="albaranesCount">— albaranes registrados</p>
+    </div>
+    <div class="view-actions">
+      <button class="btn-primary" id="nuevoAlbaranBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nuevo albarán
+      </button>
+    </div>
+  </div>
+  <div class="alerta-fiscal alerta-fiscal--info" style="margin-bottom:20px">
+    <div class="af-icon">📦</div>
+    <div class="af-body">
+      <div class="af-title">Los albaranes se crean desde presupuestos aceptados</div>
+      <div class="af-desc">Un albarán documenta la entrega de mercancía o servicio. Cuando el cliente confirma la recepción, puedes convertirlo en factura con un clic.</div>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <input type="text" id="albaranSearch" class="search-input" placeholder="Buscar por concepto, cliente, número…" style="min-width:220px"/>
+  </div>
+  <div class="section-card no-pad">
+    <table class="data-table" id="albaranesTable">
+      <thead><tr><th>Fecha</th><th>Nº Albarán</th><th>Concepto</th><th>Cliente</th><th>Importe</th><th>Origen</th><th>Facturado</th><th>Acciones</th></tr></thead>
+      <tbody id="albaranesBody"><tr class="dt-empty"><td colspan="8">Cargando albaranes…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ═══ VIEW: FACTURAS RECURRENTES ═══ -->
+<div class="view" id="view-recurrentes">
+  <div class="view-header">
+    <div class="view-title-group">
+      <h1 class="view-title">Facturas recurrentes</h1>
+      <p class="view-sub">Automatiza tu facturación periódica — se generan como borrador</p>
+    </div>
+    <div class="view-actions">
+      <button class="btn-primary" id="nuevaRecurrenteBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nueva recurrente
+      </button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
+    <div class="kpi-card kpi-blue"><div class="kpi-top"><span class="kpi-lbl">Activas</span></div><div class="kpi-val" id="recKpiActivas">0</div></div>
+    <div class="kpi-card kpi-green"><div class="kpi-top"><span class="kpi-lbl">Ingreso mensual</span></div><div class="kpi-val" id="recKpiMensual">—</div></div>
+    <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">Ingreso anual est.</span></div><div class="kpi-val" id="recKpiAnual">—</div></div>
+    <div class="kpi-card kpi-indigo"><div class="kpi-top"><span class="kpi-lbl">Próxima generación</span></div><div class="kpi-val" id="recKpiProxima" style="font-size:16px">—</div></div>
+  </div>
+
+  <div class="section-card no-pad">
+    <table class="data-table" id="recurrentesTable">
+      <thead><tr>
+        <th>Concepto</th><th>Cliente</th><th>Frecuencia</th><th>Importe</th>
+        <th>Próxima</th><th>Generadas</th><th>Fin</th><th>Estado</th><th>Acciones</th>
+      </tr></thead>
+      <tbody id="recurrentesBody"><tr class="dt-empty"><td colspan="9">Cargando…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="alerta-fiscal alerta-fiscal--info" style="margin-top:16px">
+    <div class="af-icon">💡</div>
+    <div class="af-body">
+      <div class="af-title">¿Cómo funcionan las facturas recurrentes?</div>
+      <div class="af-desc">Cuando llega la fecha programada, Taurix genera automáticamente un <strong>borrador</strong> de factura con los datos de la recurrente. Tú solo tienes que revisarla y emitirla. Si no quieres que se genere un mes, simplemente pausa la recurrente.</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ VIEW: PLANTILLAS DE USUARIO ═══ -->
+<div class="view" id="view-plantillas">
+  <div class="view-header">
+    <div class="view-title-group">
+      <h1 class="view-title">Mis plantillas</h1>
+      <p class="view-sub">Plantillas personalizadas para facturas y presupuestos</p>
+    </div>
+    <div class="view-actions">
+      <button class="btn-primary" id="nuevaPlantillaBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nueva plantilla
+      </button>
+    </div>
+  </div>
+
+  <div id="plantillasGrid" class="doc-grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">
+    <div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--t3)">Cargando plantillas…</div>
+  </div>
+
+  <div class="alerta-fiscal alerta-fiscal--info" style="margin-top:20px">
+    <div class="af-icon">📋</div>
+    <div class="af-body">
+      <div class="af-title">Crea tus propias plantillas</div>
+      <div class="af-desc">Define líneas, conceptos, notas, colores y datos bancarios que se precarguen cada vez que crees una factura o presupuesto. Ahorra tiempo y mantén la coherencia en todos tus documentos.</div>
+    </div>
+  </div>
+</div>
