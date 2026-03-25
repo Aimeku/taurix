@@ -328,17 +328,20 @@ export function showPlantillaModal(prefill = {}) {
           <!-- Mini PDF preview -->
           <div id="plt_preview" style="background:#fff;border-radius:8px;box-shadow:0 2px 16px rgba(0,0,0,.12);overflow:hidden;font-size:10px;width:100%">
 
-            <!-- Header del documento -->
+            <!-- Logo flotante — visible siempre si mostrar_logo, independiente de la cabecera -->
+            <div id="plt_pv_logo_row" style="padding:8px 16px 0;display:flex;justify-content:flex-end;${D.logo_b64&&D.mostrar_logo?'':'display:none'}">
+              <div id="plt_pv_logo_wrap" style="text-align:right">
+                ${D.logo_b64&&D.mostrar_logo?`<img src="${D.logo_b64}" style="max-height:36px;max-width:80px;object-fit:contain"/>`:``}
+              </div>
+            </div>
+
+            <!-- Header del documento — se oculta si mostrar_cabecera=false -->
             <div id="plt_pv_header" style="padding:14px 16px;background:${D.color_cabecera}">
               <div style="display:flex;justify-content:space-between;align-items:flex-start">
                 <div>
                   <div id="plt_pv_tipo" style="font-size:8px;font-weight:800;letter-spacing:.12em;opacity:.65;color:${D.color_texto_cab}">FACTURA / PRESUPUESTO</div>
                   <div id="plt_pv_concepto" style="font-size:13px;font-weight:700;color:${D.color_texto_cab};margin-top:2px">Sin concepto</div>
                   <div id="plt_pv_numero" style="font-size:9px;opacity:.7;color:${D.color_texto_cab};margin-top:2px">FAC-2025-001</div>
-                </div>
-                <div id="plt_pv_logo_wrap" style="text-align:right">
-                  ${D.logo_b64&&D.mostrar_logo?`<img src="${D.logo_b64}" style="max-height:36px;max-width:80px;object-fit:contain"/>`:
-                    `<div style="font-size:10px;font-weight:700;color:${D.color_texto_cab};opacity:.8">Tu empresa</div>`}
                 </div>
               </div>
             </div>
@@ -479,44 +482,61 @@ export function showPlantillaModal(prefill = {}) {
 
   // ── Preview en tiempo real ──
   function _pltUpdatePreview() {
-    const concepto  = document.getElementById("plt_concepto")?.value    || "Sin concepto";
-    const notas     = document.getElementById("plt_notas")?.value       || "";
-    const descripcion = document.getElementById("plt_descripcion")?.value || "";
-    const pie       = document.getElementById("plt_pie")?.value         || "";
-    const colorCab  = document.getElementById("plt_color_cabecera")?.value || D.color_cabecera;
-    const colorTxtC = document.getElementById("plt_color_texto_cab")?.value|| D.color_texto_cab;
-    const colorAcc  = document.getElementById("plt_color_acento")?.value   || D.color_acento;
-    const colorFondo= document.getElementById("plt_color_fondo")?.value    || D.color_fondo;
-    const estCab    = document.getElementById("plt_estilo_cab")?.value     || "solido";
-    const mostLogo  = document.getElementById("plt_mostrar_logo")?.checked;
-    const mostCab   = document.getElementById("plt_mostrar_cabecera")?.checked;
-    const mostPie   = document.getElementById("plt_mostrar_pie")?.checked;
+    const concepto    = document.getElementById("plt_concepto")?.value      || "Sin concepto";
+    const notas       = document.getElementById("plt_notas")?.value         || "";
+    const descripcion = document.getElementById("plt_descripcion")?.value   || "";
+    const pie         = document.getElementById("plt_pie")?.value           || "";
+    const colorCab    = document.getElementById("plt_color_cabecera")?.value || D.color_cabecera;
+    const colorTxtC   = document.getElementById("plt_color_texto_cab")?.value|| D.color_texto_cab;
+    const colorAcc    = document.getElementById("plt_color_acento")?.value   || D.color_acento;
+    const colorFondo  = document.getElementById("plt_color_fondo")?.value    || D.color_fondo;
+    const estCab      = document.getElementById("plt_estilo_cab")?.value     || "solido";
+    const mostLogo    = document.getElementById("plt_mostrar_logo")?.checked;
+    const mostCab     = document.getElementById("plt_mostrar_cabecera")?.checked;
+    const mostPie     = document.getElementById("plt_mostrar_pie")?.checked;
 
-    // Header
+    // ── FIX: Fuente — aplicar al contenedor completo del preview ──
+    const fuente      = document.getElementById("plt_fuente")?.value        || "helvetica";
+    const tamFuente   = parseInt(document.getElementById("plt_tamano_fuente")?.value) || 9;
+    const FONT_MAP    = { helvetica: "Helvetica, Arial, sans-serif", courier: "'Courier New', Courier, monospace", times: "'Times New Roman', Times, serif" };
+    const preview     = document.getElementById("plt_preview");
+    if (preview) {
+      preview.style.fontFamily = FONT_MAP[fuente] || FONT_MAP.helvetica;
+      preview.style.fontSize   = (tamFuente + 1) + "px"; // +1 para que se note en pantalla
+    }
+
+    // ── FIX: Logo — independiente de la cabecera ──
+    const logoRow  = document.getElementById("plt_pv_logo_row");
+    const logoWrap = document.getElementById("plt_pv_logo_wrap");
+    if (logoRow && logoWrap) {
+      if (mostLogo && _logoB64) {
+        logoRow.style.display  = "flex";
+        logoRow.style.justifyContent = "flex-end";
+        logoRow.style.padding  = "8px 16px 0";
+        logoWrap.innerHTML     = `<img src="${_logoB64}" style="max-height:36px;max-width:80px;object-fit:contain"/>`;
+      } else {
+        logoRow.style.display  = "none";
+        logoWrap.innerHTML     = "";
+      }
+    }
+
+    // ── Header de cabecera (concepto/número) ──
     const hdr = document.getElementById("plt_pv_header");
     if (hdr) {
       hdr.style.display = mostCab ? "" : "none";
-      if (estCab === "solido")    hdr.style.background = colorCab;
-      if (estCab === "gradiente") hdr.style.background = `linear-gradient(135deg,${colorCab},${colorAcc})`;
-      if (estCab === "linea")     { hdr.style.background = "#fff"; hdr.style.borderBottom = `3px solid ${colorCab}`; }
-      if (estCab === "sin_fondo") { hdr.style.background = "transparent"; hdr.style.borderBottom = "none"; }
+      if (mostCab) {
+        if (estCab === "solido")    { hdr.style.background = colorCab; hdr.style.borderBottom = "none"; }
+        if (estCab === "gradiente") { hdr.style.background = `linear-gradient(135deg,${colorCab},${colorAcc})`; hdr.style.borderBottom = "none"; }
+        if (estCab === "linea")     { hdr.style.background = "transparent"; hdr.style.borderBottom = `3px solid ${colorCab}`; }
+        if (estCab === "sin_fondo") { hdr.style.background = "transparent"; hdr.style.borderBottom = "none"; }
+      }
     }
-    const pvConc  = document.getElementById("plt_pv_concepto");
-    const pvTipo  = document.getElementById("plt_pv_tipo");
-    const pvNum   = document.getElementById("plt_pv_numero");
+    const pvConc = document.getElementById("plt_pv_concepto");
+    const pvTipo = document.getElementById("plt_pv_tipo");
+    const pvNum  = document.getElementById("plt_pv_numero");
     if (pvConc) { pvConc.textContent = concepto; pvConc.style.color = colorTxtC; }
     if (pvTipo) pvTipo.style.color = colorTxtC;
     if (pvNum)  pvNum.style.color  = colorTxtC;
-
-    // Logo
-    const logoWrap = document.getElementById("plt_pv_logo_wrap");
-    if (logoWrap) {
-      if (mostLogo && _logoB64) {
-        logoWrap.innerHTML = `<img src="${_logoB64}" style="max-height:36px;max-width:80px;object-fit:contain"/>`;
-      } else {
-        logoWrap.innerHTML = `<div style="font-size:10px;font-weight:700;color:${colorTxtC};opacity:.8">Tu empresa</div>`;
-      }
-    }
 
     // Cabecera tabla
     const tabHead = document.getElementById("plt_pv_tabla_head");
