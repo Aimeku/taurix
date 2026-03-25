@@ -745,14 +745,8 @@
       <button id="installPwaBtn" class="topbar-icon-btn" title="Instalar Taurix como app" style="display:none" onclick="window._installPWA()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v13M7 11l5 5 5-5"/><path d="M3 21h18"/></svg>
       </button>
-      <button id="modoToggleBtn" onclick="window._toggleModo()" title="Cambiar modo"
-        style="display:flex;align-items:center;gap:7px;padding:0 11px;height:34px;border-radius:8px;border:1.5px solid var(--brd);background:var(--bg2);cursor:pointer;white-space:nowrap;transition:all .2s">
-        <span id="modoActualIcon" style="font-size:14px">🏢</span>
-        <span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.2">
-          <span style="font-size:9px;font-weight:600;color:var(--t4);text-transform:uppercase;letter-spacing:.05em">Modo actual</span>
-          <span id="modoActualLabel" style="font-size:11px;font-weight:800;color:var(--t1)">Empresario</span>
-        </span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--t3)"><path d="M7 16L3 12l4-4M17 8l4 4-4 4"/></svg>
+      <button id="modoToggleBtn" class="topbar-icon-btn" title="Cambiar modo" onclick="window._toggleModo()" style="width:auto;max-width:110px;padding:0 8px;font-size:10px;font-weight:700;overflow:hidden;white-space:nowrap">
+        <span>💼 Gestor</span>
       </button>
       <button id="darkModeBtn" class="topbar-icon-btn" title="Modo oscuro">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -1154,8 +1148,8 @@
           <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">Pendientes</span></div><div class="kpi-val" id="presKpiPendientes">—</div></div>
           <div class="kpi-card kpi-indigo"><div class="kpi-top"><span class="kpi-lbl">Tasa de conversión</span></div><div class="kpi-val" id="presKpiTasa">—</div></div>
         </div>
-        <div class="filter-bar" style="flex-wrap:wrap;gap:8px">
-          <input type="text" id="presSearch" class="search-input" placeholder="Buscar concepto, cliente, número…" style="min-width:220px;flex:1"/>
+        <div class="filter-bar">
+          <input type="text" id="presSearch" class="search-input" placeholder="Buscar por concepto, número, cliente…" style="min-width:220px"/>
           <select id="presFilterEstado" class="filter-sel">
             <option value="">Todos los estados</option>
             <option value="borrador">Borrador</option>
@@ -1164,22 +1158,6 @@
             <option value="rechazado">Rechazado</option>
             <option value="albaran">Albarán</option>
           </select>
-          <select id="presFilterCliente" class="filter-sel">
-            <option value="">Todos los clientes</option>
-          </select>
-        </div>
-        <div class="filter-bar" style="flex-wrap:wrap;gap:8px;margin-top:6px">
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t3)">Fecha:
-            <input type="date" id="presFilterDesde" class="filter-sel" style="font-size:12px"/>
-            <span>—</span>
-            <input type="date" id="presFilterHasta" class="filter-sel" style="font-size:12px"/>
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t3)">Importe (€):
-            <input type="number" id="presFilterMin" class="filter-sel" style="width:80px;font-size:12px" placeholder="Mín"/>
-            <span>—</span>
-            <input type="number" id="presFilterMax" class="filter-sel" style="width:80px;font-size:12px" placeholder="Máx"/>
-          </label>
-          <button id="presFilterReset" class="btn-outline" style="font-size:11px;padding:4px 10px;color:var(--t3)">✕ Limpiar filtros</button>
         </div>
         <div class="section-card no-pad">
           <table class="data-table" id="presTable">
@@ -1214,29 +1192,8 @@
             <div class="af-desc">Un albarán documenta la entrega de mercancía o servicio. Cuando el cliente confirma, puedes convertirlo en factura con un clic.</div>
           </div>
         </div>
-        <div class="filter-bar" style="flex-wrap:wrap;gap:8px">
-          <input type="text" id="albaranSearch" class="search-input" placeholder="Buscar concepto, cliente, número…" style="min-width:220px;flex:1"/>
-          <select id="albaranFilterFacturado" class="filter-sel">
-            <option value="">Todos</option>
-            <option value="no">⏳ Pendiente de facturar</option>
-            <option value="si">✅ Facturado</option>
-          </select>
-          <select id="albaranFilterCliente" class="filter-sel">
-            <option value="">Todos los clientes</option>
-          </select>
-        </div>
-        <div class="filter-bar" style="flex-wrap:wrap;gap:8px;margin-top:6px">
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t3)">Fecha:
-            <input type="date" id="albaranFilterDesde" class="filter-sel" style="font-size:12px"/>
-            <span>—</span>
-            <input type="date" id="albaranFilterHasta" class="filter-sel" style="font-size:12px"/>
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t3)">Importe (€):
-            <input type="number" id="albaranFilterMin" class="filter-sel" style="width:80px;font-size:12px" placeholder="Mín"/>
-            <span>—</span>
-            <input type="number" id="albaranFilterMax" class="filter-sel" style="width:80px;font-size:12px" placeholder="Máx"/>
-          </label>
-          <button id="albaranFilterReset" class="btn-outline" style="font-size:11px;padding:4px 10px;color:var(--t3)">✕ Limpiar filtros</button>
+        <div class="filter-bar">
+          <input type="text" id="albaranSearch" class="search-input" placeholder="Buscar por concepto, cliente, número…" style="min-width:220px"/>
         </div>
         <div class="section-card no-pad">
           <table class="data-table" id="albaranesTable">
@@ -1318,6 +1275,17 @@
 
         <div class="nf-layout">
           <div class="nf-form-col">
+            <!-- SELECTOR PLANTILLA -->
+            <div class="form-block" id="npPlantillaWrap" style="padding:14px 18px;background:linear-gradient(135deg,rgba(26,86,219,.04),rgba(26,86,219,.02));border:1.5px dashed rgba(26,86,219,.25);border-radius:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div style="font-size:13px;font-weight:700;color:var(--t1)">📋 Usar una plantilla</div>
+                <span style="font-size:11px;color:var(--t3)">Opcional — precarga líneas, concepto y notas</span>
+              </div>
+              <div id="npPlantillaSelector" style="display:flex;gap:8px;flex-wrap:wrap">
+                <span style="font-size:12px;color:var(--t4);align-self:center">Cargando plantillas…</span>
+              </div>
+            </div>
+
             <!-- CLIENTE -->
             <div class="form-block">
               <div class="fb-title">👤 Cliente</div>
@@ -1351,28 +1319,6 @@
               <div class="ff-field"><label>Notas / Condiciones</label>
                 <textarea id="npNotas" class="ff-input ff-textarea" placeholder="Forma de pago, plazos, condiciones…"></textarea>
               </div>
-            </div>
-
-            <!-- ESCÁNER -->
-            <div class="form-block">
-              <div class="fb-title">🔍 Escáner de código de barras</div>
-              <div style="display:flex;gap:8px;align-items:stretch;flex-wrap:wrap">
-                <div style="position:relative;flex:1;min-width:200px">
-                  <input id="npScanInput"
-                    class="ff-input"
-                    style="padding-left:36px;font-family:monospace;font-size:13px;letter-spacing:.04em;width:100%"
-                    placeholder="Escanea aquí o escribe el código…"
-                    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-                  <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t3);pointer-events:none" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9v-2a2 2 0 012-2h2M3 15v2a2 2 0 002 2h2M15 3h2a2 2 0 012 2v2M15 21h2a2 2 0 002-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
-                </div>
-                <div style="display:flex;align-items:center;gap:6px">
-                  <span style="font-size:12px;color:var(--t3);white-space:nowrap">Cant.:</span>
-                  <input id="npScanQty" type="number" min="1" step="1" value="1"
-                    class="ff-input" style="width:58px;text-align:center;font-size:13px;font-weight:700"/>
-                </div>
-              </div>
-              <div id="npScanFeedback" style="min-height:20px;margin-top:5px;font-size:12px;transition:opacity .3s;opacity:0"></div>
-              <div style="font-size:11px;color:var(--t4);margin-top:2px">💡 Pulsa Enter tras escribir o deja que el lector lo haga automáticamente</div>
             </div>
 
             <!-- LÍNEAS -->
@@ -1484,6 +1430,17 @@
         <div class="nf-layout">
           <!-- COLUMNA FORMULARIO -->
           <div class="nf-form-col">
+            <!-- SELECTOR PLANTILLA -->
+            <div class="form-block" id="nfPlantillaWrap" style="padding:14px 18px;background:linear-gradient(135deg,rgba(26,86,219,.04),rgba(26,86,219,.02));border:1.5px dashed rgba(26,86,219,.25);border-radius:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div style="font-size:13px;font-weight:700;color:var(--t1)">📋 Usar una plantilla</div>
+                <span style="font-size:11px;color:var(--t3)">Opcional — precarga líneas, concepto y notas</span>
+              </div>
+              <div id="nfPlantillaSelector" style="display:flex;gap:8px;flex-wrap:wrap">
+                <span style="font-size:12px;color:var(--t4);align-self:center">Cargando plantillas…</span>
+              </div>
+            </div>
+
             <!-- TIPO OPERACIÓN -->
             <div class="form-block">
               <div class="fb-title">Tipo de operación</div>
