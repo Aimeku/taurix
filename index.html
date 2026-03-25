@@ -745,8 +745,9 @@
       <button id="installPwaBtn" class="topbar-icon-btn" title="Instalar Taurix como app" style="display:none" onclick="window._installPWA()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v13M7 11l5 5 5-5"/><path d="M3 21h18"/></svg>
       </button>
-      <button id="modoToggleBtn" class="topbar-icon-btn" title="Cambiar modo" onclick="window._toggleModo()" style="width:auto;max-width:110px;padding:0 8px;font-size:10px;font-weight:700;overflow:hidden;white-space:nowrap">
-        <span>💼 Gestor</span>
+      <button id="modoToggleBtn" class="topbar-icon-btn" title="Cambiar modo" onclick="window._toggleModo()" style="width:auto;min-width:100px;max-width:160px;padding:0 10px;height:36px;font-size:10px;font-weight:700;white-space:nowrap;line-height:1.2;display:inline-flex;flex-direction:column;align-items:flex-start;justify-content:center">
+        <span style="font-size:9px;opacity:.7;line-height:1.1">Ahora:</span>
+        <span>🏢 Empresario</span>
       </button>
       <button id="darkModeBtn" class="topbar-icon-btn" title="Modo oscuro">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -3102,33 +3103,15 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').then(reg => {
-
-          // ── Si ya hay un SW esperando al cargar, activarlo inmediatamente ──
-          if (reg.waiting) {
-            reg.waiting.postMessage('skipWaiting');
-          }
-
           reg.addEventListener('updatefound', () => {
             const sw = reg.installing;
             sw.addEventListener('statechange', () => {
-              if (sw.state === 'installed') {
-                if (navigator.serviceWorker.controller) {
-                  // Hay nueva versión: activar automáticamente sin pedir al usuario
-                  sw.postMessage('skipWaiting');
-                }
+              if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                const b = document.getElementById('updateBanner');
+                if (b) b.style.display = '';
               }
             });
           });
-
-          // Cuando el SW nuevo toma el control, recargar la página para usar los archivos nuevos
-          let refreshing = false;
-          navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (!refreshing) {
-              refreshing = true;
-              window.location.reload();
-            }
-          });
-
         }).catch(e => console.warn('SW:', e));
       });
     }
