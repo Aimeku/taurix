@@ -84,6 +84,18 @@ export async function emitirFacturaDB(facturaId) {
   }).eq("id", facturaId).eq("estado","borrador");
   if (ue) throw new Error(ue.message);
 
+  // Verifactu — solo si el usuario lo tiene activado en su perfil
+  try {
+    const { data: pf } = await supabase.from("perfil_fiscal")
+      .select("verifactu_activo").eq("user_id", SESSION.user.id).maybeSingle();
+    if (pf?.verifactu_activo) {
+      const { registrarVerifactu } = await import("./utils.js");
+      await registrarVerifactu(facturaId);
+    }
+  } catch(vfe) {
+    console.warn("Verifactu:", vfe.message); // no bloquear emisión si falla
+  }
+
   return numero;
 }
 
