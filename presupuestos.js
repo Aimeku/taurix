@@ -97,13 +97,18 @@ async function savePlantilla(plantilla) {
 export async function refreshPresupuestos() {
   const year = getYear(), trim = getTrim();
   const { ini, fin } = getFechaRango(year, trim);
-  const search  = (document.getElementById("presSearch")?.value || "").toLowerCase();
-  const estadof = document.getElementById("presFilterEstado")?.value || "";
-  const desde   = (paginaActual - 1) * POR_PAGINA;
+  const search     = (document.getElementById("presSearch")?.value || "").toLowerCase();
+  const estadof    = document.getElementById("presFilterEstado")?.value || "";
+  const clientef   = (document.getElementById("presFilterCliente")?.value || "").toLowerCase();
+  const desdef     = document.getElementById("presFilterDesde")?.value || "";
+  const hastaf     = document.getElementById("presFilterHasta")?.value || "";
+  const minf       = parseFloat(document.getElementById("presFilterMin")?.value) || 0;
+  const maxf       = parseFloat(document.getElementById("presFilterMax")?.value) || 0;
+  const desde      = (paginaActual - 1) * POR_PAGINA;
 
   let q = supabase.from("presupuestos").select("*", { count: "exact" })
     .eq("user_id", SESSION.user.id)
-    .gte("fecha", ini).lte("fecha", fin)
+    .gte("fecha", desdef || ini).lte("fecha", hastaf || fin)
     .order("fecha", { ascending: false })
     .range(desde, desde + POR_PAGINA - 1);
 
@@ -118,6 +123,22 @@ export async function refreshPresupuestos() {
     (p.numero        || "").toLowerCase().includes(search) ||
     (p.cliente_nombre|| "").toLowerCase().includes(search)
   );
+  if (clientef) presupuestos = presupuestos.filter(p =>
+    (p.cliente_nombre || "").toLowerCase().includes(clientef)
+  );
+  if (minf > 0) presupuestos = presupuestos.filter(p => (p.base + p.base * p.iva / 100) >= minf);
+  if (maxf > 0) presupuestos = presupuestos.filter(p => (p.base + p.base * p.iva / 100) <= maxf);
+
+  // Poblar select de clientes si está vacío
+  const selCliente = document.getElementById("presFilterCliente");
+  if (selCliente && selCliente.options.length <= 1 && (data||[]).length) {
+    const nombres = [...new Set((data||[]).map(p => p.cliente_nombre).filter(Boolean))].sort();
+    nombres.forEach(n => {
+      const opt = document.createElement("option");
+      opt.value = n.toLowerCase(); opt.textContent = n;
+      selCliente.appendChild(opt);
+    });
+  }
 
   const countEl = document.getElementById("presCount");
   if (countEl) countEl.textContent = `${count || 0} presupuestos en el periodo`;
@@ -1980,68 +2001,10 @@ function _mostrarPaginaFirma(p, token) {
 window._presEmail   = (id) => showEnviarEmailModal(id);
 window._presFirma   = (id) => showFirmaDigitalModal(id);
 window._editPres = async (id) => {
-  // Llamada desde plantillas-usuario.js: "new_from_template_<id>"
-  if (typeof id === "string" && id.startsWith("new_from_template_")) {
-    const plantillaId = id.replace("new_from_template_", "");
-    // Importar dinámicamente para evitar dependencia circular
-    const { PLANTILLAS, getPlantillaData } = await import("./plantillas-usuario.js");
-    const data = getPlantillaData(plantillaId);
-    if (!data) { toast("Plantilla no encontrada", "error"); return; }
-    showNuevoPresupuestoModal({
-      concepto: data.concepto || "",
-      notas:    data.notas    || "",
-      lineas:   data.lineas   || [],
-      fecha:    new Date().toISOString().slice(0, 10),
-      estado:   "borrador",
-    });
-    return;
-  }
   const { data, error } = await supabase.from("presupuestos").select("*").eq("id", id).single();
   if (error || !data) { toast("Error cargando presupuesto", "error"); return; }
   const lineas = data.lineas ? JSON.parse(data.lineas) : [];
   showNuevoPresupuestoModal({ ...data, lineas });
-};
-
-/* ══════════════════════════
-   APLICAR PLANTILLA AL PRESUPUESTO ABIERTO
-   Llamado desde plantillas-usuario.js si el modal
-   ya está abierto (uso futuro del selector en línea)
-══════════════════════════ */
-window._applyPlantillaToPresupuesto = (data) => {
-  if (!data) return;
-  // Si el modal de presupuesto está abierto, rellenar sus campos
-  const conceptoEl = document.getElementById("pm_concepto");
-  const notasEl    = document.getElementById("pm_notas");
-  const container  = document.getElementById("pm_lineasContainer");
-
-  if (!conceptoEl && !container) {
-    // El modal no está abierto todavía — abrir nuevo con datos
-    showNuevoPresupuestoModal({
-      concepto: data.concepto || "",
-      notas:    data.notas    || "",
-      lineas:   data.lineas   || [],
-      fecha:    new Date().toISOString().slice(0, 10),
-      estado:   "borrador",
-    });
-    return;
-  }
-
-  if (conceptoEl && data.concepto) conceptoEl.value = data.concepto;
-  if (notasEl    && data.notas)    notasEl.value    = data.notas;
-
-  // Rellenar líneas si el modal tiene el contenedor
-  if (container && data.lineas?.length) {
-    container.innerHTML = "";
-    // Reutilizar el mecanismo interno del modal de presupuesto
-    // disparando el evento de añadir línea por cada una
-    data.lineas.forEach(l => {
-      if (window._pmAddLinea) {
-        window._pmAddLinea(l);
-      }
-    });
-  }
-
-  toast("✅ Plantilla aplicada al presupuesto", "success", 3000);
 };
 window._dupPres = async (id) => {
   const { data, error } = await supabase.from("presupuestos").select("*").eq("id", id).single();
@@ -2068,7 +2031,20 @@ window._delPres = (id) => {
 };
 
 export function initPresupuestosView() {
-  document.getElementById("nuevoPresBtn")?.addEventListener("click", () => showNuevoPresupuestoModal());
+  // Filtros avanzados
+  ["presSearch","presFilterEstado","presFilterCliente","presFilterDesde","presFilterHasta","presFilterMin","presFilterMax"].forEach(id => {
+    document.getElementById(id)?.addEventListener("input",  () => { paginaActual = 1; refreshPresupuestos(); });
+    document.getElementById(id)?.addEventListener("change", () => { paginaActual = 1; refreshPresupuestos(); });
+  });
+  document.getElementById("presFilterReset")?.addEventListener("click", () => {
+    ["presSearch","presFilterEstado","presFilterCliente","presFilterDesde","presFilterHasta","presFilterMin","presFilterMax"]
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+    paginaActual = 1; refreshPresupuestos();
+  });
+  document.getElementById("nuevoPresBtn")?.addEventListener("click", () => {
+    if (window._switchView) window._switchView("nuevo-presupuesto");
+    else if (window.switchView) window.switchView("nuevo-presupuesto");
+  });
   document.getElementById("presSearch")?.addEventListener("input",   () => refreshPresupuestos());
   document.getElementById("presFilterEstado")?.addEventListener("change", () => refreshPresupuestos());
 }
