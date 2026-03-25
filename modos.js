@@ -300,27 +300,19 @@ export function aplicarModo(modo) {
    TOGGLE BUTTON EN TOPBAR
 ══════════════════════════════════════════ */
 function actualizarToggleBtn(modo) {
-  const btn = document.getElementById("modoToggleBtn");
+  const btn   = document.getElementById("modoToggleBtn");
+  const icon  = document.getElementById("modoActualIcon");
+  const label = document.getElementById("modoActualLabel");
   if (!btn) return;
   const cfg  = MODOS[modo];
   const otro = MODOS[modo === "empresario" ? "gestor" : "empresario"];
 
-  // Mostrar modo actual + hint de a dónde cambia
-  btn.innerHTML = `
-    <span style="font-size:13px;line-height:1">${cfg.icon}</span>
-    <span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.25;gap:1px">
-      <span style="font-size:9px;opacity:.65;text-transform:uppercase;letter-spacing:.05em">Modo actual</span>
-      <span style="font-size:11px;font-weight:800">${cfg.labelCorto}</span>
-    </span>
-    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-      style="opacity:.5;flex-shrink:0"><path d="M7 16L3 12l4-4M17 8l4 4-4 4"/></svg>`;
+  if (icon)  icon.textContent  = cfg.icon;
+  if (label) label.textContent = cfg.labelCorto;
 
-  btn.title         = `Ahora: ${cfg.label} — Click para cambiar a ${otro.label}`;
-  btn.style.cssText = `
-    display:flex;align-items:center;gap:6px;padding:0 10px;height:34px;
-    border-radius:8px;border:1.5px solid ${cfg.color}55;
-    background:${cfg.color}0e;cursor:pointer;white-space:nowrap;
-    color:${cfg.color};transition:all .2s;`;
+  btn.style.borderColor = cfg.color + "55";
+  btn.style.background  = cfg.color + "0e";
+  btn.title = `Ahora en modo ${cfg.label} — Click para cambiar a ${otro.label}`;
 }
 
 export function toggleModo() {
