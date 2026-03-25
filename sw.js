@@ -4,8 +4,8 @@
    datos de Supabase. Soporte offline básico.
    ═══════════════════════════════════════════════════════ */
 
-const CACHE_NAME    = "taurix-v4";
-const CACHE_STATIC  = "taurix-static-v4";
+const CACHE_NAME    = "taurix-v6";
+const CACHE_STATIC  = "taurix-static-v6";
 
 // Assets que se cachean al instalar
 const STATIC_ASSETS = [
@@ -48,9 +48,13 @@ const STATIC_ASSETS = [
 
 // ── INSTALL: cachear assets estáticos ──
 self.addEventListener("install", event => {
+  // Solo precacheamos assets que NO son JS/CSS (esos van por network-first)
+  const STATIC_NO_JS = STATIC_ASSETS.filter(u =>
+    !u.endsWith(".js") && !u.endsWith(".css")
+  );
   event.waitUntil(
     caches.open(CACHE_STATIC).then(cache => {
-      return cache.addAll(STATIC_ASSETS.map(url => new Request(url, { cache: "reload" })));
+      return cache.addAll(STATIC_NO_JS.map(url => new Request(url, { cache: "reload" })));
     }).then(() => self.skipWaiting())
   );
 });
@@ -99,9 +103,30 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // Assets estáticos de la app — cache first, network fallback
-  if (STATIC_ASSETS.some(a => url.pathname === a || url.pathname.endsWith(a.replace("/",""))) ||
-      url.pathname.match(/\.(js|css|png|svg|ico|json|woff2?)$/)) {
+  // JS/CSS de la app — NETWORK FIRST para garantizar archivos actualizados.
+  // Solo usa cache si el servidor no responde (modo offline).
+  if (url.pathname.match(/\.(js|css)$/) &&
+      !url.hostname.includes("cdnjs") && !url.hostname.includes("jsdelivr")) {
+    event.respondWith(
+      fetch(event.request, { cache: "no-store" })
+        .then(response => {
+          // Guardar en cache solo si la respuesta es válida
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_STATIC).then(cache => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => {
+          // Sin red: usar cache como fallback
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+
+  // Imágenes, fuentes, JSON — cache first, network fallback (no cambian frecuentemente)
+  if (url.pathname.match(/\.(png|svg|ico|json|woff2?)$/)) {
     event.respondWith(
       caches.match(event.request).then(cached => {
         if (cached) return cached;
