@@ -84,16 +84,32 @@ function _lineaHTML(l) {
 }
 
 export function showPlantillaModal(prefill) {
-  // Navegar a la vista completa en vez de abrir modal
   prefill = prefill || {};
   window._epCurrentPrefill = prefill;
   window._switchView?.("editar-plantilla");
+  // Llamar _epInit tras un tick para que el DOM de la vista esté activo
+  setTimeout(() => window._epInit?.(), 50);
 }
 
 /* ══════════════════════════
    INIT DE LA VISTA EDITAR-PLANTILLA
    Llamado por main.js cuando se activa la vista
 ══════════════════════════ */
+/* _epTab: definida GLOBALMENTE para que funcione desde el HTML antes de _epInit */
+window._epTab = function(tab) {
+  document.querySelectorAll(".ep-tab").forEach(function(b) {
+    var on = b.dataset.tab === tab;
+    b.style.borderBottom = on ? "2px solid var(--accent)" : "2px solid transparent";
+    b.style.color        = on ? "var(--accent)"           : "var(--t3)";
+    b.style.background   = on ? "var(--srf)"              : "transparent";
+  });
+  document.querySelectorAll(".ep-sec").forEach(function(s) {
+    s.style.display = (s.id === "ep-tab-" + tab) ? "" : "none";
+  });
+  // Llamar preview si está disponible
+  if (typeof window._epPreview === "function") window._epPreview();
+};
+
 window._epInit = function() {
   const prefill = window._epCurrentPrefill || {};
   window._epCurrentPrefill = null;
@@ -212,22 +228,11 @@ window._epInit = function() {
     hex.addEventListener("change",()=>{if(/^#[0-9a-f]{6}$/i.test(hex.value)){pick.value=hex.value;}_epPv();});
   });
 
-  // Tabs
-  window._epTab = (tab) => {
-    document.querySelectorAll(".ep-tab").forEach(b=>{
-      const on = b.dataset.tab===tab;
-      b.style.borderBottom   = on?"2px solid var(--accent)":"2px solid transparent";
-      b.style.color          = on?"var(--accent)":"var(--t3)";
-      b.style.background     = on?"var(--srf)":"transparent";
-    });
-    document.querySelectorAll(".ep-sec").forEach(s=>{
-      s.style.display = s.id===("ep-tab-"+tab) ? "" : "none";
-    });
-  };
-
-  // Alineación desde botones HTML estáticos
+  // Tabs y alineación — ahora definidos globalmente arriba, solo llamar _epPv aquí
+  // _epSetAlin necesita acceso a _epPv — redefinir con acceso al closure
   window._epSetAlin = (v) => {
-    document.getElementById("ep_alin_val").value = v;
+    const inp = document.getElementById("ep_alin_val");
+    if(inp) inp.value = v;
     document.querySelectorAll("#ep_alin_group button").forEach(b=>{
       const on = b.dataset.alin===v;
       b.style.borderColor = on?"#f97316":"var(--brd)";
