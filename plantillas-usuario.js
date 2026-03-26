@@ -352,13 +352,13 @@ export function showPlantillaModal(prefill) {
           <!-- Wrapper emisor+cliente con posición independiente -->
           <div id="plt_pv_emisor_row" style="display:${D.mostrar_emisor?"flex":"none"};border-bottom:1px solid #e5e7eb;padding:${D.sp_emisor}px 0;position:relative;min-height:36px">
             <!-- Bloque EMISOR -->
-            <div id="plt_pv_emisor_bloque" style="position:absolute;left:${12+D.emisor_x}px;top:${D.sp_emisor+D.emisor_y}px;min-width:120px;max-width:140px">
+            <div id="plt_pv_emisor_bloque" style="position:absolute;left:${12+D.emisor_x}px;top:${D.sp_emisor+D.emisor_y}px;min-width:100px;white-space:nowrap">
               <div id="plt_pv_lbl_de" style="font-size:6px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.06em">EMISOR</div>
               <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.4">Tu empresa SL</div>
               <div style="font-size:7.5px;color:#6b7280">NIF: B12345678</div>
             </div>
             <!-- Bloque CLIENTE -->
-            <div id="plt_pv_cliente_bloque" style="position:absolute;left:${160+D.cliente_x}px;top:${D.sp_emisor+D.cliente_y}px;min-width:120px;max-width:140px">
+            <div id="plt_pv_cliente_bloque" style="position:absolute;left:${160+D.cliente_x}px;top:${D.sp_emisor+D.cliente_y}px;min-width:100px;white-space:nowrap">
               <div id="plt_pv_lbl_para" style="font-size:6px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.06em">CLIENTE</div>
               <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.4">Empresa Cliente</div>
               <div style="font-size:7.5px;color:#6b7280">NIF: A98765432</div>
