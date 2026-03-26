@@ -183,84 +183,98 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   doc.rect(0, 0, PW, PH, "F");
 
   // ── LOGO ──
-  // Fuente: plantilla.logo_b64 > perfil.logo_url
   let logoB64 = plantilla?.logo_b64 || null;
   if (!logoB64 && perfil.logo_url) {
     logoB64 = await _logoToBase64(perfil.logo_url);
   }
   const mostrarLogo = plantilla ? (plantilla.mostrar_logo !== false) : true;
 
-  /* ── Sistema de coordenadas IDÉNTICO al preview HTML ──────────────────────
-     El preview usa un div de ~420px de ancho sobre A4 (595pt = 210mm).
-     SCALE_PREV = pvW / 595  (preview usa pvW ≈ 420px)
+  /*
+   * ═══════════════════════════════════════════════════════════════════════
+   * SISTEMA DE COORDENADAS — réplica exacta del preview HTML
+   * ═══════════════════════════════════════════════════════════════════════
+   * Preview: pvW=420px, SCALE=420/595, logo usa CSS max-height/max-width
+   * con object-fit:contain → respeta el ratio nativo de la imagen.
+   *
+   * jsPDF.addImage(data,fmt,x,y,w,h) ESTIRA a w×h exactos → DEBEMOS
+   * calcular nosotros el tamaño contenido respetando el ratio nativo.
+   *
+   * Conversión px→mm: 1px_preview = 210mm/420px = 0.5 mm exacto.
+   * ═══════════════════════════════════════════════════════════════════════
+   */
 
-     Para el PDF usamos la misma lógica pero en mm:
-       A4 width = 210 mm  →  equivale a 595 pt en jsPDF
-       PX_PER_MM = 595 / 210 ≈ 2.835
+  /* Medir ratio nativo de la imagen (igual que img.naturalWidth/naturalHeight en CSS) */
+  const _getNativeRatio = (b64) => new Promise(resolve => {
+    try {
+      const img = new Image();
+      img.onload  = () => resolve(img.naturalWidth && img.naturalHeight
+        ? img.naturalWidth / img.naturalHeight : 1);
+      img.onerror = () => resolve(1);
+      img.src = b64;
+    } catch(e) { resolve(1); }
+  });
 
-     Conversión slider → mm en PDF:
-       logoSize (slider 16–80 px en preview) → en mm: logoSize / PX_PER_MM
-         porque en preview maxHeight = logoSize * SCALE px,
-         y 1 mm en PDF = PX_PER_MM px en preview con la misma escala.
+  /* CSS object-fit:contain: cabe dentro de maxW×maxH preservando ratio */
+  const _contain = (maxW, maxH, r) =>
+    r > maxW / maxH
+      ? { w: maxW, h: maxW / r }          // limitado por ancho
+      : { w: maxH * r, h: maxH };         // limitado por altura
 
-       logoY  (slider 0..60) → topY_mm = logoY / PX_PER_MM
-         en preview: topPx = Math.max(0, Math.min(55, logoY * SCALE))
-         en PDF:     topY  = Math.max(0, Math.min(55/PX_PER_MM, logoY / PX_PER_MM))
+  const PVW      = 420;               // ancho del contenedor preview en px (columna CSS)
+  const PV_SCALE = PVW / 595;         // SCALE del preview JS: pvW/595
+  const PX_TO_MM = 210 / PVW;         // 0.5 mm/px exacto
 
-       logoX  (slider -120..120) → offsetX_mm = logoX * (PW / 240)
-         en preview: offsetPx = logoX * (pvW / 240)
-         en PDF:     offsetX  = logoX * (PW  / 240)   [misma proporción en mm]
+  // Leer valores del slider exactamente igual que el preview
+  const logoSizePx  = plantilla?.logo_size ?? 30;
+  const logoXSlider = plantilla?.logo_x    ?? 0;
+  const logoYSlider = plantilla?.logo_y    ?? 8;
 
-     Posición base: logo centrado horizontalmente en el documento (PW/2).
-     X=0 → centro. X>0 → derecha. X<0 → izquierda.
-     El logo se ancla en su centro horizontal (translate -logoW/2).
-  ─────────────────────────────────────────────────────────────────────────── */
+  // Mismas fórmulas que _runPreview en plantillas-usuario.js:
+  const maxH_px     = Math.round(logoSizePx * PV_SCALE);      // maxHeight CSS del img
+  const maxW_px     = Math.round(logoSizePx * PV_SCALE * 3);  // maxWidth CSS del img
+  const topPx       = Math.max(0, Math.min(55, logoYSlider * PV_SCALE));
+  const maxOffsetPx = PVW / 2 - 8;
+  const offsetPx    = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, logoXSlider * (PVW / 240)));
 
-  const PX_PER_MM  = 595 / 210;                       // puntos jsPDF por mm A4
+  // Convertir bounds px → mm
+  const maxH_mm  = Math.max(1.5, maxH_px  * PX_TO_MM);
+  const maxW_mm  = Math.max(4.5, maxW_px  * PX_TO_MM);
+  const logoTopY = topPx    * PX_TO_MM;    // Y desde borde superior cabecera
+  const logoOffX = offsetPx * PX_TO_MM;   // offset X desde centro del documento
 
-  // Valores del slider desde la plantilla
-  const logoSizePx = plantilla?.logo_size ?? 30;      // px en el slider (= px en preview a escala 1:1)
-  const logoXSlider = plantilla?.logo_x   ?? 0;       // slider -120..120
-  const logoYSlider = plantilla?.logo_y   ?? 8;       // slider 0..60
+  // Centro horizontal: left=50% + translateX(-50%+offsetPx) → center = PW/2 + logoOffX
+  const logoCX   = PW / 2 + logoOffX;
 
-  // Convertir a mm para el PDF
-  const logoH_mm   = Math.max(2, logoSizePx / PX_PER_MM);            // altura en mm
-  const logoW_mm   = logoH_mm * 3;                                    // ancho máximo (ratio 3:1)
-  const logoOffX   = logoXSlider * (PW / 240);                        // offset X en mm desde el centro
-  const logoOffY   = Math.max(0, Math.min(55 / PX_PER_MM, logoYSlider / PX_PER_MM)); // Y desde top de cabecera
+  // Calcular tamaño real aplicando object-fit:contain con ratio nativo
+  let logoW_mm = maxW_mm;
+  let logoH_mm = maxH_mm;
+  let logoOk   = false;
 
-  // Posición final: centro del documento + offset, anclado en el centro del logo
-  const logoCX     = PW / 2 + logoOffX;               // centro X del logo en mm
-  const logoLeft   = Math.max(ML, Math.min(PW - MR - logoW_mm, logoCX - logoW_mm / 2));
-  const logoTop    = logoOffY;                         // Y desde el borde superior del documento
-
-  let logoOk = false;
   if (mostrarLogo && logoB64) {
     try {
-      const mime = logoB64.split(";")[0].split(":")[1] || "image/png";
-      const ext  = mime.includes("png") ? "PNG" : "JPEG";
-      // addImage(data, format, x, y, w, h)
-      // x e y en mm, w y h en mm — usa logoLeft/logoTop + tamaño calculado
-      doc.addImage(logoB64, ext, logoLeft, logoTop, logoW_mm, logoH_mm, "", "FAST");
-      logoOk = true;
-    } catch(e) { console.warn("Logo PDF error:", e.message); }
+      const nativeRatio = await _getNativeRatio(logoB64);
+      const sz = _contain(maxW_mm, maxH_mm, nativeRatio);
+      logoW_mm = sz.w;
+      logoH_mm = sz.h;
+      logoOk   = true;
+    } catch(e) { logoOk = true; /* si falla ratio, usar bounds como máximos */ }
   }
 
+  // Posición final — logo anclado en su centro horizontal, con clamp a márgenes
+  const logoLeft = Math.max(ML, Math.min(PW - MR - logoW_mm, logoCX - logoW_mm / 2));
+  const logoTop  = logoTopY;   // Y relativo al borde superior de la cabecera
+
   // ── CABECERA ──
-  // La cabecera empieza justo debajo del logo (si existe) o en posición fija.
-  // En el preview la cabecera tiene padding-top implícito por el logo; aquí la ponemos
-  // exactamente donde termina el logo + un pequeño espacio.
+  // En el preview: logo es position:absolute encima de ep_pv_cab_wrap.
+  // En el PDF: dibujamos cabecera → texto → logo (z-order = orden de dibujo).
   const tipoLabel = tipo === "factura" ? "FACTURA" : "PRESUPUESTO";
   const numero    = docData.numero_factura || docData.numero || "BORRADOR";
   const fecha     = docData.fecha;
   const fmtFecha  = d => { if(!d)return"—"; const [yr,mo,dy]=d.split("-"); return `${dy}/${mo}/${yr}`; };
 
-  // CAB_TOP: si hay logo, la cabecera empieza DESPUÉS del logo (logo está encima/solapado).
-  // Replicamos el comportamiento del preview: logo es position:absolute sobre la cabecera.
-  // Entonces: cabecera empieza en un punto fijo, logo se superpone encima.
-  const CAB_TOP = 6;   // la cabecera siempre empieza a 6mm del borde superior
+  const CAB_TOP = 5;   // cabecera empieza a 5mm del borde superior de la página
   const cabH    = logoOk
-    ? Math.max(18, logoH_mm + logoOffY + 4)  // cabecera lo suficientemente alta para contener el logo
+    ? Math.max(18, logoTop + logoH_mm + 3)  // crece para contener el logo
     : 18;
 
   if (estiloCab !== "sin") {
@@ -269,40 +283,26 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
       doc.rect(ML, CAB_TOP, W, cabH, "F");
     } else if (estiloCab === "linea") {
       doc.setDrawColor(...colores.cab);
-      doc.setLineWidth(1);
+      doc.setLineWidth(0.8);
       doc.line(ML, CAB_TOP + cabH, PW - MR, CAB_TOP + cabH);
     }
-
-    // Texto cabecera — queda a la izquierda, el logo flota a la derecha
-    const txtColor = estiloCab === "linea" ? colores.letra : colores.txtCab;
-    // Padding derecho proporcional al logo para evitar solapamiento
-    const textMaxX = logoOk ? Math.min(ML + W * 0.55, logoLeft - 4) : PW - MR - 4;
-
+    const txtColor   = estiloCab === "linea" ? colores.letra : colores.txtCab;
+    const textRightX = logoOk ? Math.max(ML + 20, logoLeft - 3) : PW - MR - 4;
+    const textW      = textRightX - ML - 4;
     doc.setFont(font, "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(...txtColor);
-    const tipoTxt = doc.splitTextToSize(tipoLabel, textMaxX - ML - 4);
-    doc.text(tipoTxt, ML + 4, CAB_TOP + 6);
-    doc.setFontSize(tamF + 3);
-    doc.text(numero.substring(0, 30), ML + 4, CAB_TOP + 12);
-    doc.setFont(font, "normal");
     doc.setFontSize(7.5);
-    doc.text(fmtFecha(fecha), PW - MR - 2, CAB_TOP + 7, { align: "right" });
+    doc.setTextColor(...txtColor);
+    doc.text(tipoLabel, ML + 4, CAB_TOP + 5.5);
+    doc.setFontSize(Math.min(tamF + 3, 13));
+    const numLine = doc.splitTextToSize(numero.substring(0, 30), textW);
+    doc.text(numLine[0], ML + 4, CAB_TOP + 11);
+    doc.setFont(font, "normal");
+    doc.setFontSize(7);
+    doc.text(fmtFecha(fecha), PW - MR - 2, CAB_TOP + 6, { align: "right" });
     if (docData.fecha_validez) {
-      doc.setFontSize(7);
-      doc.text("Válido hasta: " + fmtFecha(docData.fecha_validez), PW - MR - 2, CAB_TOP + 12, { align: "right" });
-    }
-
-    // Redibujar logo ENCIMA de la cabecera (z-order en jsPDF: último dibujado = encima)
-    if (logoOk && logoB64) {
-      try {
-        const mime = logoB64.split(";")[0].split(":")[1] || "image/png";
-        const ext  = mime.includes("png") ? "PNG" : "JPEG";
-        doc.addImage(logoB64, ext, logoLeft, logoTop, logoW_mm, logoH_mm, "", "FAST");
-      } catch(e) {}
+      doc.text("Válido hasta: " + fmtFecha(docData.fecha_validez), PW - MR - 2, CAB_TOP + 11, { align: "right" });
     }
   } else {
-    // Sin cabecera: solo texto plano
     doc.setFont(font, "bold");
     doc.setFontSize(20);
     doc.setTextColor(...colores.letra);
@@ -311,7 +311,16 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.text(numero, ML, CAB_TOP + 17);
   }
 
-  let y = CAB_TOP + cabH + 8;
+  // Logo ENCIMA de la cabecera (último dibujado = encima, igual que z-index en CSS)
+  if (logoOk && logoB64) {
+    try {
+      const mime = logoB64.split(";")[0].split(":")[1] || "image/png";
+      const ext  = mime.includes("png") ? "PNG" : (mime.includes("svg") ? "SVG" : "JPEG");
+      doc.addImage(logoB64, ext, logoLeft, CAB_TOP + logoTop, logoW_mm, logoH_mm, "", "FAST");
+    } catch(e) { console.warn("Logo addImage error:", e.message); }
+  }
+
+  let y = CAB_TOP + cabH + 6;
 
   // ── EMISOR / CLIENTE ──
   // Posiciones con offsets de la plantilla
