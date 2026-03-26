@@ -1317,6 +1317,7 @@
                 <button class="ep-tab" data-tab="diseno"    onclick="window._epTab('diseno')">🎨 Diseño</button>
                 <button class="ep-tab" data-tab="fuente"    onclick="window._epTab('fuente')">🔤 Fuente</button>
                 <button class="ep-tab" data-tab="contenido" onclick="window._epTab('contenido')">📝 Contenido</button>
+                <button class="ep-tab" data-tab="columnas"  onclick="window._epTab('columnas')">📊 Columnas</button>
                 <button class="ep-tab" data-tab="avanzado"  onclick="window._epTab('avanzado')">⚙️ Avanzado</button>
                 <div class="ep-lang-wrap">
                   <span style="font-size:12px;color:var(--t3);font-weight:600">Idioma:</span>
@@ -1475,6 +1476,45 @@
                     </div>
                     <div id="ep_lineasContainer"></div>
                     <button class="btn-add-linea" id="ep_addLinea" style="margin-top:8px">+ Añadir línea</button>
+                  </div>
+
+                  <!-- TAB COLUMNAS -->
+                  <div id="ep-tab-columnas" class="ep-sec form-block" style="display:none;border-radius:0;margin:0;border:none">
+
+                    <div class="fb-title" style="margin-bottom:4px">Columnas de líneas de detalle</div>
+                    <div style="font-size:11px;color:var(--t3);margin-bottom:16px;line-height:1.5">
+                      Elige qué columnas aparecen en las líneas de tus documentos. "Descripción" es siempre obligatoria. Define el % de anchura de cada columna (vacío = automático).
+                    </div>
+
+                    <!-- Layout: no añadidas | añadidas -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+
+                      <!-- Panel izquierdo: columnas no añadidas -->
+                      <div>
+                        <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Columnas no añadidas</div>
+                        <div id="ep_cols_noañadidas" style="display:flex;flex-direction:column;gap:5px;min-height:40px">
+                          <!-- renderizado por JS -->
+                        </div>
+                      </div>
+
+                      <!-- Panel derecho: columnas añadidas y % anchura -->
+                      <div>
+                        <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Columnas añadidas y % de anchura</div>
+                        <!-- Cabecera tabla simulada -->
+                        <div id="ep_cols_cab" style="border-radius:6px 6px 0 0;overflow:hidden;border:1px solid var(--brd)">
+                          <!-- celdas cabecera -->
+                        </div>
+                        <!-- Fila % -->
+                        <div id="ep_cols_pct_row" style="border:1px solid var(--brd);border-top:none">
+                          <!-- inputs % -->
+                        </div>
+                        <!-- Fila eliminar -->
+                        <div id="ep_cols_del_row" style="border:1px solid var(--brd);border-top:none;border-radius:0 0 6px 6px;background:var(--bg2)">
+                          <!-- botones × -->
+                        </div>
+                      </div>
+
+                    </div>
                   </div>
 
                   <!-- TAB AVANZADO -->
