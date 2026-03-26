@@ -14,6 +14,7 @@ import { refreshClientes, populateClienteSelect } from "./clientes.js";
 import { refreshDashboard } from "./dashboard.js";
 import { refreshFacturas } from "./facturas.js";
 import { PRODUCTOS, buscarProductoPorCodigo } from "./productos.js";
+import { PLANTILLAS, getPlantillaDefault } from "./plantillas-usuario.js";
 
 /* ── Estado interno del formulario ── */
 let LINEAS = [];
@@ -21,10 +22,26 @@ let lineaIdCounter = 0;
 let PERFIL_FISCAL_CACHE = null;
 let clienteSeleccionadoId = null;
 let opTipoActual = "nacional";
+let nfPlantillaActual = null;   // plantilla aplicada actualmente
+let nfMostrarDescuento = false; // controla si la columna descuento es visible
 
 /* ══════════════════════════
    TOTALES
 ══════════════════════════ */
+/* ── Parsea el valor de descuento de una línea.
+   Acepta "10%" → porcentaje, "10" → importe fijo.
+   Devuelve el importe de descuento a restar del subtotal. ── */
+function _parseDescuento(raw, subtotal) {
+  if (!raw && raw !== 0) return 0;
+  const s = String(raw).trim();
+  if (!s) return 0;
+  if (s.endsWith("%")) {
+    const pct = parseFloat(s) || 0;
+    return subtotal * pct / 100;
+  }
+  return parseFloat(s) || 0;
+}
+
 function getLineasTotales() {
   const toggle  = document.getElementById("nfIrpfToggle");
   const irpfPct = (toggle?.checked)
@@ -33,7 +50,9 @@ function getLineasTotales() {
   let baseTotal = 0;
   const ivaMap = {};
   LINEAS.forEach(l => {
-    const subtotal = l.cantidad * l.precio;
+    const subtotalBruto = l.cantidad * l.precio;
+    const descAmt       = _parseDescuento(l.descuento, subtotalBruto);
+    const subtotal      = Math.max(0, subtotalBruto - descAmt);
     baseTotal += subtotal;
     const ivaAmt = subtotal * l.iva / 100;
     ivaMap[l.iva] = (ivaMap[l.iva] || 0) + ivaAmt;
@@ -132,6 +151,15 @@ function _buildProdDropdown(descInput, onSelect) {
 }
 
 
+function _descuentoCeldaHTML(id, val="") {
+  return nfMostrarDescuento
+    ? `<input autocomplete="off" type="text" class="linea-dto ff-input"
+        placeholder="10% / 5€" value="${val}" data-field="descuento"
+        title="Descuento: número (€) o porcentaje (10%)"
+        style="width:72px;text-align:right"/>`
+    : "";
+}
+
 function addLinea(prefill = {}) {
   const id = ++lineaIdCounter;
   const sinIva = ["intracomunitaria","exportacion","inversion_sujeto_pasivo"].includes(opTipoActual);
@@ -141,7 +169,8 @@ function addLinea(prefill = {}) {
     cantidad:    prefill.cantidad    || 1,
     precio:      prefill.precio      || 0,
     iva:         sinIva ? 0 : (prefill.iva !== undefined ? prefill.iva : 21),
-    tipo:        prefill.tipo        || "servicio"
+    tipo:        prefill.tipo        || "servicio",
+    descuento:   prefill.descuento   ?? ""
   };
   LINEAS.push(linea);
 
@@ -157,6 +186,7 @@ function addLinea(prefill = {}) {
       <span class="linea-euro">€</span>
       <input autocomplete="off" type="number" class="linea-price ff-input" value="${linea.precio||""}" placeholder="0.00" step="0.01" data-field="precio"/>
     </div>
+    ${_descuentoCeldaHTML(id, linea.descuento)}
     <select class="linea-iva ff-select" data-field="iva" ${sinIva?"disabled":""}>
       <option value="21" ${linea.iva===21?"selected":""}>21%</option>
       <option value="10" ${linea.iva===10?"selected":""}>10%</option>
@@ -207,8 +237,11 @@ function onLineaChange(id, el) {
   else if (field === "cantidad")    linea.cantidad    = parseFloat(el.value) || 0;
   else if (field === "precio")      linea.precio      = parseFloat(el.value) || 0;
   else if (field === "iva")         linea.iva         = parseInt(el.value)   || 0;
+  else if (field === "descuento")   linea.descuento   = el.value;
   else if (field === "tipo")      { linea.tipo        = el.value; updateIrpfVisibility(); return; }
-  const subtotal = linea.cantidad * linea.precio;
+  const subtotalBruto = linea.cantidad * linea.precio;
+  const descAmt       = _parseDescuento(linea.descuento, subtotalBruto);
+  const subtotal      = Math.max(0, subtotalBruto - descAmt);
   const rowEl = document.getElementById(`ltRow${id}`);
   if (rowEl) rowEl.textContent = fmt(subtotal);
   updateTotalesUI();
@@ -518,7 +551,9 @@ async function saveFactura() {
     cliente_pais: pais, notas,
     lineas: JSON.stringify(LINEAS.map(l=>({
       descripcion: l.descripcion, cantidad: l.cantidad,
-      precio: l.precio, iva: l.iva, subtotal: l.cantidad*l.precio,
+      precio: l.precio, iva: l.iva,
+      descuento: l.descuento ?? "",
+      subtotal: Math.max(0, l.cantidad*l.precio - _parseDescuento(l.descuento, l.cantidad*l.precio)),
       tipo: l.tipo || "servicio"
     })))
   }).select().single();
@@ -561,6 +596,103 @@ function resetForm() {
   document.querySelector(".op-type-btn[data-op='nacional']")?.classList.add("active");
   updateOpUI(); addLinea(); updatePreview();
 }
+
+
+/* ══════════════════════════
+   SELECTOR DE PLANTILLA
+══════════════════════════ */
+function _nfInitPlantillaSelector() {
+  const wrap = document.getElementById("nfPlantillaWrap");
+  if (!wrap) return;
+
+  // Renderizar opciones
+  const sel = document.getElementById("nfPlantillaSel");
+  if (!sel) return;
+
+  const plantillas = (typeof PLANTILLAS !== "undefined") ? PLANTILLAS : [];
+  const defP = plantillas.find(p => p.es_default) || plantillas[0];
+
+  sel.innerHTML = [
+    `<option value="">— Sin plantilla —</option>`,
+    ...plantillas.map(p => {
+      const tag = p.es_default ? " ⭐ Predeterminada" : "";
+      return `<option value="${p.id}" ${defP?.id===p.id?"selected":""}>${p.nombre}${tag}</option>`;
+    })
+  ].join("");
+
+  if (defP) _applyPlantillaToFactura(_nfGetPlantillaData(defP.id));
+
+  sel.addEventListener("change", () => {
+    const id = sel.value;
+    if (!id) {
+      nfPlantillaActual = null;
+      nfMostrarDescuento = false;
+      _nfRefreshDescuentoCol();
+      return;
+    }
+    _applyPlantillaToFactura(_nfGetPlantillaData(id));
+  });
+}
+
+function _nfGetPlantillaData(id) {
+  const p = (PLANTILLAS||[]).find(x => x.id === id);
+  if (!p) return null;
+  let colsActivas = [];
+  try {
+    const raw = p.cols_activas
+      ? (typeof p.cols_activas === "string" ? JSON.parse(p.cols_activas) : p.cols_activas)
+      : null;
+    if (Array.isArray(raw)) {
+      colsActivas = raw.map(c => typeof c === "object" ? c.key : c);
+    }
+  } catch(e) {}
+  return { id: p.id, colsActivas };
+}
+
+/** Activa/desactiva la columna descuento en todas las filas existentes */
+function _nfRefreshDescuentoCol() {
+  // Cabecera
+  const hdrDto = document.getElementById("nfHdrDescuento");
+  if (hdrDto) hdrDto.style.display = nfMostrarDescuento ? "" : "none";
+
+  // Filas existentes: añadir o quitar la celda de descuento
+  document.querySelectorAll("#lineasContainer .linea-row").forEach(row => {
+    const lineaId = parseInt(row.dataset.lineaId);
+    const linea   = LINEAS.find(l => l.id === lineaId);
+    const existing = row.querySelector("[data-field='descuento']");
+    if (nfMostrarDescuento) {
+      if (!existing) {
+        const dtoEl = document.createElement("input");
+        dtoEl.autocomplete = "off";
+        dtoEl.type = "text";
+        dtoEl.className = "linea-dto ff-input";
+        dtoEl.placeholder = "10% / 5€";
+        dtoEl.dataset.field = "descuento";
+        dtoEl.title = "Descuento: número (€) o porcentaje (10%)";
+        dtoEl.style.cssText = "width:72px;text-align:right";
+        dtoEl.value = linea?.descuento ?? "";
+        dtoEl.addEventListener("input",  () => onLineaChange(lineaId, dtoEl));
+        dtoEl.addEventListener("change", () => onLineaChange(lineaId, dtoEl));
+        // Insertar antes del select de IVA
+        const ivaEl = row.querySelector("[data-field='iva']");
+        if (ivaEl) row.insertBefore(dtoEl, ivaEl);
+      }
+    } else {
+      if (existing) existing.remove();
+      if (linea) { linea.descuento = ""; }
+    }
+  });
+  updateTotalesUI(); updatePreview();
+}
+
+window._applyPlantillaToFactura = function(data) {
+  if (!data) return;
+  nfPlantillaActual = data;
+  // Columna descuento: activa si la plantilla tiene "descuento" en cols_activas
+  const colsActivas = data.colsActivas || [];
+  nfMostrarDescuento = colsActivas.includes("descuento");
+  _nfRefreshDescuentoCol();
+};
 
 /* ══════════════════════════
    INIT
@@ -654,5 +786,6 @@ export function initNuevaFactura() {
   });
   nfScanInput?.addEventListener("blur", () => { if(nfScanFeedback) nfScanFeedback.style.opacity="0"; });
   document.getElementById("nfEmitirBtn")?.addEventListener("click",  ()=>saveFactura());
+  _nfInitPlantillaSelector();
   if (LINEAS.length===0) addLinea();
 }
