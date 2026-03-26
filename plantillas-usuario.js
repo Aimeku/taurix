@@ -1,8 +1,10 @@
 /* ═══════════════════════════════════════════════════════
-   TAURIX · plantillas-usuario.js  — v2 INTEGRADO
-   ─ Editor completo inline en view-plantillas
-   ─ Sidebar con lista · Formulario tabbed · Preview en vivo
-   ─ Diseño, logo, fuentes, colores, márgenes, visibilidad
+   TAURIX · plantillas-usuario.js  — v3 CORREGIDO
+   ─ Editor inline completo en view-plantillas
+   ─ Logo X/Y/tamaño funcionando correctamente
+   ─ Posición emisor/cliente con transform correcto
+   ─ Preview en tiempo real sin fallos
+   ─ Sin duplicados de listeners (clonado limpio)
    ═══════════════════════════════════════════════════════ */
 
 import { supabase } from "./supabase.js";
@@ -29,11 +31,13 @@ export async function refreshPlantillas() {
 }
 
 /* ══════════════════════════════════════════════════════
-   CONSTANTES DE MÓDULO
+   ESTADO DEL MÓDULO
 ══════════════════════════════════════════════════════ */
 let _epLogo           = "";
 let _epIdioma         = "es";
 let _epCurrentPrefill = null;
+// AbortController para limpiar todos los listeners de una vez
+let _epListenerAC     = null;
 
 const LABELS_ES = {
   tipo:"FACTURA", de:"EMISOR", para:"CLIENTE",
@@ -61,7 +65,7 @@ const ACCENT_COLS = [
 ];
 
 /* ══════════════════════════════════════════════════════
-   SIDEBAR: renderiza la lista lateral de plantillas
+   SIDEBAR
 ══════════════════════════════════════════════════════ */
 function _renderSidebar() {
   const wrap = document.getElementById("plantillasGrid");
@@ -121,14 +125,10 @@ function _renderSidebar() {
 
 function _highlightSidebarCard(id) {
   document.querySelectorAll(".plt-sidebar-card").forEach(card => {
-    const isActive = card.dataset.pltId === id;
-    card.style.background = isActive ? "rgba(26,86,219,.06)" : "var(--srf)";
-    if (isActive) {
-      card.style.outline = "2px solid var(--accent)";
-      card.style.outlineOffset = "0px";
-    } else {
-      card.style.outline = "none";
-    }
+    const isActive = card.dataset.pltId === String(id);
+    card.style.background   = isActive ? "rgba(26,86,219,.06)" : "var(--srf)";
+    card.style.outline      = isActive ? "2px solid var(--accent)" : "none";
+    card.style.outlineOffset = "0px";
   });
 }
 
@@ -152,21 +152,241 @@ function _hideEditor() {
     c.style.outline    = "none";
   });
   _epCurrentPrefill = null;
+  // Limpiar listeners del editor anterior
+  if (_epListenerAC) { _epListenerAC.abort(); _epListenerAC = null; }
 }
 
 /* ══════════════════════════════════════════════════════
-   GLOBALS: _epTab / _epSetAlin / _epLang
-   (llamados desde onclick en el HTML)
+   HELPERS INTERNOS DE LECTURA DE CAMPOS
+══════════════════════════════════════════════════════ */
+function _gv(id, fallback = "") {
+  const el = document.getElementById(id);
+  return (el && el.value) ? el.value : fallback;
+}
+function _gc(id, fallback = false) {
+  const el = document.getElementById(id);
+  return el ? el.checked : fallback;
+}
+function _gi(id, fallback = 0) {
+  return parseInt(_gv(id, String(fallback))) || fallback;
+}
+
+/* ══════════════════════════════════════════════════════
+   PREVIEW EN TIEMPO REAL
+══════════════════════════════════════════════════════ */
+function _runPreview() {
+  const L = _epIdioma === "en" ? LABELS_EN : LABELS_ES;
+  const g = id => document.getElementById(id);
+
+  const colorCab   = _gv("ep_color_cab",     "#1a56db");
+  const colorTxtC  = _gv("ep_color_txt_cab", "#ffffff");
+  const colorAcc   = _gv("ep_color_acento",  "#1a56db");
+  const colorLetra = _gv("ep_color_letra",   "#0f172a");
+  const colorFdo   = _gv("ep_color_fondo",   "#ffffff");
+  const colorFdoT  = _gv("ep_color_fondo_tab","#f8fafc");
+  const colorLin   = _gv("ep_color_lineas",  "#e2e8f0");
+  const estCab     = _gv("ep_estilo_cab",    "solido");
+  const fuente     = _gv("ep_fuente",        "Helvetica");
+  const tamF       = _gi("ep_tam_fuente",    9);
+  const concepto   = _gv("ep_concepto","")   || "Concepto del documento";
+  const notas      = _gv("ep_notas",   "");
+  const desc       = _gv("ep_descripcion","");
+  const pie        = _gv("ep_pie",     "");
+  const mostLogo   = _gc("ep_mostrar_logo",  true);
+  const mostCab    = _gc("ep_mostrar_cab",   true);
+  const mostPie    = _gc("ep_mostrar_pie",   true);
+  const mostEmisor = _gc("ep_mostrar_emisor",true);
+  const alin       = _gv("ep_alin_val","izq");
+  const alinCSS    = alin==="centro"?"center":alin==="der"?"right":"left";
+
+  // ── Posición logo ──
+  // Los valores X/Y del slider se interpretan como offsets desde la posición base (arriba-derecha)
+  // X: negativo = más a la izquierda, positivo = más a la derecha
+  // Y: positivo = bajar, negativo = subir
+  const logoX    = _gi("ep_logo_x",    0);
+  const logoY    = _gi("ep_logo_y",    6);
+  const logoSize = _gi("ep_logo_size", 30);
+
+  // ── Posición emisor/cliente ──
+  const emisorX  = _gi("ep_emisor_x",  0);
+  const emisorY  = _gi("ep_emisor_y",  0);
+  const clienteX = _gi("ep_cliente_x", 0);
+  const clienteY = _gi("ep_cliente_y", 0);
+
+  // ── Documento base ──
+  const doc = g("ep_pv_doc");
+  if (doc) {
+    doc.style.fontFamily = FONT_MAP[fuente] || FONT_MAP["Helvetica"];
+    doc.style.background = colorFdo;
+    doc.style.color      = colorLetra;
+    doc.style.fontSize   = (tamF + 2) + "px";
+    doc.style.textAlign  = alinCSS;
+  }
+
+  // ── Logo ──
+  // La fila del logo usa flexbox con justify-content para centrar/derecha.
+  // X positivo mueve a la derecha (aumenta marginLeft), negativo a la izquierda
+  // Y positivo añade padding-top (baja), negativo... usamos transform
+  const lr = g("ep_pv_logo_row");
+  const li = g("ep_pv_logo_img");
+
+  if (lr) {
+    if (mostLogo && _epLogo) {
+      lr.style.display       = "flex";
+      lr.style.justifyContent = "flex-end";
+      lr.style.alignItems    = "flex-start";
+      lr.style.padding       = "0 18px";
+      // Aplicamos el offset Y como padding-top y X como margin en la imagen
+      lr.style.paddingTop    = Math.max(0, logoY) + "px";
+      lr.style.transform     = logoY < 0 ? `translateY(${logoY}px)` : "none";
+    } else {
+      lr.style.display = "none";
+    }
+  }
+
+  if (li && _epLogo) {
+    li.src              = _epLogo;
+    li.style.maxHeight  = logoSize + "px";
+    li.style.maxWidth   = (logoSize * 2.5) + "px";
+    li.style.objectFit  = "contain";
+    // X: translateX mueve la imagen horizontalmente respecto al borde derecho
+    li.style.transform  = `translateX(${logoX}px)`;
+    li.style.display    = "block";
+  }
+
+  // ── Cabecera ──
+  const cab = g("ep_pv_cab");
+  if (cab) {
+    if (!mostCab || estCab === "sin") {
+      cab.style.display = "none";
+    } else {
+      cab.style.display = "";
+      if (estCab === "solido") {
+        cab.style.background   = colorCab;
+        cab.style.borderBottom = "none";
+      } else if (estCab === "gradiente") {
+        cab.style.background   = `linear-gradient(135deg,${colorCab},${colorAcc})`;
+        cab.style.borderBottom = "none";
+      } else if (estCab === "linea") {
+        cab.style.background   = "transparent";
+        cab.style.borderBottom = `3px solid ${colorCab}`;
+      }
+    }
+  }
+
+  const pvC = g("ep_pv_concepto"); const pvT = g("ep_pv_tipo");
+  if (pvC) { pvC.textContent = concepto; pvC.style.color = colorTxtC; }
+  if (pvT) { pvT.textContent = L.tipo;   pvT.style.color = colorTxtC; }
+
+  // ── Emisor / cliente ──
+  const er = g("ep_pv_emisor_row");
+  if (er) er.style.display = mostEmisor ? "grid" : "none";
+
+  const eb = g("ep_pv_emisor_bloque");
+  if (eb) eb.style.transform = `translate(${emisorX}px, ${emisorY}px)`;
+
+  const cb = g("ep_pv_cliente_bloque");
+  if (cb) cb.style.transform = `translate(${clienteX}px, ${clienteY}px)`;
+
+  const st = (id, v) => { const el = g(id); if (el) el.textContent = v; };
+  st("ep_pv_lbl_de",   L.de);
+  st("ep_pv_lbl_para", L.para);
+
+  // ── Tabla cabecera ──
+  const th = g("ep_pv_tabla_head");
+  if (th) th.style.background = colorAcc;
+  st("ep_pv_h_desc",   _epIdioma==="en" ? "Description" : "Descripción");
+  st("ep_pv_h_cant",   L.cant);
+  st("ep_pv_h_precio", L.precio);
+  st("ep_pv_h_iva",    L.iva);
+  st("ep_pv_h_total",  L.total);
+
+  // ── Líneas ──
+  const rows = document.querySelectorAll("#ep_lineasContainer .linea-row");
+  const larr = [...rows].map(r => ({
+    d: r.querySelector("[data-field='descripcion']")?.value || "",
+    c: parseFloat(r.querySelector("[data-field='cantidad']")?.value)  || 1,
+    p: parseFloat(r.querySelector("[data-field='precio']")?.value)    || 0,
+    i: parseInt(r.querySelector("[data-field='iva']")?.value)         || 21,
+  })).filter(l => l.d || l.p > 0);
+
+  const pvLin = g("ep_pv_lineas");
+  if (pvLin) {
+    if (!larr.length) {
+      pvLin.innerHTML = `<div style="padding:12px 0;font-size:10px;color:#9ca3af;text-align:center">Sin líneas definidas</div>`;
+    } else {
+      pvLin.innerHTML = larr.map((l, ri) => {
+        const tot = l.c * l.p;
+        const bg  = ri % 2 === 0 ? colorFdoT : "#fff";
+        return `<div style="display:grid;grid-template-columns:1fr 40px 70px 40px 70px;
+          padding:7px 0;background:${bg};border-bottom:1px solid ${colorLin};font-size:${tamF+2}px">
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:${alinCSS};padding:0 4px">${l.d}</span>
+          <span style="text-align:right;padding-right:4px">${l.c}</span>
+          <span style="text-align:right;padding-right:4px">${l.p.toFixed(2)}€</span>
+          <span style="text-align:right;padding-right:4px">${l.i}%</span>
+          <span style="text-align:right;font-weight:700;font-family:monospace;padding-right:4px">${tot.toFixed(2)}€</span>
+        </div>`;
+      }).join("");
+    }
+  }
+
+  // ── Totales ──
+  const base   = larr.reduce((a, l) => a + l.c * l.p, 0);
+  const iva    = larr.reduce((a, l) => a + l.c * l.p * l.i / 100, 0);
+  const pvTot  = g("ep_pv_totales");
+  if (pvTot) pvTot.innerHTML = `
+    <table style="margin-left:auto;border-collapse:collapse;font-size:10px;min-width:160px">
+      <tr>
+        <td style="color:#6b7280;padding:2px 12px 2px 0">${L.base}</td>
+        <td style="text-align:right;font-family:monospace;color:#374151">${base.toFixed(2)} €</td>
+      </tr>
+      <tr>
+        <td style="color:#6b7280;padding:2px 12px 2px 0">IVA</td>
+        <td style="text-align:right;font-family:monospace;color:#374151">${iva.toFixed(2)} €</td>
+      </tr>
+      <tr style="border-top:2px solid ${colorAcc}">
+        <td style="font-weight:800;color:#111;padding:4px 12px 2px 0">${L.totalDoc}</td>
+        <td style="text-align:right;font-family:monospace;font-weight:800;color:${colorAcc}">${(base+iva).toFixed(2)} €</td>
+      </tr>
+    </table>`;
+
+  // ── Descripción ──
+  const dw = g("ep_pv_desc_wrap"), dd = g("ep_pv_desc");
+  if (dw && dd) { dw.style.display = desc ? "" : "none"; dd.textContent = desc; }
+
+  // ── Notas ──
+  const pvN = g("ep_pv_notas");
+  if (pvN) { pvN.textContent = notas; pvN.style.display = notas ? "" : "none"; }
+
+  // ── Pie ──
+  const pvP = g("ep_pv_pie"), pvPT = g("ep_pv_pie_txt");
+  if (pvP)  pvP.style.display = mostPie ? "flex" : "none";
+  if (pvPT) pvPT.textContent  = pie || "Texto legal del pie";
+
+  // ── Preview fuente ──
+  const fp = g("ep_font_preview");
+  if (fp) {
+    fp.style.fontFamily = FONT_MAP[fuente] || FONT_MAP["Helvetica"];
+    fp.style.fontSize   = (tamF + 3) + "px";
+  }
+}
+
+// Exponer como window para compatibilidad con HTML inline (oninput en sliders)
+window._epRunPreview = _runPreview;
+window._epPreview    = _runPreview; // alias
+
+/* ══════════════════════════════════════════════════════
+   GLOBALS LLAMADOS DESDE EL HTML (tabs / alin / lang)
 ══════════════════════════════════════════════════════ */
 window._epTab = function(tab) {
-  document.querySelectorAll(".ep-tab").forEach(function(b) {
+  document.querySelectorAll(".ep-tab").forEach(b => {
     const on = b.dataset.tab === tab;
     b.style.borderBottom = on ? "3px solid var(--accent)" : "3px solid transparent";
     b.style.color        = on ? "var(--accent)"           : "var(--t3)";
     b.style.background   = on ? "var(--bg)"               : "transparent";
     b.style.fontWeight   = on ? "700"                     : "600";
   });
-  document.querySelectorAll(".ep-sec").forEach(function(s) {
+  document.querySelectorAll(".ep-sec").forEach(s => {
     s.style.display = (s.id === "ep-tab-" + tab) ? "" : "none";
   });
 };
@@ -174,53 +394,60 @@ window._epTab = function(tab) {
 window._epSetAlin = function(v) {
   const inp = document.getElementById("ep_alin_val");
   if (inp) inp.value = v;
-  document.querySelectorAll("#ep_alin_group button").forEach(function(b) {
+  document.querySelectorAll("#ep_alin_group button").forEach(b => {
     const on = b.dataset.alin === v;
     b.style.borderColor = on ? "#f97316"         : "var(--brd)";
     b.style.color       = on ? "#f97316"         : "var(--t2)";
     b.style.fontWeight  = on ? "700"             : "500";
     b.style.boxShadow   = on ? "0 0 0 2px #f9731622" : "none";
   });
-  window._epRunPreview?.();
+  _runPreview();
 };
 
 window._epLang = function(lang) {
   _epIdioma = lang;
-  ["es","en"].forEach(function(l) {
+  ["es", "en"].forEach(l => {
     const btn = document.getElementById("ep_lang_" + l);
     if (!btn) return;
     const on = l === lang;
-    btn.style.borderColor = on ? "#f97316"         : "var(--brd)";
-    btn.style.color       = on ? "#f97316"         : "var(--t2)";
-    btn.style.fontWeight  = on ? "700"             : "500";
+    btn.style.borderColor = on ? "#f97316"  : "var(--brd)";
+    btn.style.color       = on ? "#f97316"  : "var(--t2)";
+    btn.style.fontWeight  = on ? "700"      : "500";
     btn.style.background  = "var(--bg2)";
     btn.style.boxShadow   = on ? "0 0 0 2px #f9731622" : "none";
   });
-  window._epRunPreview?.();
+  _runPreview();
 };
 
 /* ══════════════════════════════════════════════════════
-   _epInit — inicializa el formulario con datos del prefill
+   _epInit — rellena el formulario y conecta todos los eventos
+   Se llama cada vez que se abre/cambia una plantilla.
 ══════════════════════════════════════════════════════ */
 window._epInit = function() {
   const prefill = _epCurrentPrefill || {};
   const isEdit  = !!prefill.id;
 
+  // Cancelar listeners del ciclo anterior
+  if (_epListenerAC) _epListenerAC.abort();
+  _epListenerAC = new AbortController();
+  const sig = _epListenerAC.signal;
+
   const lineas = prefill.lineas
     ? (typeof prefill.lineas === "string" ? JSON.parse(prefill.lineas) : prefill.lineas)
-    : [{ descripcion:"", cantidad:1, precio:0, iva:21 }];
+    : [{ descripcion: "", cantidad: 1, precio: 0, iva: 21 }];
 
   _epLogo   = prefill.logo_b64 || "";
   _epIdioma = prefill.idioma   || "es";
 
-  // Helpers de llenado
-  const sv  = (id, v)    => { const el=document.getElementById(id); if(el) el.value = (v ?? ""); };
-  const sc  = (id, v)    => { const el=document.getElementById(id); if(el) el.checked = (v !== false); };
+  // ── Helpers de rellenado ──
+  const sv  = (id, v)    => { const el = document.getElementById(id); if (el) el.value = (v ?? ""); };
+  const sc  = (id, v)    => { const el = document.getElementById(id); if (el) el.checked = (v !== false); };
   const sri = (id, v, d) => {
     const el  = document.getElementById(id);
     const lbl = document.getElementById(id + "_val");
-    if (el)  el.value       = (v !== undefined && v !== null) ? v : (el.value || d || 0);
-    if (lbl) lbl.textContent = el ? el.value : (d || 0);
+    const val = (v !== undefined && v !== null) ? v : d;
+    if (el)  el.value        = val;
+    if (lbl) lbl.textContent = val;
   };
 
   sv("ep_nombre",      prefill.nombre);
@@ -245,7 +472,7 @@ window._epInit = function() {
   sri("ep_cliente_x",  prefill.cliente_x, 0);
   sri("ep_cliente_y",  prefill.cliente_y, 0);
 
-  // Colores
+  // ── Colores: picker + hex ──
   const COLS = {
     ep_color_cab:       prefill.color_cabecera  || "#1a56db",
     ep_color_txt_cab:   prefill.color_txt_cab   || "#ffffff",
@@ -255,28 +482,62 @@ window._epInit = function() {
     ep_color_fondo_tab: prefill.color_fondo_tab || "#f8fafc",
     ep_color_lineas:    prefill.color_lineas    || "#e2e8f0",
   };
+
   Object.entries(COLS).forEach(([id, val]) => {
     const pick = document.getElementById(id);
     const hex  = document.getElementById(id + "_hex");
     if (pick) pick.value = val;
     if (hex)  hex.value  = val;
+    // Sincronizar picker → hex → preview
+    if (pick) pick.addEventListener("input", () => {
+      if (hex) hex.value = pick.value;
+      _runPreview();
+    }, { signal: sig });
+    // Sincronizar hex → picker → preview
+    if (hex) hex.addEventListener("change", () => {
+      if (/^#[0-9a-f]{6}$/i.test(hex.value)) {
+        if (pick) pick.value = hex.value;
+        _runPreview();
+      }
+    }, { signal: sig });
+    if (hex) hex.addEventListener("input", () => {
+      if (/^#[0-9a-f]{6}$/i.test(hex.value)) {
+        if (pick) pick.value = hex.value;
+        _runPreview();
+      }
+    }, { signal: sig });
   });
 
-  // Checkboxes
-  sc("ep_mostrar_logo",    prefill.mostrar_logo);
-  sc("ep_mostrar_cab",     prefill.mostrar_cab);
-  sc("ep_mostrar_pie",     prefill.mostrar_pie);
-  sc("ep_mostrar_emisor",  prefill.mostrar_emisor);
-  sc("ep_mostrar_email",   prefill.mostrar_email);
-  sc("ep_mostrar_num_pag", prefill.mostrar_num_pag);
-  sc("ep_cab_todas_pags",  prefill.cab_todas_pags || false);
+  // ── Checkboxes visibilidad ──
+  sc("ep_mostrar_logo",    prefill.mostrar_logo    !== false);
+  sc("ep_mostrar_cab",     prefill.mostrar_cab     !== false);
+  sc("ep_mostrar_pie",     prefill.mostrar_pie     !== false);
+  sc("ep_mostrar_emisor",  prefill.mostrar_emisor  !== false);
+  sc("ep_mostrar_email",   prefill.mostrar_email   !== false);
+  sc("ep_mostrar_num_pag", prefill.mostrar_num_pag !== false);
+  sc("ep_cab_todas_pags",  prefill.cab_todas_pags  || false);
 
-  // Fecha del preview
-  const fechaEl = document.getElementById("ep_pv_fecha");
-  if (fechaEl) fechaEl.textContent = new Date().toLocaleDateString("es-ES");
+  // Checkbox "mostrar logo" — estética del label
+  const mostLogoLbl = document.getElementById("ep_mostrar_logo_lbl");
+  const mostLogoChk = document.getElementById("ep_mostrar_logo");
+  if (mostLogoLbl && mostLogoChk) {
+    const _updMostLogo = () => {
+      mostLogoLbl.style.borderColor = mostLogoChk.checked ? "var(--accent)" : "var(--brd)";
+      mostLogoLbl.style.background  = mostLogoChk.checked ? "rgba(26,86,219,.05)" : "var(--bg2)";
+    };
+    _updMostLogo();
+    mostLogoChk.addEventListener("change", () => { _updMostLogo(); _runPreview(); }, { signal: sig });
+  }
+
+  // Otros checkboxes → preview
+  ["ep_mostrar_cab","ep_mostrar_pie","ep_mostrar_emisor","ep_mostrar_email",
+   "ep_mostrar_num_pag","ep_cab_todas_pags"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("change", _runPreview, { signal: sig });
+  });
 
   // ── Logo UI ──
-  const _updateLogoUI = function() {
+  const _updateLogoUI = () => {
     const prev = document.getElementById("ep_logo_prev");
     const btn  = document.getElementById("ep_logo_btn");
     const rm   = document.getElementById("ep_logo_rm");
@@ -288,69 +549,43 @@ window._epInit = function() {
   };
   _updateLogoUI();
 
-  // Clonar input de logo para limpiar listeners previos
-  const logoInp = document.getElementById("ep_logo_inp");
   const logoBtn = document.getElementById("ep_logo_btn");
-  if (logoBtn) {
-    const newLogoBtn = logoBtn.cloneNode(true);
-    logoBtn.parentNode.replaceChild(newLogoBtn, logoBtn);
-    newLogoBtn.addEventListener("click", () => document.getElementById("ep_logo_inp")?.click());
-  }
+  if (logoBtn) logoBtn.addEventListener("click", () => {
+    document.getElementById("ep_logo_inp")?.click();
+  }, { signal: sig });
+
+  const logoInp = document.getElementById("ep_logo_inp");
   if (logoInp) {
-    const newInp = logoInp.cloneNode(true);
-    logoInp.parentNode.replaceChild(newInp, logoInp);
-    newInp.addEventListener("change", function(e) {
-      const f = e.target.files[0]; if (!f) return;
+    // Limpiar valor para que el change siempre dispare aunque seleccionen el mismo archivo
+    logoInp.value = "";
+    logoInp.addEventListener("change", function(e) {
+      const f = e.target.files[0];
+      if (!f) return;
       if (f.size > 500 * 1024) { toast("Logo máx. 500KB", "error"); return; }
       const r = new FileReader();
-      r.onload = ev => { _epLogo = ev.target.result; _updateLogoUI(); window._epRunPreview?.(); };
+      r.onload = ev => {
+        _epLogo = ev.target.result;
+        _updateLogoUI();
+        _runPreview();
+      };
       r.readAsDataURL(f);
-    });
+    }, { signal: sig });
   }
+
   const logoRm = document.getElementById("ep_logo_rm");
-  if (logoRm) {
-    const newRm = logoRm.cloneNode(true);
-    logoRm.parentNode.replaceChild(newRm, logoRm);
-    newRm.addEventListener("click", () => { _epLogo = ""; _updateLogoUI(); window._epRunPreview?.(); });
-  }
+  if (logoRm) logoRm.addEventListener("click", () => {
+    _epLogo = "";
+    _updateLogoUI();
+    _runPreview();
+  }, { signal: sig });
 
-  // Checkbox "mostrar logo" — estética
-  const mostLogoLbl = document.getElementById("ep_mostrar_logo_lbl");
-  const mostLogoChk = document.getElementById("ep_mostrar_logo");
-  if (mostLogoLbl && mostLogoChk) {
-    const _upd = () => {
-      mostLogoLbl.style.borderColor = mostLogoChk.checked ? "var(--accent)" : "var(--brd)";
-      mostLogoLbl.style.background  = mostLogoChk.checked ? "rgba(26,86,219,.05)" : "var(--bg2)";
-    };
-    _upd();
-    const newChk = mostLogoChk.cloneNode(true);
-    mostLogoChk.parentNode.replaceChild(newChk, mostLogoChk);
-    newChk.checked = prefill.mostrar_logo !== false;
-    newChk.addEventListener("change", function() { _upd(); window._epRunPreview?.(); });
-  }
-
-  // Sync color pickers ↔ hex — clonar para limpiar handlers
-  Object.keys(COLS).forEach(function(id) {
-    const pick = document.getElementById(id);
-    const hex  = document.getElementById(id + "_hex");
-    if (!pick || !hex) return;
-    const np = pick.cloneNode(true);
-    const nh = hex.cloneNode(true);
-    pick.parentNode.replaceChild(np, pick);
-    hex.parentNode.replaceChild(nh, hex);
-    np.value = COLS[id];
-    nh.value = COLS[id];
-    np.addEventListener("input",  () => { nh.value = np.value; window._epRunPreview?.(); });
-    nh.addEventListener("change", () => {
-      if (/^#[0-9a-f]{6}$/i.test(nh.value)) np.value = nh.value;
-      window._epRunPreview?.();
-    });
-  });
+  // Fecha del preview
+  const fechaEl = document.getElementById("ep_pv_fecha");
+  if (fechaEl) fechaEl.textContent = new Date().toLocaleDateString("es-ES");
 
   // ── Líneas predefinidas ──
-  const _lineaHTML = function(l) {
-    l = l || {};
-    return `<div class="linea-row" style="grid-template-columns:1fr 58px 96px 56px 30px">
+  const _lineaHTML = (l = {}) => `
+    <div class="linea-row" style="grid-template-columns:1fr 58px 96px 56px 30px">
       <input autocomplete="off" class="ff-input" data-field="descripcion"
         value="${(l.descripcion||"").replace(/"/g,"&quot;")}" placeholder="Descripción"/>
       <input autocomplete="off" type="number" class="ff-input" data-field="cantidad"
@@ -358,234 +593,88 @@ window._epInit = function() {
       <input autocomplete="off" type="number" class="ff-input" data-field="precio"
         value="${l.precio||""}" step="0.01" placeholder="0.00"/>
       <select class="ff-select" data-field="iva">
-        <option value="21" ${(l.iva||21)===21?"selected":""}>21%</option>
+        <option value="21" ${(l.iva===undefined||l.iva===21)?"selected":""}>21%</option>
         <option value="10" ${l.iva===10?"selected":""}>10%</option>
         <option value="4"  ${l.iva===4 ?"selected":""}>4%</option>
         <option value="0"  ${l.iva===0 ?"selected":""}>0%</option>
       </select>
-      <button class="linea-del ep-del-linea" title="Eliminar">
+      <button type="button" class="linea-del ep-del-linea" title="Eliminar">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
     </div>`;
-  };
 
   const cont = document.getElementById("ep_lineasContainer");
   if (cont) {
     cont.innerHTML = "";
     lineas.forEach(l => cont.insertAdjacentHTML("beforeend", _lineaHTML(l)));
     if (!lineas.length) cont.insertAdjacentHTML("beforeend", _lineaHTML({}));
+
+    cont.addEventListener("click", e => {
+      if (e.target.closest(".ep-del-linea")) {
+        e.target.closest(".linea-row")?.remove();
+        _runPreview();
+      }
+    }, { signal: sig });
+    cont.addEventListener("input", _runPreview, { signal: sig });
+    cont.addEventListener("change", _runPreview, { signal: sig });
   }
 
-  // Botón añadir línea — clonar para limpiar handlers
   const addBtn = document.getElementById("ep_addLinea");
-  if (addBtn) {
-    const newAdd = addBtn.cloneNode(true);
-    addBtn.parentNode.replaceChild(newAdd, addBtn);
-    newAdd.addEventListener("click", () => {
-      cont?.insertAdjacentHTML("beforeend", _lineaHTML({}));
-      window._epRunPreview?.();
-    });
-  }
-  cont?.addEventListener("click", function(e) {
-    if (e.target.closest(".ep-del-linea")) {
-      e.target.closest(".linea-row")?.remove();
-      window._epRunPreview?.();
-    }
+  if (addBtn) addBtn.addEventListener("click", () => {
+    cont?.insertAdjacentHTML("beforeend", _lineaHTML({}));
+    _runPreview();
+  }, { signal: sig });
+
+  // ── Sliders con label ──
+  // Los sliders del HTML usan oninput inline que llaman a window._epPreview()
+  // Para robustez también los conectamos aquí mediante AbortController
+  [
+    "ep_margen", "ep_pie_altura",
+    "ep_logo_x", "ep_logo_y", "ep_logo_size",
+    "ep_emisor_x", "ep_emisor_y",
+    "ep_cliente_x", "ep_cliente_y"
+  ].forEach(id => {
+    const el  = document.getElementById(id);
+    const lbl = document.getElementById(id + "_val");
+    if (el) el.addEventListener("input", () => {
+      if (lbl) lbl.textContent = el.value;
+      _runPreview();
+    }, { signal: sig });
   });
-  cont?.addEventListener("input", () => window._epRunPreview?.());
 
-  /* ─────────────────────────────────────
-     FUNCIÓN PREVIEW EN TIEMPO REAL
-  ───────────────────────────────────── */
-  window._epRunPreview = function() {
-    const L  = _epIdioma === "en" ? LABELS_EN : LABELS_ES;
-    const g  = id => document.getElementById(id);
-    const gv = (id, fb) => { const el=g(id); return (el && el.value) ? el.value : fb; };
-    const gc = (id, fb) => { const el=g(id); return el ? el.checked : fb; };
+  // ── Inputs genéricos del editor → preview ──
+  // (selects, text inputs, textareas — sin los que ya están manejados arriba)
+  document.querySelectorAll(
+    "#plt-editor input:not([type=file]):not([type=hidden]):not([type=color]):not([type=range]):not([type=checkbox])," +
+    "#plt-editor select," +
+    "#plt-editor textarea"
+  ).forEach(el => {
+    el.addEventListener("input",  _runPreview, { signal: sig });
+    el.addEventListener("change", _runPreview, { signal: sig });
+  });
 
-    const colorCab  = gv("ep_color_cab",     "#1a56db");
-    const colorTxtC = gv("ep_color_txt_cab", "#ffffff");
-    const colorAcc  = gv("ep_color_acento",  "#1a56db");
-    const colorLetra= gv("ep_color_letra",   "#0f172a");
-    const colorFdo  = gv("ep_color_fondo",   "#ffffff");
-    const colorFdoT = gv("ep_color_fondo_tab","#f8fafc");
-    const colorLin  = gv("ep_color_lineas",  "#e2e8f0");
-    const estCab    = gv("ep_estilo_cab",    "solido");
-    const fuente    = gv("ep_fuente",        "Helvetica");
-    const tamF      = parseInt(gv("ep_tam_fuente","9")) || 9;
-    const concepto  = gv("ep_concepto","")   || "Concepto del documento";
-    const notas     = gv("ep_notas","");
-    const desc      = gv("ep_descripcion","");
-    const pie       = gv("ep_pie","");
-    const mostLogo  = gc("ep_mostrar_logo",  true);
-    const mostCab   = gc("ep_mostrar_cab",   true);
-    const mostPie   = gc("ep_mostrar_pie",   true);
-    const mostEmisor= gc("ep_mostrar_emisor",true);
-    const logoX     = parseInt(g("ep_logo_x")?.value)    || 0;
-    const logoY     = parseInt(g("ep_logo_y")?.value)    || 6;
-    const logoSize  = parseInt(g("ep_logo_size")?.value) || 30;
-    const emisorX   = parseInt(g("ep_emisor_x")?.value)  || 0;
-    const emisorY   = parseInt(g("ep_emisor_y")?.value)  || 0;
-    const clienteX  = parseInt(g("ep_cliente_x")?.value) || 0;
-    const clienteY  = parseInt(g("ep_cliente_y")?.value) || 0;
-    const alin      = gv("ep_alin_val","izq");
-    const alinCSS   = alin==="centro"?"center":alin==="der"?"right":"left";
+  // ── Selects que ya tienen onchange inline (por si se quitan) ──
+  ["ep_estilo_cab","ep_tamano_hoja","ep_fuente","ep_tam_fuente"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("change", _runPreview, { signal: sig });
+  });
 
-    // Documento
-    const doc = g("ep_pv_doc");
-    if (doc) {
-      doc.style.fontFamily = FONT_MAP[fuente] || FONT_MAP["Helvetica"];
-      doc.style.background = colorFdo;
-      doc.style.color      = colorLetra;
-      doc.style.fontSize   = (tamF+2)+"px";
-      doc.style.textAlign  = alinCSS;
-    }
-
-    // Logo
-    const lr = g("ep_pv_logo_row"), li = g("ep_pv_logo_img");
-    if (lr) {
-      lr.style.display        = (mostLogo && _epLogo) ? "flex" : "none";
-      lr.style.padding        = logoY+"px 18px 0";
-      lr.style.justifyContent = "flex-end";
-    }
-    if (li && _epLogo) {
-      li.src = _epLogo;
-      li.style.maxHeight   = logoSize+"px";
-      li.style.maxWidth    = (logoSize*2.5)+"px";
-      li.style.marginRight = (logoX >= 0 ? 0 : Math.abs(logoX))+"px";
-      li.style.marginLeft  = (logoX > 0 ? logoX : 0)+"px";
-    }
-
-    // Cabecera
-    const cab = g("ep_pv_cab");
-    if (cab) {
-      if (!mostCab || estCab === "sin") {
-        cab.style.display = "none";
-      } else {
-        cab.style.display = "";
-        if (estCab === "solido")    { cab.style.background = colorCab; cab.style.borderBottom = "none"; }
-        if (estCab === "gradiente") { cab.style.background = `linear-gradient(135deg,${colorCab},${colorAcc})`; cab.style.borderBottom = "none"; }
-        if (estCab === "linea")     { cab.style.background = "transparent"; cab.style.borderBottom = `3px solid ${colorCab}`; }
-      }
-    }
-    const pvC = g("ep_pv_concepto"), pvT = g("ep_pv_tipo");
-    if (pvC) { pvC.textContent = concepto; pvC.style.color = colorTxtC; }
-    if (pvT) { pvT.textContent = L.tipo;   pvT.style.color = colorTxtC; }
-
-    // Emisor/cliente
-    const er = g("ep_pv_emisor_row");
-    if (er) er.style.display = mostEmisor ? "grid" : "none";
-    const eb = g("ep_pv_emisor_bloque");  if (eb) eb.style.transform = `translate(${emisorX}px,${emisorY}px)`;
-    const cb = g("ep_pv_cliente_bloque"); if (cb) cb.style.transform = `translate(${clienteX}px,${clienteY}px)`;
-    const st = (id, v) => { const el=g(id); if(el) el.textContent=v; };
-    st("ep_pv_lbl_de",   L.de);
-    st("ep_pv_lbl_para", L.para);
-
-    // Tabla
-    const th = g("ep_pv_tabla_head"); if (th) th.style.background = colorAcc;
-    st("ep_pv_h_desc",  _epIdioma==="en"?"Description":"Descripción");
-    st("ep_pv_h_cant",  L.cant);
-    st("ep_pv_h_precio",L.precio);
-    st("ep_pv_h_iva",   L.iva);
-    st("ep_pv_h_total", L.total);
-
-    // Líneas
-    const rows = document.querySelectorAll("#ep_lineasContainer .linea-row");
-    const larr = [...rows].map(r => ({
-      d: r.querySelector("[data-field='descripcion']")?.value || "",
-      c: parseFloat(r.querySelector("[data-field='cantidad']")?.value)  || 1,
-      p: parseFloat(r.querySelector("[data-field='precio']")?.value)    || 0,
-      i: parseInt(r.querySelector("[data-field='iva']")?.value)         || 21,
-    })).filter(l => l.d || l.p > 0);
-
-    const pvLin = g("ep_pv_lineas");
-    if (pvLin) {
-      if (!larr.length) {
-        pvLin.innerHTML = `<div style="padding:12px 0;font-size:10px;color:#9ca3af;text-align:center">Sin líneas definidas</div>`;
-      } else {
-        pvLin.innerHTML = larr.map((l, ri) => {
-          const tot = l.c * l.p;
-          const bg  = ri % 2 === 0 ? colorFdoT : "#fff";
-          return `<div style="display:grid;grid-template-columns:1fr 40px 70px 40px 70px;
-            padding:7px 0;background:${bg};border-bottom:1px solid ${colorLin};font-size:${tamF+2}px">
-            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left">${l.d}</span>
-            <span style="text-align:right">${l.c}</span>
-            <span style="text-align:right">${l.p.toFixed(2)}€</span>
-            <span style="text-align:right">${l.i}%</span>
-            <span style="text-align:right;font-weight:700;font-family:monospace">${tot.toFixed(2)}€</span>
-          </div>`;
-        }).join("");
-      }
-    }
-
-    // Totales
-    const base = larr.reduce((a,l) => a+l.c*l.p, 0);
-    const iva  = larr.reduce((a,l) => a+l.c*l.p*l.i/100, 0);
-    const pvTot = g("ep_pv_totales");
-    if (pvTot) pvTot.innerHTML = `
-      <table style="margin-left:auto;border-collapse:collapse;font-size:10px;min-width:160px">
-        <tr>
-          <td style="color:#6b7280;padding:2px 12px 2px 0">${L.base}</td>
-          <td style="text-align:right;font-family:monospace;color:#374151">${base.toFixed(2)} €</td>
-        </tr>
-        <tr>
-          <td style="color:#6b7280;padding:2px 12px 2px 0">IVA</td>
-          <td style="text-align:right;font-family:monospace;color:#374151">${iva.toFixed(2)} €</td>
-        </tr>
-        <tr style="border-top:2px solid ${colorAcc}">
-          <td style="font-weight:800;color:#111;padding:4px 12px 2px 0">${L.totalDoc}</td>
-          <td style="text-align:right;font-family:monospace;font-weight:800;color:${colorAcc}">${(base+iva).toFixed(2)} €</td>
-        </tr>
-      </table>`;
-
-    // Descripción
-    const dw = g("ep_pv_desc_wrap"), dd = g("ep_pv_desc");
-    if (dw && dd) { dw.style.display = desc ? "" : "none"; dd.textContent = desc; }
-
-    // Notas
-    const pvN = g("ep_pv_notas");
-    if (pvN) { pvN.textContent = notas; pvN.style.display = notas ? "" : "none"; }
-
-    // Pie
-    const pvP = g("ep_pv_pie"), pvPT = g("ep_pv_pie_txt");
-    if (pvP)  pvP.style.display = mostPie ? "flex" : "none";
-    if (pvPT) pvPT.textContent  = pie || "Texto legal del pie";
-
-    // Font preview
-    const fp = g("ep_font_preview");
-    if (fp) { fp.style.fontFamily = FONT_MAP[fuente]; fp.style.fontSize = (tamF+3)+"px"; }
-  };
-
-  // Alias compatibilidad
-  window._epPreview = window._epRunPreview;
-
-  // Activar tab, idioma, alineación
+  // ── Tab, idioma, alineación iniciales ──
   window._epTab("diseno");
   window._epLang(_epIdioma);
   window._epSetAlin(prefill.alin_texto || "izq");
 
-  // Conectar inputs al preview
-  document.querySelectorAll(
-    "#plt-editor input:not([type=file]):not([type=hidden]), #plt-editor select, #plt-editor textarea"
-  ).forEach(function(el) {
-    if (el.id === "ep_mostrar_logo") return;
-    el.addEventListener("input",  () => window._epRunPreview?.());
-    el.addEventListener("change", () => window._epRunPreview?.());
-  });
+  // ── Preview inicial ──
+  _runPreview();
 
-  // Preview inicial
-  window._epRunPreview();
-
-  /* ── Botón eliminar ── */
-  const delBtnOrig = document.getElementById("epEliminarBtnBottom");
-  if (delBtnOrig) {
-    const newDel = delBtnOrig.cloneNode(true);
-    delBtnOrig.parentNode.replaceChild(newDel, delBtnOrig);
-    newDel.style.display = isEdit ? "" : "none";
+  // ── Botón eliminar ──
+  const delBtn = document.getElementById("epEliminarBtnBottom");
+  if (delBtn) {
+    delBtn.style.display = isEdit ? "" : "none";
     if (isEdit) {
-      newDel.addEventListener("click", function() {
+      delBtn.addEventListener("click", function() {
         openModal(`<div class="modal" style="max-width:380px">
           <div class="modal-hd">
             <span class="modal-title">Eliminar plantilla</span>
@@ -604,11 +693,23 @@ window._epInit = function() {
           _hideEditor();
           await refreshPlantillas();
         });
-      });
+      }, { signal: sig });
     }
   }
 
-  /* ── Función guardar ── */
+  // ── Botón guardar ──
+  const saveBtn = document.getElementById("epGuardarBtnBottom");
+  if (saveBtn) {
+    saveBtn.addEventListener("click", _epGuardar, { signal: sig });
+  }
+
+  // ── Botón cancelar ──
+  const cancelBtn = document.getElementById("epCancelarBtnBottom");
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", () => _hideEditor(), { signal: sig });
+  }
+
+  // ── Función guardar (closure) ──
   async function _epGuardar() {
     const nombre = document.getElementById("ep_nombre")?.value.trim();
     if (!nombre) {
@@ -666,16 +767,14 @@ window._epInit = function() {
       logo_y:          gi("ep_logo_y",    6),
       logo_size:       gi("ep_logo_size", 30),
       sp_cab:          gi("ep_margen",   12),
-      sp_emisor:       5, sp_entre_bloques:0, sp_tabla:6, sp_pie:5,
+      sp_emisor:       5, sp_entre_bloques: 0, sp_tabla: 6, sp_pie: 5,
       emisor_x:        gi("ep_emisor_x", 0),
       emisor_y:        gi("ep_emisor_y", 0),
       cliente_x:       gi("ep_cliente_x",0),
       cliente_y:       gi("ep_cliente_y",0),
     };
 
-    // Deshabilitar mientras guarda
-    const saveBtnEl = document.getElementById("epGuardarBtnBottom");
-    if (saveBtnEl) { saveBtnEl.disabled = true; saveBtnEl.textContent = "Guardando…"; }
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Guardando…"; }
 
     let err, savedData;
     if (isEdit) {
@@ -686,9 +785,9 @@ window._epInit = function() {
       err = res.error; savedData = res.data;
     }
 
-    if (saveBtnEl) {
-      saveBtnEl.disabled = false;
-      saveBtnEl.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
         <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
       </svg> Guardar plantilla`;
@@ -699,7 +798,6 @@ window._epInit = function() {
     toast(isEdit ? "Plantilla actualizada ✅" : "Plantilla creada ✅", "success");
     await refreshPlantillas();
 
-    // Si era nueva, pasar a modo edición
     if (!isEdit && savedData) {
       _epCurrentPrefill = savedData;
       window._epInit();
@@ -707,22 +805,6 @@ window._epInit = function() {
     } else if (isEdit) {
       _highlightSidebarCard(prefill.id);
     }
-  }
-
-  // Conectar botón guardar (clonar para evitar duplicados)
-  const saveBtnOrig = document.getElementById("epGuardarBtnBottom");
-  if (saveBtnOrig) {
-    const newSave = saveBtnOrig.cloneNode(true);
-    saveBtnOrig.parentNode.replaceChild(newSave, saveBtnOrig);
-    newSave.addEventListener("click", _epGuardar);
-  }
-
-  // Botón cancelar
-  const cancelBtnOrig = document.getElementById("epCancelarBtnBottom");
-  if (cancelBtnOrig) {
-    const newCancel = cancelBtnOrig.cloneNode(true);
-    cancelBtnOrig.parentNode.replaceChild(newCancel, cancelBtnOrig);
-    newCancel.addEventListener("click", () => _hideEditor());
   }
 };
 
@@ -733,16 +815,14 @@ export function showPlantillaModal(prefill) {
   prefill = prefill || {};
   _epCurrentPrefill = prefill;
 
-  // Asegurar que estamos en la vista de plantillas
   if (typeof window._switchView === "function") {
-    // Llamar directamente sin interceptar (evitamos loop)
     const el = document.getElementById("view-plantillas");
     if (el && !el.classList.contains("active")) {
       window._switchView("plantillas");
     }
   }
 
-  setTimeout(function() {
+  setTimeout(() => {
     _showEditor();
     window._epInit();
     if (prefill.id) _highlightSidebarCard(prefill.id);
@@ -846,16 +926,15 @@ window._usarPlantillaPres = id => {
    initPlantillasView — llamado desde main.js al iniciar
 ══════════════════════════════════════════════════════ */
 export function initPlantillasView() {
-  // Botón principal "Nueva plantilla"
-  document.getElementById("nuevaPlantillaBtn")?.addEventListener("click", () => showPlantillaModal());
+  document.getElementById("nuevaPlantillaBtn")
+    ?.addEventListener("click", () => showPlantillaModal());
 
-  // Redirigir cualquier intento de navegar a "editar-plantilla" a la vista integrada
   const _origSwitchView = window._switchView;
   if (_origSwitchView && !window._switchView._patchedForPlantillas) {
     window._switchView = function(view, ...args) {
       if (view === "editar-plantilla") {
         _origSwitchView("plantillas", ...args);
-        setTimeout(function() {
+        setTimeout(() => {
           _showEditor();
           window._epInit();
         }, 60);
