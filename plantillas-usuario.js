@@ -126,6 +126,9 @@ export function showPlantillaModal(prefill) {
     sp_tabla:        prefill.sp_tabla        || 6,    // padding filas tabla
     sp_pie:          prefill.sp_pie          || 5,    // padding pie
     sp_entre_bloques:prefill.sp_entre_bloques|| 0,    // espacio entre cabecera y emisor
+    logo_x:          prefill.logo_x          || 0,    // offset X del logo (px)
+    logo_y:          prefill.logo_y          || 6,    // offset Y del logo (px)
+    logo_size:       prefill.logo_size       || 30,   // altura máxima del logo (px)
   };
 
   if (!document.getElementById("_plt_css")) {
@@ -180,7 +183,22 @@ export function showPlantillaModal(prefill) {
               <span style="font-size:10px;color:var(--t4)">PNG/JPG/SVG · Máx 500KB</span>
             </div>
           </div>
-          <label class="plt-tog" style="margin-bottom:16px">${tog("plt_mostrar_logo","Mostrar logo en el documento",D.mostrar_logo)}</label>
+          <label class="plt-tog" style="margin-bottom:10px">${tog("plt_mostrar_logo","Mostrar logo en el documento",D.mostrar_logo)}</label>
+          <div class="plt-r2" style="margin-bottom:16px">
+            ${[
+              ["plt_logo_x","Posición X (izq/der)",D.logo_x,-100,100],
+              ["plt_logo_y","Posición Y (arr/ab)", D.logo_y,-20,60],
+              ["plt_logo_size","Tamaño (px)",       D.logo_size,16,80],
+            ].map(([id,lbl,val,min,max])=>`
+              <div class="modal-field">
+                <label style="display:flex;justify-content:space-between;font-size:11px">
+                  <span>${lbl}</span><span id="${id}_val" style="font-family:monospace;color:var(--accent);font-weight:700">${val}</span>
+                </label>
+                <input type="range" id="${id}" min="${min}" max="${max}" value="${val}" step="1"
+                  style="width:100%;accent-color:var(--accent);margin-top:4px"
+                  oninput="document.getElementById('${id}_val').textContent=this.value;window._pltSpacing()"/>
+              </div>`).join("")}
+          </div>
           <div class="plt-group">📋 Cabecera y hoja</div>
           <div class="plt-r2">
             <div class="modal-field"><label>Estilo de cabecera</label>
@@ -240,10 +258,10 @@ export function showPlantillaModal(prefill) {
           </div>
           <div class="modal-field" style="margin-bottom:14px"><label>Alineación del texto</label>
             <div style="display:flex;gap:6px;margin-top:6px" id="plt_alin_group">
-              ${[["izq","← Izq."],["centro","▬ Centro"],["der","→ Der."]].map(([v,lbl])=>`
+              ${[["izq","Izquierda"],["centro","Centro"],["der","Derecha"]].map(([v,lbl])=>`
                 <button type="button" data-alin="${v}"
-                  onclick="document.querySelectorAll('#plt_alin_group button').forEach(b=>{b.style.background=b.dataset.alin==='${v}'?'var(--accent)':'var(--bg2)';b.style.color=b.dataset.alin==='${v}'?'#fff':'var(--t2)';b.style.borderColor=b.dataset.alin==='${v}'?'var(--accent)':'var(--brd)';});window._pltAlin('${v}');"
-                  style="padding:7px 13px;border:1.5px solid ${D.alin_texto===v?'var(--accent)':'var(--brd)'};border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;background:${D.alin_texto===v?'var(--accent)':'var(--bg2)'};color:${D.alin_texto===v?'#fff':'var(--t2)'};transition:all .15s">
+                  onclick="document.querySelectorAll('#plt_alin_group button').forEach(b=>{b.style.borderColor=b.dataset.alin==='${v}'?'#f97316':'var(--brd)';b.style.color=b.dataset.alin==='${v}'?'#f97316':'var(--t2)';b.style.fontWeight=b.dataset.alin==='${v}'?'700':'500';b.style.background='var(--bg2)';});window._pltAlin('${v}');"
+                  style="padding:6px 14px;border:2px solid ${D.alin_texto===v?'#f97316':'var(--brd)'};border-radius:7px;cursor:pointer;font-size:12px;font-weight:${D.alin_texto===v?700:500};background:var(--bg2);color:${D.alin_texto===v?'#f97316':'var(--t2)'};transition:all .15s">
                   ${lbl}
                 </button>`).join("")}
             </div>
@@ -320,12 +338,12 @@ export function showPlantillaModal(prefill) {
           <div id="plt_pv_emisor_row" style="display:${D.mostrar_emisor?"grid":"none"};grid-template-columns:1fr 1fr;gap:2px;padding:5px 12px;border-bottom:1px solid #e5e7eb">
             <div>
               <div id="plt_pv_lbl_de" style="font-size:6px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.06em">EMISOR</div>
-              <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Tu empresa SL</div>
+              <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.3;word-break:break-word">Tu empresa SL</div>
               <div style="font-size:7.5px;color:#6b7280">NIF: B12345678</div>
             </div>
             <div>
               <div id="plt_pv_lbl_para" style="font-size:6px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.06em">CLIENTE</div>
-              <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Empresa Cliente</div>
+              <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.3;word-break:break-word">Empresa Cliente</div>
               <div style="font-size:7.5px;color:#6b7280">NIF: A98765432</div>
             </div>
           </div>
@@ -469,11 +487,24 @@ export function showPlantillaModal(prefill) {
     const doc=g("plt_pv_doc");
     if(doc){doc.style.fontFamily=FONT_MAP[fuente]||FONT_MAP["Helvetica"];doc.style.background=colorFdo;doc.style.color=colorLetra;doc.style.fontSize=(tamFuente+1)+"px";doc.style.textAlign=alinCSS;}
 
-    // Logo: INDEPENDIENTE de la cabecera — siempre en su propio div absoluto
+    // Logo: posición configurable con X/Y/size
+    const logoX    = parseInt(g("plt_logo_x")?.value)    ?? D.logo_x;
+    const logoY    = parseInt(g("plt_logo_y")?.value)    ?? D.logo_y;
+    const logoSize = parseInt(g("plt_logo_size")?.value) || D.logo_size;
     const logoRow=g("plt_pv_logo_row");const logoImg=g("plt_pv_logo_img");
     if(logoRow){
-      logoRow.style.display=(mostLogo&&_logo)?"block":"none";
-      if(logoImg&&_logo) logoImg.src=_logo;
+      logoRow.style.display  = (mostLogo&&_logo) ? "block" : "none";
+      logoRow.style.top      = logoY + "px";
+      logoRow.style.right    = "auto";
+      logoRow.style.left     = "auto";
+      // X positivo = desde la derecha, X negativo = mover hacia la derecha
+      if(logoX >= 0) { logoRow.style.right = (12 + logoX) + "px"; logoRow.style.left = "auto"; }
+      else           { logoRow.style.right = (12 - Math.abs(logoX)) + "px"; logoRow.style.left = "auto"; }
+    }
+    if(logoImg&&_logo){
+      logoImg.src = _logo;
+      logoImg.style.maxHeight = logoSize + "px";
+      logoImg.style.maxWidth  = (logoSize * 2.5) + "px";
     }
 
     // Cabecera: se puede ocultar sin llevarse el logo
@@ -618,6 +649,14 @@ export function showPlantillaModal(prefill) {
       mostrar_pie:gb("plt_mostrar_pie"),mostrar_emisor:gb("plt_mostrar_emisor"),
       mostrar_email:gb("plt_mostrar_email"),mostrar_num_pag:gb("plt_mostrar_num_pag"),
       cab_todas_pags:gb("plt_cab_todas_pags"),logo_b64:_logo||null,
+      sp_cab:parseInt(document.getElementById("plt_sp_cab")?.value)||D.sp_cab,
+      sp_emisor:parseInt(document.getElementById("plt_sp_emisor")?.value)||D.sp_emisor,
+      sp_entre_bloques:parseInt(document.getElementById("plt_sp_entre_bloques")?.value)||D.sp_entre_bloques,
+      sp_tabla:parseInt(document.getElementById("plt_sp_tabla")?.value)||D.sp_tabla,
+      sp_pie:parseInt(document.getElementById("plt_sp_pie")?.value)||D.sp_pie,
+      logo_x:parseInt(document.getElementById("plt_logo_x")?.value)||0,
+      logo_y:parseInt(document.getElementById("plt_logo_y")?.value)||D.logo_y,
+      logo_size:parseInt(document.getElementById("plt_logo_size")?.value)||D.logo_size,
     };
     const btn=document.getElementById("plt_save");
     btn.disabled=true;btn.textContent="Guardando…";
