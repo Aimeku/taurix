@@ -431,11 +431,43 @@ function initClienteSearch() {
 /* ══════════════════════════
    SELECTOR DE PLANTILLA
 ══════════════════════════ */
-function _npInitPlantillaSelector() {
-  const sel = document.getElementById("npPlantillaSel");
+async function _npInitPlantillaSelector() {
+  const sel   = document.getElementById("npPlantillaSel");
+  const badge = document.getElementById("npPlantillaDefaultBadge");
   if (!sel) return;
 
-  const plantillas = (typeof PLANTILLAS !== "undefined") ? PLANTILLAS : [];
+  sel.innerHTML = `<option value="">Cargando plantillas…</option>`;
+  sel.disabled = true;
+
+  let plantillas = [];
+  try {
+    const { data, error } = await supabase
+      .from("plantillas_usuario")
+      .select("id, nombre, es_default, cols_activas, cols_pct")
+      .eq("user_id", SESSION.user.id)
+      .order("nombre");
+    if (error) throw error;
+    plantillas = data || [];
+    if (plantillas.length) {
+      plantillas.forEach(p => {
+        const idx = PLANTILLAS.findIndex(x => x.id === p.id);
+        if (idx === -1) PLANTILLAS.push(p);
+        else PLANTILLAS[idx] = { ...PLANTILLAS[idx], ...p };
+      });
+    }
+    console.log("[Plantillas] cargadas para selector:", plantillas.length, plantillas.map(p=>p.nombre));
+  } catch(e) {
+    console.error("[Plantillas] error cargando:", e.message);
+  }
+
+  sel.disabled = false;
+
+  if (!plantillas.length) {
+    sel.innerHTML = `<option value="">— Sin plantillas guardadas —</option>`;
+    if (badge) badge.style.display = "none";
+    return;
+  }
+
   const defP = plantillas.find(p => p.es_default) || plantillas[0];
 
   sel.innerHTML = [
@@ -446,15 +478,16 @@ function _npInitPlantillaSelector() {
     })
   ].join("");
 
-  if (defP) _applyPlantillaToPresupuesto(_npGetPlantillaData(defP.id));
-
-  const badge = document.getElementById("npPlantillaDefaultBadge");
   const _updBadge = (id) => {
     if (!badge) return;
     const p = plantillas.find(x => x.id === id);
     badge.style.display = (p?.es_default) ? "inline" : "none";
   };
-  if (defP) _updBadge(defP.id);
+
+  if (defP) {
+    _updBadge(defP.id);
+    _applyPlantillaToPresupuesto(_npGetPlantillaDataLocal(defP));
+  }
 
   sel.addEventListener("change", () => {
     const id = sel.value;
@@ -465,12 +498,12 @@ function _npInitPlantillaSelector() {
       _npRefreshDescuentoCol();
       return;
     }
-    _applyPlantillaToPresupuesto(_npGetPlantillaData(id));
+    const p = plantillas.find(x => x.id === id);
+    if (p) _applyPlantillaToPresupuesto(_npGetPlantillaDataLocal(p));
   });
 }
 
-function _npGetPlantillaData(id) {
-  const p = (PLANTILLAS||[]).find(x => x.id === id);
+function _npGetPlantillaDataLocal(p) {
   if (!p) return null;
   let colsActivas = [];
   try {
@@ -482,6 +515,11 @@ function _npGetPlantillaData(id) {
     }
   } catch(e) {}
   return { id: p.id, colsActivas };
+}
+
+function _npGetPlantillaData(id) {
+  const p = (PLANTILLAS||[]).find(x => x.id === id);
+  return _npGetPlantillaDataLocal(p);
 }
 
 function _npRefreshDescuentoCol() {
@@ -544,3 +582,6 @@ export function initNuevoPresupuesto() {
   if (LINEAS.length === 0) addLinea();
   _npInitPlantillaSelector();
 }
+
+// Exponer para que main.js o switchView puedan refrescar el selector al abrir la vista
+window._npRefreshPlantillaSel = () => _npInitPlantillaSelector();
