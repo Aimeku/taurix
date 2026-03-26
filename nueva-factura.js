@@ -50,42 +50,45 @@ function getLineasTotales() {
 
 /* ══════════════════════════
    HELPER: dropdown catálogo de productos
+   Usa las mismas clases CSS que el dropdown de clientes (csc-dropdown, csd-item, csd-name, csd-meta)
 ══════════════════════════ */
 function _buildProdDropdown(descInput, onSelect) {
-  if (!descInput || !PRODUCTOS?.length) return;
+  if (!descInput) return;
 
+  // Crear dropdown con la misma clase que el de clientes
   const dd = document.createElement("div");
-  dd.style.cssText = [
-    "position:absolute;z-index:400;width:340px;top:100%;left:0",
-    "background:var(--srf);border:1.5px solid var(--brd);border-radius:10px",
-    "box-shadow:0 8px 24px rgba(0,0,0,.14);display:none;max-height:300px;overflow-y:auto"
-  ].join(";");
+  dd.className = "csc-dropdown";
+  dd.style.cssText = "display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:300;min-width:280px";
   descInput.parentElement.style.position = "relative";
   descInput.parentElement.appendChild(dd);
 
-  const _render = (lista, header) => {
-    if (!lista.length) { dd.style.display = "none"; return; }
-    dd.innerHTML = (header ? `<div style="padding:7px 12px 5px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--brd)">${header}</div>` : "") +
-      lista.map(p => {
-        const stock = p.tipo !== "servicio" && p.stock_actual != null
-          ? `<span style="font-size:10px;padding:1px 6px;border-radius:4px;font-weight:700;margin-left:5px;background:${p.stock_actual > 0 ? "#dcfce7" : "#fee2e2"};color:${p.stock_actual > 0 ? "#166534" : "#991b1b"}">Stock: ${p.stock_actual}</span>` : "";
-        return `<div class="_pd-item" data-pid="${p.id}"
-          style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--brd)"
-          onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background=''">
+  const _render = (lista) => {
+    if (!lista.length) {
+      dd.innerHTML = `<div class="csd-empty">Sin productos en el catálogo</div>`;
+      dd.style.display = "";
+      return;
+    }
+    dd.innerHTML = lista.map(p => {
+      const stockBadge = p.tipo !== "servicio" && p.stock_actual != null
+        ? `<span style="font-size:11px;padding:1px 7px;border-radius:5px;font-weight:700;margin-left:6px;background:${p.stock_actual > 0 ? "#dcfce7" : "#fee2e2"};color:${p.stock_actual > 0 ? "#166534" : "#991b1b"}">Stock: ${p.stock_actual}</span>`
+        : "";
+      return `
+        <div class="csd-item" data-pid="${p.id}">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
             <div style="flex:1;min-width:0">
-              <div style="font-weight:600;font-size:12.5px;color:var(--t1)">${p.nombre}${stock}</div>
-              ${p.descripcion ? `<div style="font-size:11px;color:var(--t3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.descripcion}</div>` : ""}
-              ${p.referencia  ? `<div style="font-size:10px;color:var(--t4);font-family:monospace">Ref: ${p.referencia}</div>` : ""}
+              <div class="csd-name">${p.nombre}${stockBadge}</div>
+              ${p.descripcion ? `<div class="csd-meta">${p.descripcion}</div>` : ""}
+              ${p.referencia  ? `<div class="csd-meta" style="font-family:monospace">Ref: ${p.referencia}</div>` : ""}
             </div>
             <div style="text-align:right;flex-shrink:0">
               <div style="font-size:13px;font-weight:800;color:var(--accent);font-family:monospace">${fmt(p.precio)}</div>
-              <div style="font-size:10px;color:var(--t3)">IVA ${p.iva}%</div>
+              <div class="csd-meta">IVA ${p.iva}%</div>
             </div>
           </div>
         </div>`;
-      }).join("");
-    dd.querySelectorAll("._pd-item").forEach(item => {
+    }).join("");
+
+    dd.querySelectorAll(".csd-item").forEach(item => {
       item.addEventListener("mousedown", e => {
         e.preventDefault();
         const p = PRODUCTOS.find(x => x.id === item.dataset.pid);
@@ -96,25 +99,38 @@ function _buildProdDropdown(descInput, onSelect) {
     dd.style.display = "";
   };
 
+  // Al hacer focus: mostrar todo el catálogo
   descInput.addEventListener("focus", () => {
-    const activos = PRODUCTOS.filter(p => p.activo !== false).slice(0, 10);
-    _render(activos, "📦 Catálogo de productos");
+    if (!PRODUCTOS?.length) return;
+    _render(PRODUCTOS.filter(p => p.activo !== false).slice(0, 12));
   });
+
+  // Al escribir: filtrar
   descInput.addEventListener("input", () => {
+    if (!PRODUCTOS?.length) return;
     const q = descInput.value.toLowerCase().trim();
-    if (!q) { const a=PRODUCTOS.filter(p=>p.activo!==false).slice(0,10); _render(a,"📦 Catálogo de productos"); return; }
+    if (!q) {
+      _render(PRODUCTOS.filter(p => p.activo !== false).slice(0, 12));
+      return;
+    }
     const m = PRODUCTOS.filter(p =>
       p.activo !== false && (
         p.nombre.toLowerCase().includes(q) ||
-        (p.descripcion||"").toLowerCase().includes(q) ||
-        (p.referencia||"").toLowerCase().includes(q)
+        (p.descripcion || "").toLowerCase().includes(q) ||
+        (p.referencia  || "").toLowerCase().includes(q)
       )
-    ).slice(0, 8);
-    if (!m.length) { dd.innerHTML=`<div style="padding:10px 12px;font-size:12px;color:var(--t3)">Sin resultados para "${q}"</div>`; dd.style.display=""; return; }
-    _render(m, null);
+    ).slice(0, 10);
+    if (!m.length) {
+      dd.innerHTML = `<div class="csd-empty">Sin resultados para "${q}"</div>`;
+      dd.style.display = "";
+      return;
+    }
+    _render(m);
   });
-  descInput.addEventListener("blur", () => setTimeout(() => { dd.style.display = "none"; }, 220));
+
+  descInput.addEventListener("blur", () => setTimeout(() => { dd.style.display = "none"; }, 200));
 }
+
 
 function addLinea(prefill = {}) {
   const id = ++lineaIdCounter;
