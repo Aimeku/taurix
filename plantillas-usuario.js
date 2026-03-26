@@ -81,78 +81,24 @@ export async function refreshPlantillas() {
 }
 
 /* ══════════════════════════════════════════════════════
-   SIDEBAR
+   SIDEBAR — sin UI en este layout, solo mantiene PLANTILLAS
+   y actualiza el título del header con el nº de plantillas.
 ══════════════════════════════════════════════════════ */
 function _renderSidebar() {
-  const wrap = document.getElementById("plantillasGrid");
-  if (!wrap) return;
-
-  if (!PLANTILLAS.length) {
-    wrap.innerHTML = `
-      <div style="text-align:center;padding:28px 12px;color:var(--t3)">
-        <div style="font-size:36px;margin-bottom:10px">📄</div>
-        <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:4px">Sin plantillas</div>
-        <div style="font-size:11px;line-height:1.5">Crea tu primera plantilla con el botón de arriba</div>
-      </div>`;
-    const ed = document.getElementById("plt-editor");
-    if (ed && ed.style.display === "none") {
-      const es = document.getElementById("plt-empty-state");
-      if (es) es.style.display = "";
-    }
-    return;
-  }
-
-  wrap.innerHTML = PLANTILLAS.map((p, i) => {
-    const color  = p.color_cabecera || ACCENT_COLS[i % ACCENT_COLS.length];
-    const lineas = p.lineas ? JSON.parse(p.lineas) : [];
-    const base   = lineas.reduce((a, l) => a + (l.cantidad||1)*(l.precio||0), 0);
-    return `
-      <div class="plt-sidebar-card" data-plt-id="${p.id}"
-        style="border:1.5px solid var(--brd);border-left:4px solid ${color};border-radius:10px;
-               padding:12px 14px;cursor:pointer;background:var(--srf);transition:all .15s"
-        onclick="window._editPlantilla('${p.id}')">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">
-          <div style="font-size:13px;font-weight:700;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${p.nombre}</div>
-          ${p.idioma==="en"
-            ? `<span style="font-size:9px;padding:1px 6px;border-radius:4px;background:#f0f9ff;color:#0369a1;font-weight:700;flex-shrink:0">EN</span>`
-            : `<span style="font-size:9px;padding:1px 6px;border-radius:4px;background:#fef9c3;color:#854d0e;font-weight:700;flex-shrink:0">ES</span>`}
-        </div>
-        <div style="font-size:11px;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:6px">${p.concepto||"Sin concepto"}</div>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-          <div style="display:flex;gap:4px;flex-wrap:wrap">
-            <span style="font-size:10px;padding:1px 7px;border-radius:4px;background:${color}15;color:${color};font-weight:600">${lineas.length} línea${lineas.length!==1?"s":""}</span>
-            ${p.fuente ? `<span style="font-size:10px;padding:1px 7px;border-radius:4px;background:var(--bg2);color:var(--t3)">${p.fuente}</span>` : ""}
-          </div>
-          ${base > 0 ? `<div style="font-family:monospace;font-size:11px;font-weight:700;color:var(--t1);flex-shrink:0">${fmt(base)}</div>` : ""}
-        </div>
-        <div style="display:flex;gap:4px;margin-top:8px">
-          <button class="ta-btn ta-emit" onclick="event.stopPropagation();window._usarPlantillaFactura('${p.id}')"
-            style="font-size:10px;flex:1;text-align:center" title="Usar en factura">📤 Factura</button>
-          <button class="ta-btn" onclick="event.stopPropagation();window._usarPlantillaPres('${p.id}')"
-            style="font-size:10px;flex:1;text-align:center" title="Usar en presupuesto">📋 Presup.</button>
-          <button class="ta-btn ta-del" onclick="event.stopPropagation();window._delPlantilla('${p.id}')"
-            style="font-size:10px" title="Eliminar">🗑️</button>
-        </div>
-      </div>`;
-  }).join("");
-
-  if (_epCurrentPrefill?.id) _highlightSidebarCard(_epCurrentPrefill.id);
+  // Sin sidebar visible — solo actualizar badge si existe
+  const badge = document.getElementById("plt-count-badge");
+  if (badge) badge.textContent = PLANTILLAS.length ? `(${PLANTILLAS.length})` : "";
 }
 
-function _highlightSidebarCard(id) {
-  document.querySelectorAll(".plt-sidebar-card").forEach(card => {
-    const on = card.dataset.pltId === String(id);
-    card.style.background    = on ? "rgba(26,86,219,.06)" : "var(--srf)";
-    card.style.outline       = on ? "2px solid var(--accent)" : "none";
-    card.style.outlineOffset = "0px";
-  });
-}
+// No-op: ya no hay tarjetas en sidebar
+function _highlightSidebarCard(_id) {}
 
 /* ══════════════════════════════════════════════════════
    EDITOR SHOW / HIDE
 ══════════════════════════════════════════════════════ */
 function _showEditor() {
-  document.getElementById("plt-empty-state")?.style.setProperty("display","none");
+  const es = document.getElementById("plt-empty-state");
+  if (es) es.style.display = "none";
   const ed = document.getElementById("plt-editor");
   if (ed) ed.style.display = "";
 }
@@ -161,9 +107,6 @@ function _hideEditor() {
   if (ed) ed.style.display = "none";
   const es = document.getElementById("plt-empty-state");
   if (es) es.style.display = "";
-  document.querySelectorAll(".plt-sidebar-card").forEach(c => {
-    c.style.background = "var(--srf)"; c.style.outline = "none";
-  });
   _epCurrentPrefill = null;
   _epAC?.abort(); _epAC = null;
 }
