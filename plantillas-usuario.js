@@ -257,31 +257,42 @@ function _runPreview() {
   }
 
   /* ── Logo ──
-     Posición X: el slider va de -120 a +120.
-       X=0 → posición base: esquina superior derecha de la cabecera (right:8px).
-       X>0 → se mueve hacia la izquierda (right aumenta).
-       X<0 → se acerca más al borde derecho (no sale porque clamp lo para en 4px).
-     Posición Y: el slider va de -30 a +60.
-       Y=0 → top:0 (pegado al borde superior de la cabecera).
-       Y>0 → baja dentro de la cabecera.
-       Y<0 → sale ligeramente por arriba (clamp a 0).
-     Los valores se escalan de px-slider a px-preview (preview ~420px ≈ A4*0.55).
+     Sistema de coordenadas centrado:
+     - X=0  → logo centrado horizontalmente en el documento
+     - X<0  → logo se mueve a la izquierda
+     - X>0  → logo se mueve a la derecha
+     - Y=0  → logo en la parte superior de la cabecera
+     - Y>0  → baja dentro de la cabecera
+
+     Implementación:
+     El contenedor del logo (logoRow) tiene position:absolute con left:50%
+     y el logo se desplaza con transform: translateX(-50% + offsetX).
+     Así X=0 siempre centra el logo, independientemente de su tamaño.
+
+     El offset en px = logoX * (pvW / 240)  → mapea [-120..120] a [-pvW/2..pvW/2]
+     Clampeamos para que no salga de los márgenes (8px por lado).
   ── */
   const hasLogo  = mostLogo && !!_epLogo;
   const logoRow  = _g("ep_pv_logo_row");
   const logoImg  = _g("ep_pv_logo_img");
-  const pvW      = _g("ep_pv_doc")?.offsetWidth || 420; // ancho real del preview
-  const SCALE    = pvW / 595; // A4 en puntos = 595, escala relativa al preview
+  const pvW      = _g("ep_pv_doc")?.offsetWidth || 420;
+  const SCALE    = pvW / 595; // A4 pts → preview px
 
   if (logoRow) {
     if (hasLogo) {
       logoRow.style.display = "block";
-      // X: right = base(8px) + logoX*SCALE, clampeado para que no salga
-      const rightPx = Math.max(4, Math.min(pvW - logoSize - 4, 8 + logoX * SCALE));
-      // Y: top = logoY*SCALE, mínimo 0
-      const topPx   = Math.max(0, Math.min(60, logoY * SCALE));
-      logoRow.style.right = rightPx + "px";
-      logoRow.style.top   = topPx   + "px";
+      // Posición base: centrada horizontalmente
+      logoRow.style.left      = "50%";
+      logoRow.style.right     = "auto";
+      // Y: top desde borde superior de la cabecera
+      const topPx = Math.max(0, Math.min(55, logoY * SCALE));
+      logoRow.style.top       = topPx + "px";
+      // X: desplazamiento desde el centro.
+      // logoX ∈ [-120, 120] → offset ∈ [-pvW/2+margen, pvW/2-margen]
+      const maxOffset = pvW / 2 - 8;
+      const offsetPx  = Math.max(-maxOffset, Math.min(maxOffset, logoX * (pvW / 240)));
+      // translate(-50%) centra el elemento; añadimos offsetPx para el desplazamiento
+      logoRow.style.transform = `translateX(calc(-50% + ${offsetPx}px))`;
     } else {
       logoRow.style.display = "none";
     }
@@ -519,11 +530,29 @@ window._epInit = function() {
   _epLogo   = prefill.logo_b64 || "";
   _epIdioma = prefill.idioma   || "es";
 
-  // Restaurar config de columnas
-  try { _colsActivas = prefill.cols_activas ? JSON.parse(prefill.cols_activas) : [...COLS_DEFAULT]; }
-  catch(e) { _colsActivas = [...COLS_DEFAULT]; }
-  try { _colsPct = prefill.cols_pct ? JSON.parse(prefill.cols_pct) : {}; }
-  catch(e) { _colsPct = {}; }
+  // Restaurar config de columnas — soporta formato nuevo [{key,width}] y legacy array de strings
+  try {
+    const raw = prefill.cols_activas
+      ? (typeof prefill.cols_activas === "string" ? JSON.parse(prefill.cols_activas) : prefill.cols_activas)
+      : null;
+    if (raw && Array.isArray(raw)) {
+      if (raw.length && typeof raw[0] === "object" && raw[0].key) {
+        // Formato nuevo: [{ key, width }]
+        _colsActivas = raw.map(c => c.key);
+        _colsPct     = {};
+        raw.forEach(c => { if (c.width) _colsPct[c.key] = String(c.width); });
+      } else {
+        // Formato legacy: ["descripcion", "cantidad", ...]
+        _colsActivas = raw;
+        try { _colsPct = prefill.cols_pct
+          ? (typeof prefill.cols_pct === "string" ? JSON.parse(prefill.cols_pct) : prefill.cols_pct)
+          : {}; } catch(e){ _colsPct={}; }
+      }
+    } else {
+      _colsActivas = [...COLS_DEFAULT];
+      _colsPct     = {};
+    }
+  } catch(e) { _colsActivas = [...COLS_DEFAULT]; _colsPct = {}; }
 
   /* ── Helpers ── */
   const sv = (id,v) => { const e=_g(id); if(e) e.value=v??""; };
@@ -537,6 +566,18 @@ window._epInit = function() {
 
   sv("ep_nombre",      prefill.nombre);
   sv("ep_concepto",    prefill.concepto);
+
+  // Toggle es_default
+  const esDefChk = _g("ep_es_default");
+  const esDefLbl = _g("ep_es_default_lbl");
+  if (esDefChk) esDefChk.checked = !!prefill.es_default;
+  const _updEsDef = () => {
+    if (!esDefLbl || !esDefChk) return;
+    esDefLbl.style.borderColor = esDefChk.checked ? "#f97316" : "var(--brd)";
+    esDefLbl.style.background  = esDefChk.checked ? "rgba(249,115,22,.06)" : "var(--bg2)";
+  };
+  _updEsDef();
+  esDefChk?.addEventListener("change", _updEsDef, {signal:sig});
   sv("ep_descripcion", prefill.descripcion);
   sv("ep_notas",       prefill.notas);
   sv("ep_pie",         prefill.texto_pie);
@@ -756,6 +797,14 @@ window._epInit = function() {
     const gb=id=>_g(id)?.checked||false;
     const gi=(id,d)=>parseInt(_g(id)?.value)||d;
 
+    // Construir cols_activas como array de objetos { key, width }
+    const colsActivasObj = _colsActivas.map(key => ({
+      key,
+      width: _colsPct[key] ? parseInt(_colsPct[key]) : null
+    }));
+
+    const esDefault = gb("ep_es_default");
+
     const payload={
       user_id:         SESSION.user.id, nombre,
       concepto:        gv("ep_concepto"),
@@ -789,7 +838,7 @@ window._epInit = function() {
       cab_todas_pags:  gb("ep_cab_todas_pags"),
       logo_b64:        _epLogo||null,
       logo_x:          gi("ep_logo_x",0),
-      logo_y:          gi("ep_logo_y",6),
+      logo_y:          gi("ep_logo_y",8),
       logo_size:       gi("ep_logo_size",30),
       sp_cab:          gi("ep_margen",12),
       sp_emisor:5, sp_entre_bloques:0, sp_tabla:6, sp_pie:5,
@@ -797,21 +846,52 @@ window._epInit = function() {
       emisor_y:        gi("ep_emisor_y",0),
       cliente_x:       gi("ep_cliente_x",0),
       cliente_y:       gi("ep_cliente_y",0),
-      // Config columnas
-      cols_activas:    JSON.stringify(_colsActivas),
-      cols_pct:        JSON.stringify(_colsPct),
+    };
+
+    // Intentar añadir cols_activas / cols_pct — fallback seguro si la columna no existe
+    // Supabase devuelve error con "column ... does not exist" si falta en el schema
+    const payloadConCols = {
+      ...payload,
+      cols_activas: colsActivasObj,        // JSONB: [{ key, width }]
+      cols_pct:     _colsPct,              // JSONB: { id: "25" }
+      es_default:   esDefault,
     };
 
     const saveBtn=_g("epGuardarBtnBottom");
     if(saveBtn){ saveBtn.disabled=true; saveBtn.textContent="Guardando…"; }
 
+    // Si es_default = true, primero desmarcar las demás plantillas del usuario
+    if (esDefault) {
+      await supabase
+        .from("plantillas_usuario")
+        .update({ es_default: false })
+        .eq("user_id", SESSION.user.id)
+        .neq("id", isEdit ? prefill.id : "00000000-0000-0000-0000-000000000000");
+    }
+
     let err, savedData;
+
+    // Intento 1: payload completo con cols_activas + es_default
     if(isEdit){
-      const res=await supabase.from("plantillas_usuario").update(payload).eq("id",prefill.id).select().single();
+      const res=await supabase.from("plantillas_usuario").update(payloadConCols).eq("id",prefill.id).select().single();
       err=res.error; savedData=res.data;
     }else{
-      const res=await supabase.from("plantillas_usuario").insert(payload).select().single();
+      const res=await supabase.from("plantillas_usuario").insert(payloadConCols).select().single();
       err=res.error; savedData=res.data;
+    }
+
+    // Fallback: si falla por columnas inexistentes, reintenta sin cols_activas/cols_pct/es_default
+    if (err && (err.message?.includes("cols_activas") || err.message?.includes("cols_pct") || err.message?.includes("es_default") || err.message?.includes("schema cache"))) {
+      console.warn("Columnas cols_activas/es_default no existen en el schema, guardando sin ellas:", err.message);
+      if(isEdit){
+        const res=await supabase.from("plantillas_usuario").update(payload).eq("id",prefill.id).select().single();
+        err=res.error; savedData=res.data;
+      }else{
+        const res=await supabase.from("plantillas_usuario").insert(payload).select().single();
+        err=res.error; savedData=res.data;
+      }
+      // Mostrar aviso de migración pendiente
+      if (!err) toast("⚠️ Plantilla guardada sin config de columnas. Ejecuta la migración SQL.", "info");
     }
 
     if(saveBtn){
@@ -852,6 +932,20 @@ export function showPlantillaModal(prefill) {
 }
 
 /* ══════════════════════════════════════════════════════
+   MIGRACIÓN SQL NECESARIA EN SUPABASE
+   Ejecutar una sola vez en el SQL Editor de Supabase:
+
+   ALTER TABLE plantillas_usuario
+     ADD COLUMN IF NOT EXISTS cols_activas JSONB,
+     ADD COLUMN IF NOT EXISTS cols_pct     JSONB,
+     ADD COLUMN IF NOT EXISTS es_default   BOOLEAN DEFAULT false;
+
+   CREATE INDEX IF NOT EXISTS idx_plantillas_default
+     ON plantillas_usuario(user_id, es_default)
+     WHERE es_default = true;
+══════════════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════════════
    DATOS PARA OTROS MÓDULOS
 ══════════════════════════════════════════════════════ */
 export function getPlantillaData(plantillaId){
@@ -868,7 +962,13 @@ export function getPlantillaData(plantillaId){
     logo_b64:        p.logo_b64,
     cols_activas:    p.cols_activas,
     cols_pct:        p.cols_pct,
+    es_default:      p.es_default,
   };
+}
+
+/** Devuelve la plantilla marcada como predeterminada, o null */
+export function getPlantillaDefault() {
+  return PLANTILLAS.find(p => p.es_default) || PLANTILLAS[0] || null;
 }
 
 export function renderPlantillaSelector(containerId,onSelect){
