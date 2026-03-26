@@ -239,7 +239,7 @@ function _runPreview() {
   const alin       = _gv("ep_alin_val","izq");
   const alinCSS    = alin==="centro"?"center":alin==="der"?"right":"left";
   const logoX    = _gi("ep_logo_x",    0);
-  const logoY    = _gi("ep_logo_y",    6);
+  const logoY    = _gi("ep_logo_y",    8);
   const logoSize = _gi("ep_logo_size", 30);
   const emisorX  = _gi("ep_emisor_x",  0);
   const emisorY  = _gi("ep_emisor_y",  0);
@@ -256,15 +256,32 @@ function _runPreview() {
     doc.style.textAlign  = alinCSS;
   }
 
-  /* ── Logo ── */
-  const hasLogo = mostLogo && !!_epLogo;
-  const logoRow = _g("ep_pv_logo_row");
-  const logoImg = _g("ep_pv_logo_img");
+  /* ── Logo ──
+     Posición X: el slider va de -120 a +120.
+       X=0 → posición base: esquina superior derecha de la cabecera (right:8px).
+       X>0 → se mueve hacia la izquierda (right aumenta).
+       X<0 → se acerca más al borde derecho (no sale porque clamp lo para en 4px).
+     Posición Y: el slider va de -30 a +60.
+       Y=0 → top:0 (pegado al borde superior de la cabecera).
+       Y>0 → baja dentro de la cabecera.
+       Y<0 → sale ligeramente por arriba (clamp a 0).
+     Los valores se escalan de px-slider a px-preview (preview ~420px ≈ A4*0.55).
+  ── */
+  const hasLogo  = mostLogo && !!_epLogo;
+  const logoRow  = _g("ep_pv_logo_row");
+  const logoImg  = _g("ep_pv_logo_img");
+  const pvW      = _g("ep_pv_doc")?.offsetWidth || 420; // ancho real del preview
+  const SCALE    = pvW / 595; // A4 en puntos = 595, escala relativa al preview
+
   if (logoRow) {
     if (hasLogo) {
       logoRow.style.display = "block";
-      logoRow.style.right   = Math.max(4, Math.min(260, logoX)) + "px";
-      logoRow.style.top     = Math.max(0, Math.min(50,  logoY)) + "px";
+      // X: right = base(8px) + logoX*SCALE, clampeado para que no salga
+      const rightPx = Math.max(4, Math.min(pvW - logoSize - 4, 8 + logoX * SCALE));
+      // Y: top = logoY*SCALE, mínimo 0
+      const topPx   = Math.max(0, Math.min(60, logoY * SCALE));
+      logoRow.style.right = rightPx + "px";
+      logoRow.style.top   = topPx   + "px";
     } else {
       logoRow.style.display = "none";
     }
@@ -272,8 +289,8 @@ function _runPreview() {
   if (logoImg) {
     if (hasLogo) {
       logoImg.src             = _epLogo;
-      logoImg.style.maxHeight = logoSize + "px";
-      logoImg.style.maxWidth  = (logoSize * 3) + "px";
+      logoImg.style.maxHeight = Math.round(logoSize * SCALE) + "px";
+      logoImg.style.maxWidth  = Math.round(logoSize * SCALE * 3) + "px";
       logoImg.style.display   = "block";
     } else {
       logoImg.style.display = "none";
@@ -287,7 +304,9 @@ function _runPreview() {
       cab.style.display = "none";
     } else {
       cab.style.display      = "";
-      cab.style.paddingRight = hasLogo ? Math.max(logoSize * 2.5 + 16, 60) + "px" : "18px";
+      cab.style.paddingRight = hasLogo
+        ? Math.max(Math.round(logoSize * SCALE * 1.2) + 12, 48) + "px"
+        : "18px";
       if (estCab === "solido")    { cab.style.background = colorCab; cab.style.borderBottom = "none"; }
       if (estCab === "gradiente") { cab.style.background = `linear-gradient(135deg,${colorCab},${colorAcc})`; cab.style.borderBottom = "none"; }
       if (estCab === "linea")     { cab.style.background = colorFdo;  cab.style.borderBottom = `3px solid ${colorCab}`; }
@@ -300,41 +319,75 @@ function _runPreview() {
   const feEl = _g("ep_pv_fecha");
   if (feEl) { feEl.style.color = txtColor; if (!feEl.textContent) feEl.textContent = new Date().toLocaleDateString("es-ES"); }
 
-  /* ── Emisor / Cliente ── */
+  /* ── Emisor / Cliente ──
+     X simétrico [-80,+80] → translate en px escalados al preview.
+     Y simétrico [-30,+30] → translate en px escalados al preview.
+     Clampeamos al ancho/alto del bloque para que no salga del documento.
+  ── */
   const er = _g("ep_pv_emisor_row");
   if (er) er.style.display = mostEmisor ? "grid" : "none";
+
+  const halfW = pvW / 2; // cada bloque ocupa ~mitad del ancho
+
   const eb = _g("ep_pv_emisor_bloque");
-  if (eb) eb.style.transform = `translate(${Math.max(-60,Math.min(60,emisorX))}px,${Math.max(-20,Math.min(20,emisorY))}px)`;
-  const cb = _g("ep_pv_cliente_bloque");
-  if (cb) cb.style.transform = `translate(${Math.max(-60,Math.min(60,clienteX))}px,${Math.max(-20,Math.min(20,clienteY))}px)`;
+  if (eb) {
+    const tx = Math.max(-(halfW - 8), Math.min(halfW - 8, emisorX * SCALE));
+    const ty = Math.max(-20, Math.min(20, emisorY * SCALE));
+    eb.style.transform = `translate(${tx}px,${ty}px)`;
+  }
+  const cb2 = _g("ep_pv_cliente_bloque");
+  if (cb2) {
+    const tx = Math.max(-(halfW - 8), Math.min(halfW - 8, clienteX * SCALE));
+    const ty = Math.max(-20, Math.min(20, clienteY * SCALE));
+    cb2.style.transform = `translate(${tx}px,${ty}px)`;
+  }
+
   const st = (id,v) => { const e=_g(id); if(e) e.textContent=v; };
   st("ep_pv_lbl_de", L.de); st("ep_pv_lbl_para", L.para);
 
-  /* ── Tabla: cabecera dinámica según _colsActivas ──
-     Construimos grid-template-columns respetando los % configurados.
-     Columnas sin % asignado usan "1fr"; descripcion usa "2fr" por defecto.
-  ── */
-  const gridStr = _colsActivas.map(id => {
-    const pct = _colsPct[id];
-    if (pct && parseInt(pct) > 0) return `${pct}fr`;
-    return id === "descripcion" ? "2.5fr" : "1fr";
-  }).join(" ");
+  /* ── Tabla con table-layout:fixed ──
+     Usamos un <table> real con <colgroup> para definir los anchos.
+     Esto garantiza alineación PERFECTA entre <thead> y <tbody>
+     independientemente del contenido de las celdas.
 
-  const th = _g("ep_pv_tabla_head");
-  if (th) {
-    th.style.background          = colorAcc;
-    th.style.gridTemplateColumns = gridStr;
-    th.innerHTML = _colsActivas.map(id => {
-      const col = COLUMNAS_CATALOGO.find(c=>c.id===id) || {label:id};
-      const lbl = _epIdioma==="en" ? (col.labelEn||col.label) : col.label;
+     Cada columna recibe su % de la suma total o un reparto proporcional.
+     Si el usuario define % personalizados, se normalizan a 100%.
+  ── */
+  const colgroup = _g("ep_pv_colgroup");
+  const thead    = _g("ep_pv_tabla_head");
+  const tbody    = _g("ep_pv_lineas");
+
+  // Calcular anchuras normalizadas
+  const rawWeights = _colsActivas.map(id => {
+    const pct = _colsPct[id] ? parseInt(_colsPct[id]) : 0;
+    if (pct > 0) return pct;
+    return id === "descripcion" ? 35 : 13; // reparto por defecto
+  });
+  const totalW = rawWeights.reduce((a,b)=>a+b, 0);
+  const colWidths = rawWeights.map(w => ((w / totalW) * 100).toFixed(2) + "%");
+
+  // Colgroup: define los anchos una sola vez para toda la tabla
+  if (colgroup) {
+    colgroup.innerHTML = colWidths.map(w =>
+      `<col style="width:${w}"/>`
+    ).join("");
+  }
+
+  // Thead
+  if (thead) {
+    thead.style.background = colorAcc;
+    thead.innerHTML = _colsActivas.map((id, i) => {
+      const col   = COLUMNAS_CATALOGO.find(c=>c.id===id) || {label:id};
+      const lbl   = _epIdioma==="en" ? (col.labelEn||col.label) : col.label;
       const right = id !== "descripcion";
-      return `<span style="padding:6px 4px;text-align:${right?"right":"left"};font-size:9px;
+      return `<th style="padding:6px 5px;text-align:${right?"right":"left"};font-size:9px;
         font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#fff;
-        border-right:1px solid rgba(255,255,255,.15)">${lbl}</span>`;
+        border-right:1px solid rgba(255,255,255,.15);overflow:hidden;
+        text-overflow:ellipsis;white-space:nowrap">${lbl}</th>`;
     }).join("");
   }
 
-  /* ── Líneas ── */
+  // Tbody - filas de datos
   const rows = document.querySelectorAll("#ep_lineasContainer .linea-row");
   const larr = [...rows].map(r => ({
     d: r.querySelector("[data-field='descripcion']")?.value || "",
@@ -343,33 +396,33 @@ function _runPreview() {
     i: parseInt(r.querySelector("[data-field='iva']")?.value)         || 21,
   })).filter(l => l.d || l.p > 0);
 
-  const pvLin = _g("ep_pv_lineas");
-  if (pvLin) {
+  if (tbody) {
     if (!larr.length) {
-      pvLin.innerHTML = `<div style="padding:12px 0;font-size:10px;color:#9ca3af;text-align:center">Sin líneas definidas</div>`;
+      tbody.innerHTML = `<tr><td colspan="${_colsActivas.length}"
+        style="padding:12px 0;font-size:10px;color:#9ca3af;text-align:center">
+        Sin líneas definidas</td></tr>`;
     } else {
-      pvLin.innerHTML = larr.map((l, ri) => {
+      tbody.innerHTML = larr.map((l, ri) => {
         const bg  = ri % 2 === 0 ? colorFdoT : "#fff";
         const tot = l.c * l.p;
-        const sub = l.c * l.p;
-        return `<div style="display:grid;grid-template-columns:${gridStr};
-          padding:5px 0;background:${bg};border-bottom:1px solid ${colorLin}">
+        return `<tr style="background:${bg}">
           ${_colsActivas.map(id => {
-            let v = "", fw = "400";
+            let v="", fw="400", mono=false;
             const right = id !== "descripcion";
-            if (id==="descripcion")  { v=l.d; }
-            else if (id==="cantidad")    { v=String(l.c); }
-            else if (id==="precio")      { v=l.p.toFixed(2)+"€"; }
-            else if (id==="subtotal")    { v=sub.toFixed(2)+"€"; }
-            else if (id==="descuento")   { v="0.00€"; }
-            else if (id==="codigo")      { v="—"; }
-            else if (id==="coeficiente") { v="1.00"; }
-            else if (id==="total")       { v=tot.toFixed(2)+"€"; fw="700"; }
-            return `<span style="font-size:${tamF+1}px;text-align:${right?"right":"left"};
-              padding:0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-              font-weight:${fw};${fw==="700"?"font-family:monospace;":""}">${v}</span>`;
+            if      (id==="descripcion")  { v=l.d; }
+            else if (id==="cantidad")     { v=String(l.c); }
+            else if (id==="precio")       { v=l.p.toFixed(2)+"€"; mono=true; }
+            else if (id==="subtotal")     { v=(l.c*l.p).toFixed(2)+"€"; mono=true; }
+            else if (id==="descuento")    { v="0.00€"; mono=true; }
+            else if (id==="codigo")       { v="—"; }
+            else if (id==="coeficiente")  { v="1.00"; mono=true; }
+            else if (id==="total")        { v=tot.toFixed(2)+"€"; fw="700"; mono=true; }
+            return `<td style="padding:5px 5px;font-size:${tamF+1}px;text-align:${right?"right":"left"};
+              font-weight:${fw};${mono?"font-family:monospace;":""}
+              overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+              border-bottom:1px solid ${colorLin}">${v}</td>`;
           }).join("")}
-        </div>`;
+        </tr>`;
       }).join("");
     }
   }
@@ -496,7 +549,7 @@ window._epInit = function() {
   ss("ep_margen",      prefill.margen,    18);
   ss("ep_pie_altura",  prefill.pie_altura,14);
   ss("ep_logo_x",      prefill.logo_x,    0);
-  ss("ep_logo_y",      prefill.logo_y,    6);
+  ss("ep_logo_y",      prefill.logo_y,    8);
   ss("ep_logo_size",   prefill.logo_size, 30);
   ss("ep_emisor_x",    prefill.emisor_x,  0);
   ss("ep_emisor_y",    prefill.emisor_y,  0);
