@@ -354,7 +354,11 @@ window._notaCredito = async (id) => {
   });
 };
 
-window._pdfFact = id => { import("./exports.js").then(m => m.exportFacturaPDF(id)); };
+window._pdfFact = (id, plantillaId = null) => {
+  // Lee el selector del formulario si no se pasa un plantillaId explícito
+  const pid = plantillaId || document.getElementById("nfPlantillaSel")?.value || null;
+  import("./exports.js").then(m => m.exportFacturaPDF(id, pid));
+};
 
 window._emitir = async id => {
   try {
