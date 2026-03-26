@@ -233,12 +233,15 @@ export function showPlantillaModal(prefill) {
             </div>
           </div>
           <div class="modal-field" style="margin-bottom:14px"><label>Alineación del texto</label>
-            <div style="display:flex;gap:8px;margin-top:6px">
-              ${[["izq","← Izquierda"],["centro","= Centro"],["der","→ Derecha"]].map(([v,lbl])=>`
-                <label style="display:flex;align-items:center;gap:5px;padding:7px 13px;border:1.5px solid var(--brd);border-radius:7px;cursor:pointer;font-size:12px">
-                  <input type="radio" name="plt_alin" value="${v}" ${D.alin_texto===v?"checked":""}/>${lbl}
-                </label>`).join("")}
+            <div style="display:flex;gap:6px;margin-top:6px" id="plt_alin_group">
+              ${[["izq","← Izq."],["centro","▬ Centro"],["der","→ Der."]].map(([v,lbl])=>`
+                <button type="button" data-alin="${v}"
+                  onclick="document.querySelectorAll('#plt_alin_group button').forEach(b=>{b.style.background=b.dataset.alin==='${v}'?'var(--accent)':'var(--bg2)';b.style.color=b.dataset.alin==='${v}'?'#fff':'var(--t2)';b.style.borderColor=b.dataset.alin==='${v}'?'var(--accent)':'var(--brd)';});window._pltAlin('${v}');"
+                  style="padding:7px 13px;border:1.5px solid ${D.alin_texto===v?'var(--accent)':'var(--brd)'};border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;background:${D.alin_texto===v?'var(--accent)':'var(--bg2)'};color:${D.alin_texto===v?'#fff':'var(--t2)'};transition:all .15s">
+                  ${lbl}
+                </button>`).join("")}
             </div>
+            <input type="hidden" id="plt_alin_val" value="${D.alin_texto}"/>
           </div>
           <div class="plt-group">Vista previa de tipografía</div>
           <div id="plt_font_preview" style="border:1px solid var(--brd);border-radius:10px;padding:16px;background:var(--srf2);line-height:1.8">
@@ -273,25 +276,29 @@ export function showPlantillaModal(prefill) {
       <div style="background:var(--bg2);border-left:1px solid var(--brd);overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px">
         <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em">👁 Vista previa</div>
         <div id="plt_pv_doc" style="background:#fff;border-radius:8px;box-shadow:0 2px 16px rgba(0,0,0,.12);overflow:hidden;font-size:10px">
-          <div id="plt_pv_cab" style="padding:12px 14px;${cabPvStyle};position:relative">
-            <!-- Logo dentro de la cabecera, arriba derecha -->
-            <div id="plt_pv_logo_row" style="position:absolute;top:8px;right:14px;display:${D.logo&&D.mostrar_logo?"block":"none"}">
-              <img id="plt_pv_logo_img" src="${D.logo}" style="max-height:30px;max-width:66px;object-fit:contain;display:block"/>
+          <!-- Fila logo+cabecera: siempre tienen la misma fila para que el logo no se mueva -->
+          <div style="position:relative;min-height:${D.logo&&D.mostrar_logo?"46px":"0"}">
+            <!-- Logo: siempre arriba derecha, independiente de la cabecera -->
+            <div id="plt_pv_logo_row" style="position:absolute;top:6px;right:12px;z-index:2;display:${D.logo&&D.mostrar_logo?"block":"none"}">
+              <img id="plt_pv_logo_img" src="${D.logo||''}" style="max-height:30px;max-width:66px;object-fit:contain;display:block"/>
             </div>
-            <div id="plt_pv_tipo" style="font-size:8px;font-weight:800;letter-spacing:.12em;opacity:.65;color:${D.color_txt_cab}">FACTURA</div>
-            <div id="plt_pv_concepto" style="font-size:13px;font-weight:700;color:${D.color_txt_cab};margin-top:2px;padding-right:${D.logo&&D.mostrar_logo?"72px":"0"}">${D.concepto||"Concepto del documento"}</div>
-            <div style="font-size:9px;opacity:.6;color:${D.color_txt_cab};margin-top:1px">FAC-2025-001 · ${new Date().toLocaleDateString("es-ES")}</div>
+            <!-- Cabecera: puede ocultarse sin llevarse el logo -->
+            <div id="plt_pv_cab" style="padding:12px 14px;${cabPvStyle}">
+              <div id="plt_pv_tipo" style="font-size:8px;font-weight:800;letter-spacing:.12em;opacity:.65;color:${D.color_txt_cab}">FACTURA</div>
+              <div id="plt_pv_concepto" style="font-size:13px;font-weight:700;color:${D.color_txt_cab};margin-top:2px;padding-right:${D.logo&&D.mostrar_logo?"72px":"0"}">${D.concepto||"Concepto del documento"}</div>
+              <div style="font-size:9px;opacity:.6;color:${D.color_txt_cab};margin-top:1px">FAC-2025-001 · ${new Date().toLocaleDateString("es-ES")}</div>
+            </div>
           </div>
-          <div id="plt_pv_emisor_row" style="display:${D.mostrar_emisor?"grid":"none"};grid-template-columns:1fr 1fr;gap:4px;padding:7px 14px;border-bottom:1px solid #e5e7eb">
+          <div id="plt_pv_emisor_row" style="display:${D.mostrar_emisor?"grid":"none"};grid-template-columns:1fr 1fr;gap:2px;padding:5px 12px;border-bottom:1px solid #e5e7eb">
             <div>
-              <div id="plt_pv_lbl_de" style="font-size:6.5px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:1px;letter-spacing:.06em">EMISOR</div>
-              <div style="font-weight:700;font-size:9px;color:#111;line-height:1.3">Tu empresa SL</div>
-              <div style="font-size:8px;color:#6b7280">NIF: B12345678</div>
+              <div id="plt_pv_lbl_de" style="font-size:6px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.06em">EMISOR</div>
+              <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Tu empresa SL</div>
+              <div style="font-size:7.5px;color:#6b7280">NIF: B12345678</div>
             </div>
             <div>
-              <div id="plt_pv_lbl_para" style="font-size:6.5px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:1px;letter-spacing:.06em">CLIENTE</div>
-              <div style="font-weight:700;font-size:9px;color:#111;line-height:1.3">Empresa Cliente</div>
-              <div style="font-size:8px;color:#6b7280">NIF: A98765432</div>
+              <div id="plt_pv_lbl_para" style="font-size:6px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.06em">CLIENTE</div>
+              <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Empresa Cliente</div>
+              <div style="font-size:7.5px;color:#6b7280">NIF: A98765432</div>
             </div>
           </div>
           <div id="plt_pv_desc_wrap" style="padding:7px 14px;border-bottom:1px solid #f3f4f6;display:none"><div id="plt_pv_desc" style="font-size:8.5px;color:#6b7280;line-height:1.5"></div></div>
@@ -330,6 +337,13 @@ export function showPlantillaModal(prefill) {
   window._pltTab = (tab) => {
     document.querySelectorAll(".plt-tab").forEach(b => b.classList.toggle("on", b.dataset.tab===tab));
     document.querySelectorAll(".plt-sec").forEach(s => s.classList.toggle("on", s.id===`plt-tab-${tab}`));
+  };
+
+  // Alineación: guardar valor en hidden input y actualizar preview
+  window._pltAlin = (v) => {
+    const inp = document.getElementById("plt_alin_val");
+    if (inp) inp.value = v;
+    _pv();
   };
 
   // Idioma
@@ -410,30 +424,30 @@ export function showPlantillaModal(prefill) {
     const notas=gv("plt_notas")||"";
     const desc=gv("plt_descripcion")||"";
     const pie=gv("plt_pie")||"";
-    const alin=document.querySelector("input[name='plt_alin']:checked")?.value||"izq";
+    const alin=document.getElementById("plt_alin_val")?.value||"izq";
     const alinCSS=alin==="centro"?"center":alin==="der"?"right":"left";
 
     // Doc
     const doc=g("plt_pv_doc");
     if(doc){doc.style.fontFamily=FONT_MAP[fuente]||FONT_MAP["Helvetica"];doc.style.background=colorFdo;doc.style.color=colorLetra;doc.style.fontSize=(tamFuente+1)+"px";doc.style.textAlign=alinCSS;}
 
-    // Cabecera (contiene el logo)
+    // Logo: INDEPENDIENTE de la cabecera — siempre en su propio div absoluto
+    const logoRow=g("plt_pv_logo_row");const logoImg=g("plt_pv_logo_img");
+    if(logoRow){
+      logoRow.style.display=(mostLogo&&_logo)?"block":"none";
+      if(logoImg&&_logo) logoImg.src=_logo;
+    }
+
+    // Cabecera: se puede ocultar sin llevarse el logo
     const cab=g("plt_pv_cab");
     if(cab){
       if(!mostCab||estCab==="sin"){cab.style.display="none";}
       else{
         cab.style.display="";
-        cab.style.position="relative";
         if(estCab==="solido")   {cab.style.background=colorCab;cab.style.borderBottom="none";}
         if(estCab==="gradiente"){cab.style.background=`linear-gradient(135deg,${colorCab},${colorAcc})`;cab.style.borderBottom="none";}
         if(estCab==="linea")    {cab.style.background="transparent";cab.style.borderBottom=`3px solid ${colorCab}`;}
       }
-    }
-    // Logo: dentro de la cabecera, posición absoluta arriba derecha
-    const logoRow=g("plt_pv_logo_row");const logoImg=g("plt_pv_logo_img");
-    if(logoRow){
-      logoRow.style.display=(mostLogo&&_logo)?"block":"none";
-      if(logoImg&&_logo){logoImg.src=_logo;}
     }
     const pvC=g("plt_pv_concepto");const pvT=g("plt_pv_tipo");
     if(pvC){pvC.textContent=concepto;pvC.style.color=colorTxtC;pvC.style.paddingRight=(mostLogo&&_logo)?"72px":"0";}
@@ -509,7 +523,7 @@ export function showPlantillaModal(prefill) {
    "plt_estilo_cab","plt_tamano_hoja","plt_fuente","plt_tam_fuente","plt_margen","plt_pie_altura",
    "plt_mostrar_logo","plt_mostrar_cab","plt_mostrar_pie","plt_mostrar_emisor","plt_mostrar_email","plt_mostrar_num_pag","plt_cab_todas_pags"
   ].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.addEventListener("input",_pv);el.addEventListener("change",_pv);});
-  document.querySelectorAll("input[name='plt_alin']").forEach(r=>r.addEventListener("change",_pv));
+  // Alineación controlada por window._pltAlin (botones toggle, sin radio)
   document.getElementById("plt_lineasContainer")?.addEventListener("input",_pv);
   document.getElementById("plt_lineasContainer")?.addEventListener("change",_pv);
   _pv();
@@ -554,7 +568,7 @@ export function showPlantillaModal(prefill) {
       tamano_hoja:g("plt_tamano_hoja")||"A4",
       margen:gi("plt_margen",18),
       pie_altura:gi("plt_pie_altura",14),
-      alin_texto:document.querySelector("input[name='plt_alin']:checked")?.value||"izq",
+      alin_texto:document.getElementById("plt_alin_val")?.value||"izq",
       estilo_cab:g("plt_estilo_cab")||"solido",
       mostrar_logo:gb("plt_mostrar_logo"),mostrar_cab:gb("plt_mostrar_cab"),
       mostrar_pie:gb("plt_mostrar_pie"),mostrar_emisor:gb("plt_mostrar_emisor"),
