@@ -23,7 +23,6 @@ let PERFIL_FISCAL_CACHE = null;
 let clienteSeleccionadoId = null;
 let opTipoActual = "nacional";
 let nfPlantillaActual = null;   // plantilla aplicada actualmente
-let nfMostrarDescuento = false; // controla si la columna descuento es visible
 
 /* ══════════════════════════
    TOTALES
@@ -151,13 +150,72 @@ function _buildProdDropdown(descInput, onSelect) {
 }
 
 
-function _descuentoCeldaHTML(id, val="") {
-  return nfMostrarDescuento
-    ? `<input autocomplete="off" type="text" class="linea-dto ff-input"
-        placeholder="10% / 5€" value="${val}" data-field="descuento"
-        title="Descuento: número (€) o porcentaje (10%)"
-        style="width:72px;text-align:right"/>`
-    : "";
+
+/* ══════════════════════════════════════════════════════
+   COLUMNAS DINÁMICAS — esquema centralizado
+   Cada columna tiene: key, label, fr (proporción grid),
+   minW (ancho mínimo en px), align, inputType.
+   El grid se recalcula cada vez que cambia la plantilla.
+══════════════════════════════════════════════════════ */
+const _COL_SCHEMA = {
+  descripcion: { label:"Descripción",  fr:3.0, minW:120, align:"left",  inputType:"text",   dataField:"descripcion" },
+  cantidad:    { label:"Cant.",        fr:0.7, minW:52,  align:"right", inputType:"number", dataField:"cantidad",   step:"0.01", min:"0.01" },
+  precio:      { label:"P. unit.",     fr:1.0, minW:72,  align:"right", inputType:"number", dataField:"precio",    step:"0.01", placeholder:"0.00" },
+  descuento:   { label:"Dto.",         fr:0.8, minW:60,  align:"right", inputType:"text",   dataField:"descuento", placeholder:"10%/5€" },
+  subtotal:    { label:"Subtotal",     fr:1.0, minW:72,  align:"right", inputType:null,     dataField:null },
+  codigo:      { label:"Código",       fr:0.7, minW:55,  align:"left",  inputType:"text",   dataField:"codigo" },
+  coeficiente: { label:"Coef.",        fr:0.6, minW:50,  align:"right", inputType:"number", dataField:"coeficiente", step:"0.01" },
+  iva:         { label:"IVA",          fr:0.6, minW:56,  align:"right", inputType:"select", dataField:"iva" },
+  total:       { label:"Total",        fr:0.9, minW:68,  align:"right", inputType:null,     dataField:null },
+};
+const _COL_DEL = { fr:0.28, minW:28 };  // columna del botón eliminar
+
+/* Columnas por defecto si no hay plantilla */
+const _DEFAULT_COLS = ["descripcion","cantidad","precio","iva","total"];
+
+/* ── Sistema de grid dinámico para NF ──
+   _nfColsActivas: array de keys según la plantilla seleccionada.
+   _nfGridStr(): devuelve la string grid-template-columns para header y filas.
+   Se recalcula cuando cambia la plantilla.
+─────────────────────────────────────────────────────────── */
+let _nfColsActivas = [..._DEFAULT_COLS];
+
+function _nfGridStr() {
+  const frParts = _nfColsActivas.map(k => {
+    const c = _COL_SCHEMA[k];
+    return c ? `minmax(${c.minW}px, ${c.fr}fr)` : "1fr";
+  });
+  frParts.push(`${_COL_DEL.minW}px`);  // botón eliminar
+  return frParts.join(" ");
+}
+
+function _nfApplyGridToHeader() {
+  const hdr = document.getElementById("nfLineasHeader");
+  if (!hdr) return;
+  hdr.style.gridTemplateColumns = _nfGridStr();
+  // Reconstruir celdas del header dinámicamente
+  hdr.innerHTML = _nfColsActivas.map(k => {
+    const c = _COL_SCHEMA[k];
+    const lbl = c?.label || k;
+    const right = c?.align === "right";
+    return `<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;${right?"text-align:right":""};overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${lbl}</div>`;
+  }).join("") + `<div></div>`; // hueco botón eliminar
+}
+
+function _nfApplyGridToRow(row) {
+  row.style.display = "grid";
+  row.style.gridTemplateColumns = _nfGridStr();
+  row.style.gap = "4px";
+  row.style.alignItems = "center";
+  row.style.padding = "4px 0";
+  row.style.borderBottom = "1px solid var(--brd)";
+}
+
+/** Reaplica el grid a todas las filas existentes (sin recrearlas) */
+function _nfReapplyGridToAllRows() {
+  document.querySelectorAll("#lineasContainer .linea-row").forEach(row => {
+    _nfApplyGridToRow(row);
+  });
 }
 
 function addLinea(prefill = {}) {
@@ -170,7 +228,9 @@ function addLinea(prefill = {}) {
     precio:      prefill.precio      || 0,
     iva:         sinIva ? 0 : (prefill.iva !== undefined ? prefill.iva : 21),
     tipo:        prefill.tipo        || "servicio",
-    descuento:   prefill.descuento   ?? ""
+    descuento:   prefill.descuento   ?? "",
+    codigo:      prefill.codigo      ?? "",
+    coeficiente: prefill.coeficiente ?? "",
   };
   LINEAS.push(linea);
 
@@ -178,55 +238,77 @@ function addLinea(prefill = {}) {
   const row = document.createElement("div");
   row.className = "linea-row";
   row.dataset.lineaId = id;
-  row.innerHTML = `
-    <input autocomplete="off" type="text"   class="linea-desc ff-input"  placeholder="Descripción del producto o servicio" value="${linea.descripcion}" data-field="descripcion"/>
-    <input type="hidden" data-field="tipo" value="${linea.tipo||'servicio'}"/>
-    <input autocomplete="off" type="number" class="linea-qty  ff-input"  value="${linea.cantidad}" min="0.01" step="0.01" data-field="cantidad"/>
-    <div class="linea-price-wrap">
-      <span class="linea-euro">€</span>
-      <input autocomplete="off" type="number" class="linea-price ff-input" value="${linea.precio||""}" placeholder="0.00" step="0.01" data-field="precio"/>
-    </div>
-    ${_descuentoCeldaHTML(id, linea.descuento)}
-    <select class="linea-iva ff-select" data-field="iva" ${sinIva?"disabled":""}>
-      <option value="21" ${linea.iva===21?"selected":""}>21%</option>
-      <option value="10" ${linea.iva===10?"selected":""}>10%</option>
-      <option value="4"  ${linea.iva===4 ?"selected":""}>4%</option>
-      <option value="0"  ${linea.iva===0 ?"selected":""}>0%</option>
-    </select>
-    <div class="linea-total" id="ltRow${id}">0,00 €</div>
-    <button class="linea-del" onclick="window._delLinea(${id})" title="Eliminar línea">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  `;
+  // Input hidden para tipo (no en el grid visual)
+  row.dataset.tipo = linea.tipo || "servicio";
+
+  // Construir celdas según columnas activas
+  row.innerHTML = _nfColsActivas.map(k => {
+    const c = _COL_SCHEMA[k];
+    if (!c) return `<div></div>`;
+    const align = c.align === "right" ? "text-align:right" : "";
+    const baseStyle = `width:100%;box-sizing:border-box;${align}`;
+
+    if (k === "total") {
+      return `<div class="linea-total" id="ltRow${id}" style="font-size:13px;font-weight:700;text-align:right;font-family:monospace;color:var(--t1)">0,00 €</div>`;
+    }
+    if (k === "subtotal") {
+      return `<div data-subtotal="${id}" style="font-size:12px;text-align:right;font-family:monospace;color:var(--t2)">0,00 €</div>`;
+    }
+    if (k === "iva") {
+      return `<select class="ff-select" data-field="iva" style="${baseStyle}" ${sinIva?"disabled":""}>
+        <option value="21" ${linea.iva===21?"selected":""}>21%</option>
+        <option value="10" ${linea.iva===10?"selected":""}>10%</option>
+        <option value="4"  ${linea.iva===4 ?"selected":""}>4%</option>
+        <option value="0"  ${linea.iva===0 ?"selected":""}>0%</option>
+      </select>`;
+    }
+    const val = linea[k] !== undefined ? linea[k] : "";
+    const type = c.inputType || "text";
+    const extras = [
+      c.step        ? `step="${c.step}"` : "",
+      c.min         ? `min="${c.min}"`   : "",
+      c.placeholder ? `placeholder="${c.placeholder}"` : "",
+    ].filter(Boolean).join(" ");
+    return `<input autocomplete="off" type="${type}" class="ff-input" data-field="${k}" value="${val}" ${extras} style="${baseStyle}"/>`;
+  }).join("") +
+  `<button class="linea-del" onclick="window._delLinea(${id})" title="Eliminar línea" style="padding:4px;display:flex;align-items:center;justify-content:center">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>`;
+
+  // Aplicar grid
+  _nfApplyGridToRow(row);
+
+  // Listeners
   row.querySelectorAll("input,select").forEach(el => {
     el.addEventListener("input",  () => onLineaChange(id, el));
     el.addEventListener("change", () => onLineaChange(id, el));
   });
 
-  // Autocomplete catálogo de productos — al hacer focus muestra todo el catálogo
-  const descInput = row.querySelector(".linea-desc");
-  _buildProdDropdown(descInput, (p) => {
-    const linea = LINEAS.find(l => l.id === id);
-    if (!linea) return;
-    linea.descripcion = p.descripcion || p.nombre;
-    linea.precio      = p.precio;
-    linea.iva         = p.iva;
-    linea.tipo        = p.tipo || "producto";
-    descInput.value = p.descripcion || p.nombre;
-    const priceInput = row.querySelector("[data-field='precio']");
-    const ivaSelect  = row.querySelector("[data-field='iva']");
-    const tipoInput  = row.querySelector("[data-field='tipo']");
-    if (priceInput) priceInput.value = p.precio;
-    if (ivaSelect)  ivaSelect.value  = p.iva;
-    if (tipoInput)  tipoInput.value  = p.tipo || "producto";
-    const rowEl = document.getElementById(`ltRow${id}`);
-    if (rowEl) rowEl.textContent = fmt(linea.cantidad * linea.precio);
-    updateTotalesUI(); updatePreview();
-  });
+  // Autocomplete en campo descripcion
+  const descInput = row.querySelector("[data-field='descripcion']");
+  if (descInput) {
+    _buildProdDropdown(descInput, (p) => {
+      const linea = LINEAS.find(l => l.id === id);
+      if (!linea) return;
+      linea.descripcion = p.descripcion || p.nombre;
+      linea.precio      = p.precio;
+      linea.iva         = p.iva;
+      linea.tipo        = p.tipo || "producto";
+      row.dataset.tipo  = linea.tipo;
+      const f = (field, val) => { const el=row.querySelector(`[data-field="${field}"]`); if(el) el.value=val; };
+      f("descripcion", linea.descripcion);
+      f("precio", linea.precio);
+      f("iva", linea.iva);
+      const rowEl = document.getElementById(`ltRow${id}`);
+      if (rowEl) rowEl.textContent = fmt(linea.cantidad * linea.precio);
+      updateTotalesUI(); updatePreview();
+    });
+  }
+
   container.appendChild(row);
   updateTotalesUI();
   updatePreview();
-  if (!prefill.descripcion) row.querySelector(".linea-desc").focus();
+  if (!prefill.descripcion && descInput) descInput.focus();
 }
 
 function onLineaChange(id, el) {
@@ -667,8 +749,9 @@ async function _nfInitPlantillaSelector() {
     _updBadge(id);
     if (!id) {
       nfPlantillaActual = null;
-      nfMostrarDescuento = false;
-      _nfRefreshDescuentoCol();
+      _nfColsActivas = [..._DEFAULT_COLS];
+      _nfApplyGridToHeader();
+      _nfRebuildAllRows();
       return;
     }
     const p = plantillas.find(x => x.id === id);
@@ -696,50 +779,32 @@ function _nfGetPlantillaData(id) {
   return _nfGetPlantillaDataLocal(p);
 }
 
-/** Activa/desactiva la columna descuento en todas las filas existentes */
-function _nfRefreshDescuentoCol() {
-  // Cabecera
-  const hdrDto = document.getElementById("nfHdrDescuento");
-  if (hdrDto) hdrDto.style.display = nfMostrarDescuento ? "" : "none";
-
-  // Filas existentes: añadir o quitar la celda de descuento
-  document.querySelectorAll("#lineasContainer .linea-row").forEach(row => {
-    const lineaId = parseInt(row.dataset.lineaId);
-    const linea   = LINEAS.find(l => l.id === lineaId);
-    const existing = row.querySelector("[data-field='descuento']");
-    if (nfMostrarDescuento) {
-      if (!existing) {
-        const dtoEl = document.createElement("input");
-        dtoEl.autocomplete = "off";
-        dtoEl.type = "text";
-        dtoEl.className = "linea-dto ff-input";
-        dtoEl.placeholder = "10% / 5€";
-        dtoEl.dataset.field = "descuento";
-        dtoEl.title = "Descuento: número (€) o porcentaje (10%)";
-        dtoEl.style.cssText = "width:72px;text-align:right";
-        dtoEl.value = linea?.descuento ?? "";
-        dtoEl.addEventListener("input",  () => onLineaChange(lineaId, dtoEl));
-        dtoEl.addEventListener("change", () => onLineaChange(lineaId, dtoEl));
-        // Insertar antes del select de IVA
-        const ivaEl = row.querySelector("[data-field='iva']");
-        if (ivaEl) row.insertBefore(dtoEl, ivaEl);
-      }
-    } else {
-      if (existing) existing.remove();
-      if (linea) { linea.descuento = ""; }
-    }
-  });
-  updateTotalesUI(); updatePreview();
-}
 
 window._applyPlantillaToFactura = function(data) {
   if (!data) return;
   nfPlantillaActual = data;
-  // Columna descuento: activa si la plantilla tiene "descuento" en cols_activas
-  const colsActivas = data.colsActivas || [];
-  nfMostrarDescuento = colsActivas.includes("descuento");
-  _nfRefreshDescuentoCol();
+  const colsActivas = (data.colsActivas || []).filter(k => _COL_SCHEMA[k]);
+  _nfColsActivas = colsActivas.length ? colsActivas : [..._DEFAULT_COLS];
+  // Asegurarse de que descripcion siempre está primero
+  if (!_nfColsActivas.includes("descripcion")) _nfColsActivas.unshift("descripcion");
+  // Reconstruir el header
+  _nfApplyGridToHeader();
+  // Reconstruir todas las filas con el nuevo grid (sin perder datos)
+  _nfRebuildAllRows();
 };
+
+function _nfRebuildAllRows() {
+  const container = document.getElementById("lineasContainer");
+  if (!container) return;
+  // Guardar datos actuales
+  const snapshots = LINEAS.map(l => ({...l}));
+  // Vaciar y recrear
+  container.innerHTML = "";
+  LINEAS = [];
+  lineaIdCounter = 0;
+  snapshots.forEach(snap => addLinea(snap));
+  updateTotalesUI(); updatePreview();
+}
 
 /* ══════════════════════════
    INIT
@@ -758,10 +823,10 @@ export function initNuevaFactura() {
       const sinIva = ["intracomunitaria","exportacion","inversion_sujeto_pasivo"].includes(opTipoActual);
       if (sinIva) {
         LINEAS.forEach(l=>{ l.iva=0; });
-        document.querySelectorAll(".linea-iva").forEach(sel=>{ sel.value="0"; sel.disabled=true; });
+        document.querySelectorAll("#lineasContainer [data-field='iva']").forEach(sel=>{ sel.value="0"; sel.disabled=true; });
         updateTotalesUI();
       } else {
-        document.querySelectorAll(".linea-iva").forEach(sel=>{ sel.disabled=false; });
+        document.querySelectorAll("#lineasContainer [data-field='iva']").forEach(sel=>{ sel.disabled=false; });
       }
       updatePreview();
     });
@@ -833,8 +898,9 @@ export function initNuevaFactura() {
   });
   nfScanInput?.addEventListener("blur", () => { if(nfScanFeedback) nfScanFeedback.style.opacity="0"; });
   document.getElementById("nfEmitirBtn")?.addEventListener("click",  ()=>saveFactura());
-  _nfInitPlantillaSelector();
   if (LINEAS.length===0) addLinea();
+  _nfApplyGridToHeader();
+  _nfInitPlantillaSelector();
 }
 
 // Exponer para que main.js o switchView puedan refrescar el selector al abrir la vista
