@@ -84,515 +84,276 @@ function _lineaHTML(l) {
 }
 
 export function showPlantillaModal(prefill) {
+  // Navegar a la vista completa en vez de abrir modal
   prefill = prefill || {};
+  window._epCurrentPrefill = prefill;
+  window._switchView?.("editar-plantilla");
+}
+
+/* ══════════════════════════
+   INIT DE LA VISTA EDITAR-PLANTILLA
+   Llamado por main.js cuando se activa la vista
+══════════════════════════ */
+window._epInit = function() {
+  const prefill = window._epCurrentPrefill || {};
+  window._epCurrentPrefill = null;
+
   const isEdit = !!prefill.id;
   const lineas = prefill.lineas
     ? (typeof prefill.lineas==="string" ? JSON.parse(prefill.lineas) : prefill.lineas)
-    : [{descripcion:"", cantidad:1, precio:0, iva:21}];
+    : [{descripcion:"",cantidad:1,precio:0,iva:21}];
 
-  const D = {
-    nombre:          prefill.nombre          || "",
-    concepto:        prefill.concepto        || "",
-    descripcion:     prefill.descripcion     || "",
-    notas:           prefill.notas           || "",
-    texto_pie:       prefill.texto_pie       || "",
-    iban:            prefill.iban_visible    || "",
-    logo:            prefill.logo_b64        || "",
-    idioma:          prefill.idioma          || "es",
-    fuente:          prefill.fuente          || "Helvetica",
-    tam_fuente:      prefill.tam_fuente      || 9,
-    color_cabecera:  prefill.color_cabecera  || "#1a56db",
-    color_txt_cab:   prefill.color_txt_cab   || "#ffffff",
-    color_acento:    prefill.color_acento    || "#1a56db",
-    color_letra:     prefill.color_letra     || "#0f172a",
-    color_fondo:     prefill.color_fondo     || "#ffffff",
-    color_fondo_tab: prefill.color_fondo_tab || "#f8fafc",
-    color_lineas:    prefill.color_lineas    || "#e2e8f0",
-    estilo_cab:      prefill.estilo_cab      || "solido",
-    tamano_hoja:     prefill.tamano_hoja     || "A4",
-    margen:          prefill.margen          || 18,
-    pie_altura:      prefill.pie_altura      || 14,
-    alin_texto:      prefill.alin_texto      || "izq",
-    mostrar_logo:    prefill.mostrar_logo    !== false,
-    mostrar_cab:     prefill.mostrar_cab     !== false,
-    mostrar_pie:     prefill.mostrar_pie     !== false,
-    mostrar_emisor:  prefill.mostrar_emisor  !== false,
-    mostrar_email:   prefill.mostrar_email   !== false,
-    mostrar_num_pag: prefill.mostrar_num_pag !== false,
-    cab_todas_pags:  prefill.cab_todas_pags  || false,
-    // Espaciado del documento (en mm/px de preview)
-    sp_cab:          prefill.sp_cab          || 12,   // padding cabecera
-    sp_emisor:       prefill.sp_emisor       || 5,    // padding emisor/cliente
-    sp_tabla:        prefill.sp_tabla        || 6,    // padding filas tabla
-    sp_pie:          prefill.sp_pie          || 5,    // padding pie
-    sp_entre_bloques:prefill.sp_entre_bloques|| 0,    // espacio entre cabecera y emisor
-    emisor_x:        prefill.emisor_x        || 0,    // offset X bloque emisor
-    emisor_y:        prefill.emisor_y        || 0,    // offset Y bloque emisor
-    cliente_x:       prefill.cliente_x       || 0,    // offset X bloque cliente
-    cliente_y:       prefill.cliente_y       || 0,    // offset Y bloque cliente
-    logo_x:          prefill.logo_x          || 0,    // offset X del logo (px)
-    logo_y:          prefill.logo_y          || 6,    // offset Y del logo (px)
-    logo_size:       prefill.logo_size       || 30,   // altura máxima del logo (px)
+  // Título de la vista
+  const titulo = document.getElementById("epTitulo");
+  if (titulo) titulo.textContent = isEdit ? `Editando: ${prefill.nombre}` : "Nueva plantilla";
+
+  // Rellenar campos con prefill
+  const sv = (id,v) => { const el=document.getElementById(id); if(el) el.value=v||""; };
+  const sc = (id,v) => { const el=document.getElementById(id); if(el) el.checked=v!==false; };
+  const sri= (id,v) => { const el=document.getElementById(id); if(el){el.value=v||el.value; const lbl=document.getElementById(id+"_val"); if(lbl)lbl.textContent=el.value;} };
+
+  sv("ep_nombre",         prefill.nombre);
+  sv("ep_concepto",       prefill.concepto);
+  sv("ep_descripcion",    prefill.descripcion);
+  sv("ep_notas",          prefill.notas);
+  sv("ep_pie",            prefill.texto_pie);
+  sv("ep_iban",           prefill.iban_visible);
+  sv("ep_estilo_cab",     prefill.estilo_cab     || "solido");
+  sv("ep_tamano_hoja",    prefill.tamano_hoja    || "A4");
+  sv("ep_fuente",         prefill.fuente         || "Helvetica");
+  sv("ep_tam_fuente",     prefill.tam_fuente     || 9);
+  sv("ep_alin_val",       prefill.alin_texto     || "izq");
+  sri("ep_margen",        prefill.margen         || 18);
+  sri("ep_pie_altura",    prefill.pie_altura     || 14);
+  sri("ep_logo_x",        prefill.logo_x         || 0);
+  sri("ep_logo_y",        prefill.logo_y         || 6);
+  sri("ep_logo_size",     prefill.logo_size      || 30);
+  sri("ep_emisor_x",      prefill.emisor_x       || 0);
+  sri("ep_emisor_y",      prefill.emisor_y       || 0);
+  sri("ep_cliente_x",     prefill.cliente_x      || 0);
+  sri("ep_cliente_y",     prefill.cliente_y      || 0);
+
+  // Colores
+  const COLS = {
+    ep_color_cab:      prefill.color_cabecera  || "#1a56db",
+    ep_color_txt_cab:  prefill.color_txt_cab   || "#ffffff",
+    ep_color_acento:   prefill.color_acento    || "#1a56db",
+    ep_color_letra:    prefill.color_letra     || "#0f172a",
+    ep_color_fondo:    prefill.color_fondo     || "#ffffff",
+    ep_color_fondo_tab:prefill.color_fondo_tab || "#f8fafc",
+    ep_color_lineas:   prefill.color_lineas    || "#e2e8f0",
   };
+  Object.entries(COLS).forEach(([id,val])=>{
+    const pick=document.getElementById(id); if(pick) pick.value=val;
+    const hex=document.getElementById(id+"_hex"); if(hex) hex.value=val;
+  });
 
-  if (!document.getElementById("_plt_css")) {
-    const s = document.createElement("style"); s.id = "_plt_css";
-    s.textContent = `.plt-tab{padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--t3);transition:all .15s}.plt-tab.on{border-bottom-color:var(--accent);color:var(--accent);background:var(--srf)}.plt-sec{display:none}.plt-sec.on{display:block}.plt-group{font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--brd)}.plt-r2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}.plt-cpair{display:flex;gap:5px;align-items:center;margin-top:4px}.plt-cpair input[type=color]{width:34px;height:34px;padding:2px;border:1.5px solid var(--brd);border-radius:6px;cursor:pointer;flex-shrink:0}.plt-cpair input[type=text]{flex:1;font-family:monospace;font-size:11px;padding:5px 7px;border:1.5px solid var(--brd);border-radius:6px;background:var(--bg2);min-width:0}.plt-tog{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;cursor:pointer;font-size:12px}.plt-tog input{width:15px;height:15px;accent-color:var(--accent)}.plt-togs{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}`;
-    document.head.appendChild(s);
-  }
-
-  const col = (id, lbl, val) => `<div class="modal-field"><label style="font-size:11px">${lbl}</label><div class="plt-cpair"><input type="color" id="${id}" value="${val}"/><input type="text" id="${id}_hex" value="${val}" maxlength="7"/></div></div>`;
-  const tog = (id, lbl, val) => `<label class="plt-tog"><span>${lbl}</span><input type="checkbox" id="${id}" ${val?"checked":""}/></label>`;
-
-  const cabPvStyle = D.estilo_cab==="sin" ? "display:none" :
-    D.estilo_cab==="linea" ? `background:transparent;border-bottom:3px solid ${D.color_cabecera}` :
-    D.estilo_cab==="gradiente" ? `background:linear-gradient(135deg,${D.color_cabecera},${D.color_acento})` :
-    `background:${D.color_cabecera}`;
-
-  openModal(`<div class="modal" style="max-width:1080px;width:97vw;height:90vh;display:flex;flex-direction:column;overflow:hidden;padding:0">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--brd);flex-shrink:0">
-      <span class="modal-title" style="font-size:15px">✨ ${isEdit?"Editar":"Nueva"} plantilla</span>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="display:flex;gap:6px">
-          <button id="plt_lang_es"
-            style="padding:5px 16px;font-size:12px;font-weight:${D.idioma==="es"?700:500};border:2px solid ${D.idioma==="es"?"#f97316":"var(--brd)"};border-radius:7px;cursor:pointer;background:var(--bg2);color:${D.idioma==="es"?"#f97316":"var(--t2)"};transition:all .15s">
-            ES
-          </button>
-          <button id="plt_lang_en"
-            style="padding:5px 16px;font-size:12px;font-weight:${D.idioma==="en"?700:500};border:2px solid ${D.idioma==="en"?"#f97316":"var(--brd)"};border-radius:7px;cursor:pointer;background:var(--bg2);color:${D.idioma==="en"?"#f97316":"var(--t2)"};transition:all .15s">
-            EN
-          </button>
-        </div>
-        <button class="modal-x" onclick="window._cm()">×</button>
-      </div>
-    </div>
-    <div style="display:flex;border-bottom:1px solid var(--brd);background:var(--bg2);flex-shrink:0">
-      <button class="plt-tab on"  data-tab="diseno"    onclick="window._pltTab('diseno')">🎨 Diseño</button>
-      <button class="plt-tab"     data-tab="fuente"    onclick="window._pltTab('fuente')">🔤 Fuente</button>
-      <button class="plt-tab"     data-tab="contenido" onclick="window._pltTab('contenido')">📝 Contenido</button>
-      <button class="plt-tab"     data-tab="avanzado"  onclick="window._pltTab('avanzado')">⚙️ Avanzado</button>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 320px;flex:1;overflow:hidden;min-height:0">
-      <div style="overflow-y:auto;padding:4px 22px 20px">
-        <div style="padding:14px 0 0">
-          <div class="plt-r2" style="margin-bottom:0">
-            <div class="modal-field"><label>Nombre de la plantilla *</label><input autocomplete="off" id="plt_nombre" class="ff-input" value="${D.nombre.replace(/"/g,'&quot;')}" placeholder="Ej: Factura servicios mensuales"/></div>
-            <div class="modal-field"><label>Concepto predeterminado</label><input autocomplete="off" id="plt_concepto" class="ff-input" value="${D.concepto.replace(/"/g,'&quot;')}" placeholder="Ej: Consultoría mensual"/></div>
-          </div>
-        </div>
-        <div id="plt-tab-diseno" class="plt-sec on">
-          <div class="plt-group">🖼️ Logo</div>
-          <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:12px">
-            <!-- Zona de upload de logo — diseño mejorado -->
-            <div onclick="document.getElementById('plt_logo_inp').click()" id="plt_logo_prev"
-              style="width:100px;height:64px;border:2px dashed var(--brd);border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--bg2);cursor:pointer;flex-shrink:0;transition:border-color .2s,background .2s"
-              onmouseenter="this.style.borderColor='var(--accent)';this.style.background='var(--accent)0d'"
-              onmouseleave="this.style.borderColor='var(--brd)';this.style.background='var(--bg2)'">
-              ${D.logo
-                ? `<img src="${D.logo}" style="max-width:96px;max-height:60px;object-fit:contain"/>`
-                : `<div style="text-align:center;pointer-events:none">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--t4)" stroke-width="1.5" style="display:block;margin:0 auto 4px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    <span style="font-size:10px;color:var(--t4);line-height:1.3">Subir logo</span>
-                  </div>`}
-            </div>
-            <input type="file" id="plt_logo_inp" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none"/>
-            <div style="display:flex;flex-direction:column;gap:6px">
-              <button type="button" id="plt_logo_btn"
-                style="font-size:12px;padding:7px 16px;border:1.5px solid var(--accent);border-radius:8px;background:var(--accent)0d;color:var(--accent);font-weight:600;cursor:pointer;transition:all .15s"
-                onmouseenter="this.style.background='var(--accent)';this.style.color='#fff'"
-                onmouseleave="this.style.background='var(--accent)0d';this.style.color='var(--accent)'">
-                ${D.logo?"📁 Cambiar logo":"📁 Subir logo"}
-              </button>
-              <button type="button" id="plt_logo_rm"
-                style="font-size:12px;padding:7px 16px;border:1.5px solid #dc2626;border-radius:8px;background:#dc262608;color:#dc2626;font-weight:600;cursor:pointer;transition:all .15s;${D.logo?"":"display:none"}"
-                onmouseenter="this.style.background='#dc2626';this.style.color='#fff'"
-                onmouseleave="this.style.background='#dc262608';this.style.color='#dc2626'">
-                🗑️ Quitar logo
-              </button>
-              <span style="font-size:10px;color:var(--t4)">PNG · JPG · SVG · Máx 500KB</span>
-            </div>
-          </div>
-          <label class="plt-tog" style="margin-bottom:10px">${tog("plt_mostrar_logo","Mostrar logo en el documento",D.mostrar_logo)}</label>
-          <div class="plt-r2" style="margin-bottom:16px">
-            ${[
-              ["plt_logo_x","Posición X (izq/der)",D.logo_x,-100,100],
-              ["plt_logo_y","Posición Y (arr/ab)", D.logo_y,-20,60],
-              ["plt_logo_size","Tamaño (px)",       D.logo_size,16,80],
-            ].map(([id,lbl,val,min,max])=>`
-              <div class="modal-field">
-                <label style="display:flex;justify-content:space-between;font-size:11px">
-                  <span>${lbl}</span><span id="${id}_val" style="font-family:monospace;color:var(--accent);font-weight:700">${val}</span>
-                </label>
-                <input type="range" id="${id}" min="${min}" max="${max}" value="${val}" step="1"
-                  style="width:100%;accent-color:var(--accent);margin-top:4px"
-                  oninput="document.getElementById('${id}_val').textContent=this.value;window._pltSpacing()"/>
-              </div>`).join("")}
-          </div>
-          <div class="plt-group">📋 Cabecera y hoja</div>
-          <div class="plt-r2">
-            <div class="modal-field"><label>Estilo de cabecera</label>
-              <select id="plt_estilo_cab" class="ff-select">
-                <option value="solido"    ${D.estilo_cab==="solido"   ?"selected":""}>Fondo sólido</option>
-                <option value="gradiente" ${D.estilo_cab==="gradiente"?"selected":""}>Gradiente</option>
-                <option value="linea"     ${D.estilo_cab==="linea"    ?"selected":""}>Solo línea inferior</option>
-                <option value="sin"       ${D.estilo_cab==="sin"      ?"selected":""}>Sin cabecera</option>
-              </select>
-            </div>
-            <div class="modal-field"><label>Tamaño de hoja</label>
-              <select id="plt_tamano_hoja" class="ff-select">
-                ${["A4","A3","Letter","Legal"].map(s=>`<option value="${s}" ${D.tamano_hoja===s?"selected":""}>${s}</option>`).join("")}
-              </select>
-            </div>
-          </div>
-          <div class="plt-group">🎨 Colores</div>
-          <div class="plt-r2">
-            ${col("plt_color_cabecera","Color de cabeceras",D.color_cabecera)}
-            ${col("plt_color_txt_cab","Color letra en cabecera",D.color_txt_cab)}
-            ${col("plt_color_acento","Color acento / tabla",D.color_acento)}
-            ${col("plt_color_letra","Color de letra (texto)",D.color_letra)}
-            ${col("plt_color_fondo","Color de fondo",D.color_fondo)}
-            ${col("plt_color_fondo_tab","Color fondo de tablas",D.color_fondo_tab)}
-            ${col("plt_color_lineas","Color líneas de tabla",D.color_lineas)}
-          </div>
-          <div class="plt-group">📐 Márgenes y pie</div>
-          <div class="plt-r2">
-            <div class="modal-field"><label>Margen general (mm)</label>
-              <select id="plt_margen" class="ff-select">${[10,12,14,16,18,20,22,25].map(v=>`<option value="${v}" ${D.margen===v?"selected":""}>${v} mm</option>`).join("")}</select>
-            </div>
-            <div class="modal-field"><label>Altura pie de página (mm)</label>
-              <select id="plt_pie_altura" class="ff-select">${[8,10,12,14,16,18,20].map(v=>`<option value="${v}" ${D.pie_altura===v?"selected":""}>${v} mm</option>`).join("")}</select>
-            </div>
-          </div>
-          <div class="plt-group">👁️ Visibilidad</div>
-          <div class="plt-togs">
-            ${tog("plt_mostrar_cab",    "Mostrar cabecera",           D.mostrar_cab)}
-            ${tog("plt_mostrar_pie",    "Mostrar pie de página",      D.mostrar_pie)}
-            ${tog("plt_mostrar_emisor", "Mostrar datos del emisor",   D.mostrar_emisor)}
-            ${tog("plt_mostrar_email",  "Mostrar email del emisor",   D.mostrar_email)}
-            ${tog("plt_mostrar_num_pag","Numeración de páginas",      D.mostrar_num_pag)}
-            ${tog("plt_cab_todas_pags", "Cabecera en todas las págs.",D.cab_todas_pags)}
-          </div>
-        </div>
-        <div id="plt-tab-fuente" class="plt-sec">
-          <div class="plt-group" style="margin-top:20px">🔤 Tipografía</div>
-          <div class="plt-r2">
-            <div class="modal-field"><label>Fuente del documento</label>
-              <select id="plt_fuente" class="ff-select">
-                ${["Helvetica","Arial","Courier New","Times New Roman","Georgia","Trebuchet MS","Verdana","Garamond"].map(f=>`<option value="${f}" ${D.fuente===f?"selected":""}>${f}</option>`).join("")}
-              </select>
-            </div>
-            <div class="modal-field"><label>Tamaño de fuente (pt)</label>
-              <select id="plt_tam_fuente" class="ff-select">${[7,8,9,10,11,12].map(s=>`<option value="${s}" ${D.tam_fuente===s?"selected":""}>${s} pt</option>`).join("")}</select>
-            </div>
-          </div>
-          <div class="modal-field" style="margin-bottom:14px"><label>Alineación del texto</label>
-            <div style="display:flex;gap:6px;margin-top:6px" id="plt_alin_group">
-              ${[["izq","Izquierda"],["centro","Centro"],["der","Derecha"]].map(([v,lbl])=>`
-                <button type="button" data-alin="${v}"
-                  onclick="document.querySelectorAll('#plt_alin_group button').forEach(b=>{b.style.borderColor=b.dataset.alin==='${v}'?'#f97316':'var(--brd)';b.style.color=b.dataset.alin==='${v}'?'#f97316':'var(--t2)';b.style.fontWeight=b.dataset.alin==='${v}'?'700':'500';b.style.background='var(--bg2)';});window._pltAlin('${v}');"
-                  style="padding:6px 14px;border:2px solid ${D.alin_texto===v?'#f97316':'var(--brd)'};border-radius:7px;cursor:pointer;font-size:12px;font-weight:${D.alin_texto===v?700:500};background:var(--bg2);color:${D.alin_texto===v?'#f97316':'var(--t2)'};transition:all .15s">
-                  ${lbl}
-                </button>`).join("")}
-            </div>
-            <input type="hidden" id="plt_alin_val" value="${D.alin_texto}"/>
-          </div>
-          <div class="plt-group">Vista previa de tipografía</div>
-          <div id="plt_font_preview" style="border:1px solid var(--brd);border-radius:10px;padding:16px;background:var(--srf2);line-height:1.8">
-            <div style="font-weight:700;font-size:15px">FACTURA · FAC-2025-001</div>
-            <div style="font-size:12px;color:var(--t3)">Concepto de ejemplo · 1.210,00 €</div>
-            <div style="font-size:11px;color:var(--t4)">Descripción del servicio prestado</div>
-          </div>
-        </div>
-        <div id="plt-tab-contenido" class="plt-sec">
-          <div style="margin-top:20px"></div>
-          <div class="modal-field" style="margin-bottom:12px"><label>Descripción / Alcance del servicio</label>
-            <textarea autocomplete="off" id="plt_descripcion" class="ff-input ff-textarea" style="min-height:70px" placeholder="Aparece en el cuerpo del documento.">${D.descripcion}</textarea>
-          </div>
-          <div class="modal-field" style="margin-bottom:20px"><label>Notas / Condiciones de pago</label>
-            <textarea autocomplete="off" id="plt_notas" class="ff-input ff-textarea" style="min-height:60px" placeholder="Forma de pago, plazo, garantías…">${D.notas}</textarea>
-          </div>
-          <div class="plt-group">📋 Líneas predefinidas</div>
-          <div class="lineas-header" style="grid-template-columns:1fr 58px 96px 56px 30px;font-size:10px">
-            <div>Descripción</div><div>Cantidad</div><div>Precio (€)</div><div>IVA</div><div></div>
-          </div>
-          <div id="plt_lineasContainer">${lineas.map(l=>_lineaHTML(l)).join("")}</div>
-          <button class="btn-add-linea" id="plt_addLinea" style="margin-top:8px">+ Añadir línea</button>
-        </div>
-        <div id="plt-tab-avanzado" class="plt-sec">
-          <div style="margin-top:20px"></div>
-          <div class="plt-r2">
-            <div class="modal-field"><label>Texto legal del pie</label><input autocomplete="off" id="plt_pie" class="ff-input" value="${D.texto_pie}" placeholder="Inscrita en el RM de Madrid…"/></div>
-            <div class="modal-field"><label>IBAN visible en el PDF</label><input autocomplete="off" id="plt_iban" class="ff-input" value="${D.iban}" placeholder="ES00 0000 0000 00 0000 0000"/></div>
-          </div>
-
-          <div class="plt-group">📏 Espaciado del documento</div>
-          <div style="font-size:12px;color:var(--t3);margin-bottom:12px;line-height:1.6">
-            Ajusta las distancias entre los bloques del documento. Los cambios se ven en tiempo real en la vista previa.
-          </div>
-
-          ${[
-            ["plt_sp_cab",           "Relleno de cabecera",          D.sp_cab,           4, 30],
-            ["plt_sp_emisor",        "Relleno emisor / cliente",     D.sp_emisor,        2, 20],
-            ["plt_emisor_x",  "Emisor — posición X",  D.emisor_x,  -80, 80],
-            ["plt_emisor_y",  "Emisor — posición Y",  D.emisor_y,  -20, 40],
-            ["plt_cliente_x", "Cliente — posición X", D.cliente_x, -80, 80],
-            ["plt_cliente_y", "Cliente — posición Y", D.cliente_y, -20, 40],
-            ["plt_sp_entre_bloques", "Espacio entre cabecera y datos",D.sp_entre_bloques,0, 20],
-            ["plt_sp_tabla",         "Alto de filas de la tabla",    D.sp_tabla,         3, 16],
-            ["plt_sp_pie",           "Relleno del pie",              D.sp_pie,           2, 16],
-          ].map(([id,lbl,val,min,max])=>`
-            <div class="modal-field" style="margin-bottom:12px">
-              <label style="display:flex;justify-content:space-between">
-                <span>${lbl}</span>
-                <span id="${id}_val" style="font-family:monospace;font-size:12px;color:var(--accent);font-weight:700">${val}</span>
-              </label>
-              <input type="range" id="${id}" min="${min}" max="${max}" value="${val}" step="1"
-                style="width:100%;accent-color:var(--accent);margin-top:6px"
-                oninput="document.getElementById('${id}_val').textContent=this.value;window._pltSpacing()"/>
-            </div>`).join("")}
-        </div>
-      </div>
-      <div style="background:var(--bg2);border-left:1px solid var(--brd);overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px">
-        <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em">👁 Vista previa</div>
-        <div id="plt_pv_doc" style="background:#fff;border-radius:8px;box-shadow:0 2px 16px rgba(0,0,0,.12);overflow:hidden;font-size:10px">
-          <!-- Fila logo+cabecera: siempre tienen la misma fila para que el logo no se mueva -->
-          <div style="position:relative;min-height:${D.logo&&D.mostrar_logo?"46px":"0"}">
-            <!-- Logo: siempre arriba derecha, independiente de la cabecera -->
-            <div id="plt_pv_logo_row" style="position:absolute;top:6px;right:12px;z-index:2;display:${D.logo&&D.mostrar_logo?"block":"none"}">
-              <img id="plt_pv_logo_img" src="${D.logo||''}" style="max-height:30px;max-width:66px;object-fit:contain;display:block"/>
-            </div>
-            <!-- Cabecera: puede ocultarse sin llevarse el logo -->
-            <div id="plt_pv_cab" style="padding:12px 14px;${cabPvStyle}">
-              <div id="plt_pv_tipo" style="font-size:8px;font-weight:800;letter-spacing:.12em;opacity:.65;color:${D.color_txt_cab}">FACTURA</div>
-              <div id="plt_pv_concepto" style="font-size:13px;font-weight:700;color:${D.color_txt_cab};margin-top:2px;padding-right:${D.logo&&D.mostrar_logo?"72px":"0"}">${D.concepto||"Concepto del documento"}</div>
-              <div style="font-size:9px;opacity:.6;color:${D.color_txt_cab};margin-top:1px">FAC-2025-001 · ${new Date().toLocaleDateString("es-ES")}</div>
-            </div>
-          </div>
-          <!-- Emisor + Cliente: grid de 2 columnas, transform para ejes X/Y -->
-          <div id="plt_pv_emisor_row" style="display:${D.mostrar_emisor?"grid":"none"};grid-template-columns:1fr 1fr;gap:6px;padding:${D.sp_emisor}px 12px;border-bottom:1px solid #e5e7eb">
-            <div id="plt_pv_emisor_bloque" style="transform:translate(${D.emisor_x}px,${D.emisor_y}px)">
-              <div id="plt_pv_lbl_de" style="font-size:6px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.06em">EMISOR</div>
-              <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.4">Tu empresa SL</div>
-              <div style="font-size:7.5px;color:#6b7280">NIF: B12345678</div>
-            </div>
-            <div id="plt_pv_cliente_bloque" style="transform:translate(${D.cliente_x}px,${D.cliente_y}px)">
-              <div id="plt_pv_lbl_para" style="font-size:6px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.06em">CLIENTE</div>
-              <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.4">Empresa Cliente</div>
-              <div style="font-size:7.5px;color:#6b7280">NIF: A98765432</div>
-            </div>
-          </div>
-          <div id="plt_pv_desc_wrap" style="padding:7px 14px;border-bottom:1px solid #f3f4f6;display:none"><div id="plt_pv_desc" style="font-size:8.5px;color:#6b7280;line-height:1.5"></div></div>
-          <div style="padding:0 14px">
-            <div id="plt_pv_tabla_head" style="display:grid;grid-template-columns:1fr 28px 50px 28px 52px;padding:6px 14px 4px;font-size:7.5px;font-weight:700;text-transform:uppercase;color:#fff;background:${D.color_acento};margin:0 -14px;letter-spacing:.04em">
-              <span id="plt_pv_h_desc">Descripción</span><span style="text-align:right" id="plt_pv_h_cant">Cant</span><span style="text-align:right" id="plt_pv_h_precio">Precio</span><span style="text-align:right" id="plt_pv_h_iva">IVA</span><span style="text-align:right" id="plt_pv_h_total">Total</span>
-            </div>
-            <div id="plt_pv_lineas"><div style="padding:8px 0;font-size:8.5px;color:#9ca3af;text-align:center">Sin líneas definidas</div></div>
-          </div>
-          <div id="plt_pv_totales" style="padding:8px 14px;background:#f9fafb;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end"></div>
-          <div id="plt_pv_notas" style="padding:7px 14px;font-size:8.5px;color:#6b7280;border-top:1px solid #e5e7eb;display:none;line-height:1.5"></div>
-          <div id="plt_pv_pie" style="padding:5px 14px;font-size:8px;color:#9ca3af;border-top:1px solid #e5e7eb;display:${D.mostrar_pie?"flex":"none"};justify-content:space-between">
-            <span id="plt_pv_pie_txt">${D.texto_pie||"Texto legal del pie"}</span><span>Pág. 1</span>
-          </div>
-        </div>
-        <div style="font-size:10px;color:var(--t4);line-height:1.6;padding:8px 10px;background:var(--srf);border-radius:7px;border:1px solid var(--brd)">
-          💡 Vista previa aproximada. El PDF final usará tus datos fiscales reales.
-        </div>
-      </div>
-    </div>
-    <div class="modal-ft" style="flex-shrink:0;padding:12px 20px;border-top:1px solid var(--brd)">
-      ${isEdit?`<button class="btn-modal-danger" id="plt_del" style="margin-right:auto">🗑️ Eliminar</button>`:""}
-      <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
-      <button class="btn-modal-save" id="plt_save" style="padding:10px 26px">${isEdit?"💾 Actualizar":"✨ Guardar plantilla"}</button>
-    </div>
-  </div>`);
-
-  // ── Estado interno ──
-  let _logo   = D.logo;
-  let _idioma = D.idioma;
-
-  const LABELS_ES = {tipo:"FACTURA",de:"EMISOR",para:"CLIENTE",cant:"Cant",precio:"Precio",iva:"IVA",total:"Total",base:"Base imponible",totalDoc:"TOTAL"};
-  const LABELS_EN = {tipo:"INVOICE",de:"FROM",para:"BILL TO",cant:"Qty",precio:"Price",iva:"VAT",total:"Total",base:"Subtotal",totalDoc:"TOTAL"};
-
-  // Tabs
-  window._pltTab = (tab) => {
-    document.querySelectorAll(".plt-tab").forEach(b => b.classList.toggle("on", b.dataset.tab===tab));
-    document.querySelectorAll(".plt-sec").forEach(s => s.classList.toggle("on", s.id===`plt-tab-${tab}`));
-  };
-
-  // Alineación: guardar valor en hidden input y actualizar preview
-  window._pltAlin = (v) => {
-    const inp = document.getElementById("plt_alin_val");
-    if (inp) inp.value = v;
-    _pv();
-  };
-
-  // Espaciado — aplicar al preview cuando mueve el slider
-  window._pltSpacing = () => _pv();
-
-  // Idioma
-  const _setLang = (lang) => {
-    _idioma = lang;
-    const L = lang==="en" ? LABELS_EN : LABELS_ES;
-    const s = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
-    s("plt_pv_tipo",L.tipo); s("plt_pv_lbl_de",L.de); s("plt_pv_lbl_para",L.para);
-    s("plt_pv_h_desc",lang==="en"?"Description":"Descripción"); s("plt_pv_h_cant",L.cant);
-    s("plt_pv_h_precio",L.precio); s("plt_pv_h_iva",L.iva); s("plt_pv_h_total",L.total);
-    ["es","en"].forEach(l => {
-      const btn = document.getElementById("plt_lang_"+l);
-      if (!btn) return;
-      btn.style.borderColor  = l===lang ? "#f97316" : "var(--brd)";
-      btn.style.color        = l===lang ? "#f97316" : "var(--t2)";
-      btn.style.fontWeight   = l===lang ? "700"     : "500";
-      btn.style.background   = "var(--bg2)";
-    });
-    _pv();
-  };
-  document.getElementById("plt_lang_es").addEventListener("click", ()=>_setLang("es"));
-  document.getElementById("plt_lang_en").addEventListener("click", ()=>_setLang("en"));
+  // Checkboxes
+  sc("ep_mostrar_logo",    prefill.mostrar_logo);
+  sc("ep_mostrar_cab",     prefill.mostrar_cab);
+  sc("ep_mostrar_pie",     prefill.mostrar_pie);
+  sc("ep_mostrar_emisor",  prefill.mostrar_emisor);
+  sc("ep_mostrar_email",   prefill.mostrar_email);
+  sc("ep_mostrar_num_pag", prefill.mostrar_num_pag);
+  sc("ep_cab_todas_pags",  prefill.cab_todas_pags || false);
 
   // Logo
-  const logoInp=document.getElementById("plt_logo_inp");
-  const logoPrev=document.getElementById("plt_logo_prev");
-  const logoBtn=document.getElementById("plt_logo_btn");
-  const logoRm=document.getElementById("plt_logo_rm");
-  logoBtn.addEventListener("click",()=>logoInp.click());
-  logoInp.addEventListener("change",e=>{
+  let _logo = prefill.logo_b64 || "";
+  let _idioma = prefill.idioma || "es";
+  const logoPrev = document.getElementById("ep_logo_prev");
+  const logoPlaceholder = document.getElementById("ep_logo_placeholder");
+  const logoBtn  = document.getElementById("ep_logo_btn");
+  const logoRm   = document.getElementById("ep_logo_rm");
+  const logoInp  = document.getElementById("ep_logo_inp");
+
+  const _updateLogoUI = () => {
+    if (logoPrev) {
+      if (_logo) {
+        logoPrev.innerHTML = `<img src="${_logo}" style="max-width:96px;max-height:60px;object-fit:contain"/>`;
+      } else {
+        logoPrev.innerHTML = `<span id="ep_logo_placeholder" style="font-size:11px;color:var(--t4);text-align:center;line-height:1.4">Click para<br>subir logo</span>`;
+      }
+    }
+    if (logoBtn)  logoBtn.textContent = _logo ? "📁 Cambiar logo" : "📁 Subir logo";
+    if (logoRm)   logoRm.style.display = _logo ? "" : "none";
+  };
+  _updateLogoUI();
+
+  logoBtn?.addEventListener("click", ()=>logoInp?.click());
+  logoInp?.addEventListener("change", e=>{
     const f=e.target.files[0]; if(!f)return;
-    if(f.size>500*1024){toast("Logo máx. 500KB","error");return;}
+    if(f.size>500*1024){alert("El logo no puede superar 500KB");return;}
     const r=new FileReader();
-    r.onload=ev=>{
-      _logo=ev.target.result;
-      logoPrev.innerHTML=`<img src="${_logo}" style="max-width:88px;max-height:54px;object-fit:contain"/>`;
-      logoBtn.textContent="📁 Cambiar"; logoRm.style.display=""; _pv();
-    };
+    r.onload=ev=>{ _logo=ev.target.result; _updateLogoUI(); _epPv(); };
     r.readAsDataURL(f);
   });
-  logoRm.addEventListener("click",()=>{
-    _logo="";
-    logoPrev.innerHTML=`<span style="font-size:10px;color:var(--t4);text-align:center;line-height:1.4">Click<br>subir</span>`;
-    logoBtn.textContent="📁 Subir logo"; logoRm.style.display="none"; _pv();
+  logoRm?.addEventListener("click",()=>{ _logo=""; _updateLogoUI(); _epPv(); });
+
+  // Toggle mostrar logo
+  const mostrarLogoLbl = document.getElementById("ep_mostrar_logo_lbl");
+  document.getElementById("ep_mostrar_logo")?.addEventListener("change", e=>{
+    if(mostrarLogoLbl){
+      mostrarLogoLbl.style.borderColor = e.target.checked?"var(--accent)":"var(--brd)";
+      mostrarLogoLbl.style.background  = e.target.checked?"var(--accent)0d":"var(--bg2)";
+    }
+    _epPv();
   });
 
-  // Color pickers
-  ["plt_color_cabecera","plt_color_txt_cab","plt_color_acento","plt_color_letra","plt_color_fondo","plt_color_fondo_tab","plt_color_lineas"].forEach(id=>{
+  // Sync color pickers
+  Object.keys(COLS).forEach(id=>{
     const pick=document.getElementById(id);
     const hex=document.getElementById(id+"_hex");
     if(!pick||!hex)return;
-    pick.addEventListener("input",()=>{hex.value=pick.value;_pv();});
-    hex.addEventListener("change",()=>{if(/^#[0-9a-f]{6}$/i.test(hex.value.trim())){pick.value=hex.value.trim();}  _pv();});
+    pick.addEventListener("input",()=>{hex.value=pick.value;_epPv();});
+    hex.addEventListener("change",()=>{if(/^#[0-9a-f]{6}$/i.test(hex.value)){pick.value=hex.value;}_epPv();});
   });
 
+  // Tabs
+  window._epTab = (tab) => {
+    document.querySelectorAll(".ep-tab").forEach(b=>{
+      const on=b.dataset.tab===tab;
+      b.style.borderBottomColor=on?"var(--accent)":"transparent";
+      b.style.color=on?"var(--accent)":"var(--t3)";
+      b.style.background=on?"var(--srf)":"transparent";
+      b.style.fontWeight=on?"600":"600";
+    });
+    document.querySelectorAll(".ep-sec").forEach(s=>{
+      s.style.display=s.id===`ep-tab-${tab}`?"":"none";
+    });
+  };
+
+  // Idioma
+  const LABELS_ES = {tipo:"FACTURA",de:"EMISOR",para:"CLIENTE",cant:"Cant",precio:"Precio",iva:"IVA",total:"Total",base:"Base imponible",totalDoc:"TOTAL"};
+  const LABELS_EN = {tipo:"INVOICE",de:"FROM",para:"BILL TO",cant:"Qty",precio:"Price",iva:"VAT",total:"Total",base:"Subtotal",totalDoc:"TOTAL"};
+
+  window._epLang = (lang)=>{
+    _idioma=lang;
+    ["es","en"].forEach(l=>{
+      const btn=document.getElementById("ep_lang_"+l);
+      if(!btn)return;
+      btn.style.borderColor=l===lang?"var(--accent)":"var(--brd)";
+      btn.style.background =l===lang?"var(--accent)":"var(--bg2)";
+      btn.style.color      =l===lang?"#fff":"var(--t2)";
+    });
+    _epPv();
+  };
+  _epLang(_idioma);
+
+  // Alineación — resaltar el botón activo al cargar
+  const alinVal = document.getElementById("ep_alin_val")?.value||"izq";
+  document.querySelectorAll("#ep_alin_group button").forEach(b=>{
+    const on=b.dataset.alin===alinVal;
+    b.style.borderColor=on?"#f97316":"var(--brd)";
+    b.style.color=on?"#f97316":"var(--t2)";
+    b.style.fontWeight=on?"700":"500";
+  });
+
+  // Líneas
+  const _lineaHTML = (l)=>`
+    <div class="linea-row" style="grid-template-columns:1fr 58px 96px 56px 30px">
+      <input autocomplete="off" class="ff-input" data-field="descripcion" value="${(l.descripcion||"").replace(/"/g,"&quot;")}" placeholder="Descripción"/>
+      <input autocomplete="off" type="number" class="ff-input" data-field="cantidad" value="${l.cantidad||1}" min="0.01" step="0.01"/>
+      <input autocomplete="off" type="number" class="ff-input" data-field="precio" value="${l.precio||""}" step="0.01" placeholder="0.00"/>
+      <select class="ff-select" data-field="iva">
+        <option value="21" ${(l.iva||21)===21?"selected":""}>21%</option>
+        <option value="10" ${l.iva===10?"selected":""}>10%</option>
+        <option value="4"  ${l.iva===4?"selected":""}>4%</option>
+        <option value="0"  ${l.iva===0?"selected":""}>0%</option>
+      </select>
+      <button class="linea-del ep-del-linea" title="Eliminar">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>`;
+
+  const cont = document.getElementById("ep_lineasContainer");
+  if (cont) { cont.innerHTML = ""; lineas.forEach(l=>cont.insertAdjacentHTML("beforeend",_lineaHTML(l))); }
+  if (!lineas.length || lineas.every(l=>!l.descripcion)) {
+    cont?.insertAdjacentHTML("beforeend", _lineaHTML({}));
+  }
+
+  document.getElementById("ep_addLinea")?.addEventListener("click",()=>{
+    cont?.insertAdjacentHTML("beforeend",_lineaHTML({})); _epPv();
+  });
+  cont?.addEventListener("click",e=>{ if(e.target.closest(".ep-del-linea")){e.target.closest(".linea-row")?.remove();_epPv();} });
+  cont?.addEventListener("input", _epPv);
+
+  // PREVIEW
   const FONT_MAP={"Helvetica":"Helvetica,Arial,sans-serif","Arial":"Arial,sans-serif","Courier New":"'Courier New',monospace","Times New Roman":"'Times New Roman',Times,serif","Georgia":"Georgia,serif","Trebuchet MS":"'Trebuchet MS',sans-serif","Verdana":"Verdana,sans-serif","Garamond":"Garamond,serif"};
 
-  function _pv() {
-    const L=_idioma==="en"?LABELS_EN:LABELS_ES;
-    const g=id=>document.getElementById(id);
-    const gv=id=>g(id)?.value||"";
-    const gc=id=>g(id)?.checked;
+  window._epPreview = _epPv;
+  function _epPv(){
+    const L    = _idioma==="en"?LABELS_EN:LABELS_ES;
+    const g    = id=>document.getElementById(id);
+    const gv   = (id,fb)=>{ const el=g(id); return (el&&el.value)?el.value:fb; };
+    const gc   = (id,fb)=>{ const el=g(id); return el?el.checked:fb; };
 
-    // Leer valores de los inputs — si el input no existe en DOM, usar el valor guardado en D
-    const _gv = (id, fallback) => { const el=g(id); return (el&&el.value) ? el.value : fallback; };
-
-    // Espaciado
-    const spCab    = parseInt(g("plt_sp_cab")?.value)            || D.sp_cab;
-    const spEmisor = parseInt(g("plt_sp_emisor")?.value)         || D.sp_emisor;
-    const spEntre  = parseInt(g("plt_sp_entre_bloques")?.value)  || D.sp_entre_bloques;
-    const spTabla  = parseInt(g("plt_sp_tabla")?.value)          || D.sp_tabla;
-    const spPie    = parseInt(g("plt_sp_pie")?.value)            || D.sp_pie;
-    const colorCab  = _gv("plt_color_cabecera", D.color_cabecera);
-    const colorTxtC = _gv("plt_color_txt_cab",  D.color_txt_cab);
-    const colorAcc  = _gv("plt_color_acento",   D.color_acento);
-    const colorLetra= _gv("plt_color_letra",    D.color_letra);
-    const colorFdo  = _gv("plt_color_fondo",    D.color_fondo);
-    const colorFdoT = _gv("plt_color_fondo_tab",D.color_fondo_tab);
-    const colorLin  = _gv("plt_color_lineas",   D.color_lineas);
-    const estCab    = _gv("plt_estilo_cab",     D.estilo_cab);
-    const fuente    = _gv("plt_fuente",         D.fuente);
-    const tamFuente = parseInt(_gv("plt_tam_fuente", String(D.tam_fuente)))||9;
-    // gc puede ser undefined si el elemento no está en el DOM visible — fallback al valor D.*
-    const mostLogo   = g("plt_mostrar_logo")   ? gc("plt_mostrar_logo")   : D.mostrar_logo;
-    const mostCab    = g("plt_mostrar_cab")     ? gc("plt_mostrar_cab")    : D.mostrar_cab;
-    const mostPie    = g("plt_mostrar_pie")     ? gc("plt_mostrar_pie")    : D.mostrar_pie;
-    const mostEmisor = g("plt_mostrar_emisor")  ? gc("plt_mostrar_emisor") : D.mostrar_emisor;
-    const concepto=gv("plt_concepto")||"Concepto del documento";
-    const notas=gv("plt_notas")||"";
-    const desc=gv("plt_descripcion")||"";
-    const pie=gv("plt_pie")||"";
-    const alin=document.getElementById("plt_alin_val")?.value||"izq";
-    const alinCSS=alin==="centro"?"center":alin==="der"?"right":"left";
+    const colorCab  = gv("ep_color_cab",    "#1a56db");
+    const colorTxtC = gv("ep_color_txt_cab","#ffffff");
+    const colorAcc  = gv("ep_color_acento", "#1a56db");
+    const colorLetra= gv("ep_color_letra",  "#0f172a");
+    const colorFdo  = gv("ep_color_fondo",  "#ffffff");
+    const colorFdoT = gv("ep_color_fondo_tab","#f8fafc");
+    const colorLin  = gv("ep_color_lineas", "#e2e8f0");
+    const estCab    = gv("ep_estilo_cab",   "solido");
+    const fuente    = gv("ep_fuente",       "Helvetica");
+    const tamF      = parseInt(gv("ep_tam_fuente","9"))||9;
+    const concepto  = gv("ep_concepto",     "")||"Concepto del documento";
+    const notas     = gv("ep_notas",        "");
+    const desc      = gv("ep_descripcion",  "");
+    const pie       = gv("ep_pie",          "");
+    const mostLogo  = gc("ep_mostrar_logo",  true);
+    const mostCab   = gc("ep_mostrar_cab",   true);
+    const mostPie   = gc("ep_mostrar_pie",   true);
+    const mostEmisor= gc("ep_mostrar_emisor",true);
+    const spEmisor  = parseInt(g("ep_margen")?.value)||18;
+    const logoX     = parseInt(g("ep_logo_x")?.value)||0;
+    const logoY     = parseInt(g("ep_logo_y")?.value)||6;
+    const logoSize  = parseInt(g("ep_logo_size")?.value)||30;
+    const emisorX   = parseInt(g("ep_emisor_x")?.value)||0;
+    const emisorY   = parseInt(g("ep_emisor_y")?.value)||0;
+    const clienteX  = parseInt(g("ep_cliente_x")?.value)||0;
+    const clienteY  = parseInt(g("ep_cliente_y")?.value)||0;
+    const alin      = gv("ep_alin_val","izq");
+    const alinCSS   = alin==="centro"?"center":alin==="der"?"right":"left";
 
     // Doc
-    const doc=g("plt_pv_doc");
-    if(doc){doc.style.fontFamily=FONT_MAP[fuente]||FONT_MAP["Helvetica"];doc.style.background=colorFdo;doc.style.color=colorLetra;doc.style.fontSize=(tamFuente+1)+"px";doc.style.textAlign=alinCSS;}
+    const doc=g("ep_pv_doc");
+    if(doc){doc.style.fontFamily=FONT_MAP[fuente];doc.style.background=colorFdo;doc.style.color=colorLetra;doc.style.fontSize=(tamF+2)+"px";doc.style.textAlign=alinCSS;}
 
-    // Logo: posición configurable con X/Y/size
-    const logoX    = parseInt(g("plt_logo_x")?.value)    ?? D.logo_x;
-    const logoY    = parseInt(g("plt_logo_y")?.value)    ?? D.logo_y;
-    const logoSize = parseInt(g("plt_logo_size")?.value) || D.logo_size;
-    const logoRow=g("plt_pv_logo_row");const logoImg=g("plt_pv_logo_img");
-    if(logoRow){
-      logoRow.style.display  = (mostLogo&&_logo) ? "block" : "none";
-      logoRow.style.top      = logoY + "px";
-      logoRow.style.right    = "auto";
-      logoRow.style.left     = "auto";
-      // X positivo = desde la derecha, X negativo = mover hacia la derecha
-      if(logoX >= 0) { logoRow.style.right = (12 + logoX) + "px"; logoRow.style.left = "auto"; }
-      else           { logoRow.style.right = (12 - Math.abs(logoX)) + "px"; logoRow.style.left = "auto"; }
-    }
-    if(logoImg&&_logo){
-      logoImg.src = _logo;
-      logoImg.style.maxHeight = logoSize + "px";
-      logoImg.style.maxWidth  = (logoSize * 2.5) + "px";
-    }
+    // Logo
+    const lr=g("ep_pv_logo_row");const li=g("ep_pv_logo_img");
+    if(lr){lr.style.display=(mostLogo&&_logo)?"flex":"none";lr.style.paddingTop=logoY+"px";lr.style.justifyContent=logoX>=0?"flex-end":"flex-start";}
+    if(li&&_logo){li.src=_logo;li.style.maxHeight=logoSize+"px";li.style.maxWidth=(logoSize*2.5)+"px";li.style.marginRight=logoX+"px";}
 
-    // Cabecera: se puede ocultar sin llevarse el logo
-    const cab=g("plt_pv_cab");
+    // Cabecera
+    const cab=g("ep_pv_cab");
     if(cab){
       if(!mostCab||estCab==="sin"){cab.style.display="none";}
       else{
         cab.style.display="";
-        cab.style.padding = `${spCab}px 14px`;
         if(estCab==="solido")   {cab.style.background=colorCab;cab.style.borderBottom="none";}
         if(estCab==="gradiente"){cab.style.background=`linear-gradient(135deg,${colorCab},${colorAcc})`;cab.style.borderBottom="none";}
         if(estCab==="linea")    {cab.style.background="transparent";cab.style.borderBottom=`3px solid ${colorCab}`;}
       }
     }
-    const pvC=g("plt_pv_concepto");const pvT=g("plt_pv_tipo");
-    if(pvC){pvC.textContent=concepto;pvC.style.color=colorTxtC;pvC.style.paddingRight=(mostLogo&&_logo)?"72px":"0";}
+    const pvC=g("ep_pv_concepto");const pvT=g("ep_pv_tipo");
+    if(pvC){pvC.textContent=concepto;pvC.style.color=colorTxtC;}
     if(pvT){pvT.textContent=L.tipo;pvT.style.color=colorTxtC;}
 
-    // Emisor
-    const emisorX  = parseInt(g("plt_emisor_x")?.value)  || D.emisor_x;
-    const emisorY  = parseInt(g("plt_emisor_y")?.value)  || D.emisor_y;
-    const clienteX = parseInt(g("plt_cliente_x")?.value) || D.cliente_x;
-    const clienteY = parseInt(g("plt_cliente_y")?.value) || D.cliente_y;
-
-    const er = g("plt_pv_emisor_row");
-    if(er){
-      er.style.display   = mostEmisor ? "grid" : "none";
-      er.style.padding   = `${spEmisor}px 12px`;
-      er.style.marginTop = spEntre + "px";
-    }
-    const eb = g("plt_pv_emisor_bloque");
-    if(eb) eb.style.transform = `translate(${emisorX}px,${emisorY}px)`;
-    const cb = g("plt_pv_cliente_bloque");
-    if(cb) cb.style.transform = `translate(${clienteX}px,${clienteY}px)`;
-
-    // Labels
+    // Emisor/cliente
+    const er=g("ep_pv_emisor_row");
+    if(er) er.style.display=mostEmisor?"grid":"none";
+    const eb=g("ep_pv_emisor_bloque");if(eb)eb.style.transform=`translate(${emisorX}px,${emisorY}px)`;
+    const cb=g("ep_pv_cliente_bloque");if(cb)cb.style.transform=`translate(${clienteX}px,${clienteY}px)`;
     const s=(id,v)=>{const el=g(id);if(el)el.textContent=v;};
-    s("plt_pv_lbl_de",L.de);s("plt_pv_lbl_para",L.para);
-    s("plt_pv_h_desc",_idioma==="en"?"Description":"Descripción");
-    s("plt_pv_h_cant",L.cant);s("plt_pv_h_precio",L.precio);s("plt_pv_h_iva",L.iva);s("plt_pv_h_total",L.total);
+    s("ep_pv_lbl_de",L.de);s("ep_pv_lbl_para",L.para);
 
-    // Tabla head color
-    const th=g("plt_pv_tabla_head");if(th)th.style.background=colorAcc;
+    // Tabla
+    const th=g("ep_pv_tabla_head");if(th)th.style.background=colorAcc;
+    s("ep_pv_h_desc",_idioma==="en"?"Description":"Descripción");
+    s("ep_pv_h_cant",L.cant);s("ep_pv_h_precio",L.precio);s("ep_pv_h_iva",L.iva);s("ep_pv_h_total",L.total);
 
-    // Descripción
-    const dw=g("plt_pv_desc_wrap");const dd=g("plt_pv_desc");
-    if(dw&&dd){dw.style.display=desc?"":"none";dd.textContent=desc;}
-
-    // Líneas
-    const rows=document.querySelectorAll("#plt_lineasContainer .linea-row");
+    const rows=document.querySelectorAll("#ep_lineasContainer .linea-row");
     const larr=[...rows].map(r=>({
       d:r.querySelector("[data-field='descripcion']")?.value||"",
       c:parseFloat(r.querySelector("[data-field='cantidad']")?.value)||1,
@@ -600,13 +361,13 @@ export function showPlantillaModal(prefill) {
       i:parseInt(r.querySelector("[data-field='iva']")?.value)||21,
     })).filter(l=>l.d||l.p>0);
 
-    const pvLin=g("plt_pv_lineas");
+    const pvLin=g("ep_pv_lineas");
     if(pvLin){
-      if(!larr.length){pvLin.innerHTML=`<div style="padding:8px 0;font-size:8.5px;color:#9ca3af;text-align:center">Sin líneas definidas</div>`;}
+      if(!larr.length){pvLin.innerHTML=`<div style="padding:12px 0;font-size:10px;color:#9ca3af;text-align:center">Sin líneas definidas</div>`;}
       else{pvLin.innerHTML=larr.map((l,ri)=>{
         const tot=l.c*l.p;
         const bg=ri%2===0?colorFdoT:"#fff";
-        return `<div style="display:grid;grid-template-columns:1fr 28px 50px 28px 52px;padding:${spTabla}px 0;background:${bg};border-bottom:1px solid ${colorLin};font-size:9px">
+        return `<div style="display:grid;grid-template-columns:1fr 40px 70px 40px 70px;padding:7px 0;background:${bg};border-bottom:1px solid ${colorLin};font-size:${tamF+2}px">
           <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left">${l.d}</span>
           <span style="text-align:right">${l.c}</span>
           <span style="text-align:right">${l.p.toFixed(2)}€</span>
@@ -616,120 +377,131 @@ export function showPlantillaModal(prefill) {
       }).join("");}
     }
 
-    // Totales
     const base=larr.reduce((a,l)=>a+l.c*l.p,0);
     const iva=larr.reduce((a,l)=>a+l.c*l.p*l.i/100,0);
-    const pvTot=g("plt_pv_totales");
+    const pvTot=g("ep_pv_totales");
     if(pvTot)pvTot.innerHTML=`
-      <table style="margin-left:auto;border-collapse:collapse;font-size:8.5px;min-width:140px">
-        <tr><td style="color:#6b7280;padding:1px 10px 1px 0">${L.base}</td><td style="text-align:right;font-family:monospace;color:#374151">${base.toFixed(2)} €</td></tr>
-        <tr><td style="color:#6b7280;padding:1px 10px 1px 0">IVA</td><td style="text-align:right;font-family:monospace;color:#374151">${iva.toFixed(2)} €</td></tr>
-        <tr style="border-top:1.5px solid ${colorAcc}">
-          <td style="font-weight:800;color:#111;padding:3px 10px 1px 0">${L.totalDoc}</td>
+      <table style="margin-left:auto;border-collapse:collapse;font-size:10px;min-width:160px">
+        <tr><td style="color:#6b7280;padding:2px 12px 2px 0">${L.base}</td><td style="text-align:right;font-family:monospace;color:#374151">${base.toFixed(2)} €</td></tr>
+        <tr><td style="color:#6b7280;padding:2px 12px 2px 0">IVA</td><td style="text-align:right;font-family:monospace;color:#374151">${iva.toFixed(2)} €</td></tr>
+        <tr style="border-top:2px solid ${colorAcc}">
+          <td style="font-weight:800;color:#111;padding:4px 12px 2px 0">${L.totalDoc}</td>
           <td style="text-align:right;font-family:monospace;font-weight:800;color:${colorAcc}">${(base+iva).toFixed(2)} €</td>
         </tr>
       </table>`;
 
-    // Notas
-    const pvN=g("plt_pv_notas");if(pvN){pvN.textContent=notas;pvN.style.display=notas?"":"none";}
-
-    // Pie
-    const pvP=g("plt_pv_pie");const pvPT=g("plt_pv_pie_txt");
-    if(pvP){pvP.style.display=mostPie?"flex":"none";pvP.style.padding=`${spPie}px 14px`;}
+    const dw=g("ep_pv_desc_wrap");const dd=g("ep_pv_desc");
+    if(dw&&dd){dw.style.display=desc?"":"none";dd.textContent=desc;}
+    const pvN=g("ep_pv_notas");if(pvN){pvN.textContent=notas;pvN.style.display=notas?"":"none";}
+    const pvP=g("ep_pv_pie");const pvPT=g("ep_pv_pie_txt");
+    if(pvP)pvP.style.display=mostPie?"flex":"none";
     if(pvPT)pvPT.textContent=pie||"Texto legal del pie";
 
     // Font preview
-    const fp=g("plt_font_preview");
-    if(fp){fp.style.fontFamily=FONT_MAP[fuente]||FONT_MAP["Helvetica"];fp.style.fontSize=(tamFuente+2)+"px";}
+    const fp=g("ep_font_preview");
+    if(fp){fp.style.fontFamily=FONT_MAP[fuente];fp.style.fontSize=(tamF+3)+"px";}
   }
 
-  // Conectar inputs
-  ["plt_nombre","plt_concepto","plt_notas","plt_descripcion","plt_pie",
-   "plt_estilo_cab","plt_tamano_hoja","plt_fuente","plt_tam_fuente","plt_margen","plt_pie_altura",
-   "plt_mostrar_logo","plt_mostrar_cab","plt_mostrar_pie","plt_mostrar_emisor","plt_mostrar_email","plt_mostrar_num_pag","plt_cab_todas_pags"
-  ].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.addEventListener("input",_pv);el.addEventListener("change",_pv);});
-  // Alineación controlada por window._pltAlin (botones toggle, sin radio)
-  document.getElementById("plt_lineasContainer")?.addEventListener("input",_pv);
-  document.getElementById("plt_lineasContainer")?.addEventListener("change",_pv);
-  _pv();
-
-  // Líneas
-  let lineaCount=lineas.length;
-  document.getElementById("plt_addLinea").addEventListener("click",()=>{
-    document.getElementById("plt_lineasContainer").insertAdjacentHTML("beforeend",_lineaHTML({}));
-    lineaCount++; _pv();
-  });
-  document.addEventListener("click",e=>{if(e.target.closest(".plt-del-linea")){e.target.closest(".linea-row")?.remove();_pv();}});
+  // Conectar inputs al preview
+  const campos=["ep_nombre","ep_concepto","ep_notas","ep_descripcion","ep_pie",
+    "ep_estilo_cab","ep_tamano_hoja","ep_fuente","ep_tam_fuente",
+    "ep_mostrar_logo","ep_mostrar_cab","ep_mostrar_pie","ep_mostrar_emisor","ep_mostrar_email","ep_mostrar_num_pag","ep_cab_todas_pags"];
+  campos.forEach(id=>{const el=g(id);if(!el)return;el.addEventListener("input",_epPv);el.addEventListener("change",_epPv);});
+  document.querySelectorAll("[id^='ep_color_']").forEach(el=>el.addEventListener("input",_epPv));
+  _epPv();
 
   // Guardar
-  document.getElementById("plt_save").addEventListener("click",async()=>{
-    const nombre=document.getElementById("plt_nombre")?.value.trim();
-    if(!nombre){window._pltTab("diseno");toast("El nombre es obligatorio","error");return;}
-    const rows=document.querySelectorAll("#plt_lineasContainer .linea-row");
+  const guardar = async () => {
+    const nombre = document.getElementById("ep_nombre")?.value.trim();
+    if (!nombre) { window._epTab("diseno"); alert("El nombre de la plantilla es obligatorio"); return; }
+
+    const rows=document.querySelectorAll("#ep_lineasContainer .linea-row");
     const lineasArr=[...rows].map(r=>({
       descripcion:r.querySelector("[data-field='descripcion']")?.value||"",
       cantidad:parseFloat(r.querySelector("[data-field='cantidad']")?.value)||1,
       precio:parseFloat(r.querySelector("[data-field='precio']")?.value)||0,
       iva:parseInt(r.querySelector("[data-field='iva']")?.value)||21,
     })).filter(l=>l.descripcion||l.precio>0);
+
     const g=id=>document.getElementById(id)?.value?.trim()||null;
     const gb=id=>document.getElementById(id)?.checked||false;
-    const gi=(id,def)=>parseInt(document.getElementById(id)?.value)||def;
+    const gi=(id,d)=>parseInt(document.getElementById(id)?.value)||d;
+
     const payload={
-      user_id:SESSION.user.id,nombre,
-      concepto:g("plt_concepto"),descripcion:g("plt_descripcion"),notas:g("plt_notas"),
-      texto_pie:g("plt_pie"),iban_visible:g("plt_iban"),idioma:_idioma,
+      user_id:SESSION.user.id, nombre,
+      concepto:g("ep_concepto"),descripcion:g("ep_descripcion"),notas:g("ep_notas"),
+      texto_pie:g("ep_pie"),iban_visible:g("ep_iban"),idioma:_idioma,
       lineas:JSON.stringify(lineasArr),
-      color_principal:g("plt_color_cabecera")||D.color_cabecera,
-      color_cabecera:g("plt_color_cabecera")||D.color_cabecera,
-      color_txt_cab:g("plt_color_txt_cab")||D.color_txt_cab,
-      color_acento:g("plt_color_acento")||D.color_acento,
-      color_letra:g("plt_color_letra")||D.color_letra,
-      color_fondo:g("plt_color_fondo")||D.color_fondo,
-      color_fondo_tab:g("plt_color_fondo_tab")||D.color_fondo_tab,
-      color_lineas:g("plt_color_lineas")||D.color_lineas,
-      fuente:g("plt_fuente")||"Helvetica",
-      tam_fuente:gi("plt_tam_fuente",9),
-      tamano_hoja:g("plt_tamano_hoja")||"A4",
-      margen:gi("plt_margen",18),
-      pie_altura:gi("plt_pie_altura",14),
-      alin_texto:document.getElementById("plt_alin_val")?.value||"izq",
-      estilo_cab:g("plt_estilo_cab")||"solido",
-      mostrar_logo:gb("plt_mostrar_logo"),mostrar_cab:gb("plt_mostrar_cab"),
-      mostrar_pie:gb("plt_mostrar_pie"),mostrar_emisor:gb("plt_mostrar_emisor"),
-      mostrar_email:gb("plt_mostrar_email"),mostrar_num_pag:gb("plt_mostrar_num_pag"),
-      cab_todas_pags:gb("plt_cab_todas_pags"),logo_b64:_logo||null,
-      sp_cab:parseInt(document.getElementById("plt_sp_cab")?.value)||D.sp_cab,
-      sp_emisor:parseInt(document.getElementById("plt_sp_emisor")?.value)||D.sp_emisor,
-      emisor_x: parseInt(document.getElementById("plt_emisor_x")?.value)||0,
-      emisor_y: parseInt(document.getElementById("plt_emisor_y")?.value)||0,
-      cliente_x:parseInt(document.getElementById("plt_cliente_x")?.value)||0,
-      cliente_y:parseInt(document.getElementById("plt_cliente_y")?.value)||0,
-      sp_entre_bloques:parseInt(document.getElementById("plt_sp_entre_bloques")?.value)||D.sp_entre_bloques,
-      sp_tabla:parseInt(document.getElementById("plt_sp_tabla")?.value)||D.sp_tabla,
-      sp_pie:parseInt(document.getElementById("plt_sp_pie")?.value)||D.sp_pie,
-      logo_x:parseInt(document.getElementById("plt_logo_x")?.value)||0,
-      logo_y:parseInt(document.getElementById("plt_logo_y")?.value)||D.logo_y,
-      logo_size:parseInt(document.getElementById("plt_logo_size")?.value)||D.logo_size,
+      color_principal:g("ep_color_cab")||"#1a56db",
+      color_cabecera:g("ep_color_cab")||"#1a56db",
+      color_txt_cab:g("ep_color_txt_cab")||"#ffffff",
+      color_acento:g("ep_color_acento")||"#1a56db",
+      color_letra:g("ep_color_letra")||"#0f172a",
+      color_fondo:g("ep_color_fondo")||"#ffffff",
+      color_fondo_tab:g("ep_color_fondo_tab")||"#f8fafc",
+      color_lineas:g("ep_color_lineas")||"#e2e8f0",
+      fuente:g("ep_fuente")||"Helvetica",
+      tam_fuente:gi("ep_tam_fuente",9),
+      tamano_hoja:g("ep_tamano_hoja")||"A4",
+      margen:gi("ep_margen",18),
+      pie_altura:gi("ep_pie_altura",14),
+      alin_texto:document.getElementById("ep_alin_val")?.value||"izq",
+      estilo_cab:g("ep_estilo_cab")||"solido",
+      mostrar_logo:gb("ep_mostrar_logo"),mostrar_cab:gb("ep_mostrar_cab"),
+      mostrar_pie:gb("ep_mostrar_pie"),mostrar_emisor:gb("ep_mostrar_emisor"),
+      mostrar_email:gb("ep_mostrar_email"),mostrar_num_pag:gb("ep_mostrar_num_pag"),
+      cab_todas_pags:gb("ep_cab_todas_pags"),
+      logo_b64:_logo||null,
+      logo_x:gi("ep_logo_x",0),logo_y:gi("ep_logo_y",6),logo_size:gi("ep_logo_size",30),
+      sp_cab:gi("ep_margen",12),sp_emisor:5,sp_entre_bloques:0,sp_tabla:6,sp_pie:5,
+      emisor_x:gi("ep_emisor_x",0),emisor_y:gi("ep_emisor_y",0),
+      cliente_x:gi("ep_cliente_x",0),cliente_y:gi("ep_cliente_y",0),
     };
-    const btn=document.getElementById("plt_save");
-    btn.disabled=true;btn.textContent="Guardando…";
+
+    const btn=document.getElementById("epGuardarBtn");
+    if(btn){btn.disabled=true;btn.textContent="Guardando…";}
+
     let err;
     if(isEdit){({error:err}=await supabase.from("plantillas_usuario").update(payload).eq("id",prefill.id));}
     else      {({error:err}=await supabase.from("plantillas_usuario").insert(payload));}
-    if(err){toast("Error: "+err.message,"error");btn.disabled=false;btn.textContent=isEdit?"💾 Actualizar":"✨ Guardar plantilla";return;}
-    toast(isEdit?"Plantilla actualizada ✅":"Plantilla creada ✅","success");
-    closeModal();await refreshPlantillas();
-  });
 
-  if(isEdit){
-    document.getElementById("plt_del")?.addEventListener("click",async()=>{
-      if(!confirm("¿Eliminar esta plantilla?"))return;
-      await supabase.from("plantillas_usuario").delete().eq("id",prefill.id);
-      closeModal();toast("Plantilla eliminada","success");await refreshPlantillas();
-    });
+    if(btn){btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar plantilla';}
+
+    if(err){toast("Error: "+err.message,"error");return;}
+    toast(isEdit?"Plantilla actualizada ✅":"Plantilla creada ✅","success");
+    await refreshPlantillas();
+    window._switchView?.("plantillas");
+  };
+
+  document.getElementById("epGuardarBtn")?.addEventListener("click", guardar);
+  document.getElementById("epCancelarBtn")?.addEventListener("click", ()=>window._switchView?.("plantillas"));
+
+  // Eliminar (si es edición)
+  if (isEdit) {
+    // Añadir botón eliminar en actions si no existe
+    const actions = document.querySelector("#view-editar-plantilla .view-actions");
+    const existingDel = document.getElementById("epEliminarBtn");
+    if (actions && !existingDel) {
+      const delBtn = document.createElement("button");
+      delBtn.id = "epEliminarBtn";
+      delBtn.className = "btn-outline";
+      delBtn.style.cssText = "color:#dc2626;border-color:#dc2626";
+      delBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg> Eliminar`;
+      actions.insertBefore(delBtn, actions.firstChild);
+      delBtn.addEventListener("click", async()=>{
+        if(!confirm("¿Eliminar esta plantilla? No se puede deshacer."))return;
+        await supabase.from("plantillas_usuario").delete().eq("id",prefill.id);
+        toast("Plantilla eliminada","success");
+        await refreshPlantillas();
+        window._switchView?.("plantillas");
+      });
+    }
+  } else {
+    // Limpiar botón eliminar si existe de una edición anterior
+    document.getElementById("epEliminarBtn")?.remove();
   }
-}
+};
+
 
 export function getPlantillaData(plantillaId) {
   const p=PLANTILLAS.find(x=>x.id===plantillaId);
@@ -768,3 +540,6 @@ export function initPlantillasView() {
   document.getElementById("nuevaPlantillaBtn")?.addEventListener("click",()=>showPlantillaModal());
   refreshPlantillas();
 }
+
+// Alias para compatibilidad — showPlantillaModal ahora navega a la vista
+export { showPlantillaModal as showPlantillaView };
