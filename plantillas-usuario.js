@@ -120,6 +120,12 @@ export function showPlantillaModal(prefill) {
     mostrar_email:   prefill.mostrar_email   !== false,
     mostrar_num_pag: prefill.mostrar_num_pag !== false,
     cab_todas_pags:  prefill.cab_todas_pags  || false,
+    // Espaciado del documento (en mm/px de preview)
+    sp_cab:          prefill.sp_cab          || 12,   // padding cabecera
+    sp_emisor:       prefill.sp_emisor       || 5,    // padding emisor/cliente
+    sp_tabla:        prefill.sp_tabla        || 6,    // padding filas tabla
+    sp_pie:          prefill.sp_pie          || 5,    // padding pie
+    sp_entre_bloques:prefill.sp_entre_bloques|| 0,    // espacio entre cabecera y emisor
   };
 
   if (!document.getElementById("_plt_css")) {
@@ -271,6 +277,28 @@ export function showPlantillaModal(prefill) {
             <div class="modal-field"><label>Texto legal del pie</label><input autocomplete="off" id="plt_pie" class="ff-input" value="${D.texto_pie}" placeholder="Inscrita en el RM de Madrid…"/></div>
             <div class="modal-field"><label>IBAN visible en el PDF</label><input autocomplete="off" id="plt_iban" class="ff-input" value="${D.iban}" placeholder="ES00 0000 0000 00 0000 0000"/></div>
           </div>
+
+          <div class="plt-group">📏 Espaciado del documento</div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:12px;line-height:1.6">
+            Ajusta las distancias entre los bloques del documento. Los cambios se ven en tiempo real en la vista previa.
+          </div>
+
+          ${[
+            ["plt_sp_cab",           "Relleno de cabecera",          D.sp_cab,           4, 30],
+            ["plt_sp_emisor",        "Espacio emisor / cliente",     D.sp_emisor,        2, 20],
+            ["plt_sp_entre_bloques", "Espacio entre cabecera y datos",D.sp_entre_bloques,0, 20],
+            ["plt_sp_tabla",         "Alto de filas de la tabla",    D.sp_tabla,         3, 16],
+            ["plt_sp_pie",           "Relleno del pie",              D.sp_pie,           2, 16],
+          ].map(([id,lbl,val,min,max])=>`
+            <div class="modal-field" style="margin-bottom:12px">
+              <label style="display:flex;justify-content:space-between">
+                <span>${lbl}</span>
+                <span id="${id}_val" style="font-family:monospace;font-size:12px;color:var(--accent);font-weight:700">${val}</span>
+              </label>
+              <input type="range" id="${id}" min="${min}" max="${max}" value="${val}" step="1"
+                style="width:100%;accent-color:var(--accent);margin-top:6px"
+                oninput="document.getElementById('${id}_val').textContent=this.value;window._pltSpacing()"/>
+            </div>`).join("")}
         </div>
       </div>
       <div style="background:var(--bg2);border-left:1px solid var(--brd);overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px">
@@ -346,6 +374,9 @@ export function showPlantillaModal(prefill) {
     _pv();
   };
 
+  // Espaciado — aplicar al preview cuando mueve el slider
+  window._pltSpacing = () => _pv();
+
   // Idioma
   const _setLang = (lang) => {
     _idioma = lang;
@@ -405,6 +436,13 @@ export function showPlantillaModal(prefill) {
 
     // Leer valores de los inputs — si el input no existe en DOM, usar el valor guardado en D
     const _gv = (id, fallback) => { const el=g(id); return (el&&el.value) ? el.value : fallback; };
+
+    // Espaciado
+    const spCab    = parseInt(g("plt_sp_cab")?.value)            || D.sp_cab;
+    const spEmisor = parseInt(g("plt_sp_emisor")?.value)         || D.sp_emisor;
+    const spEntre  = parseInt(g("plt_sp_entre_bloques")?.value)  || D.sp_entre_bloques;
+    const spTabla  = parseInt(g("plt_sp_tabla")?.value)          || D.sp_tabla;
+    const spPie    = parseInt(g("plt_sp_pie")?.value)            || D.sp_pie;
     const colorCab  = _gv("plt_color_cabecera", D.color_cabecera);
     const colorTxtC = _gv("plt_color_txt_cab",  D.color_txt_cab);
     const colorAcc  = _gv("plt_color_acento",   D.color_acento);
@@ -444,6 +482,7 @@ export function showPlantillaModal(prefill) {
       if(!mostCab||estCab==="sin"){cab.style.display="none";}
       else{
         cab.style.display="";
+        cab.style.padding = `${spCab}px 14px`;
         if(estCab==="solido")   {cab.style.background=colorCab;cab.style.borderBottom="none";}
         if(estCab==="gradiente"){cab.style.background=`linear-gradient(135deg,${colorCab},${colorAcc})`;cab.style.borderBottom="none";}
         if(estCab==="linea")    {cab.style.background="transparent";cab.style.borderBottom=`3px solid ${colorCab}`;}
@@ -454,7 +493,12 @@ export function showPlantillaModal(prefill) {
     if(pvT){pvT.textContent=L.tipo;pvT.style.color=colorTxtC;}
 
     // Emisor
-    const er=g("plt_pv_emisor_row");if(er)er.style.display=mostEmisor?"grid":"none";
+    const er=g("plt_pv_emisor_row");
+    if(er){
+      er.style.display=mostEmisor?"grid":"none";
+      er.style.padding=`${spEmisor}px 12px`;
+      er.style.marginTop=`${spEntre}px`;
+    }
 
     // Labels
     const s=(id,v)=>{const el=g(id);if(el)el.textContent=v;};
@@ -484,7 +528,7 @@ export function showPlantillaModal(prefill) {
       else{pvLin.innerHTML=larr.map((l,ri)=>{
         const tot=l.c*l.p;
         const bg=ri%2===0?colorFdoT:"#fff";
-        return `<div style="display:grid;grid-template-columns:1fr 28px 50px 28px 52px;padding:5px 0;background:${bg};border-bottom:1px solid ${colorLin};font-size:9px">
+        return `<div style="display:grid;grid-template-columns:1fr 28px 50px 28px 52px;padding:${spTabla}px 0;background:${bg};border-bottom:1px solid ${colorLin};font-size:9px">
           <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left">${l.d}</span>
           <span style="text-align:right">${l.c}</span>
           <span style="text-align:right">${l.p.toFixed(2)}€</span>
@@ -510,7 +554,7 @@ export function showPlantillaModal(prefill) {
 
     // Pie
     const pvP=g("plt_pv_pie");const pvPT=g("plt_pv_pie_txt");
-    if(pvP)pvP.style.display=mostPie?"flex":"none";
+    if(pvP){pvP.style.display=mostPie?"flex":"none";pvP.style.padding=`${spPie}px 14px`;}
     if(pvPT)pvPT.textContent=pie||"Texto legal del pie";
 
     // Font preview
