@@ -622,8 +622,17 @@ function _nfInitPlantillaSelector() {
 
   if (defP) _applyPlantillaToFactura(_nfGetPlantillaData(defP.id));
 
+  const badge = document.getElementById("nfPlantillaDefaultBadge");
+  const _updBadge = (id) => {
+    if (!badge) return;
+    const p = plantillas.find(x => x.id === id);
+    badge.style.display = (p?.es_default) ? "inline" : "none";
+  };
+  if (defP) _updBadge(defP.id);
+
   sel.addEventListener("change", () => {
     const id = sel.value;
+    _updBadge(id);
     if (!id) {
       nfPlantillaActual = null;
       nfMostrarDescuento = false;
