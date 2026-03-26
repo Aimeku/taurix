@@ -126,8 +126,10 @@ export function showPlantillaModal(prefill) {
     sp_tabla:        prefill.sp_tabla        || 6,    // padding filas tabla
     sp_pie:          prefill.sp_pie          || 5,    // padding pie
     sp_entre_bloques:prefill.sp_entre_bloques|| 0,    // espacio entre cabecera y emisor
-    emisor_x:        prefill.emisor_x        || 0,    // offset X bloque emisor/cliente
-    emisor_y:        prefill.emisor_y        || 0,    // offset Y bloque emisor/cliente
+    emisor_x:        prefill.emisor_x        || 0,    // offset X bloque emisor
+    emisor_y:        prefill.emisor_y        || 0,    // offset Y bloque emisor
+    cliente_x:       prefill.cliente_x       || 0,    // offset X bloque cliente
+    cliente_y:       prefill.cliente_y       || 0,    // offset Y bloque cliente
     logo_x:          prefill.logo_x          || 0,    // offset X del logo (px)
     logo_y:          prefill.logo_y          || 6,    // offset Y del logo (px)
     logo_size:       prefill.logo_size       || 30,   // altura máxima del logo (px)
@@ -312,8 +314,10 @@ export function showPlantillaModal(prefill) {
           ${[
             ["plt_sp_cab",           "Relleno de cabecera",          D.sp_cab,           4, 30],
             ["plt_sp_emisor",        "Relleno emisor / cliente",     D.sp_emisor,        2, 20],
-            ["plt_emisor_x",         "Emisor/cliente: posición X",   D.emisor_x,       -80, 80],
-            ["plt_emisor_y",         "Emisor/cliente: posición Y",   D.emisor_y,       -20, 40],
+            ["plt_emisor_x",  "Emisor — posición X",  D.emisor_x,  -80, 80],
+            ["plt_emisor_y",  "Emisor — posición Y",  D.emisor_y,  -20, 40],
+            ["plt_cliente_x", "Cliente — posición X", D.cliente_x, -80, 80],
+            ["plt_cliente_y", "Cliente — posición Y", D.cliente_y, -20, 40],
             ["plt_sp_entre_bloques", "Espacio entre cabecera y datos",D.sp_entre_bloques,0, 20],
             ["plt_sp_tabla",         "Alto de filas de la tabla",    D.sp_tabla,         3, 16],
             ["plt_sp_pie",           "Relleno del pie",              D.sp_pie,           2, 16],
@@ -345,15 +349,18 @@ export function showPlantillaModal(prefill) {
               <div style="font-size:9px;opacity:.6;color:${D.color_txt_cab};margin-top:1px">FAC-2025-001 · ${new Date().toLocaleDateString("es-ES")}</div>
             </div>
           </div>
-          <div id="plt_pv_emisor_row" style="display:${D.mostrar_emisor?"grid":"none"};grid-template-columns:1fr 1fr;gap:2px;padding:5px 12px;border-bottom:1px solid #e5e7eb">
-            <div>
+          <!-- Wrapper emisor+cliente con posición independiente -->
+          <div id="plt_pv_emisor_row" style="display:${D.mostrar_emisor?"flex":"none"};border-bottom:1px solid #e5e7eb;padding:${D.sp_emisor}px 0;position:relative;min-height:36px">
+            <!-- Bloque EMISOR -->
+            <div id="plt_pv_emisor_bloque" style="position:absolute;left:${12+D.emisor_x}px;top:${D.sp_emisor+D.emisor_y}px;min-width:120px;max-width:140px">
               <div id="plt_pv_lbl_de" style="font-size:6px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.06em">EMISOR</div>
-              <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.3;word-break:break-word">Tu empresa SL</div>
+              <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.4">Tu empresa SL</div>
               <div style="font-size:7.5px;color:#6b7280">NIF: B12345678</div>
             </div>
-            <div>
+            <!-- Bloque CLIENTE -->
+            <div id="plt_pv_cliente_bloque" style="position:absolute;left:${160+D.cliente_x}px;top:${D.sp_emisor+D.cliente_y}px;min-width:120px;max-width:140px">
               <div id="plt_pv_lbl_para" style="font-size:6px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.06em">CLIENTE</div>
-              <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.3;word-break:break-word">Empresa Cliente</div>
+              <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.4">Empresa Cliente</div>
               <div style="font-size:7.5px;color:#6b7280">NIF: A98765432</div>
             </div>
           </div>
@@ -538,15 +545,29 @@ export function showPlantillaModal(prefill) {
     if(pvT){pvT.textContent=L.tipo;pvT.style.color=colorTxtC;}
 
     // Emisor
-    const emisorX = parseInt(g("plt_emisor_x")?.value) || D.emisor_x;
-    const emisorY = parseInt(g("plt_emisor_y")?.value) || D.emisor_y;
-    const er=g("plt_pv_emisor_row");
+    const emisorX  = parseInt(g("plt_emisor_x")?.value)  || D.emisor_x;
+    const emisorY  = parseInt(g("plt_emisor_y")?.value)  || D.emisor_y;
+    const clienteX = parseInt(g("plt_cliente_x")?.value) || D.cliente_x;
+    const clienteY = parseInt(g("plt_cliente_y")?.value) || D.cliente_y;
+
+    const er = g("plt_pv_emisor_row");
     if(er){
-      er.style.display     = mostEmisor ? "grid" : "none";
-      er.style.padding     = `${spEmisor}px 12px`;
-      er.style.marginTop   = `${spEntre + emisorY}px`;
-      er.style.marginLeft  = emisorX + "px";
-      er.style.marginRight = emisorX < 0 ? Math.abs(emisorX) + "px" : "0";
+      er.style.display    = mostEmisor ? "flex" : "none";
+      er.style.padding    = `${spEmisor}px 0`;
+      er.style.marginTop  = spEntre + "px";
+      er.style.minHeight  = (spEmisor*2 + 36) + "px";
+    }
+    // Emisor: posición absoluta independiente
+    const eb = g("plt_pv_emisor_bloque");
+    if(eb){
+      eb.style.left = (12 + emisorX) + "px";
+      eb.style.top  = (spEmisor + emisorY) + "px";
+    }
+    // Cliente: posición absoluta independiente
+    const cb = g("plt_pv_cliente_bloque");
+    if(cb){
+      cb.style.left = (160 + clienteX) + "px";
+      cb.style.top  = (spEmisor + clienteY) + "px";
     }
 
     // Labels
@@ -669,8 +690,10 @@ export function showPlantillaModal(prefill) {
       cab_todas_pags:gb("plt_cab_todas_pags"),logo_b64:_logo||null,
       sp_cab:parseInt(document.getElementById("plt_sp_cab")?.value)||D.sp_cab,
       sp_emisor:parseInt(document.getElementById("plt_sp_emisor")?.value)||D.sp_emisor,
-      emisor_x:parseInt(document.getElementById("plt_emisor_x")?.value)||0,
-      emisor_y:parseInt(document.getElementById("plt_emisor_y")?.value)||0,
+      emisor_x: parseInt(document.getElementById("plt_emisor_x")?.value)||0,
+      emisor_y: parseInt(document.getElementById("plt_emisor_y")?.value)||0,
+      cliente_x:parseInt(document.getElementById("plt_cliente_x")?.value)||0,
+      cliente_y:parseInt(document.getElementById("plt_cliente_y")?.value)||0,
       sp_entre_bloques:parseInt(document.getElementById("plt_sp_entre_bloques")?.value)||D.sp_entre_bloques,
       sp_tabla:parseInt(document.getElementById("plt_sp_tabla")?.value)||D.sp_tabla,
       sp_pie:parseInt(document.getElementById("plt_sp_pie")?.value)||D.sp_pie,
