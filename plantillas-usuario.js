@@ -157,6 +157,10 @@ window._epInit = function() {
   sc("ep_mostrar_num_pag", prefill.mostrar_num_pag);
   sc("ep_cab_todas_pags",  prefill.cab_todas_pags || false);
 
+  // Fecha en preview
+  const fechaEl = document.getElementById("ep_pv_fecha");
+  if (fechaEl) fechaEl.textContent = "FAC-2025-001 · " + new Date().toLocaleDateString("es-ES");
+
   // Logo
   let _logo = prefill.logo_b64 || "";
   let _idioma = prefill.idioma || "es";
@@ -413,12 +417,12 @@ window._epInit = function() {
     if(fp){fp.style.fontFamily=FONT_MAP[fuente];fp.style.fontSize=(tamF+3)+"px";}
   }
 
-  // Conectar inputs al preview
-  const campos=["ep_nombre","ep_concepto","ep_notas","ep_descripcion","ep_pie",
-    "ep_estilo_cab","ep_tamano_hoja","ep_fuente","ep_tam_fuente",
-    "ep_mostrar_logo","ep_mostrar_cab","ep_mostrar_pie","ep_mostrar_emisor","ep_mostrar_email","ep_mostrar_num_pag","ep_cab_todas_pags"];
-  campos.forEach(id=>{const el=g(id);if(!el)return;el.addEventListener("input",_epPv);el.addEventListener("change",_epPv);});
-  document.querySelectorAll("[id^='ep_color_']").forEach(el=>el.addEventListener("input",_epPv));
+  // Conectar TODOS los inputs, selects y checkboxes del formulario al preview
+  document.querySelectorAll("#view-editar-plantilla input, #view-editar-plantilla select, #view-editar-plantilla textarea").forEach(el=>{
+    if(el.id==="ep_logo_inp") return; // file input — no conectar
+    el.addEventListener("input",  _epPv);
+    el.addEventListener("change", _epPv);
+  });
   _epPv();
 
   // Guardar
