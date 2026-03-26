@@ -1265,6 +1265,7 @@
       </div>
 
       <!-- ═══ VIEW: EDITAR PLANTILLA ═══ -->
+      <!-- ═══ VIEW: EDITAR PLANTILLA ═══ -->
       <div class="view" id="view-editar-plantilla">
         <div class="view-header">
           <div class="view-title-group">
@@ -1283,25 +1284,25 @@
           </div>
         </div>
 
-        <!-- Tabs de sección -->
-        <div style="display:flex;gap:0;border-bottom:1px solid var(--brd);background:var(--srf);border-radius:12px 12px 0 0;margin-bottom:0;overflow:hidden">
-          <button class="ep-tab ep-tab-on" data-tab="diseno" onclick="window._epTab('diseno')" style="padding:11px 22px;font-size:13px;font-weight:600;cursor:pointer;border:none;border-bottom:2px solid var(--accent);background:var(--srf);color:var(--accent)">🎨 Diseño</button>
-          <button class="ep-tab" data-tab="fuente" onclick="window._epTab('fuente')" style="padding:11px 22px;font-size:13px;font-weight:600;cursor:pointer;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--t3)">🔤 Fuente</button>
-          <button class="ep-tab" data-tab="contenido" onclick="window._epTab('contenido')" style="padding:11px 22px;font-size:13px;font-weight:600;cursor:pointer;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--t3)">📝 Contenido</button>
-          <button class="ep-tab" data-tab="avanzado" onclick="window._epTab('avanzado')" style="padding:11px 22px;font-size:13px;font-weight:600;cursor:pointer;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--t3)">⚙️ Avanzado</button>
-          <!-- Idioma -->
+        <!-- Tabs + idioma -->
+        <div style="display:flex;border-bottom:1px solid var(--brd);background:var(--srf);border-radius:12px 12px 0 0;overflow:hidden">
+          <button class="ep-tab ep-tab-on" data-tab="diseno" onclick="window._epTab('diseno')">🎨 Diseño</button>
+          <button class="ep-tab" data-tab="fuente"    onclick="window._epTab('fuente')">🔤 Fuente</button>
+          <button class="ep-tab" data-tab="contenido" onclick="window._epTab('contenido')">📝 Contenido</button>
+          <button class="ep-tab" data-tab="avanzado"  onclick="window._epTab('avanzado')">⚙️ Avanzado</button>
           <div style="margin-left:auto;display:flex;align-items:center;padding:0 16px;gap:8px">
-            <span style="font-size:12px;color:var(--t3);font-weight:600">Idioma del documento:</span>
-            <div style="display:flex;gap:5px">
-              <button id="ep_lang_es" onclick="window._epLang('es')" style="padding:5px 14px;font-size:12px;font-weight:700;border:2px solid var(--accent);border-radius:7px;cursor:pointer;background:var(--accent);color:#fff">ES</button>
-              <button id="ep_lang_en" onclick="window._epLang('en')" style="padding:5px 14px;font-size:12px;font-weight:700;border:2px solid var(--brd);border-radius:7px;cursor:pointer;background:var(--bg2);color:var(--t2)">EN</button>
-            </div>
+            <span style="font-size:12px;color:var(--t3);font-weight:600">Idioma:</span>
+            <button id="ep_lang_es" onclick="window._epLang('es')">ES</button>
+            <button id="ep_lang_en" onclick="window._epLang('en')">EN</button>
           </div>
         </div>
 
         <div class="nf-layout" style="align-items:start;margin-top:0">
-          <!-- ── Columna izquierda: formulario ── -->
-          <div class="nf-form-col" id="ep-form-area">
+
+          <!-- ── Columna izquierda ── -->
+          <div class="nf-form-col">
+
+            <!-- Nombre y concepto — siempre visible -->
             <div class="form-block">
               <div class="fb-title">Identificación</div>
               <div class="ff-grid2">
@@ -1317,7 +1318,7 @@
                 <div id="ep_logo_prev" onclick="document.getElementById('ep_logo_inp').click()"
                   style="width:100px;height:64px;border:2px dashed var(--brd);border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--bg2);cursor:pointer;flex-shrink:0;transition:border-color .2s"
                   onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--brd)'">
-                  <span id="ep_logo_placeholder" style="font-size:11px;color:var(--t4);text-align:center;line-height:1.4">Click para<br>subir logo</span>
+                  <span style="font-size:11px;color:var(--t4);text-align:center;line-height:1.4">Click para<br>subir logo</span>
                 </div>
                 <input type="file" id="ep_logo_inp" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none"/>
                 <div style="display:flex;flex-direction:column;gap:6px">
@@ -1327,7 +1328,6 @@
                 </div>
               </div>
 
-              <!-- Mostrar logo toggle -->
               <label id="ep_mostrar_logo_lbl" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;margin-bottom:16px;border-radius:10px;cursor:pointer;border:1.5px solid var(--brd);background:var(--bg2);transition:all .2s">
                 <div style="display:flex;align-items:center;gap:8px">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -1336,11 +1336,20 @@
                 <input type="checkbox" id="ep_mostrar_logo" checked style="width:16px;height:16px;accent-color:var(--accent)"/>
               </label>
 
-              <div class="fb-title" style="margin-top:4px">Posición del logo</div>
+              <div class="fb-title">Posición del logo</div>
               <div class="ff-grid3" style="margin-bottom:14px">
-                <div class="ff-field"><label style="display:flex;justify-content:space-between">Posición X <span id="ep_logo_x_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label><input type="range" id="ep_logo_x" min="-100" max="100" value="0" style="width:100%;accent-color:var(--accent)"/></div>
-                <div class="ff-field"><label style="display:flex;justify-content:space-between">Posición Y <span id="ep_logo_y_val" style="color:var(--accent);font-family:monospace;font-weight:700">6</span></label><input type="range" id="ep_logo_y" min="-20" max="60" value="6" style="width:100%;accent-color:var(--accent)"/></div>
-                <div class="ff-field"><label style="display:flex;justify-content:space-between">Tamaño (px) <span id="ep_logo_size_val" style="color:var(--accent);font-family:monospace;font-weight:700">30</span></label><input type="range" id="ep_logo_size" min="16" max="80" value="30" style="width:100%;accent-color:var(--accent)"/></div>
+                <div class="ff-field">
+                  <label style="display:flex;justify-content:space-between">Posición X <span id="ep_logo_x_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label>
+                  <input type="range" id="ep_logo_x" min="-100" max="100" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_logo_x_val').textContent=this.value;window._epPreview()"/>
+                </div>
+                <div class="ff-field">
+                  <label style="display:flex;justify-content:space-between">Posición Y <span id="ep_logo_y_val" style="color:var(--accent);font-family:monospace;font-weight:700">6</span></label>
+                  <input type="range" id="ep_logo_y" min="-20" max="60" value="6" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_logo_y_val').textContent=this.value;window._epPreview()"/>
+                </div>
+                <div class="ff-field">
+                  <label style="display:flex;justify-content:space-between">Tamaño (px) <span id="ep_logo_size_val" style="color:var(--accent);font-family:monospace;font-weight:700">30</span></label>
+                  <input type="range" id="ep_logo_size" min="16" max="80" value="30" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_logo_size_val').textContent=this.value;window._epPreview()"/>
+                </div>
               </div>
 
               <div class="fb-title">Cabecera</div>
@@ -1355,29 +1364,33 @@
                 </div>
                 <div class="ff-field"><label>Tamaño de hoja</label>
                   <select id="ep_tamano_hoja" class="ff-select">
-                    <option value="A4">A4</option><option value="A3">A3</option><option value="Letter">Letter</option><option value="Legal">Legal</option>
+                    <option value="A4">A4</option>
+                    <option value="A3">A3</option>
+                    <option value="Letter">Letter</option>
+                    <option value="Legal">Legal</option>
                   </select>
                 </div>
               </div>
 
               <div class="fb-title">Colores</div>
               <div class="ff-grid2" style="margin-bottom:14px">
-                ${[["ep_color_cab","Color de cabeceras","#1a56db"],["ep_color_txt_cab","Color letra cabecera","#ffffff"],["ep_color_acento","Color acento / tabla","#1a56db"],["ep_color_letra","Color de letra","#0f172a"],["ep_color_fondo","Color de fondo","#ffffff"],["ep_color_fondo_tab","Fondo de tablas","#f8fafc"],["ep_color_lineas","Líneas de tabla","#e2e8f0"]].map(([id,lbl,def])=>`
-                  <div class="ff-field">
-                    <label style="font-size:12px">${lbl}</label>
-                    <div style="display:flex;gap:6px;align-items:center;margin-top:3px">
-                      <input type="color" id="${id}" value="${def}" style="width:36px;height:36px;padding:2px;border:1.5px solid var(--brd);border-radius:7px;cursor:pointer"/>
-                      <input type="text" id="${id}_hex" value="${def}" maxlength="7" style="flex:1;font-family:monospace;font-size:12px;padding:5px 8px;border:1.5px solid var(--brd);border-radius:7px;background:var(--bg2)"/>
-                    </div>
-                  </div>`).join("")}
+                <div class="ff-field"><label style="font-size:12px">Color de cabeceras</label><div style="display:flex;gap:6px;align-items:center;margin-top:3px"><input type="color" id="ep_color_cab" value="#1a56db" style="width:36px;height:36px;padding:2px;border:1.5px solid var(--brd);border-radius:7px;cursor:pointer"/><input type="text" id="ep_color_cab_hex" value="#1a56db" maxlength="7" style="flex:1;font-family:monospace;font-size:12px;padding:5px 8px;border:1.5px solid var(--brd);border-radius:7px;background:var(--bg2)"/></div></div>
+                <div class="ff-field"><label style="font-size:12px">Color letra cabecera</label><div style="display:flex;gap:6px;align-items:center;margin-top:3px"><input type="color" id="ep_color_txt_cab" value="#ffffff" style="width:36px;height:36px;padding:2px;border:1.5px solid var(--brd);border-radius:7px;cursor:pointer"/><input type="text" id="ep_color_txt_cab_hex" value="#ffffff" maxlength="7" style="flex:1;font-family:monospace;font-size:12px;padding:5px 8px;border:1.5px solid var(--brd);border-radius:7px;background:var(--bg2)"/></div></div>
+                <div class="ff-field"><label style="font-size:12px">Color acento / tabla</label><div style="display:flex;gap:6px;align-items:center;margin-top:3px"><input type="color" id="ep_color_acento" value="#1a56db" style="width:36px;height:36px;padding:2px;border:1.5px solid var(--brd);border-radius:7px;cursor:pointer"/><input type="text" id="ep_color_acento_hex" value="#1a56db" maxlength="7" style="flex:1;font-family:monospace;font-size:12px;padding:5px 8px;border:1.5px solid var(--brd);border-radius:7px;background:var(--bg2)"/></div></div>
+                <div class="ff-field"><label style="font-size:12px">Color de letra</label><div style="display:flex;gap:6px;align-items:center;margin-top:3px"><input type="color" id="ep_color_letra" value="#0f172a" style="width:36px;height:36px;padding:2px;border:1.5px solid var(--brd);border-radius:7px;cursor:pointer"/><input type="text" id="ep_color_letra_hex" value="#0f172a" maxlength="7" style="flex:1;font-family:monospace;font-size:12px;padding:5px 8px;border:1.5px solid var(--brd);border-radius:7px;background:var(--bg2)"/></div></div>
+                <div class="ff-field"><label style="font-size:12px">Color de fondo</label><div style="display:flex;gap:6px;align-items:center;margin-top:3px"><input type="color" id="ep_color_fondo" value="#ffffff" style="width:36px;height:36px;padding:2px;border:1.5px solid var(--brd);border-radius:7px;cursor:pointer"/><input type="text" id="ep_color_fondo_hex" value="#ffffff" maxlength="7" style="flex:1;font-family:monospace;font-size:12px;padding:5px 8px;border:1.5px solid var(--brd);border-radius:7px;background:var(--bg2)"/></div></div>
+                <div class="ff-field"><label style="font-size:12px">Fondo de tablas</label><div style="display:flex;gap:6px;align-items:center;margin-top:3px"><input type="color" id="ep_color_fondo_tab" value="#f8fafc" style="width:36px;height:36px;padding:2px;border:1.5px solid var(--brd);border-radius:7px;cursor:pointer"/><input type="text" id="ep_color_fondo_tab_hex" value="#f8fafc" maxlength="7" style="flex:1;font-family:monospace;font-size:12px;padding:5px 8px;border:1.5px solid var(--brd);border-radius:7px;background:var(--bg2)"/></div></div>
+                <div class="ff-field"><label style="font-size:12px">Líneas de tabla</label><div style="display:flex;gap:6px;align-items:center;margin-top:3px"><input type="color" id="ep_color_lineas" value="#e2e8f0" style="width:36px;height:36px;padding:2px;border:1.5px solid var(--brd);border-radius:7px;cursor:pointer"/><input type="text" id="ep_color_lineas_hex" value="#e2e8f0" maxlength="7" style="flex:1;font-family:monospace;font-size:12px;padding:5px 8px;border:1.5px solid var(--brd);border-radius:7px;background:var(--bg2)"/></div></div>
               </div>
 
               <div class="fb-title">Visibilidad</div>
               <div class="ff-grid2" style="margin-bottom:4px">
-                ${[["ep_mostrar_cab","Mostrar cabecera",true],["ep_mostrar_pie","Mostrar pie de página",true],["ep_mostrar_emisor","Mostrar datos del emisor",true],["ep_mostrar_email","Mostrar email del emisor",true],["ep_mostrar_num_pag","Numeración de páginas",true],["ep_cab_todas_pags","Cabecera en todas las págs.",false]].map(([id,lbl,def])=>`
-                  <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;cursor:pointer;font-size:13px">
-                    <span>${lbl}</span><input type="checkbox" id="${id}" ${def?"checked":""} style="width:15px;height:15px;accent-color:var(--accent)"/>
-                  </label>`).join("")}
+                <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;cursor:pointer;font-size:13px"><span>Mostrar cabecera</span><input type="checkbox" id="ep_mostrar_cab" checked style="width:15px;height:15px;accent-color:var(--accent)"/></label>
+                <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;cursor:pointer;font-size:13px"><span>Mostrar pie de página</span><input type="checkbox" id="ep_mostrar_pie" checked style="width:15px;height:15px;accent-color:var(--accent)"/></label>
+                <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;cursor:pointer;font-size:13px"><span>Mostrar datos del emisor</span><input type="checkbox" id="ep_mostrar_emisor" checked style="width:15px;height:15px;accent-color:var(--accent)"/></label>
+                <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;cursor:pointer;font-size:13px"><span>Mostrar email del emisor</span><input type="checkbox" id="ep_mostrar_email" checked style="width:15px;height:15px;accent-color:var(--accent)"/></label>
+                <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;cursor:pointer;font-size:13px"><span>Numeración de páginas</span><input type="checkbox" id="ep_mostrar_num_pag" checked style="width:15px;height:15px;accent-color:var(--accent)"/></label>
+                <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;cursor:pointer;font-size:13px"><span>Cabecera todas las págs.</span><input type="checkbox" id="ep_cab_todas_pags" style="width:15px;height:15px;accent-color:var(--accent)"/></label>
               </div>
             </div>
 
@@ -1387,27 +1400,38 @@
               <div class="ff-grid2" style="margin-bottom:14px">
                 <div class="ff-field"><label>Fuente del documento</label>
                   <select id="ep_fuente" class="ff-select">
-                    ${["Helvetica","Arial","Courier New","Times New Roman","Georgia","Trebuchet MS","Verdana","Garamond"].map(f=>`<option value="${f}">${f}</option>`).join("")}
+                    <option value="Helvetica">Helvetica</option>
+                    <option value="Arial">Arial</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Trebuchet MS">Trebuchet MS</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Garamond">Garamond</option>
                   </select>
                 </div>
                 <div class="ff-field"><label>Tamaño de fuente</label>
                   <select id="ep_tam_fuente" class="ff-select">
-                    ${[7,8,9,10,11,12].map(s=>`<option value="${s}" ${s===9?"selected":""}>${s} pt</option>`).join("")}
+                    <option value="7">7 pt</option>
+                    <option value="8">8 pt</option>
+                    <option value="9" selected>9 pt</option>
+                    <option value="10">10 pt</option>
+                    <option value="11">11 pt</option>
+                    <option value="12">12 pt</option>
                   </select>
                 </div>
               </div>
               <div class="ff-field" style="margin-bottom:14px">
                 <label>Alineación del texto</label>
                 <div style="display:flex;gap:6px;margin-top:6px" id="ep_alin_group">
-                  ${[["izq","Izquierda"],["centro","Centro"],["der","Derecha"]].map(([v,lbl],i)=>`
-                    <button type="button" data-alin="${v}" onclick="document.querySelectorAll('#ep_alin_group button').forEach(b=>{b.style.borderColor=b.dataset.alin==='${v}'?'#f97316':'var(--brd)';b.style.color=b.dataset.alin==='${v}'?'#f97316':'var(--t2)';b.style.fontWeight=b.dataset.alin==='${v}'?'700':'500';});document.getElementById('ep_alin_val').value='${v}';window._epPreview();"
-                      style="padding:7px 16px;border:2px solid ${i===0?'#f97316':'var(--brd)'};border-radius:7px;cursor:pointer;font-size:13px;font-weight:${i===0?700:500};background:var(--bg2);color:${i===0?'#f97316':'var(--t2)'};transition:all .15s">${lbl}
-                    </button>`).join("")}
+                  <button type="button" data-alin="izq"    onclick="window._epSetAlin('izq')"    style="padding:7px 16px;border:2px solid #f97316;border-radius:7px;cursor:pointer;font-size:13px;font-weight:700;background:var(--bg2);color:#f97316;transition:all .15s">Izquierda</button>
+                  <button type="button" data-alin="centro" onclick="window._epSetAlin('centro')" style="padding:7px 16px;border:2px solid var(--brd);border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;background:var(--bg2);color:var(--t2);transition:all .15s">Centro</button>
+                  <button type="button" data-alin="der"    onclick="window._epSetAlin('der')"    style="padding:7px 16px;border:2px solid var(--brd);border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;background:var(--bg2);color:var(--t2);transition:all .15s">Derecha</button>
                 </div>
                 <input type="hidden" id="ep_alin_val" value="izq"/>
               </div>
               <div class="fb-title">Vista previa de tipografía</div>
-              <div id="ep_font_preview" style="border:1px solid var(--brd);border-radius:10px;padding:16px;background:var(--bg2);line-height:1.8;font-family:Helvetica,Arial,sans-serif">
+              <div id="ep_font_preview" style="border:1px solid var(--brd);border-radius:10px;padding:16px;background:var(--bg2);line-height:1.8">
                 <div style="font-weight:700;font-size:15px">FACTURA · FAC-2025-001</div>
                 <div style="font-size:13px;color:var(--t3)">Concepto de ejemplo · 1.210,00 €</div>
                 <div style="font-size:12px;color:var(--t4)">Descripción del servicio prestado al cliente</div>
@@ -1419,7 +1443,7 @@
               <div class="fb-title">Contenido del documento</div>
               <div class="ff-field" style="margin-bottom:12px">
                 <label>Descripción / Alcance del servicio</label>
-                <textarea autocomplete="off" id="ep_descripcion" class="ff-input ff-textarea" style="min-height:80px" placeholder="Aparece en el cuerpo del documento debajo del encabezado."></textarea>
+                <textarea autocomplete="off" id="ep_descripcion" class="ff-input ff-textarea" style="min-height:80px" placeholder="Aparece en el cuerpo del documento."></textarea>
               </div>
               <div class="ff-field" style="margin-bottom:20px">
                 <label>Notas / Condiciones de pago</label>
@@ -1440,42 +1464,38 @@
                 <div class="ff-field"><label style="display:flex;justify-content:space-between">Margen general (mm) <span id="ep_margen_val" style="color:var(--accent);font-family:monospace;font-weight:700">18</span></label><input type="range" id="ep_margen" min="10" max="25" value="18" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_margen_val').textContent=this.value;window._epPreview()"/></div>
                 <div class="ff-field"><label style="display:flex;justify-content:space-between">Altura pie (mm) <span id="ep_pie_altura_val" style="color:var(--accent);font-family:monospace;font-weight:700">14</span></label><input type="range" id="ep_pie_altura" min="8" max="20" value="14" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_pie_altura_val').textContent=this.value;window._epPreview()"/></div>
               </div>
+              <div class="fb-title">Posición emisor / cliente</div>
               <div class="ff-grid2" style="margin-bottom:14px">
-                <div class="ff-field"><label style="display:flex;justify-content:space-between">Emisor — posición X <span id="ep_emisor_x_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label><input type="range" id="ep_emisor_x" min="-80" max="80" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_emisor_x_val').textContent=this.value;window._epPreview()"/></div>
-                <div class="ff-field"><label style="display:flex;justify-content:space-between">Emisor — posición Y <span id="ep_emisor_y_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label><input type="range" id="ep_emisor_y" min="-20" max="40" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_emisor_y_val').textContent=this.value;window._epPreview()"/></div>
-                <div class="ff-field"><label style="display:flex;justify-content:space-between">Cliente — posición X <span id="ep_cliente_x_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label><input type="range" id="ep_cliente_x" min="-80" max="80" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_cliente_x_val').textContent=this.value;window._epPreview()"/></div>
-                <div class="ff-field"><label style="display:flex;justify-content:space-between">Cliente — posición Y <span id="ep_cliente_y_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label><input type="range" id="ep_cliente_y" min="-20" max="40" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_cliente_y_val').textContent=this.value;window._epPreview()"/></div>
+                <div class="ff-field"><label style="display:flex;justify-content:space-between">Emisor X <span id="ep_emisor_x_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label><input type="range" id="ep_emisor_x" min="-80" max="80" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_emisor_x_val').textContent=this.value;window._epPreview()"/></div>
+                <div class="ff-field"><label style="display:flex;justify-content:space-between">Emisor Y <span id="ep_emisor_y_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label><input type="range" id="ep_emisor_y" min="-20" max="40" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_emisor_y_val').textContent=this.value;window._epPreview()"/></div>
+                <div class="ff-field"><label style="display:flex;justify-content:space-between">Cliente X <span id="ep_cliente_x_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label><input type="range" id="ep_cliente_x" min="-80" max="80" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_cliente_x_val').textContent=this.value;window._epPreview()"/></div>
+                <div class="ff-field"><label style="display:flex;justify-content:space-between">Cliente Y <span id="ep_cliente_y_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label><input type="range" id="ep_cliente_y" min="-20" max="40" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_cliente_y_val').textContent=this.value;window._epPreview()"/></div>
               </div>
               <div class="fb-title">Pie de página</div>
-              <div class="ff-grid2" style="margin-bottom:14px">
+              <div class="ff-grid2">
                 <div class="ff-field"><label>Texto legal del pie</label><input autocomplete="off" id="ep_pie" class="ff-input" placeholder="Inscrita en el RM de Madrid…"/></div>
                 <div class="ff-field"><label>IBAN visible en el PDF</label><input autocomplete="off" id="ep_iban" class="ff-input" placeholder="ES00 0000 0000 00 0000 0000"/></div>
               </div>
             </div>
-          </div>
 
-          <!-- ── Columna derecha: preview GRANDE ── -->
+          </div><!-- fin columna izquierda -->
+
+          <!-- ── Columna derecha: preview ── -->
           <div class="nf-preview-col">
-            <div class="nf-preview-card" id="ep_preview_card" style="padding:0;overflow:hidden">
+            <div class="nf-preview-card" style="padding:0;overflow:hidden">
               <div style="padding:10px 16px;border-bottom:1px solid var(--brd);background:var(--bg2);display:flex;align-items:center;justify-content:space-between">
-                <span style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em">👁 Vista previa del documento</span>
+                <span style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em">👁 Vista previa</span>
                 <span style="font-size:11px;color:var(--t4)">Se actualiza en tiempo real</span>
               </div>
               <div id="ep_pv_doc" style="background:#fff;font-size:11px;min-height:500px">
-
-                <!-- Logo -->
                 <div id="ep_pv_logo_row" style="padding:10px 18px 0;display:none;justify-content:flex-end">
                   <img id="ep_pv_logo_img" src="" style="max-height:36px;max-width:90px;object-fit:contain"/>
                 </div>
-
-                <!-- Cabecera -->
                 <div id="ep_pv_cab" style="padding:16px 18px;background:#1a56db">
                   <div id="ep_pv_tipo" style="font-size:9px;font-weight:800;letter-spacing:.12em;opacity:.65;color:#fff">FACTURA</div>
                   <div id="ep_pv_concepto" style="font-size:16px;font-weight:700;color:#fff;margin-top:3px">Concepto del documento</div>
-                  <div style="font-size:10px;opacity:.6;color:#fff;margin-top:2px">FAC-2025-001 · ${new Date().toLocaleDateString("es-ES")}</div>
+                  <div style="font-size:10px;opacity:.6;color:#fff;margin-top:2px" id="ep_pv_fecha"></div>
                 </div>
-
-                <!-- Emisor / Cliente -->
                 <div id="ep_pv_emisor_row" style="display:grid;grid-template-columns:1fr 1fr;padding:10px 18px;border-bottom:1px solid #e5e7eb;overflow:hidden">
                   <div id="ep_pv_emisor_bloque" style="overflow:hidden;min-width:0">
                     <div id="ep_pv_lbl_de" style="font-size:7px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.06em;margin-bottom:2px">EMISOR</div>
@@ -1488,13 +1508,7 @@
                     <div style="font-size:9px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">NIF: A98765432</div>
                   </div>
                 </div>
-
-                <!-- Descripción -->
-                <div id="ep_pv_desc_wrap" style="padding:9px 18px;border-bottom:1px solid #f3f4f6;display:none">
-                  <div id="ep_pv_desc" style="font-size:10px;color:#6b7280;line-height:1.5"></div>
-                </div>
-
-                <!-- Tabla -->
+                <div id="ep_pv_desc_wrap" style="padding:9px 18px;border-bottom:1px solid #f3f4f6;display:none"><div id="ep_pv_desc" style="font-size:10px;color:#6b7280;line-height:1.5"></div></div>
                 <div style="padding:0 18px">
                   <div id="ep_pv_tabla_head" style="display:grid;grid-template-columns:1fr 40px 70px 40px 70px;padding:8px 18px 5px;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff;background:#1a56db;margin:0 -18px;letter-spacing:.04em">
                     <span id="ep_pv_h_desc">Descripción</span>
@@ -1503,18 +1517,10 @@
                     <span style="text-align:right" id="ep_pv_h_iva">IVA</span>
                     <span style="text-align:right" id="ep_pv_h_total">Total</span>
                   </div>
-                  <div id="ep_pv_lineas">
-                    <div style="padding:10px 0;font-size:10px;color:#9ca3af;text-align:center">Sin líneas definidas</div>
-                  </div>
+                  <div id="ep_pv_lineas"><div style="padding:12px 0;font-size:10px;color:#9ca3af;text-align:center">Sin líneas definidas</div></div>
                 </div>
-
-                <!-- Totales -->
                 <div id="ep_pv_totales" style="padding:12px 18px;background:#f9fafb;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end"></div>
-
-                <!-- Notas -->
                 <div id="ep_pv_notas" style="padding:10px 18px;font-size:10px;color:#6b7280;border-top:1px solid #e5e7eb;display:none;line-height:1.5"></div>
-
-                <!-- Pie -->
                 <div id="ep_pv_pie" style="padding:7px 18px;font-size:9px;color:#9ca3af;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between">
                   <span id="ep_pv_pie_txt">Texto legal del pie</span><span>Pág. 1 / 1</span>
                 </div>
@@ -1524,10 +1530,11 @@
               💡 Vista previa aproximada. El PDF real incluirá tus datos fiscales.
             </div>
           </div>
-        </div>
+
+        </div><!-- fin nf-layout -->
       </div>
 
-      <!-- ═══ VIEW: NUEVO PRESUPUESTO ═══ -->
+            <!-- ═══ VIEW: NUEVO PRESUPUESTO ═══ -->
       <div class="view" id="view-nuevo-presupuesto">
         <div class="view-header">
           <div class="view-title-group">
@@ -3367,6 +3374,7 @@
     window._epLang    = window._epLang    || function(){};
     window._epPreview = window._epPreview || function(){};
     window._epInit    = window._epInit    || function(){};
+    window._epSetAlin = window._epSetAlin || function(){};
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
