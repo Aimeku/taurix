@@ -1322,6 +1322,21 @@
                   <div class="ff-field"><label>Nombre de la plantilla *</label><input autocomplete="off" id="ep_nombre" class="ff-input" placeholder="Ej: Factura servicios mensuales"/></div>
                   <div class="ff-field"><label>Concepto predeterminado</label><input autocomplete="off" id="ep_concepto" class="ff-input" placeholder="Ej: Consultoría mensual"/></div>
                 </div>
+                <!-- Toggle plantilla predeterminada -->
+                <label id="ep_es_default_lbl" style="display:flex;align-items:center;justify-content:space-between;
+                  margin-top:12px;padding:10px 14px;border-radius:10px;cursor:pointer;
+                  border:1.5px solid var(--brd);background:var(--bg2);transition:all .2s">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                    <div>
+                      <div style="font-size:13px;font-weight:600;color:var(--t1)">Plantilla predeterminada</div>
+                      <div style="font-size:11px;color:var(--t3);margin-top:1px">Se aplicará automáticamente al crear facturas, presupuestos y albaranes</div>
+                    </div>
+                  </div>
+                  <input type="checkbox" id="ep_es_default" style="width:17px;height:17px;accent-color:var(--accent);flex-shrink:0"/>
+                </label>
               </div>
 
               <!-- Tabs + idioma -->
@@ -1593,8 +1608,8 @@
 
                     <!-- BLOQUE CABECERA: posición relative para anclar el logo encima -->
                     <div id="ep_pv_cab_wrap" style="position:relative">
-                      <!-- Logo: position:absolute sobre la cabecera. X/Y controlan right/top -->
-                      <div id="ep_pv_logo_row" style="display:none;position:absolute;top:0;right:0;z-index:2;pointer-events:none">
+                      <!-- Logo: position:absolute centrado por defecto. JS aplica transform para desplazar X/Y -->
+                      <div id="ep_pv_logo_row" style="display:none;position:absolute;top:0;left:50%;z-index:2;pointer-events:none;transform:translateX(-50%)">
                         <img id="ep_pv_logo_img" src="" alt="" style="display:block;object-fit:contain"/>
                       </div>
                       <!-- Cabecera coloreada -->
