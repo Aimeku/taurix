@@ -1372,12 +1372,14 @@
                     <div class="fb-title">Posición del logo</div>
                     <div class="ff-grid3" style="margin-bottom:14px">
                       <div class="ff-field">
-                        <label style="display:flex;justify-content:space-between">Posición X <span id="ep_logo_x_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label>
-                        <input type="range" id="ep_logo_x" min="-100" max="100" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_logo_x_val').textContent=this.value;window._epPreview()"/>
+                        <label style="display:flex;justify-content:space-between">Logo X <span id="ep_logo_x_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label>
+                        <input type="range" id="ep_logo_x" min="-120" max="120" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_logo_x_val').textContent=this.value;window._epPreview()"/>
+                        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t4);margin-top:2px"><span>← izq</span><span>centro</span><span>der →</span></div>
                       </div>
                       <div class="ff-field">
-                        <label style="display:flex;justify-content:space-between">Posición Y <span id="ep_logo_y_val" style="color:var(--accent);font-family:monospace;font-weight:700">6</span></label>
-                        <input type="range" id="ep_logo_y" min="-20" max="60" value="6" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_logo_y_val').textContent=this.value;window._epPreview()"/>
+                        <label style="display:flex;justify-content:space-between">Logo Y <span id="ep_logo_y_val" style="color:var(--accent);font-family:monospace;font-weight:700">8</span></label>
+                        <input type="range" id="ep_logo_y" min="-30" max="60" value="8" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_logo_y_val').textContent=this.value;window._epPreview()"/>
+                        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t4);margin-top:2px"><span>↑ arriba</span><span>↓ abajo</span></div>
                       </div>
                       <div class="ff-field">
                         <label style="display:flex;justify-content:space-between">Tamaño (px) <span id="ep_logo_size_val" style="color:var(--accent);font-family:monospace;font-weight:700">30</span></label>
@@ -1538,10 +1540,26 @@
                     </div>
                     <div class="fb-title">Posición emisor / cliente</div>
                     <div class="ff-grid2" style="margin-bottom:14px">
-                      <div class="ff-field"><label style="display:flex;justify-content:space-between">Emisor X <span id="ep_emisor_x_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label><input type="range" id="ep_emisor_x" min="-80" max="80" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_emisor_x_val').textContent=this.value;window._epPreview()"/></div>
-                      <div class="ff-field"><label style="display:flex;justify-content:space-between">Emisor Y <span id="ep_emisor_y_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label><input type="range" id="ep_emisor_y" min="-20" max="40" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_emisor_y_val').textContent=this.value;window._epPreview()"/></div>
-                      <div class="ff-field"><label style="display:flex;justify-content:space-between">Cliente X <span id="ep_cliente_x_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label><input type="range" id="ep_cliente_x" min="-80" max="80" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_cliente_x_val').textContent=this.value;window._epPreview()"/></div>
-                      <div class="ff-field"><label style="display:flex;justify-content:space-between">Cliente Y <span id="ep_cliente_y_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label><input type="range" id="ep_cliente_y" min="-20" max="40" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_cliente_y_val').textContent=this.value;window._epPreview()"/></div>
+                      <div class="ff-field">
+                        <label style="display:flex;justify-content:space-between">Emisor X <span id="ep_emisor_x_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label>
+                        <input type="range" id="ep_emisor_x" min="-80" max="80" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_emisor_x_val').textContent=this.value;window._epPreview()"/>
+                        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t4);margin-top:2px"><span>← izq</span><span>0</span><span>der →</span></div>
+                      </div>
+                      <div class="ff-field">
+                        <label style="display:flex;justify-content:space-between">Emisor Y <span id="ep_emisor_y_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label>
+                        <input type="range" id="ep_emisor_y" min="-30" max="30" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_emisor_y_val').textContent=this.value;window._epPreview()"/>
+                        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t4);margin-top:2px"><span>↑ arriba</span><span>0</span><span>↓ abajo</span></div>
+                      </div>
+                      <div class="ff-field">
+                        <label style="display:flex;justify-content:space-between">Cliente X <span id="ep_cliente_x_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label>
+                        <input type="range" id="ep_cliente_x" min="-80" max="80" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_cliente_x_val').textContent=this.value;window._epPreview()"/>
+                        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t4);margin-top:2px"><span>← izq</span><span>0</span><span>der →</span></div>
+                      </div>
+                      <div class="ff-field">
+                        <label style="display:flex;justify-content:space-between">Cliente Y <span id="ep_cliente_y_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label>
+                        <input type="range" id="ep_cliente_y" min="-30" max="30" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_cliente_y_val').textContent=this.value;window._epPreview()"/>
+                        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t4);margin-top:2px"><span>↑ arriba</span><span>0</span><span>↓ abajo</span></div>
+                      </div>
                     </div>
                     <div class="fb-title">Pie de página</div>
                     <div class="ff-grid2">
@@ -1606,16 +1624,21 @@
                       <div id="ep_pv_desc" style="font-size:10px;color:#6b7280;line-height:1.5"></div>
                     </div>
 
-                    <!-- Tabla -->
+                    <!-- Tabla: table-layout:fixed garantiza alineación perfecta header/body -->
                     <div style="padding:0 18px">
-                      <div id="ep_pv_tabla_head" style="display:grid;grid-template-columns:1fr 40px 70px 40px 70px;padding:6px 0;font-size:9px;font-weight:700;text-transform:uppercase;color:#fff;background:#1a56db;margin:0 -18px;padding-left:18px;padding-right:18px;letter-spacing:.04em">
-                        <span id="ep_pv_h_desc">Descripción</span>
-                        <span style="text-align:right" id="ep_pv_h_cant">Cant</span>
-                        <span style="text-align:right" id="ep_pv_h_precio">Precio</span>
-                        <span style="text-align:right" id="ep_pv_h_iva">IVA</span>
-                        <span style="text-align:right" id="ep_pv_h_total">Total</span>
-                      </div>
-                      <div id="ep_pv_lineas"><div style="padding:12px 0;font-size:10px;color:#9ca3af;text-align:center">Sin líneas definidas</div></div>
+                      <table id="ep_pv_tabla" style="width:100%;table-layout:fixed;border-collapse:collapse;margin:0 -18px;width:calc(100% + 36px)">
+                        <colgroup id="ep_pv_colgroup">
+                          <!-- columnas generadas por JS -->
+                        </colgroup>
+                        <thead>
+                          <tr id="ep_pv_tabla_head" style="background:#1a56db">
+                            <!-- th generados por JS -->
+                          </tr>
+                        </thead>
+                        <tbody id="ep_pv_lineas">
+                          <tr><td colspan="5" style="padding:12px 0;font-size:10px;color:#9ca3af;text-align:center">Sin líneas definidas</td></tr>
+                        </tbody>
+                      </table>
                     </div>
 
                     <!-- Totales -->
