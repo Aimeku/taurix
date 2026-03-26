@@ -367,17 +367,32 @@
       box-shadow: 0 2px 8px rgba(26,86,219,.10);
     }
 
-    /* ── Columna descuento en líneas ── */
-    .linea-dto {
-      width: 80px !important;
-      text-align: right;
-      font-size: 12px;
+    /* ── Layout de líneas — grid dinámico via JS ── */
+    /* Resetear el grid fijo que pudiera venir de styles.css */
+    #lineasContainer   .linea-row,
+    #npLineasContainer .linea-row {
+      /* El grid-template-columns se aplica inline por JS; aquí solo aseguramos
+         que la fila use grid y no herede layout de styles.css */
+      display: grid !important;
+      gap: 4px;
+      align-items: center;
+      padding: 3px 0;
+      border-bottom: 1px solid var(--brd);
     }
-    .lh-dto {
-      text-align: right;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--t3);
+    #lineasContainer   .linea-row input,
+    #lineasContainer   .linea-row select,
+    #npLineasContainer .linea-row input,
+    #npLineasContainer .linea-row select {
+      width: 100% !important;
+      box-sizing: border-box;
+      min-width: 0;           /* permite que el grid comprima el input */
+    }
+    #lineasContainer   .linea-row .linea-del,
+    #npLineasContainer .linea-row .linea-del {
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     /* Selector plantilla: badge predeterminada */
     #nfPlantillaDefaultBadge[style*="inline"],
@@ -1783,14 +1798,8 @@
                   Añadir línea
                 </button>
               </div>
-              <div class="lineas-header">
-                <div>Descripción</div>
-                <div>Cant.</div>
-                <div>Precio unit.</div>
-                <div id="npHdrDescuento" style="display:none">Descuento</div>
-                <div>IVA</div>
-                <div>Total</div>
-                <div></div>
+              <div id="npLineasHeader" style="display:grid;gap:4px;padding:4px 0;border-bottom:2px solid var(--brd)">
+                <!-- generado dinámicamente por JS -->
               </div>
               <div id="npLineasContainer"></div>
               <div class="lineas-totales">
@@ -2061,14 +2070,8 @@
                   Añadir línea
                 </button>
               </div>
-              <div class="lineas-header">
-                <div class="lh-desc">Descripción</div>
-                <div class="lh-qty">Cant.</div>
-                <div class="lh-price">P. unitario</div>
-                <div class="lh-dto" id="nfHdrDescuento" style="display:none">Descuento</div>
-                <div class="lh-iva">IVA</div>
-                <div class="lh-total">Total</div>
-                <div class="lh-del"></div>
+              <div id="nfLineasHeader" style="display:grid;gap:4px;padding:4px 0;border-bottom:2px solid var(--brd)">
+                <!-- generado dinámicamente por JS -->
               </div>
               <div id="lineasContainer"></div>
               <div class="lineas-totales">
