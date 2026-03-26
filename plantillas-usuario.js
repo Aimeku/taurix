@@ -352,13 +352,13 @@ export function showPlantillaModal(prefill) {
           <!-- Wrapper emisor+cliente con posición independiente -->
           <div id="plt_pv_emisor_row" style="display:${D.mostrar_emisor?"flex":"none"};border-bottom:1px solid #e5e7eb;padding:${D.sp_emisor}px 0;position:relative;min-height:36px">
             <!-- Bloque EMISOR -->
-            <div id="plt_pv_emisor_bloque" style="position:absolute;left:${12+D.emisor_x}px;top:${D.sp_emisor+D.emisor_y}px;min-width:100px;white-space:nowrap">
+            <div id="plt_pv_emisor_bloque" style="position:absolute;left:${12+D.emisor_x}px;top:${D.sp_emisor+D.emisor_y}px;width:130px;word-break:break-word;overflow-wrap:break-word">
               <div id="plt_pv_lbl_de" style="font-size:6px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.06em">EMISOR</div>
               <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.4">Tu empresa SL</div>
               <div style="font-size:7.5px;color:#6b7280">NIF: B12345678</div>
             </div>
             <!-- Bloque CLIENTE -->
-            <div id="plt_pv_cliente_bloque" style="position:absolute;left:${160+D.cliente_x}px;top:${D.sp_emisor+D.cliente_y}px;min-width:100px;white-space:nowrap">
+            <div id="plt_pv_cliente_bloque" style="position:absolute;left:${160+D.cliente_x}px;top:${D.sp_emisor+D.cliente_y}px;width:130px;word-break:break-word;overflow-wrap:break-word">
               <div id="plt_pv_lbl_para" style="font-size:6px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.06em">CLIENTE</div>
               <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.4">Empresa Cliente</div>
               <div style="font-size:7.5px;color:#6b7280">NIF: A98765432</div>
@@ -371,7 +371,7 @@ export function showPlantillaModal(prefill) {
             </div>
             <div id="plt_pv_lineas"><div style="padding:8px 0;font-size:8.5px;color:#9ca3af;text-align:center">Sin líneas definidas</div></div>
           </div>
-          <div id="plt_pv_totales" style="padding:10px 14px;background:#f9fafb;border-top:1px solid #e5e7eb"></div>
+          <div id="plt_pv_totales" style="padding:8px 14px;background:#f9fafb;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end"></div>
           <div id="plt_pv_notas" style="padding:7px 14px;font-size:8.5px;color:#6b7280;border-top:1px solid #e5e7eb;display:none;line-height:1.5"></div>
           <div id="plt_pv_pie" style="padding:5px 14px;font-size:8px;color:#9ca3af;border-top:1px solid #e5e7eb;display:${D.mostrar_pie?"flex":"none"};justify-content:space-between">
             <span id="plt_pv_pie_txt">${D.texto_pie||"Texto legal del pie"}</span><span>Pág. 1</span>
@@ -560,14 +560,17 @@ export function showPlantillaModal(prefill) {
     // Emisor: posición absoluta independiente
     const eb = g("plt_pv_emisor_bloque");
     if(eb){
-      eb.style.left = (12 + emisorX) + "px";
-      eb.style.top  = (spEmisor + emisorY) + "px";
+      eb.style.left  = (12 + emisorX) + "px";
+      eb.style.top   = (spEmisor + emisorY) + "px";
+      eb.style.width = "130px";
+      eb.style.wordBreak = "break-word";
     }
-    // Cliente: posición absoluta independiente
     const cb = g("plt_pv_cliente_bloque");
     if(cb){
-      cb.style.left = (160 + clienteX) + "px";
-      cb.style.top  = (spEmisor + clienteY) + "px";
+      cb.style.left  = (160 + clienteX) + "px";
+      cb.style.top   = (spEmisor + clienteY) + "px";
+      cb.style.width = "130px";
+      cb.style.wordBreak = "break-word";
     }
 
     // Labels
@@ -613,10 +616,12 @@ export function showPlantillaModal(prefill) {
     const iva=larr.reduce((a,l)=>a+l.c*l.p*l.i/100,0);
     const pvTot=g("plt_pv_totales");
     if(pvTot)pvTot.innerHTML=`
-      <div style="display:flex;justify-content:space-between;font-size:9px;color:#6b7280;margin-bottom:2px"><span>${L.base}</span><span style="font-family:monospace">${base.toFixed(2)} €</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:9px;color:#6b7280;margin-bottom:5px"><span>IVA</span><span style="font-family:monospace">${iva.toFixed(2)} €</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:#111;border-top:2px solid ${colorAcc};padding-top:6px">
-        <span>${L.totalDoc}</span><span style="font-family:monospace;color:${colorAcc}">${(base+iva).toFixed(2)} €</span>
+      <div style="width:160px">
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:#6b7280;margin-bottom:2px;gap:12px"><span>${L.base}</span><span style="font-family:monospace;white-space:nowrap">${base.toFixed(2)} €</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:#6b7280;margin-bottom:5px;gap:12px"><span>IVA</span><span style="font-family:monospace;white-space:nowrap">${iva.toFixed(2)} €</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:#111;border-top:2px solid ${colorAcc};padding-top:5px;gap:12px">
+          <span>${L.totalDoc}</span><span style="font-family:monospace;color:${colorAcc};white-space:nowrap">${(base+iva).toFixed(2)} €</span>
+        </div>
       </div>`;
 
     // Notas
