@@ -10,21 +10,37 @@ import {
   openModal, closeModal, switchView
 } from "./utils.js";
 import { PRODUCTOS, buscarProductoPorCodigo } from "./productos.js";
+import { PLANTILLAS, getPlantillaDefault } from "./plantillas-usuario.js";
 import { refreshPresupuestos } from "./presupuestos.js";
 import { refreshClientes, populateClienteSelect } from "./clientes.js";
 
 let LINEAS = [];
 let lineaIdCounter = 0;
 let clienteSeleccionadoId = null;
+let npPlantillaActual = null;
+let npMostrarDescuento = false;
 
 /* ══════════════════════════
    TOTALES
 ══════════════════════════ */
+function _parseDescuento(raw, subtotal) {
+  if (!raw && raw !== 0) return 0;
+  const s = String(raw).trim();
+  if (!s) return 0;
+  if (s.endsWith("%")) {
+    const pct = parseFloat(s) || 0;
+    return subtotal * pct / 100;
+  }
+  return parseFloat(s) || 0;
+}
+
 function getLineasTotales() {
   let baseTotal = 0;
   const ivaMap = {};
   LINEAS.forEach(l => {
-    const subtotal = l.cantidad * l.precio;
+    const subtotalBruto = l.cantidad * l.precio;
+    const descAmt       = _parseDescuento(l.descuento, subtotalBruto);
+    const subtotal      = Math.max(0, subtotalBruto - descAmt);
     baseTotal += subtotal;
     const ivaAmt = subtotal * l.iva / 100;
     ivaMap[l.iva] = (ivaMap[l.iva] || 0) + ivaAmt;
@@ -122,14 +138,24 @@ function _buildProdDropdown(descInput, onSelect) {
 }
 
 
+function _npDescuentoCeldaHTML(id, val="") {
+  return npMostrarDescuento
+    ? `<input autocomplete="off" type="text" class="linea-dto ff-input"
+        placeholder="10% / 5€" value="${val}" data-field="descuento"
+        title="Descuento: número (€) o porcentaje (10%)"
+        style="width:72px;text-align:right"/>`
+    : "";
+}
+
 function addLinea(prefill = {}) {
   const id = ++lineaIdCounter;
   const linea = {
     id,
     descripcion: prefill.descripcion || "",
-    cantidad: prefill.cantidad || 1,
-    precio: prefill.precio || 0,
-    iva: prefill.iva !== undefined ? prefill.iva : 21,
+    cantidad:    prefill.cantidad    || 1,
+    precio:      prefill.precio      || 0,
+    iva:         prefill.iva !== undefined ? prefill.iva : 21,
+    descuento:   prefill.descuento   ?? ""
   };
   LINEAS.push(linea);
 
@@ -145,6 +171,7 @@ function addLinea(prefill = {}) {
       <span class="linea-euro">€</span>
       <input autocomplete="off" type="number" class="linea-price ff-input" value="${linea.precio || ""}" placeholder="0.00" step="0.01" data-field="precio"/>
     </div>
+    ${_npDescuentoCeldaHTML(id, linea.descuento)}
     <select class="linea-iva ff-select" data-field="iva">
       <option value="21" ${linea.iva === 21 ? "selected" : ""}>21%</option>
       <option value="10" ${linea.iva === 10 ? "selected" : ""}>10%</option>
@@ -188,11 +215,15 @@ function onLineaChange(id, el) {
   const linea = LINEAS.find(l => l.id === id);
   if (!linea) return;
   const field = el.dataset.field;
-  if (field === "descripcion") linea.descripcion = el.value;
-  else if (field === "cantidad") linea.cantidad = parseFloat(el.value) || 0;
-  else if (field === "precio") linea.precio = parseFloat(el.value) || 0;
-  else if (field === "iva") linea.iva = parseInt(el.value) || 0;
-  document.getElementById(`npLtRow${id}`).textContent = fmt(linea.cantidad * linea.precio);
+  if (field === "descripcion")    linea.descripcion = el.value;
+  else if (field === "cantidad")  linea.cantidad    = parseFloat(el.value) || 0;
+  else if (field === "precio")    linea.precio      = parseFloat(el.value) || 0;
+  else if (field === "iva")       linea.iva         = parseInt(el.value)   || 0;
+  else if (field === "descuento") linea.descuento   = el.value;
+  const subtotalBruto = linea.cantidad * linea.precio;
+  const descAmt       = _parseDescuento(linea.descuento, subtotalBruto);
+  const subtotal      = Math.max(0, subtotalBruto - descAmt);
+  document.getElementById(`npLtRow${id}`).textContent = fmt(subtotal);
   updateTotalesUI(); updatePreview();
 }
 
@@ -312,6 +343,8 @@ async function savePresupuesto() {
     iva: ivaMain,
     lineas: JSON.stringify(LINEAS.map(l => ({
       descripcion: l.descripcion, cantidad: l.cantidad, precio: l.precio, iva: l.iva,
+      descuento: l.descuento ?? "",
+      subtotal: Math.max(0, l.cantidad*l.precio - _parseDescuento(l.descuento, l.cantidad*l.precio)),
     }))),
     notas: document.getElementById("npNotas")?.value.trim() || null,
   });
@@ -394,6 +427,94 @@ function initClienteSearch() {
   });
 }
 
+
+/* ══════════════════════════
+   SELECTOR DE PLANTILLA
+══════════════════════════ */
+function _npInitPlantillaSelector() {
+  const sel = document.getElementById("npPlantillaSel");
+  if (!sel) return;
+
+  const plantillas = (typeof PLANTILLAS !== "undefined") ? PLANTILLAS : [];
+  const defP = plantillas.find(p => p.es_default) || plantillas[0];
+
+  sel.innerHTML = [
+    `<option value="">— Sin plantilla —</option>`,
+    ...plantillas.map(p => {
+      const tag = p.es_default ? " ⭐ Predeterminada" : "";
+      return `<option value="${p.id}" ${defP?.id===p.id?"selected":""}>${p.nombre}${tag}</option>`;
+    })
+  ].join("");
+
+  if (defP) _applyPlantillaToPresupuesto(_npGetPlantillaData(defP.id));
+
+  sel.addEventListener("change", () => {
+    const id = sel.value;
+    if (!id) {
+      npPlantillaActual = null;
+      npMostrarDescuento = false;
+      _npRefreshDescuentoCol();
+      return;
+    }
+    _applyPlantillaToPresupuesto(_npGetPlantillaData(id));
+  });
+}
+
+function _npGetPlantillaData(id) {
+  const p = (PLANTILLAS||[]).find(x => x.id === id);
+  if (!p) return null;
+  let colsActivas = [];
+  try {
+    const raw = p.cols_activas
+      ? (typeof p.cols_activas === "string" ? JSON.parse(p.cols_activas) : p.cols_activas)
+      : null;
+    if (Array.isArray(raw)) {
+      colsActivas = raw.map(c => typeof c === "object" ? c.key : c);
+    }
+  } catch(e) {}
+  return { id: p.id, colsActivas };
+}
+
+function _npRefreshDescuentoCol() {
+  const hdrDto = document.getElementById("npHdrDescuento");
+  if (hdrDto) hdrDto.style.display = npMostrarDescuento ? "" : "none";
+
+  document.querySelectorAll("#npLineasContainer .linea-row").forEach(row => {
+    const lineaId = parseInt(row.dataset.lineaId);
+    const linea   = LINEAS.find(l => l.id === lineaId);
+    const existing = row.querySelector("[data-field='descuento']");
+    if (npMostrarDescuento) {
+      if (!existing) {
+        const dtoEl = document.createElement("input");
+        dtoEl.autocomplete = "off";
+        dtoEl.type = "text";
+        dtoEl.className = "linea-dto ff-input";
+        dtoEl.placeholder = "10% / 5€";
+        dtoEl.dataset.field = "descuento";
+        dtoEl.title = "Descuento: número (€) o porcentaje (10%)";
+        dtoEl.style.cssText = "width:72px;text-align:right";
+        dtoEl.value = linea?.descuento ?? "";
+        dtoEl.addEventListener("input",  () => onLineaChange(lineaId, dtoEl));
+        dtoEl.addEventListener("change", () => onLineaChange(lineaId, dtoEl));
+        const ivaEl = row.querySelector("[data-field='iva']");
+        if (ivaEl) row.insertBefore(dtoEl, ivaEl);
+      }
+    } else {
+      if (existing) existing.remove();
+      if (linea) { linea.descuento = ""; }
+    }
+  });
+  updateTotalesUI(); updatePreview();
+}
+
+window._applyPlantillaToPresupuesto = function(data) {
+  if (!data) return;
+  npPlantillaActual = data;
+  const colsActivas = data.colsActivas || [];
+  npMostrarDescuento = colsActivas.includes("descuento");
+  _npRefreshDescuentoCol();
+};
+
 /* ══════════════════════════
    INIT
 ══════════════════════════ */
@@ -412,4 +533,5 @@ export function initNuevoPresupuesto() {
   document.getElementById("npGuardarBtn")?.addEventListener("click", () => savePresupuesto());
 
   if (LINEAS.length === 0) addLinea();
+  _npInitPlantillaSelector();
 }
