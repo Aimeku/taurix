@@ -169,11 +169,12 @@ function addLinea(prefill = {}) {
     const linea = LINEAS.find(l => l.id === id);
     if (!linea) return;
     linea.descripcion = p.descripcion || p.nombre;
-    linea.precio = p.precio;
-    linea.iva = p.iva;
+    linea.precio      = p.precio;
+    linea.iva         = p.iva;
+    linea.tipo        = p.tipo || "producto";
     descInput.value = p.descripcion || p.nombre;
     row.querySelector("[data-field='precio']").value = p.precio;
-    row.querySelector("[data-field='iva']").value = p.iva;
+    row.querySelector("[data-field='iva']").value    = p.iva;
     document.getElementById(`npLtRow${id}`).textContent = fmt(linea.cantidad * linea.precio);
     updateTotalesUI(); updatePreview();
   });
