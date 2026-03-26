@@ -337,6 +337,30 @@
     }
     .ep-tabs-bar{display:flex;border-bottom:1px solid var(--brd);background:var(--srf);overflow:hidden;align-items:stretch}
     .ep-lang-wrap{margin-left:auto;display:flex;align-items:center;padding:0 16px;gap:8px;border-left:1px solid var(--brd)}
+
+    /* ── Layout full-width plantillas ── */
+    .plt-editor-grid{
+      display:grid;
+      grid-template-columns:1fr 420px;
+      gap:0;
+      align-items:start;
+    }
+    @media(max-width:1100px){
+      .plt-editor-grid{
+        grid-template-columns:1fr 340px;
+      }
+    }
+    @media(max-width:820px){
+      .plt-editor-grid{
+        grid-template-columns:1fr;
+      }
+      /* En móvil la preview va debajo con borde completo */
+      .plt-editor-grid > div:last-child{
+        border-radius:0 0 16px 16px !important;
+        border-top:1px solid var(--brd) !important;
+        position:static !important;
+      }
+    }
     </style>
 
 <style>
@@ -1260,35 +1284,23 @@
             <p class="view-sub">Diseña tus documentos · Preview en tiempo real · Aplica en facturas y presupuestos</p>
           </div>
           <div class="view-actions">
-            <button class="btn-outline" id="epCancelarBtn" style="display:none">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              Cancelar
-            </button>
-            <button class="btn-primary" id="epGuardarBtn" style="display:none">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              Guardar plantilla
+            <button class="btn-primary" id="nuevaPlantillaBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nueva plantilla
             </button>
           </div>
         </div>
 
-        <!-- Layout: sidebar plantillas + editor -->
-        <div id="plt-main-layout" style="display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start">
+        <!-- Hidden: sidebar grid (sin UI, solo para compatibilidad con JS que llama _renderSidebar) -->
+        <div id="plantillasGrid" style="display:none"></div>
 
-          <!-- ── Sidebar: lista de plantillas ── -->
-          <div id="plt-sidebar" style="position:sticky;top:20px">
-            <button class="btn-primary" id="nuevaPlantillaBtn" style="width:100%;margin-bottom:14px;justify-content:center">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Nueva plantilla
-            </button>
-            <div id="plantillasGrid" style="display:flex;flex-direction:column;gap:8px">
-              <div style="text-align:center;padding:24px 12px;color:var(--t3);font-size:13px">Cargando plantillas…</div>
-            </div>
-          </div>
+        <!-- Layout full-width: editor + preview -->
+        <div id="plt-main-layout" style="width:100%">
 
-          <!-- ── Editor: formulario + preview ── -->
-          <div id="plt-editor-wrap">
+          <!-- Editor ocupa todo el ancho -->
+          <div id="plt-editor-wrap" style="width:100%">
 
-            <!-- Estado vacío (cuando no hay ninguna seleccionada) -->
+            <!-- Estado vacío -->
             <div id="plt-empty-state" style="background:var(--srf);border:1px solid var(--brd);border-radius:16px;padding:64px 32px;text-align:center">
               <div style="font-size:56px;margin-bottom:16px">🎨</div>
               <div style="font-size:18px;font-weight:800;color:var(--t1);margin-bottom:8px">Crea tu primera plantilla</div>
@@ -1327,7 +1339,7 @@
               </div>
 
               <!-- Layout editor: formulario | preview -->
-              <div style="display:grid;grid-template-columns:1fr 320px;gap:0;align-items:start">
+              <div class="plt-editor-grid" style="display:grid;grid-template-columns:1fr 420px;gap:0;align-items:start">
 
                 <!-- Columna izquierda: tabs de opciones -->
                 <div style="border:1px solid var(--brd);border-top:none;border-right:none;border-radius:0 0 0 16px;overflow:hidden">
@@ -1626,9 +1638,7 @@
             </div><!-- fin plt-editor -->
           </div><!-- fin plt-editor-wrap -->
         </div><!-- fin plt-main-layout -->
-      </div>
-
-            <!-- ═══ VIEW: NUEVO PRESUPUESTO ═══ -->
+      </div><!-- ═══ VIEW: NUEVO PRESUPUESTO ═══ -->
       <div class="view" id="view-nuevo-presupuesto">
         <div class="view-header">
           <div class="view-title-group">
