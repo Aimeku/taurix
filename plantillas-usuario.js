@@ -183,14 +183,33 @@ export function showPlantillaModal(prefill) {
         <div id="plt-tab-diseno" class="plt-sec on">
           <div class="plt-group">🖼️ Logo</div>
           <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:12px">
-            <div id="plt_logo_prev" onclick="document.getElementById('plt_logo_inp').click()" style="width:92px;height:58px;border:2px dashed var(--brd);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--srf2);cursor:pointer;flex-shrink:0">
-              ${D.logo?`<img src="${D.logo}" style="max-width:88px;max-height:54px;object-fit:contain"/>`:`<span style="font-size:10px;color:var(--t4);text-align:center;line-height:1.4">Click<br>subir</span>`}
+            <!-- Zona de upload de logo — diseño mejorado -->
+            <div onclick="document.getElementById('plt_logo_inp').click()" id="plt_logo_prev"
+              style="width:100px;height:64px;border:2px dashed var(--brd);border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--bg2);cursor:pointer;flex-shrink:0;transition:border-color .2s,background .2s"
+              onmouseenter="this.style.borderColor='var(--accent)';this.style.background='var(--accent)0d'"
+              onmouseleave="this.style.borderColor='var(--brd)';this.style.background='var(--bg2)'">
+              ${D.logo
+                ? `<img src="${D.logo}" style="max-width:96px;max-height:60px;object-fit:contain"/>`
+                : `<div style="text-align:center;pointer-events:none">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--t4)" stroke-width="1.5" style="display:block;margin:0 auto 4px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <span style="font-size:10px;color:var(--t4);line-height:1.3">Subir logo</span>
+                  </div>`}
             </div>
             <input type="file" id="plt_logo_inp" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none"/>
             <div style="display:flex;flex-direction:column;gap:6px">
-              <button type="button" class="btn-outline" id="plt_logo_btn" style="font-size:12px;padding:6px 14px">${D.logo?"📁 Cambiar":"📁 Subir logo"}</button>
-              <button type="button" class="btn-outline" id="plt_logo_rm" style="font-size:12px;padding:6px 14px;color:#dc2626;border-color:#dc2626;${D.logo?"":"display:none"}">🗑️ Quitar</button>
-              <span style="font-size:10px;color:var(--t4)">PNG/JPG/SVG · Máx 500KB</span>
+              <button type="button" id="plt_logo_btn"
+                style="font-size:12px;padding:7px 16px;border:1.5px solid var(--accent);border-radius:8px;background:var(--accent)0d;color:var(--accent);font-weight:600;cursor:pointer;transition:all .15s"
+                onmouseenter="this.style.background='var(--accent)';this.style.color='#fff'"
+                onmouseleave="this.style.background='var(--accent)0d';this.style.color='var(--accent)'">
+                ${D.logo?"📁 Cambiar logo":"📁 Subir logo"}
+              </button>
+              <button type="button" id="plt_logo_rm"
+                style="font-size:12px;padding:7px 16px;border:1.5px solid #dc2626;border-radius:8px;background:#dc262608;color:#dc2626;font-weight:600;cursor:pointer;transition:all .15s;${D.logo?"":"display:none"}"
+                onmouseenter="this.style.background='#dc2626';this.style.color='#fff'"
+                onmouseleave="this.style.background='#dc262608';this.style.color='#dc2626'">
+                🗑️ Quitar logo
+              </button>
+              <span style="font-size:10px;color:var(--t4)">PNG · JPG · SVG · Máx 500KB</span>
             </div>
           </div>
           <label class="plt-tog" style="margin-bottom:10px">${tog("plt_mostrar_logo","Mostrar logo en el documento",D.mostrar_logo)}</label>
@@ -349,16 +368,14 @@ export function showPlantillaModal(prefill) {
               <div style="font-size:9px;opacity:.6;color:${D.color_txt_cab};margin-top:1px">FAC-2025-001 · ${new Date().toLocaleDateString("es-ES")}</div>
             </div>
           </div>
-          <!-- Wrapper emisor+cliente con posición independiente -->
-          <div id="plt_pv_emisor_row" style="display:${D.mostrar_emisor?"flex":"none"};border-bottom:1px solid #e5e7eb;padding:${D.sp_emisor}px 0;position:relative;min-height:36px">
-            <!-- Bloque EMISOR -->
-            <div id="plt_pv_emisor_bloque" style="position:absolute;left:${12+D.emisor_x}px;top:${D.sp_emisor+D.emisor_y}px;width:130px;word-break:break-word;overflow-wrap:break-word">
+          <!-- Emisor + Cliente: grid de 2 columnas, transform para ejes X/Y -->
+          <div id="plt_pv_emisor_row" style="display:${D.mostrar_emisor?"grid":"none"};grid-template-columns:1fr 1fr;gap:6px;padding:${D.sp_emisor}px 12px;border-bottom:1px solid #e5e7eb">
+            <div id="plt_pv_emisor_bloque" style="transform:translate(${D.emisor_x}px,${D.emisor_y}px)">
               <div id="plt_pv_lbl_de" style="font-size:6px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.06em">EMISOR</div>
               <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.4">Tu empresa SL</div>
               <div style="font-size:7.5px;color:#6b7280">NIF: B12345678</div>
             </div>
-            <!-- Bloque CLIENTE -->
-            <div id="plt_pv_cliente_bloque" style="position:absolute;left:${160+D.cliente_x}px;top:${D.sp_emisor+D.cliente_y}px;width:130px;word-break:break-word;overflow-wrap:break-word">
+            <div id="plt_pv_cliente_bloque" style="transform:translate(${D.cliente_x}px,${D.cliente_y}px)">
               <div id="plt_pv_lbl_para" style="font-size:6px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.06em">CLIENTE</div>
               <div style="font-weight:700;font-size:8.5px;color:#111;line-height:1.4">Empresa Cliente</div>
               <div style="font-size:7.5px;color:#6b7280">NIF: A98765432</div>
@@ -552,26 +569,14 @@ export function showPlantillaModal(prefill) {
 
     const er = g("plt_pv_emisor_row");
     if(er){
-      er.style.display    = mostEmisor ? "flex" : "none";
-      er.style.padding    = `${spEmisor}px 0`;
-      er.style.marginTop  = spEntre + "px";
-      er.style.minHeight  = (spEmisor*2 + 36) + "px";
+      er.style.display   = mostEmisor ? "grid" : "none";
+      er.style.padding   = `${spEmisor}px 12px`;
+      er.style.marginTop = spEntre + "px";
     }
-    // Emisor: posición absoluta independiente
     const eb = g("plt_pv_emisor_bloque");
-    if(eb){
-      eb.style.left  = (12 + emisorX) + "px";
-      eb.style.top   = (spEmisor + emisorY) + "px";
-      eb.style.width = "130px";
-      eb.style.wordBreak = "break-word";
-    }
+    if(eb) eb.style.transform = `translate(${emisorX}px,${emisorY}px)`;
     const cb = g("plt_pv_cliente_bloque");
-    if(cb){
-      cb.style.left  = (160 + clienteX) + "px";
-      cb.style.top   = (spEmisor + clienteY) + "px";
-      cb.style.width = "130px";
-      cb.style.wordBreak = "break-word";
-    }
+    if(cb) cb.style.transform = `translate(${clienteX}px,${clienteY}px)`;
 
     // Labels
     const s=(id,v)=>{const el=g(id);if(el)el.textContent=v;};
@@ -616,13 +621,14 @@ export function showPlantillaModal(prefill) {
     const iva=larr.reduce((a,l)=>a+l.c*l.p*l.i/100,0);
     const pvTot=g("plt_pv_totales");
     if(pvTot)pvTot.innerHTML=`
-      <div style="width:160px">
-        <div style="display:flex;justify-content:space-between;font-size:9px;color:#6b7280;margin-bottom:2px;gap:12px"><span>${L.base}</span><span style="font-family:monospace;white-space:nowrap">${base.toFixed(2)} €</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:9px;color:#6b7280;margin-bottom:5px;gap:12px"><span>IVA</span><span style="font-family:monospace;white-space:nowrap">${iva.toFixed(2)} €</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:#111;border-top:2px solid ${colorAcc};padding-top:5px;gap:12px">
-          <span>${L.totalDoc}</span><span style="font-family:monospace;color:${colorAcc};white-space:nowrap">${(base+iva).toFixed(2)} €</span>
-        </div>
-      </div>`;
+      <table style="margin-left:auto;border-collapse:collapse;font-size:8.5px;min-width:140px">
+        <tr><td style="color:#6b7280;padding:1px 10px 1px 0">${L.base}</td><td style="text-align:right;font-family:monospace;color:#374151">${base.toFixed(2)} €</td></tr>
+        <tr><td style="color:#6b7280;padding:1px 10px 1px 0">IVA</td><td style="text-align:right;font-family:monospace;color:#374151">${iva.toFixed(2)} €</td></tr>
+        <tr style="border-top:1.5px solid ${colorAcc}">
+          <td style="font-weight:800;color:#111;padding:3px 10px 1px 0">${L.totalDoc}</td>
+          <td style="text-align:right;font-family:monospace;font-weight:800;color:${colorAcc}">${(base+iva).toFixed(2)} €</td>
+        </tr>
+      </table>`;
 
     // Notas
     const pvN=g("plt_pv_notas");if(pvN){pvN.textContent=notas;pvN.style.display=notas?"":"none";}
