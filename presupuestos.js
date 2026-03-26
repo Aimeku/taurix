@@ -11,6 +11,7 @@
    ═══════════════════════════════════════════════════════ */
 
 import { supabase } from "./supabase.js";
+import { exportPresupuestoPDFConPlantilla } from "./pdf-plantilla.js";
 import {
   SESSION, CLIENTES, fmt, fmtDate, toast,
   openModal, closeModal, getYear, getTrim, getFechaRango
@@ -1031,183 +1032,11 @@ async function logoToBase64(url) {
    GENERAR PDF PROFESIONAL
 ══════════════════════════════════════════════════ */
 export async function generarPDFPresupuesto(presId, descargar = true) {
-  const { data: p, error } = await supabase.from("presupuestos")
-    .select("*").eq("id", presId).single();
-  if (error || !p) { toast("Error cargando presupuesto", "error"); return null; }
-
-  const perfil = await cargarPerfil();
-  const lineas = p.lineas ? JSON.parse(p.lineas) : [];
-
-  if (!window.jspdf?.jsPDF && !window.jsPDF) {
-    await new Promise((res, rej) => {
-      const s = document.createElement("script");
-      s.src = "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
-      s.onload = res; s.onerror = rej;
-      document.head.appendChild(s);
-    });
-  }
-  const { jsPDF } = window.jspdf || window;
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
-
-  const PW=210, PH=297, ML=18, MR=18, W=PW-ML-MR;
-  const INK=[15,23,42], MUTED=[100,116,139], LIGHT=[248,250,252], BORDER=[226,232,240], WHITE=[255,255,255];
-
-  doc.setFillColor(...WHITE); doc.rect(0,0,PW,PH,"F");
-
-  doc.setFont("helvetica","bold"); doc.setFontSize(28); doc.setTextColor(...INK);
-  doc.text("PRESUPUESTO", ML, 22);
-  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(...MUTED);
-  doc.text("QUOTE", ML, 29);
-
-  let logoOk=false;
-  let logoB64=perfil.logo_url ? await logoToBase64(perfil.logo_url) : null;
-  if(logoB64){
-    try{
-      const mime=logoB64.split(";")[0].split(":")[1];
-      doc.addImage(logoB64, mime.includes("png")?"PNG":"JPEG", PW-MR-42, 8, 42, 28, "", "FAST");
-      logoOk=true;
-    }catch(e){}
-  }
-  if(!logoOk){
-    doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.setTextColor(...INK);
-    doc.text(perfil.nombre_razon_social||"", PW-MR, 24, {align:"right"});
-  }
-
-  doc.setDrawColor(...BORDER); doc.setLineWidth(0.5);
-  doc.line(ML, 36, PW-MR, 36);
-
-  let y=46;
-  const COL1=ML, COL2=PW/2+6, cW=W/2-10;
-
-  doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
-  doc.text("DE / FROM", COL1, y); doc.text("PARA / TO", COL2, y); y+=5;
-
-  const yBlock=y;
-  doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...INK);
-  doc.text((perfil.nombre_razon_social||"—").substring(0,32), COL1, y); y+=5.5;
-  doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...MUTED);
-  if(perfil.nif)             { doc.text("NIF: "+perfil.nif, COL1, y); y+=4.5; }
-  if(perfil.domicilio_fiscal){ const ls=doc.splitTextToSize(perfil.domicilio_fiscal,cW); doc.text(ls,COL1,y); }
-
-  doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...INK);
-  doc.text((p.cliente_nombre||"—").substring(0,32), COL2, yBlock);
-
-  y=Math.max(y+5, yBlock+12)+4;
-
-  if(p.concepto){
-    doc.setFont("helvetica","bold"); doc.setFontSize(14); doc.setTextColor(...INK);
-    doc.text(p.concepto, ML, y); y+=7;
-  }
-
-  const tDesc=ML+2, tQty=92, tPrice=135, tTotal=PW-MR-15;
-
-  doc.setFillColor(...INK); doc.roundedRect(ML, y, W, 10, 1, 1, "F");
-  doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
-  doc.text("DESCRIPCIÓN / DESCRIPTION", tDesc, y+5.8);
-  doc.text("CANTIDAD / QTY", tQty, y+5.8, {align:"center"});
-  doc.text("PRECIO UNIT. / UNIT PRICE", tPrice, y+5.8, {align:"center"});
-  doc.text("TOTAL / AMOUNT", tTotal, y+5.8, {align:"center"});
-  y+=10;
-
-  let baseTotal=0; const ivaMap={};
-  let descuentoTotal = 0;
-
-  lineas.forEach((l,idx)=>{
-    const qty    = l.cantidad||1;
-    const precio = l.precio||0;
-    const desc   = (l.descripcion||"").trim();
-    const isDesc = !!l.esDescuento;
-
-    if (isDesc) {
-      descuentoTotal += Math.abs(precio);
-    } else {
-      const sub = qty*precio;
-      baseTotal+=sub;
-      ivaMap[l.iva]=(ivaMap[l.iva]||0)+sub*(l.iva||0)/100;
-    }
-
-    const rH=9;
-    doc.setFillColor(isDesc ? 255 : (idx%2===0?249:255), isDesc ? 249 : (idx%2===0?250:255), isDesc ? 249 : (idx%2===0?251:255));
-    doc.rect(ML,y,W,rH,"F");
-    doc.setDrawColor(...BORDER); doc.setLineWidth(0.1); doc.line(ML,y+rH,ML+W,y+rH);
-
-    const dl=doc.splitTextToSize(desc||"—", 94);
-    doc.setFont("helvetica", isDesc ? "italic" : "normal");
-    doc.setFontSize(8.5);
-    doc.setTextColor(isDesc ? 180 : INK[0], isDesc ? 50 : INK[1], isDesc ? 50 : INK[2]);
-    doc.text(dl[0], tDesc, y+5.8);
-    if(dl.length>1){ doc.setFontSize(7.5); doc.text(dl[1],tDesc,y+9.5); }
-
-    if (!isDesc) {
-      doc.setFontSize(8.5); doc.setTextColor(...MUTED);
-      doc.text(String(qty), tQty, y+5.8, {align:"center"});
-      doc.text(precio.toFixed(2)+" €", tPrice, y+5.8, {align:"center"});
-      doc.setFont("helvetica","bold"); doc.setTextColor(...INK);
-      doc.text((qty*precio).toFixed(2)+" €", tTotal, y+5.8, {align:"center"});
-    } else {
-      // Descuento — fila completa en la tabla, bilingüe
-      doc.setFontSize(8.5); doc.setTextColor(200,50,50);
-      doc.setFont("helvetica","italic");
-      // Mostrar "DESCUENTO / DISCOUNT" como badge en columna cantidad
-      doc.text("DESCUENTO", tQty, y+4.5, {align:"center"});
-      doc.setFontSize(6.5);
-      doc.text("DISCOUNT", tQty, y+8.5, {align:"center"});
-      doc.setFontSize(8.5);
-      doc.setFont("helvetica","bold");
-      doc.text("- "+Math.abs(precio).toFixed(2)+" €", tTotal, y+5.8, {align:"center"});
-    }
-    y+=rH;
-    if(y>PH-80){doc.addPage();y=20;}
-  });
-
-  doc.setDrawColor(...BORDER); doc.setLineWidth(0.4); doc.line(ML,y,PW-MR,y); y+=10;
-
-  const xTL=PW-MR-80, xTV=PW-MR;
-  const ivaTotal=Object.values(ivaMap).reduce((a,b)=>a+b,0);
-
-  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
-  doc.text("Subtotal / Subtotal", xTL, y);
-  doc.setTextColor(...INK); doc.text(baseTotal.toFixed(2)+" €",xTV,y,{align:"right"}); y+=7;
-
-  if (descuentoTotal > 0) {
-    doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(200,50,50);
-    doc.text("Descuentos / Discounts", xTL, y);
-    doc.text("- "+descuentoTotal.toFixed(2)+" €",xTV,y,{align:"right"}); y+=7;
-  }
-
-  Object.entries(ivaMap).filter(([,v])=>v>0).sort(([a],[b])=>Number(b)-Number(a)).forEach(([pct,amt])=>{
-    doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
-    doc.text("IVA / VAT "+pct+"%", xTL, y);
-    doc.setTextColor(...INK); doc.text(amt.toFixed(2)+" €",xTV,y,{align:"right"}); y+=7;
-  });
-
-  doc.setDrawColor(...BORDER); doc.setLineWidth(0.3); doc.line(xTL,y,xTV,y); y+=4;
-  doc.setFillColor(...INK); doc.roundedRect(xTL-4,y-2,xTV-xTL+8,13,1.5,1.5,"F");
-  doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(...WHITE);
-  doc.text("TOTAL", xTL, y+7);
-  doc.text((baseTotal-descuentoTotal+ivaTotal).toFixed(2)+" €", xTV, y+7, {align:"right"});
-  y+=22;
-
-  if(p.notas&&y<PH-50){
-    doc.setFillColor(...LIGHT); doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
-    const nl=doc.splitTextToSize(p.notas,W-10);
-    const nh=nl.length*4.5+13;
-    doc.roundedRect(ML,y,W,nh,1.5,1.5,"FD");
-    doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
-    doc.text("NOTAS / NOTES",ML+5,y+6);
-    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...INK);
-    doc.text(nl,ML+5,y+11.5);
-  }
-
-  doc.setDrawColor(...BORDER); doc.setLineWidth(0.4); doc.line(ML,PH-16,PW-MR,PH-16);
-  doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
-  const pie=[perfil.nombre_razon_social,perfil.nif?"NIF "+perfil.nif:null].filter(Boolean).join("  ·  ");
-  doc.text(pie, ML, PH-10);
-  doc.text(new Date().toLocaleDateString("es-ES"), PW-MR, PH-10, {align:"right"});
-
-  const filename=`presupuesto_${(p.numero||p.id.slice(0,8)).replace(/\//g,"-")}.pdf`;
-  if(descargar){doc.save(filename);toast("📄 PDF descargado","success");return null;}
-  return {blob:doc.output("blob"),filename,dataUri:doc.output("datauristring")};
+  // Delega al motor PDF con soporte de plantillas.
+  // Lee el selector activo del formulario si está disponible.
+  const plantillaId = document.getElementById("npPlantillaSel")?.value || null;
+  const result = await exportPresupuestoPDFConPlantilla(presId, plantillaId, descargar);
+  return result; // null si descargar=true, objeto {blob,filename,dataUri} si false
 }
 
 /* ══════════════════════════════════════════════════
