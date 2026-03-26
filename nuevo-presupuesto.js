@@ -18,7 +18,6 @@ let LINEAS = [];
 let lineaIdCounter = 0;
 let clienteSeleccionadoId = null;
 let npPlantillaActual = null;
-let npMostrarDescuento = false;
 
 /* ══════════════════════════
    TOTALES
@@ -138,13 +137,44 @@ function _buildProdDropdown(descInput, onSelect) {
 }
 
 
-function _npDescuentoCeldaHTML(id, val="") {
-  return npMostrarDescuento
-    ? `<input autocomplete="off" type="text" class="linea-dto ff-input"
-        placeholder="10% / 5€" value="${val}" data-field="descuento"
-        title="Descuento: número (€) o porcentaje (10%)"
-        style="width:72px;text-align:right"/>`
-    : "";
+
+/* ── Sistema de grid dinámico para NP ── */
+let _npColsActivas = [..._DEFAULT_COLS];
+
+function _npGridStr() {
+  const frParts = _npColsActivas.map(k => {
+    const c = _COL_SCHEMA[k];
+    return c ? `minmax(${c.minW}px, ${c.fr}fr)` : "1fr";
+  });
+  frParts.push(`${_COL_DEL.minW}px`);
+  return frParts.join(" ");
+}
+
+function _npApplyGridToHeader() {
+  const hdr = document.getElementById("npLineasHeader");
+  if (!hdr) return;
+  hdr.style.gridTemplateColumns = _npGridStr();
+  hdr.innerHTML = _npColsActivas.map(k => {
+    const c = _COL_SCHEMA[k];
+    const lbl = c?.label || k;
+    const right = c?.align === "right";
+    return `<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;${right?"text-align:right":""};overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${lbl}</div>`;
+  }).join("") + `<div></div>`;
+}
+
+function _npApplyGridToRow(row) {
+  row.style.display = "grid";
+  row.style.gridTemplateColumns = _npGridStr();
+  row.style.gap = "4px";
+  row.style.alignItems = "center";
+  row.style.padding = "4px 0";
+  row.style.borderBottom = "1px solid var(--brd)";
+}
+
+function _npReapplyGridToAllRows() {
+  document.querySelectorAll("#npLineasContainer .linea-row").forEach(row => {
+    _npApplyGridToRow(row);
+  });
 }
 
 function addLinea(prefill = {}) {
@@ -155,7 +185,9 @@ function addLinea(prefill = {}) {
     cantidad:    prefill.cantidad    || 1,
     precio:      prefill.precio      || 0,
     iva:         prefill.iva !== undefined ? prefill.iva : 21,
-    descuento:   prefill.descuento   ?? ""
+    descuento:   prefill.descuento   ?? "",
+    codigo:      prefill.codigo      ?? "",
+    coeficiente: prefill.coeficiente ?? "",
   };
   LINEAS.push(linea);
 
@@ -164,51 +196,68 @@ function addLinea(prefill = {}) {
   const row = document.createElement("div");
   row.className = "linea-row";
   row.dataset.lineaId = id;
-  row.innerHTML = `
-    <input autocomplete="off" type="text" class="linea-desc ff-input" placeholder="Descripción del producto o servicio" value="${linea.descripcion}" data-field="descripcion"/>
-    <input autocomplete="off" type="number" class="linea-qty ff-input" value="${linea.cantidad}" min="0.01" step="0.01" data-field="cantidad"/>
-    <div class="linea-price-wrap">
-      <span class="linea-euro">€</span>
-      <input autocomplete="off" type="number" class="linea-price ff-input" value="${linea.precio || ""}" placeholder="0.00" step="0.01" data-field="precio"/>
-    </div>
-    ${_npDescuentoCeldaHTML(id, linea.descuento)}
-    <select class="linea-iva ff-select" data-field="iva">
-      <option value="21" ${linea.iva === 21 ? "selected" : ""}>21%</option>
-      <option value="10" ${linea.iva === 10 ? "selected" : ""}>10%</option>
-      <option value="4"  ${linea.iva === 4  ? "selected" : ""}>4%</option>
-      <option value="0"  ${linea.iva === 0  ? "selected" : ""}>0%</option>
-    </select>
-    <div class="linea-total" id="npLtRow${id}">0,00 €</div>
-    <button class="linea-del" onclick="window._npDelLinea(${id})" title="Eliminar línea">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  `;
+
+  row.innerHTML = _npColsActivas.map(k => {
+    const c = _COL_SCHEMA[k];
+    if (!c) return `<div></div>`;
+    const align = c.align === "right" ? "text-align:right" : "";
+    const baseStyle = `width:100%;box-sizing:border-box;${align}`;
+
+    if (k === "total") {
+      return `<div class="linea-total" id="npLtRow${id}" style="font-size:13px;font-weight:700;text-align:right;font-family:monospace;color:var(--t1)">0,00 €</div>`;
+    }
+    if (k === "subtotal") {
+      return `<div data-subtotal="${id}" style="font-size:12px;text-align:right;font-family:monospace;color:var(--t2)">0,00 €</div>`;
+    }
+    if (k === "iva") {
+      return `<select class="ff-select" data-field="iva" style="${baseStyle}">
+        <option value="21" ${linea.iva===21?"selected":""}>21%</option>
+        <option value="10" ${linea.iva===10?"selected":""}>10%</option>
+        <option value="4"  ${linea.iva===4 ?"selected":""}>4%</option>
+        <option value="0"  ${linea.iva===0 ?"selected":""}>0%</option>
+      </select>`;
+    }
+    const val = linea[k] !== undefined ? linea[k] : "";
+    const type = c.inputType || "text";
+    const extras = [
+      c.step        ? `step="${c.step}"` : "",
+      c.min         ? `min="${c.min}"`   : "",
+      c.placeholder ? `placeholder="${c.placeholder}"` : "",
+    ].filter(Boolean).join(" ");
+    return `<input autocomplete="off" type="${type}" class="ff-input" data-field="${k}" value="${val}" ${extras} style="${baseStyle}"/>`;
+  }).join("") +
+  `<button class="linea-del" onclick="window._npDelLinea(${id})" title="Eliminar línea" style="padding:4px;display:flex;align-items:center;justify-content:center">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>`;
+
+  _npApplyGridToRow(row);
 
   row.querySelectorAll("input,select").forEach(el => {
-    el.addEventListener("input", () => onLineaChange(id, el));
+    el.addEventListener("input",  () => onLineaChange(id, el));
     el.addEventListener("change", () => onLineaChange(id, el));
   });
 
-  // Autocomplete catálogo
-  const descInput = row.querySelector(".linea-desc");
-  // Autocomplete catálogo de productos — al hacer focus muestra todo el catálogo
-  _buildProdDropdown(descInput, (p) => {
-    const linea = LINEAS.find(l => l.id === id);
-    if (!linea) return;
-    linea.descripcion = p.descripcion || p.nombre;
-    linea.precio      = p.precio;
-    linea.iva         = p.iva;
-    linea.tipo        = p.tipo || "producto";
-    descInput.value = p.descripcion || p.nombre;
-    row.querySelector("[data-field='precio']").value = p.precio;
-    row.querySelector("[data-field='iva']").value    = p.iva;
-    document.getElementById(`npLtRow${id}`).textContent = fmt(linea.cantidad * linea.precio);
-    updateTotalesUI(); updatePreview();
-  });
+  const descInput = row.querySelector("[data-field='descripcion']");
+  if (descInput) {
+    _buildProdDropdown(descInput, (p) => {
+      const linea = LINEAS.find(l => l.id === id);
+      if (!linea) return;
+      linea.descripcion = p.descripcion || p.nombre;
+      linea.precio      = p.precio;
+      linea.iva         = p.iva;
+      const f = (field, val) => { const el=row.querySelector(`[data-field="${field}"]`); if(el) el.value=val; };
+      f("descripcion", linea.descripcion);
+      f("precio", linea.precio);
+      f("iva", linea.iva);
+      document.getElementById(`npLtRow${id}`).textContent = fmt(linea.cantidad * linea.precio);
+      updateTotalesUI(); updatePreview();
+    });
+  }
 
   container.appendChild(row);
-  updateTotalesUI(); updatePreview();
-  if (!prefill.descripcion) descInput?.focus();
+  updateTotalesUI();
+  updatePreview();
+  if (!prefill.descripcion && descInput) descInput.focus();
 }
 
 function onLineaChange(id, el) {
@@ -494,8 +543,9 @@ async function _npInitPlantillaSelector() {
     _updBadge(id);
     if (!id) {
       npPlantillaActual = null;
-      npMostrarDescuento = false;
-      _npRefreshDescuentoCol();
+      _npColsActivas = [..._DEFAULT_COLS];
+      _npApplyGridToHeader();
+      _npRebuildAllRows();
       return;
     }
     const p = plantillas.find(x => x.id === id);
@@ -522,30 +572,6 @@ function _npGetPlantillaData(id) {
   return _npGetPlantillaDataLocal(p);
 }
 
-function _npRefreshDescuentoCol() {
-  const hdrDto = document.getElementById("npHdrDescuento");
-  if (hdrDto) hdrDto.style.display = npMostrarDescuento ? "" : "none";
-
-  document.querySelectorAll("#npLineasContainer .linea-row").forEach(row => {
-    const lineaId = parseInt(row.dataset.lineaId);
-    const linea   = LINEAS.find(l => l.id === lineaId);
-    const existing = row.querySelector("[data-field='descuento']");
-    if (npMostrarDescuento) {
-      if (!existing) {
-        const dtoEl = document.createElement("input");
-        dtoEl.autocomplete = "off";
-        dtoEl.type = "text";
-        dtoEl.className = "linea-dto ff-input";
-        dtoEl.placeholder = "10% / 5€";
-        dtoEl.dataset.field = "descuento";
-        dtoEl.title = "Descuento: número (€) o porcentaje (10%)";
-        dtoEl.style.cssText = "width:72px;text-align:right";
-        dtoEl.value = linea?.descuento ?? "";
-        dtoEl.addEventListener("input",  () => onLineaChange(lineaId, dtoEl));
-        dtoEl.addEventListener("change", () => onLineaChange(lineaId, dtoEl));
-        const ivaEl = row.querySelector("[data-field='iva']");
-        if (ivaEl) row.insertBefore(dtoEl, ivaEl);
-      }
     } else {
       if (existing) existing.remove();
       if (linea) { linea.descuento = ""; }
@@ -557,10 +583,23 @@ function _npRefreshDescuentoCol() {
 window._applyPlantillaToPresupuesto = function(data) {
   if (!data) return;
   npPlantillaActual = data;
-  const colsActivas = data.colsActivas || [];
-  npMostrarDescuento = colsActivas.includes("descuento");
-  _npRefreshDescuentoCol();
+  const colsActivas = (data.colsActivas || []).filter(k => _COL_SCHEMA[k]);
+  _npColsActivas = colsActivas.length ? colsActivas : [..._DEFAULT_COLS];
+  if (!_npColsActivas.includes("descripcion")) _npColsActivas.unshift("descripcion");
+  _npApplyGridToHeader();
+  _npRebuildAllRows();
 };
+
+function _npRebuildAllRows() {
+  const container = document.getElementById("npLineasContainer");
+  if (!container) return;
+  const snapshots = LINEAS.map(l => ({...l}));
+  container.innerHTML = "";
+  LINEAS = [];
+  lineaIdCounter = 0;
+  snapshots.forEach(snap => addLinea(snap));
+  updateTotalesUI(); updatePreview();
+}
 
 /* ══════════════════════════
    INIT
@@ -580,6 +619,7 @@ export function initNuevoPresupuesto() {
   document.getElementById("npGuardarBtn")?.addEventListener("click", () => savePresupuesto());
 
   if (LINEAS.length === 0) addLinea();
+  _npApplyGridToHeader();
   _npInitPlantillaSelector();
 }
 
