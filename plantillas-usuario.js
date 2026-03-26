@@ -211,15 +211,26 @@ window._epInit = function() {
   // Tabs
   window._epTab = (tab) => {
     document.querySelectorAll(".ep-tab").forEach(b=>{
-      const on=b.dataset.tab===tab;
-      b.style.borderBottomColor=on?"var(--accent)":"transparent";
-      b.style.color=on?"var(--accent)":"var(--t3)";
-      b.style.background=on?"var(--srf)":"transparent";
-      b.style.fontWeight=on?"600":"600";
+      const on = b.dataset.tab===tab;
+      b.style.borderBottom   = on?"2px solid var(--accent)":"2px solid transparent";
+      b.style.color          = on?"var(--accent)":"var(--t3)";
+      b.style.background     = on?"var(--srf)":"transparent";
     });
     document.querySelectorAll(".ep-sec").forEach(s=>{
-      s.style.display=s.id===`ep-tab-${tab}`?"":"none";
+      s.style.display = s.id===("ep-tab-"+tab) ? "" : "none";
     });
+  };
+
+  // Alineación desde botones HTML estáticos
+  window._epSetAlin = (v) => {
+    document.getElementById("ep_alin_val").value = v;
+    document.querySelectorAll("#ep_alin_group button").forEach(b=>{
+      const on = b.dataset.alin===v;
+      b.style.borderColor = on?"#f97316":"var(--brd)";
+      b.style.color       = on?"#f97316":"var(--t2)";
+      b.style.fontWeight  = on?"700":"500";
+    });
+    _epPv();
   };
 
   // Idioma
