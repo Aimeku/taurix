@@ -151,10 +151,7 @@ function addLinea(prefill = {}) {
   row.dataset.lineaId = id;
   row.innerHTML = `
     <input autocomplete="off" type="text"   class="linea-desc ff-input"  placeholder="Descripción del producto o servicio" value="${linea.descripcion}" data-field="descripcion"/>
-    <select class="linea-tipo ff-select" data-field="tipo" style="display:none">
-      <option value="servicio" ${linea.tipo==="servicio"?"selected":""}>Servicio</option>
-      <option value="producto" ${linea.tipo==="producto"?"selected":""}>Producto</option>
-    </select>
+    <input type="hidden" data-field="tipo" value="${linea.tipo||'servicio'}"/>
     <input autocomplete="off" type="number" class="linea-qty  ff-input"  value="${linea.cantidad}" min="0.01" step="0.01" data-field="cantidad"/>
     <div class="linea-price-wrap">
       <span class="linea-euro">€</span>
@@ -188,10 +185,10 @@ function addLinea(prefill = {}) {
     descInput.value = p.descripcion || p.nombre;
     const priceInput = row.querySelector("[data-field='precio']");
     const ivaSelect  = row.querySelector("[data-field='iva']");
-    const tipoSelect = row.querySelector("[data-field='tipo']");
+    const tipoInput  = row.querySelector("[data-field='tipo']");
     if (priceInput) priceInput.value = p.precio;
     if (ivaSelect)  ivaSelect.value  = p.iva;
-    if (tipoSelect) tipoSelect.value = p.tipo || "producto";
+    if (tipoInput)  tipoInput.value  = p.tipo || "producto";
     const rowEl = document.getElementById(`ltRow${id}`);
     if (rowEl) rowEl.textContent = fmt(linea.cantidad * linea.precio);
     updateTotalesUI(); updatePreview();
