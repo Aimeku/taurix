@@ -3362,6 +3362,12 @@
 </button>
 
 <script>
+    // Stubs para evitar TypeError si se llaman antes de _epInit
+    window._epTab     = window._epTab     || function(){};
+    window._epLang    = window._epLang    || function(){};
+    window._epPreview = window._epPreview || function(){};
+    window._epInit    = window._epInit    || function(){};
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').then(reg => {
