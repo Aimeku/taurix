@@ -81,17 +81,71 @@ export async function refreshPlantillas() {
 }
 
 /* ══════════════════════════════════════════════════════
-   SIDEBAR — sin UI en este layout, solo mantiene PLANTILLAS
-   y actualiza el título del header con el nº de plantillas.
+   LISTA DE PLANTILLAS — tarjetas compactas encima del editor
 ══════════════════════════════════════════════════════ */
 function _renderSidebar() {
-  // Sin sidebar visible — solo actualizar badge si existe
-  const badge = document.getElementById("plt-count-badge");
+  const wrap      = document.getElementById("plantillasGrid");
+  const listaWrap = document.getElementById("plt-lista-wrap");
+  const badge     = document.getElementById("plt-count-badge");
+
   if (badge) badge.textContent = PLANTILLAS.length ? `(${PLANTILLAS.length})` : "";
+
+  if (!wrap) return;
+
+  // Mostrar u ocultar el contenedor de la lista
+  if (listaWrap) listaWrap.style.display = PLANTILLAS.length ? "" : "none";
+
+  if (!PLANTILLAS.length) {
+    wrap.innerHTML = "";
+    // Si no hay editor abierto, mostrar empty-state
+    const ed = document.getElementById("plt-editor");
+    if (!ed || ed.style.display === "none") {
+      const es = document.getElementById("plt-empty-state");
+      if (es) es.style.display = "";
+    }
+    return;
+  }
+
+  wrap.innerHTML = PLANTILLAS.map((p, i) => {
+    const color   = p.color_cabecera || ACCENT_COLS[i % ACCENT_COLS.length];
+    const isActive = _epCurrentPrefill?.id === p.id;
+    return `
+      <div class="plt-card-chip" data-plt-id="${p.id}"
+        onclick="window._editPlantilla('${p.id}')"
+        style="display:flex;align-items:center;gap:8px;padding:8px 12px;
+               border-radius:10px;border:1.5px solid ${isActive ? "var(--accent)" : "var(--brd)"};
+               background:${isActive ? "rgba(26,86,219,.06)" : "var(--srf)"};
+               cursor:pointer;transition:all .15s;flex-shrink:0;max-width:220px">
+        <!-- Punto de color de la plantilla -->
+        <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;color:var(--t1);
+            overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            ${p.nombre}${p.es_default ? " ⭐" : ""}
+          </div>
+          <div style="font-size:10px;color:var(--t3);
+            overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            ${p.concepto || "Sin concepto"}
+          </div>
+        </div>
+        <button onclick="event.stopPropagation();window._delPlantilla('${p.id}')"
+          title="Eliminar"
+          style="background:none;border:none;padding:2px 4px;cursor:pointer;
+                 color:var(--t4);font-size:14px;line-height:1;flex-shrink:0;
+                 transition:color .15s"
+          onmouseenter="this.style.color='#dc2626'" onmouseleave="this.style.color='var(--t4)'">×</button>
+      </div>`;
+  }).join("");
 }
 
-// No-op: ya no hay tarjetas en sidebar
-function _highlightSidebarCard(_id) {}
+// Actualiza el resaltado de la chip activa sin re-renderizar todo
+function _highlightSidebarCard(id) {
+  document.querySelectorAll(".plt-card-chip").forEach(card => {
+    const active = card.dataset.pltId === String(id);
+    card.style.borderColor = active ? "var(--accent)" : "var(--brd)";
+    card.style.background  = active ? "rgba(26,86,219,.06)" : "var(--srf)";
+  });
+}
 
 /* ══════════════════════════════════════════════════════
    EDITOR SHOW / HIDE
@@ -105,10 +159,16 @@ function _showEditor() {
 function _hideEditor() {
   const ed = document.getElementById("plt-editor");
   if (ed) ed.style.display = "none";
+  // Solo mostrar empty-state si realmente no hay plantillas guardadas
   const es = document.getElementById("plt-empty-state");
-  if (es) es.style.display = "";
+  if (es) es.style.display = PLANTILLAS.length ? "none" : "";
   _epCurrentPrefill = null;
   _epAC?.abort(); _epAC = null;
+  // Quitar highlight de chips
+  document.querySelectorAll(".plt-card-chip").forEach(c => {
+    c.style.borderColor = "var(--brd)";
+    c.style.background  = "var(--srf)";
+  });
 }
 
 /* ══════════════════════════════════════════════════════
@@ -901,12 +961,32 @@ window._epInit = function() {
 
     if(err){ toast("Error: "+err.message,"error"); return; }
     toast(isEdit?"Plantilla actualizada ✅":"Plantilla creada ✅","success");
+
+    // 1. Recargar el array PLANTILLAS desde Supabase
     await refreshPlantillas();
 
-    if(!isEdit&&savedData){
-      _epCurrentPrefill=savedData; window._epInit(); _highlightSidebarCard(savedData.id);
-    }else if(isEdit){
+    // 2. Actualizar el estado del editor con los datos recién guardados del server
+    if (savedData) {
+      _epCurrentPrefill = savedData;
+    }
+
+    // 3. Asegurarse de que el editor sigue visible (no volver al empty-state)
+    const es = _g("plt-empty-state");
+    if (es) es.style.display = "none";
+    const ed = _g("plt-editor");
+    if (ed) ed.style.display = "";
+
+    // 4. Resaltar la chip de esta plantilla en la lista
+    if (savedData?.id) {
+      _highlightSidebarCard(savedData.id);
+    } else if (isEdit && prefill.id) {
       _highlightSidebarCard(prefill.id);
+    }
+
+    // 5. Si era nueva plantilla, re-inicializar el editor con el id real
+    //    para que los botones "Guardar" y "Eliminar" funcionen correctamente
+    if (!isEdit && savedData) {
+      window._epInit();
     }
   }
 
