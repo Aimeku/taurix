@@ -126,6 +126,8 @@ export function showPlantillaModal(prefill) {
     sp_tabla:        prefill.sp_tabla        || 6,    // padding filas tabla
     sp_pie:          prefill.sp_pie          || 5,    // padding pie
     sp_entre_bloques:prefill.sp_entre_bloques|| 0,    // espacio entre cabecera y emisor
+    emisor_x:        prefill.emisor_x        || 0,    // offset X bloque emisor/cliente
+    emisor_y:        prefill.emisor_y        || 0,    // offset Y bloque emisor/cliente
     logo_x:          prefill.logo_x          || 0,    // offset X del logo (px)
     logo_y:          prefill.logo_y          || 6,    // offset Y del logo (px)
     logo_size:       prefill.logo_size       || 30,   // altura máxima del logo (px)
@@ -149,9 +151,15 @@ export function showPlantillaModal(prefill) {
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--brd);flex-shrink:0">
       <span class="modal-title" style="font-size:15px">✨ ${isEdit?"Editar":"Nueva"} plantilla</span>
       <div style="display:flex;align-items:center;gap:10px">
-        <div style="display:flex;border:1.5px solid var(--brd);border-radius:8px;overflow:hidden">
-          <button id="plt_lang_es" style="padding:5px 14px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:${D.idioma==="es"?"var(--accent)":"var(--bg2)"};color:${D.idioma==="es"?"#fff":"var(--t2)"}">ES</button>
-          <button id="plt_lang_en" style="padding:5px 14px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:${D.idioma==="en"?"var(--accent)":"var(--bg2)"};color:${D.idioma==="en"?"#fff":"var(--t2)"}">EN</button>
+        <div style="display:flex;gap:6px">
+          <button id="plt_lang_es"
+            style="padding:5px 16px;font-size:12px;font-weight:${D.idioma==="es"?700:500};border:2px solid ${D.idioma==="es"?"#f97316":"var(--brd)"};border-radius:7px;cursor:pointer;background:var(--bg2);color:${D.idioma==="es"?"#f97316":"var(--t2)"};transition:all .15s">
+            ES
+          </button>
+          <button id="plt_lang_en"
+            style="padding:5px 16px;font-size:12px;font-weight:${D.idioma==="en"?700:500};border:2px solid ${D.idioma==="en"?"#f97316":"var(--brd)"};border-radius:7px;cursor:pointer;background:var(--bg2);color:${D.idioma==="en"?"#f97316":"var(--t2)"};transition:all .15s">
+            EN
+          </button>
         </div>
         <button class="modal-x" onclick="window._cm()">×</button>
       </div>
@@ -303,7 +311,9 @@ export function showPlantillaModal(prefill) {
 
           ${[
             ["plt_sp_cab",           "Relleno de cabecera",          D.sp_cab,           4, 30],
-            ["plt_sp_emisor",        "Espacio emisor / cliente",     D.sp_emisor,        2, 20],
+            ["plt_sp_emisor",        "Relleno emisor / cliente",     D.sp_emisor,        2, 20],
+            ["plt_emisor_x",         "Emisor/cliente: posición X",   D.emisor_x,       -80, 80],
+            ["plt_emisor_y",         "Emisor/cliente: posición Y",   D.emisor_y,       -20, 40],
             ["plt_sp_entre_bloques", "Espacio entre cabecera y datos",D.sp_entre_bloques,0, 20],
             ["plt_sp_tabla",         "Alto de filas de la tabla",    D.sp_tabla,         3, 16],
             ["plt_sp_pie",           "Relleno del pie",              D.sp_pie,           2, 16],
@@ -403,10 +413,14 @@ export function showPlantillaModal(prefill) {
     s("plt_pv_tipo",L.tipo); s("plt_pv_lbl_de",L.de); s("plt_pv_lbl_para",L.para);
     s("plt_pv_h_desc",lang==="en"?"Description":"Descripción"); s("plt_pv_h_cant",L.cant);
     s("plt_pv_h_precio",L.precio); s("plt_pv_h_iva",L.iva); s("plt_pv_h_total",L.total);
-    document.getElementById("plt_lang_es").style.background = lang==="es"?"var(--accent)":"var(--bg2)";
-    document.getElementById("plt_lang_es").style.color      = lang==="es"?"#fff":"var(--t2)";
-    document.getElementById("plt_lang_en").style.background = lang==="en"?"var(--accent)":"var(--bg2)";
-    document.getElementById("plt_lang_en").style.color      = lang==="en"?"#fff":"var(--t2)";
+    ["es","en"].forEach(l => {
+      const btn = document.getElementById("plt_lang_"+l);
+      if (!btn) return;
+      btn.style.borderColor  = l===lang ? "#f97316" : "var(--brd)";
+      btn.style.color        = l===lang ? "#f97316" : "var(--t2)";
+      btn.style.fontWeight   = l===lang ? "700"     : "500";
+      btn.style.background   = "var(--bg2)";
+    });
     _pv();
   };
   document.getElementById("plt_lang_es").addEventListener("click", ()=>_setLang("es"));
@@ -524,11 +538,15 @@ export function showPlantillaModal(prefill) {
     if(pvT){pvT.textContent=L.tipo;pvT.style.color=colorTxtC;}
 
     // Emisor
+    const emisorX = parseInt(g("plt_emisor_x")?.value) || D.emisor_x;
+    const emisorY = parseInt(g("plt_emisor_y")?.value) || D.emisor_y;
     const er=g("plt_pv_emisor_row");
     if(er){
-      er.style.display=mostEmisor?"grid":"none";
-      er.style.padding=`${spEmisor}px 12px`;
-      er.style.marginTop=`${spEntre}px`;
+      er.style.display     = mostEmisor ? "grid" : "none";
+      er.style.padding     = `${spEmisor}px 12px`;
+      er.style.marginTop   = `${spEntre + emisorY}px`;
+      er.style.marginLeft  = emisorX + "px";
+      er.style.marginRight = emisorX < 0 ? Math.abs(emisorX) + "px" : "0";
     }
 
     // Labels
@@ -651,6 +669,8 @@ export function showPlantillaModal(prefill) {
       cab_todas_pags:gb("plt_cab_todas_pags"),logo_b64:_logo||null,
       sp_cab:parseInt(document.getElementById("plt_sp_cab")?.value)||D.sp_cab,
       sp_emisor:parseInt(document.getElementById("plt_sp_emisor")?.value)||D.sp_emisor,
+      emisor_x:parseInt(document.getElementById("plt_emisor_x")?.value)||0,
+      emisor_y:parseInt(document.getElementById("plt_emisor_y")?.value)||0,
       sp_entre_bloques:parseInt(document.getElementById("plt_sp_entre_bloques")?.value)||D.sp_entre_bloques,
       sp_tabla:parseInt(document.getElementById("plt_sp_tabla")?.value)||D.sp_tabla,
       sp_pie:parseInt(document.getElementById("plt_sp_pie")?.value)||D.sp_pie,
