@@ -54,7 +54,7 @@ function _renderGrid() {
         ${base > 0 ? `<div style="font-family:monospace;font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px">${fmt(base)}</div>` : ""}
         <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">
           <span style="font-size:10px;padding:2px 7px;border-radius:5px;background:${color}15;color:${color};font-weight:600">${lineas.length} línea${lineas.length!==1?"s":""}</span>
-          ${p.idioma==="en"?`<span style="font-size:10px;padding:2px 7px;border-radius:5px;background:#f0f9ff;color:#0369a1;font-weight:600">🇬🇧 EN</span>`:`<span style="font-size:10px;padding:2px 7px;border-radius:5px;background:#fef9c3;color:#854d0e;font-weight:600">🇪🇸 ES</span>`}
+          ${p.idioma==="en"?`<span style="font-size:10px;padding:2px 7px;border-radius:5px;background:#f0f9ff;color:#0369a1;font-weight:600">EN</span>`:`<span style="font-size:10px;padding:2px 7px;border-radius:5px;background:#fef9c3;color:#854d0e;font-weight:600">ES</span>`}
         </div>
         <div style="display:flex;gap:5px">
           <button class="ta-btn ta-emit" onclick="event.stopPropagation();window._usarPlantillaFactura('${p.id}')" style="font-size:10px">📤 Factura</button>
@@ -141,8 +141,8 @@ export function showPlantillaModal(prefill) {
       <span class="modal-title" style="font-size:15px">✨ ${isEdit?"Editar":"Nueva"} plantilla</span>
       <div style="display:flex;align-items:center;gap:10px">
         <div style="display:flex;border:1.5px solid var(--brd);border-radius:8px;overflow:hidden">
-          <button id="plt_lang_es" style="padding:5px 14px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:${D.idioma==="es"?"var(--accent)":"var(--bg2)"};color:${D.idioma==="es"?"#fff":"var(--t2)"}">🇪🇸 ES</button>
-          <button id="plt_lang_en" style="padding:5px 14px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:${D.idioma==="en"?"var(--accent)":"var(--bg2)"};color:${D.idioma==="en"?"#fff":"var(--t2)"}">🇬🇧 EN</button>
+          <button id="plt_lang_es" style="padding:5px 14px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:${D.idioma==="es"?"var(--accent)":"var(--bg2)"};color:${D.idioma==="es"?"#fff":"var(--t2)"}">ES</button>
+          <button id="plt_lang_en" style="padding:5px 14px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:${D.idioma==="en"?"var(--accent)":"var(--bg2)"};color:${D.idioma==="en"?"#fff":"var(--t2)"}">EN</button>
         </div>
         <button class="modal-x" onclick="window._cm()">×</button>
       </div>
@@ -234,7 +234,7 @@ export function showPlantillaModal(prefill) {
           </div>
           <div class="modal-field" style="margin-bottom:14px"><label>Alineación del texto</label>
             <div style="display:flex;gap:8px;margin-top:6px">
-              ${[["izq","⬅ Izquierda"],["centro","▣ Centro"],["der","➡ Derecha"]].map(([v,lbl])=>`
+              ${[["izq","← Izquierda"],["centro","= Centro"],["der","→ Derecha"]].map(([v,lbl])=>`
                 <label style="display:flex;align-items:center;gap:5px;padding:7px 13px;border:1.5px solid var(--brd);border-radius:7px;cursor:pointer;font-size:12px">
                   <input type="radio" name="plt_alin" value="${v}" ${D.alin_texto===v?"checked":""}/>${lbl}
                 </label>`).join("")}
@@ -273,24 +273,25 @@ export function showPlantillaModal(prefill) {
       <div style="background:var(--bg2);border-left:1px solid var(--brd);overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px">
         <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em">👁 Vista previa</div>
         <div id="plt_pv_doc" style="background:#fff;border-radius:8px;box-shadow:0 2px 16px rgba(0,0,0,.12);overflow:hidden;font-size:10px">
-          <div id="plt_pv_logo_row" style="padding:8px 14px 0;justify-content:flex-end;display:${D.logo&&D.mostrar_logo?"flex":"none"}">
-            <img id="plt_pv_logo_img" src="${D.logo}" style="max-height:32px;max-width:70px;object-fit:contain"/>
-          </div>
-          <div id="plt_pv_cab" style="padding:12px 14px;${cabPvStyle}">
+          <div id="plt_pv_cab" style="padding:12px 14px;${cabPvStyle};position:relative">
+            <!-- Logo dentro de la cabecera, arriba derecha -->
+            <div id="plt_pv_logo_row" style="position:absolute;top:8px;right:14px;display:${D.logo&&D.mostrar_logo?"block":"none"}">
+              <img id="plt_pv_logo_img" src="${D.logo}" style="max-height:30px;max-width:66px;object-fit:contain;display:block"/>
+            </div>
             <div id="plt_pv_tipo" style="font-size:8px;font-weight:800;letter-spacing:.12em;opacity:.65;color:${D.color_txt_cab}">FACTURA</div>
-            <div id="plt_pv_concepto" style="font-size:13px;font-weight:700;color:${D.color_txt_cab};margin-top:2px">${D.concepto||"Concepto del documento"}</div>
+            <div id="plt_pv_concepto" style="font-size:13px;font-weight:700;color:${D.color_txt_cab};margin-top:2px;padding-right:${D.logo&&D.mostrar_logo?"72px":"0"}">${D.concepto||"Concepto del documento"}</div>
             <div style="font-size:9px;opacity:.6;color:${D.color_txt_cab};margin-top:1px">FAC-2025-001 · ${new Date().toLocaleDateString("es-ES")}</div>
           </div>
-          <div id="plt_pv_emisor_row" style="display:${D.mostrar_emisor?"grid":"none"};grid-template-columns:1fr 1fr;padding:10px 14px;border-bottom:1px solid #e5e7eb">
+          <div id="plt_pv_emisor_row" style="display:${D.mostrar_emisor?"grid":"none"};grid-template-columns:1fr 1fr;gap:4px;padding:7px 14px;border-bottom:1px solid #e5e7eb">
             <div>
-              <div id="plt_pv_lbl_de" style="font-size:7px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:2px">EMISOR</div>
-              <div style="font-weight:700;font-size:9.5px;color:#111">Tu empresa SL</div>
-              <div style="font-size:8.5px;color:#6b7280">NIF: B12345678</div>
+              <div id="plt_pv_lbl_de" style="font-size:6.5px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:1px;letter-spacing:.06em">EMISOR</div>
+              <div style="font-weight:700;font-size:9px;color:#111;line-height:1.3">Tu empresa SL</div>
+              <div style="font-size:8px;color:#6b7280">NIF: B12345678</div>
             </div>
             <div>
-              <div id="plt_pv_lbl_para" style="font-size:7px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:2px">CLIENTE</div>
-              <div style="font-weight:700;font-size:9.5px;color:#111">Empresa Cliente</div>
-              <div style="font-size:8.5px;color:#6b7280">NIF: A98765432</div>
+              <div id="plt_pv_lbl_para" style="font-size:6.5px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:1px;letter-spacing:.06em">CLIENTE</div>
+              <div style="font-weight:700;font-size:9px;color:#111;line-height:1.3">Empresa Cliente</div>
+              <div style="font-size:8px;color:#6b7280">NIF: A98765432</div>
             </div>
           </div>
           <div id="plt_pv_desc_wrap" style="padding:7px 14px;border-bottom:1px solid #f3f4f6;display:none"><div id="plt_pv_desc" style="font-size:8.5px;color:#6b7280;line-height:1.5"></div></div>
@@ -388,20 +389,23 @@ export function showPlantillaModal(prefill) {
     const gv=id=>g(id)?.value||"";
     const gc=id=>g(id)?.checked;
 
-    const colorCab=gv("plt_color_cabecera")||D.color_cabecera;
-    const colorTxtC=gv("plt_color_txt_cab")||D.color_txt_cab;
-    const colorAcc=gv("plt_color_acento")||D.color_acento;
-    const colorLetra=gv("plt_color_letra")||D.color_letra;
-    const colorFdo=gv("plt_color_fondo")||D.color_fondo;
-    const colorFdoT=gv("plt_color_fondo_tab")||D.color_fondo_tab;
-    const colorLin=gv("plt_color_lineas")||D.color_lineas;
-    const estCab=gv("plt_estilo_cab")||"solido";
-    const fuente=gv("plt_fuente")||"Helvetica";
-    const tamFuente=parseInt(gv("plt_tam_fuente"))||9;
-    const mostLogo=gc("plt_mostrar_logo");
-    const mostCab=gc("plt_mostrar_cab");
-    const mostPie=gc("plt_mostrar_pie");
-    const mostEmisor=gc("plt_mostrar_emisor");
+    // Leer valores de los inputs — si el input no existe en DOM, usar el valor guardado en D
+    const _gv = (id, fallback) => { const el=g(id); return (el&&el.value) ? el.value : fallback; };
+    const colorCab  = _gv("plt_color_cabecera", D.color_cabecera);
+    const colorTxtC = _gv("plt_color_txt_cab",  D.color_txt_cab);
+    const colorAcc  = _gv("plt_color_acento",   D.color_acento);
+    const colorLetra= _gv("plt_color_letra",    D.color_letra);
+    const colorFdo  = _gv("plt_color_fondo",    D.color_fondo);
+    const colorFdoT = _gv("plt_color_fondo_tab",D.color_fondo_tab);
+    const colorLin  = _gv("plt_color_lineas",   D.color_lineas);
+    const estCab    = _gv("plt_estilo_cab",     D.estilo_cab);
+    const fuente    = _gv("plt_fuente",         D.fuente);
+    const tamFuente = parseInt(_gv("plt_tam_fuente", String(D.tam_fuente)))||9;
+    // gc puede ser undefined si el elemento no está en el DOM visible — fallback al valor D.*
+    const mostLogo   = g("plt_mostrar_logo")   ? gc("plt_mostrar_logo")   : D.mostrar_logo;
+    const mostCab    = g("plt_mostrar_cab")     ? gc("plt_mostrar_cab")    : D.mostrar_cab;
+    const mostPie    = g("plt_mostrar_pie")     ? gc("plt_mostrar_pie")    : D.mostrar_pie;
+    const mostEmisor = g("plt_mostrar_emisor")  ? gc("plt_mostrar_emisor") : D.mostrar_emisor;
     const concepto=gv("plt_concepto")||"Concepto del documento";
     const notas=gv("plt_notas")||"";
     const desc=gv("plt_descripcion")||"";
@@ -413,23 +417,26 @@ export function showPlantillaModal(prefill) {
     const doc=g("plt_pv_doc");
     if(doc){doc.style.fontFamily=FONT_MAP[fuente]||FONT_MAP["Helvetica"];doc.style.background=colorFdo;doc.style.color=colorLetra;doc.style.fontSize=(tamFuente+1)+"px";doc.style.textAlign=alinCSS;}
 
-    // Logo
-    const logoRow=g("plt_pv_logo_row");const logoImg=g("plt_pv_logo_img");
-    if(logoRow){logoRow.style.display=(mostLogo&&_logo)?"flex":"none";if(logoImg&&_logo)logoImg.src=_logo;}
-
-    // Cabecera
+    // Cabecera (contiene el logo)
     const cab=g("plt_pv_cab");
     if(cab){
       if(!mostCab||estCab==="sin"){cab.style.display="none";}
       else{
         cab.style.display="";
+        cab.style.position="relative";
         if(estCab==="solido")   {cab.style.background=colorCab;cab.style.borderBottom="none";}
         if(estCab==="gradiente"){cab.style.background=`linear-gradient(135deg,${colorCab},${colorAcc})`;cab.style.borderBottom="none";}
         if(estCab==="linea")    {cab.style.background="transparent";cab.style.borderBottom=`3px solid ${colorCab}`;}
       }
     }
+    // Logo: dentro de la cabecera, posición absoluta arriba derecha
+    const logoRow=g("plt_pv_logo_row");const logoImg=g("plt_pv_logo_img");
+    if(logoRow){
+      logoRow.style.display=(mostLogo&&_logo)?"block":"none";
+      if(logoImg&&_logo){logoImg.src=_logo;}
+    }
     const pvC=g("plt_pv_concepto");const pvT=g("plt_pv_tipo");
-    if(pvC){pvC.textContent=concepto;pvC.style.color=colorTxtC;}
+    if(pvC){pvC.textContent=concepto;pvC.style.color=colorTxtC;pvC.style.paddingRight=(mostLogo&&_logo)?"72px":"0";}
     if(pvT){pvT.textContent=L.tipo;pvT.style.color=colorTxtC;}
 
     // Emisor
