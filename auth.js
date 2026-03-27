@@ -6,8 +6,8 @@ import { supabase } from "./supabase.js";
    Lo encuentras en: Supabase Dashboard → Settings → General
    → "Reference ID"
 ══════════════════════════════════════════════════════════ */
-const SUPABASE_PROJECT_ID = "biiyzjzdvuahajndltap"; // ← tu Project ID (ya visible en supabase.js)
-const RESEND_ENDPOINT = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/send-2fa-code`;
+// Endpoint exacto de la Edge Function
+const RESEND_ENDPOINT = "https://biiyzjzduvahajndltap.supabase.co/functions/v1/send-2fa-code";
 
 /* ══════════════════════════════════════════════════════════
    ALMACÉN TEMPORAL DE CÓDIGOS 2FA
@@ -63,7 +63,7 @@ async function send2FACode(email) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "apikey":        SUPABASE_ANON_KEY,  // requerido por Supabase Edge Functions
+        "apikey":        SUPABASE_ANON_KEY,
         "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
       },
       body: JSON.stringify({
@@ -81,7 +81,6 @@ async function send2FACode(email) {
     throw new Error(err.message || "No se pudo enviar el código. Inténtalo de nuevo.");
   }
 
-  // Guardar código localmente para verificar después
   store2FA(email, code);
   return code;
 }
