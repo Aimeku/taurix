@@ -64,8 +64,7 @@ import { exportarDatos303, exportarDatos130, GASTOS_DEDUCIBLES } from "./fiscal.
 import { initRecurrentesView, refreshRecurrentes } from "./facturas-recurrentes.js";
 import { initPlantillasView, refreshPlantillas } from "./plantillas-usuario.js";
 import { initAlbaranesView, refreshAlbaranes } from "./albaranes.js";
-import { initProformasView, refreshProformas } from "./proformas.js";
-import { initNuevaProforma } from "./nueva-proforma.js";
+import { initProformaView, refreshProforma } from "./proforma.js";
 
 
 
@@ -367,8 +366,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initAlbaranesView();
 
   /* ── Proformas ── */
-  initProformasView();
-  initNuevaProforma();
+  initProformaView();
 
   /* ── Facturas recurrentes ── */
   initRecurrentesView();
@@ -567,8 +565,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (view === "agenda")          await refreshAgenda();
         if (view === "informes")        initInformesView();
         if (view === "albaranes")       await refreshAlbaranes();
-        if (view === "proformas")        await refreshProformas();
-        if (view === "nueva-proforma")   initNuevaProforma();
+        if (view === "proformas")        await refreshProforma();
         if (view === "recurrentes")     await refreshRecurrentes();
         if (view === "plantillas")      await refreshPlantillas();
         if (view === "editar-plantilla") window._epInit?.();
