@@ -1283,6 +1283,167 @@
         </div>
       </div>
 
+      <!-- ═══ VIEW: PROFORMAS ═══ -->
+      <div class="view" id="view-proformas">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Facturas proforma</h1>
+            <p class="view-sub" id="proformaCount">— proformas en el periodo</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-primary" id="nuevaProformaBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nueva proforma
+            </button>
+          </div>
+        </div>
+        <!-- Aviso legal -->
+        <div class="alerta-fiscal alerta-fiscal--warn" style="margin-bottom:20px">
+          <div class="af-icon">⚠️</div>
+          <div class="af-body">
+            <div class="af-title">Las proformas no tienen validez fiscal</div>
+            <div class="af-desc">Una factura proforma es un documento previo a la factura real. No genera obligaciones tributarias ni sustituye a la factura. Cuando el cliente confirme, conviértela en factura con un clic.</div>
+          </div>
+        </div>
+        <!-- KPIs — IDs exactos que usa proforma.js -->
+        <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
+          <div class="kpi-card kpi-blue"><div class="kpi-top"><span class="kpi-lbl">Total proformado</span></div><div class="kpi-val" id="pfKpiTotal">—</div></div>
+          <div class="kpi-card kpi-green"><div class="kpi-top"><span class="kpi-lbl">Confirmadas</span></div><div class="kpi-val" id="pfKpiConfirmadas">0</div></div>
+          <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">Pendientes</span></div><div class="kpi-val" id="pfKpiPendientes">0</div></div>
+          <div class="kpi-card kpi-indigo"><div class="kpi-top"><span class="kpi-lbl">Convertidas</span></div><div class="kpi-val" id="pfKpiConvertidas">0</div></div>
+        </div>
+        <!-- Filtros — IDs exactos que usa proforma.js -->
+        <div class="filter-bar">
+          <input type="text" id="proformaSearch" class="search-input" placeholder="Buscar concepto, número, cliente…" style="min-width:220px"/>
+          <select id="proformaFilterEstado" class="filter-sel">
+            <option value="">Todos los estados</option>
+            <option value="borrador">Borrador</option>
+            <option value="enviada">Enviada</option>
+            <option value="confirmada">Confirmada</option>
+            <option value="rechazada">Rechazada</option>
+            <option value="convertida">Convertida en factura</option>
+          </select>
+          <input type="date" id="proformaFilterDesde" class="filter-date" title="Desde"/>
+          <input type="date" id="proformaFilterHasta" class="filter-date" title="Hasta"/>
+          <button class="btn-outline" id="proformaFilterReset" style="padding:6px 12px;font-size:12px">Limpiar</button>
+        </div>
+        <!-- Tabla — tbody id="proformaBody" (sin s) como usa proforma.js -->
+        <div class="section-card no-pad">
+          <table class="data-table">
+            <thead><tr><th>Fecha</th><th>Nº</th><th>Concepto</th><th>Cliente</th><th>Importe</th><th>Estado</th><th>Válida hasta</th><th>Factura</th><th>Acciones</th></tr></thead>
+            <tbody id="proformaBody"><tr class="dt-empty"><td colspan="9">Cargando proformas…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="pres-info-bar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Documento sin valor fiscal · Al confirmar el cliente, conviértela en factura con un clic.
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: NUEVA PROFORMA ═══ -->
+      <div class="view" id="view-nueva-proforma">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title">Nueva factura proforma</h1>
+            <p class="view-sub">Documento sin validez fiscal · Vista previa en tiempo real · Líneas ilimitadas</p>
+          </div>
+        </div>
+        <div class="nf-layout">
+          <div class="nf-form-col">
+
+            <!-- PLANTILLA -->
+            <div class="form-block" id="pfPlantillaWrap" style="padding:12px 16px">
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                  <span style="font-size:12px;font-weight:700;color:var(--t2)">Plantilla</span>
+                </div>
+                <select id="pfPlantillaSel" class="ff-select" style="flex:1;min-width:180px;max-width:320px">
+                  <option value="">— Sin plantilla —</option>
+                </select>
+                <span id="pfPlantillaDefaultBadge" style="display:none;font-size:11px;padding:2px 9px;border-radius:20px;background:#fef9c3;color:#854d0e;font-weight:700;white-space:nowrap">Predeterminada</span>
+              </div>
+            </div>
+
+            <!-- CLIENTE -->
+            <div class="form-block">
+              <div class="fb-title">Cliente</div>
+              <div class="cliente-search-wrap">
+                <div class="csc-input-wrap">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input type="text" id="pfClienteSearch" class="csc-input" placeholder="Buscar cliente existente…"/>
+                  <button id="pfClienteLimpiar" class="csc-clear" style="display:none">×</button>
+                </div>
+                <div class="csc-dropdown" id="pfClienteDropdown" style="display:none"></div>
+              </div>
+              <div class="ff-grid2">
+                <div class="ff-field"><label>Nombre / Razón social</label><input id="pfClienteNombre" class="ff-input" placeholder="Nombre del cliente"/></div>
+                <div class="ff-field"><label>NIF / CIF</label><input id="pfClienteNif" class="ff-input" placeholder="B12345678"/></div>
+              </div>
+              <div class="ff-field"><label>Dirección</label><input id="pfClienteDir" class="ff-input" placeholder="Calle, número, CP, ciudad"/></div>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--t2);margin-top:8px">
+                <input type="checkbox" id="pfGuardarCliente"/>
+                <span>Guardar este cliente en mi lista</span>
+              </label>
+            </div>
+
+            <!-- DATOS -->
+            <div class="form-block">
+              <div class="fb-title">Datos de la proforma</div>
+              <div class="ff-field"><label>Concepto *</label><input id="pfConcepto" class="ff-input" placeholder="Descripción del servicio o producto"/></div>
+              <div class="ff-grid2">
+                <div class="ff-field"><label>Fecha *</label><input type="date" id="pfFecha" class="ff-input"/></div>
+                <div class="ff-field"><label>Válido hasta</label><input type="date" id="pfValidez" class="ff-input"/></div>
+              </div>
+              <div class="ff-field"><label>Notas / Condiciones</label>
+                <textarea id="pfNotas" class="ff-input ff-textarea" placeholder="Condiciones, forma de pago…"></textarea>
+              </div>
+            </div>
+
+            <!-- LÍNEAS -->
+            <div class="form-block">
+              <div class="fb-title-row">
+                <div class="fb-title">Líneas de la proforma</div>
+                <button id="pfAddLineaBtn" class="btn-add-linea">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Añadir línea
+                </button>
+              </div>
+              <div id="pfLineasHeader" style="display:grid;gap:4px;padding:4px 0;border-bottom:2px solid var(--brd)">
+                <!-- generado dinámicamente -->
+              </div>
+              <div id="pfLineasContainer"></div>
+              <div class="lineas-totales">
+                <div class="lt-row"><span>Base imponible</span><strong id="pfBase">0,00 €</strong></div>
+                <div class="lt-row"><span>IVA</span><strong id="pfIva">0,00 €</strong></div>
+                <div class="lt-row lt-total"><span>TOTAL PROFORMA</span><strong id="pfTotal">0,00 €</strong></div>
+              </div>
+              <!-- Aviso legal inline -->
+              <div style="margin-top:10px;padding:8px 12px;background:#fef9c3;border-radius:8px;font-size:11px;color:#854d0e;border:1px solid #fde047">
+                Documento sin validez fiscal. No sustituye a la factura.
+              </div>
+            </div>
+
+            <!-- GUARDAR -->
+            <div class="nf-actions-col">
+              <button class="btn-primary btn-lg-block" id="pfGuardarBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg>
+                Guardar proforma
+              </button>
+            </div>
+          </div>
+
+          <!-- PREVIEW -->
+          <div class="nf-preview-col">
+            <div class="nf-preview-card" id="pfPreviewContent">
+              <div style="padding:40px 20px;text-align:center;color:var(--t4);font-size:13px">
+                Rellena los datos para ver la vista previa
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ═══ VIEW: FACTURAS RECURRENTES ═══ -->
       <div class="view" id="view-recurrentes">
         <div class="view-header">
