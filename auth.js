@@ -7,7 +7,11 @@ import { supabase } from "./supabase.js";
    → "Reference ID"
 ══════════════════════════════════════════════════════════ */
 // Endpoint exacto de la Edge Function
-const RESEND_ENDPOINT = "https://biiyzjzduvahajndltap.supabase.co/functions/v1/send-2fa-code";
+// ── Supabase Edge Function endpoint ─────────────────────────
+// Project ID: biiyzjzdvuahajndltap  (Settings → General → Reference ID)
+const SUPABASE_PROJECT_ID = "biiyzjzdvuahajndltap";
+const SUPABASE_ANON_KEY   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpaXl6anpkdnVhaGFqbmRsdGFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4NjI5MzEsImV4cCI6MjA4NTQzODkzMX0.sm_0aKM08sduk3E0elmMaLRCuqlxgWulTp7Kx3WHc_4";
+const RESEND_ENDPOINT     = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/send-2fa-code`;
 
 /* ══════════════════════════════════════════════════════════
    ALMACÉN TEMPORAL DE CÓDIGOS 2FA
@@ -45,14 +49,7 @@ function generateCode() {
 
 /* ══════════════════════════════════════════════════════════
    ENVIAR CÓDIGO 2FA VÍA SUPABASE EDGE FUNCTION + RESEND
-   La Edge Function está en:
-   https://PROJECT_ID.supabase.co/functions/v1/send-2fa-code
-   Requiere la anon key en el header "apikey" para autorizarse.
 ══════════════════════════════════════════════════════════ */
-
-// Anon key pública (la misma de supabase.js)
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpaXl6anpkdnVhaGFqbmRsdGFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4NjI5MzEsImV4cCI6MjA4NTQzODkzMX0.sm_0aKM08sduk3E0elmMaLRCuqlxgWulTp7Kx3WHc_4";
-
 async function send2FACode(email) {
   const code      = generateCode();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -63,16 +60,17 @@ async function send2FACode(email) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "apikey":        SUPABASE_ANON_KEY,
-        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": "Bearer " + SUPABASE_ANON_KEY,
       },
       body: JSON.stringify({
-        email,
-        code,
+        email:     email,
+        code:      code,
         expiresAt: expiresAt.toISOString(),
       }),
     });
-  } catch {
+  } catch (fetchErr) {
+    console.error("[send2FACode] fetch error:", fetchErr);
     throw new Error("No se pudo contactar con el servidor. Comprueba tu conexión.");
   }
 
