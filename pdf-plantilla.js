@@ -688,7 +688,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.roundedRect(ML, y, W, 11, 1.5, 1.5, "FD");
     doc.setFont(font, "normal"); doc.setFontSize(7.5);
     doc.setTextColor(146, 64, 14);
-    doc.text("! Este documento no tiene validez fiscal. No incluye IVA. No sustituye a la factura.", ML + 4, y + 7);
+    doc.text("Este documento no tiene validez fiscal. No incluye IVA. No sustituye a la factura.", ML + 4, y + 7);
     y += 17;
 
     // Cuadro firma receptor
@@ -712,7 +712,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     const esFact = docData.estado_facturacion === "facturado";
     doc.setFont(font, "normal"); doc.setFontSize(9);
     doc.setTextColor(esFact ? 5 : 146, esFact ? 150 : 64, esFact ? 105 : 14);
-    doc.text(esFact ? "✓ Facturado / Invoiced" : "⏳ Pendiente de facturar", infoX + 4, y + 20);
+    doc.text(esFact ? "Facturado / Invoiced" : "Pendiente de facturar", infoX + 4, y + 20);
     if (esFact && docData.fecha_facturacion) {
       doc.setFontSize(7.5); doc.setTextColor(...MUTED);
       doc.text("Fecha: " + new Date(docData.fecha_facturacion + "T12:00:00").toLocaleDateString("es-ES"), infoX + 4, y + 28);
