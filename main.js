@@ -65,6 +65,7 @@ import { initRecurrentesView, refreshRecurrentes } from "./facturas-recurrentes.
 import { initPlantillasView, refreshPlantillas } from "./plantillas-usuario.js";
 import { initAlbaranesView, refreshAlbaranes } from "./albaranes.js";
 import { initProformaView, refreshProforma } from "./proforma.js";
+import { initNuevaProforma } from "./nueva-proforma.js";
 
 
 
@@ -367,6 +368,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Proformas ── */
   initProformaView();
+  initNuevaProforma();
 
   /* ── Facturas recurrentes ── */
   initRecurrentesView();
@@ -566,6 +568,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (view === "informes")        initInformesView();
         if (view === "albaranes")       await refreshAlbaranes();
         if (view === "proformas")        await refreshProforma();
+        if (view === "nueva-proforma")   initNuevaProforma();
         if (view === "recurrentes")     await refreshRecurrentes();
         if (view === "plantillas")      await refreshPlantillas();
         if (view === "editar-plantilla") window._epInit?.();
