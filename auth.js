@@ -1,12 +1,13 @@
 import { supabase } from "./supabase.js";
 
 /* ══════════════════════════════════════════════════════════
-   CONFIGURACIÓN RESEND
-   El endpoint /api/send-code debe existir en tu backend y
-   llamar a Resend con la plantilla de código 2FA.
-   Si usas Supabase Edge Functions, ajusta la URL aquí.
+   ENDPOINT — Supabase Edge Function
+   Sustituye PROJECT_ID por tu ID real de proyecto Supabase.
+   Lo encuentras en: Supabase Dashboard → Settings → General
+   → "Reference ID"
 ══════════════════════════════════════════════════════════ */
-const RESEND_ENDPOINT = "/api/send-2fa-code"; // ← tu endpoint backend
+const SUPABASE_PROJECT_ID = "biiyzjzdvuahajndltap"; // ← tu Project ID (ya visible en supabase.js)
+const RESEND_ENDPOINT = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/send-2fa-code`;
 
 /* ══════════════════════════════════════════════════════════
    ALMACÉN TEMPORAL DE CÓDIGOS 2FA
@@ -43,23 +44,37 @@ function generateCode() {
 }
 
 /* ══════════════════════════════════════════════════════════
-   ENVIAR CÓDIGO 2FA VÍA RESEND
-   Llama a tu endpoint backend que usa la API de Resend.
-   El endpoint recibe { email, code } y envía el email.
+   ENVIAR CÓDIGO 2FA VÍA SUPABASE EDGE FUNCTION + RESEND
+   La Edge Function está en:
+   https://PROJECT_ID.supabase.co/functions/v1/send-2fa-code
+   Requiere la anon key en el header "apikey" para autorizarse.
 ══════════════════════════════════════════════════════════ */
+
+// Anon key pública (la misma de supabase.js)
+const SUPABASE_ANON_KEY = "sb_publishable_0N1Nv7SkjpynYh10lieang_uUoHRHOf";
+
 async function send2FACode(email) {
-  const code = generateCode();
+  const code      = generateCode();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-  const res = await fetch(RESEND_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email,
-      code,
-      expiresAt: expiresAt.toISOString(),
-    }),
-  });
+  let res;
+  try {
+    res = await fetch(RESEND_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey":        SUPABASE_ANON_KEY,  // requerido por Supabase Edge Functions
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        email,
+        code,
+        expiresAt: expiresAt.toISOString(),
+      }),
+    });
+  } catch {
+    throw new Error("No se pudo contactar con el servidor. Comprueba tu conexión.");
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
