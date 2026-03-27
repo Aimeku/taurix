@@ -7,9 +7,9 @@
    ═══════════════════════════════════════════════════════ */
 
 import { supabase } from "./supabase.js";
-import { SESSION, CLIENTES, fmt, fmtDate, toast, openModal, closeModal, getYear, getTrim, getFechaRango } from "./utils.js";
-import { PRODUCTOS } from "./productos.js";
+import { SESSION, fmt, fmtDate, toast, openModal, closeModal, switchView, getYear, getTrim, getFechaRango } from "./utils.js";
 import { refreshFacturas } from "./facturas.js";
+import { cargarProformaParaEditar } from "./nueva-proforma.js";
 
 /* ══════════════════════════
    REFRESH / LISTADO
@@ -86,243 +86,6 @@ export async function refreshProforma() {
       </div></td>
     </tr>`;
   }).join("");
-}
-
-/* ══════════════════════════
-   MODAL NUEVA / EDITAR PROFORMA
-══════════════════════════ */
-export function showProformaModal(prefill = {}) {
-  const isEdit = !!prefill.id;
-  const lineas = prefill.lineas
-    ? (typeof prefill.lineas==="string" ? JSON.parse(prefill.lineas) : prefill.lineas)
-    : [{ descripcion:"", cantidad:1, precio:0, iva:21 }];
-
-  openModal(`
-    <div class="modal modal--wide" style="max-width:860px">
-      <div class="modal-hd">
-        <span class="modal-title">📋 ${isEdit?"Editar":"Nueva"} factura proforma</span>
-        <button class="modal-x" onclick="window._cm()">×</button>
-      </div>
-      <div class="modal-bd">
-        <div style="background:linear-gradient(135deg,#fef9c3,#fef3c7);border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:16px;display:flex;gap:8px;align-items:center">
-          <span style="font-size:16px">⚠️</span>
-          <span><strong>Documento sin valor fiscal.</strong> La proforma se usa para que el cliente confirme el pedido antes de emitir la factura definitiva.</span>
-        </div>
-
-        <!-- Cliente -->
-        <div class="modal-grid2" style="margin-bottom:12px">
-          <div class="modal-field"><label>Cliente *</label>
-            <select id="pf_cliente" class="ff-select" onchange="window._pfClienteSelect()">
-              <option value="">— Sin asignar —</option>
-              ${CLIENTES.map(c=>`<option value="${c.id}" data-nombre="${c.nombre}" data-nif="${c.nif||""}" data-dir="${c.direccion||""}" ${prefill.cliente_id===c.id?"selected":""}>${c.nombre}${c.nif?" · "+c.nif:""}</option>`).join("")}
-            </select>
-          </div>
-          <div class="modal-field"><label>Nombre cliente (libre)</label>
-            <input id="pf_cliente_nombre" class="ff-input" value="${prefill.cliente_nombre||""}" placeholder="O escribe directamente"/>
-          </div>
-        </div>
-        <div class="modal-grid2" style="margin-bottom:12px">
-          <div class="modal-field"><label>NIF / CIF</label>
-            <input id="pf_cliente_nif" class="ff-input" value="${prefill.cliente_nif||""}" placeholder="B12345678"/>
-          </div>
-          <div class="modal-field"><label>Email cliente</label>
-            <input id="pf_cliente_email" class="ff-input" type="email" value="${prefill.cliente_email||""}" placeholder="cliente@empresa.com"/>
-          </div>
-        </div>
-
-        <!-- Datos -->
-        <div class="modal-grid3" style="margin-bottom:12px">
-          <div class="modal-field"><label>Fecha *</label>
-            <input type="date" id="pf_fecha" class="ff-input" value="${prefill.fecha||new Date().toISOString().slice(0,10)}"/>
-          </div>
-          <div class="modal-field"><label>Válida hasta</label>
-            <input type="date" id="pf_validez" class="ff-input" value="${prefill.fecha_validez||""}"/>
-          </div>
-          <div class="modal-field"><label>Estado</label>
-            <select id="pf_estado" class="ff-select">
-              ${["borrador","enviada","confirmada","rechazada"].map(e=>`<option value="${e}" ${(prefill.estado||"borrador")===e?"selected":""}>${e.charAt(0).toUpperCase()+e.slice(1)}</option>`).join("")}
-            </select>
-          </div>
-        </div>
-
-        <div class="modal-field" style="margin-bottom:16px">
-          <label>Concepto / Asunto *</label>
-          <input id="pf_concepto" class="ff-input" value="${prefill.concepto||""}" placeholder="Ej: Suministro de equipos informáticos"/>
-        </div>
-
-        <!-- Líneas -->
-        <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Líneas del presupuesto</div>
-        <div class="lineas-header" style="grid-template-columns:1fr 60px 100px 56px 32px">
-          <div>Descripción</div><div>Cant.</div><div>Precio (€)</div><div>IVA</div><div></div>
-        </div>
-        <div id="pf_lineas">
-          ${lineas.map((_,i)=>"").join("")}
-        </div>
-        <button class="btn-add-linea" id="pf_addLinea" style="margin-top:8px">+ Añadir línea</button>
-
-        <div class="lineas-totales" id="pf_totales" style="margin-top:12px">
-          <div class="lt-row"><span>Base imponible</span><strong id="pf_ltBase">0,00 €</strong></div>
-          <div class="lt-row"><span>IVA</span><strong id="pf_ltIva">0,00 €</strong></div>
-          <div class="lt-row lt-total"><span>TOTAL PROFORMA</span><strong id="pf_ltTotal">0,00 €</strong></div>
-        </div>
-
-        <div class="modal-field" style="margin-top:14px">
-          <label>Condiciones / Notas</label>
-          <textarea id="pf_notas" class="ff-input ff-textarea" style="min-height:60px" placeholder="Condiciones de pago, plazos de entrega, garantías…">${prefill.notas||""}</textarea>
-        </div>
-      </div>
-      <div class="modal-ft">
-        ${isEdit?`<button class="btn-modal-danger" id="pf_del" style="margin-right:auto">🗑️ Eliminar</button>`:""}
-        <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
-        <button class="btn-modal-save" id="pf_save">${isEdit?"Actualizar proforma":"Crear proforma"}</button>
-      </div>
-    </div>
-  `);
-
-  // Cliente select
-  window._pfClienteSelect = () => {
-    const sel = document.getElementById("pf_cliente");
-    const opt = sel.options[sel.selectedIndex];
-    if (opt.value) {
-      document.getElementById("pf_cliente_nombre").value = opt.dataset.nombre||"";
-      document.getElementById("pf_cliente_nif").value    = opt.dataset.nif||"";
-    }
-  };
-
-  // Líneas
-  let lineasArr = [...lineas];
-  let lid = 0;
-
-  const calcTotales = () => {
-    let base=0, iva=0;
-    lineasArr.forEach(l=>{ const sub=l.cantidad*l.precio; base+=sub; iva+=sub*l.iva/100; });
-    const s=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
-    s("pf_ltBase",fmt(base)); s("pf_ltIva",fmt(iva)); s("pf_ltTotal",fmt(base+iva));
-  };
-
-  const addLinea = (pf={}) => {
-    const id = ++lid;
-    const l  = { id, descripcion:pf.descripcion||"", cantidad:pf.cantidad||1, precio:pf.precio||0, iva:pf.iva!==undefined?pf.iva:21 };
-    lineasArr.push(l);
-    const cont = document.getElementById("pf_lineas");
-    const row  = document.createElement("div");
-    row.className = "linea-row"; row.dataset.lineaId = id;
-    row.style.gridTemplateColumns = "1fr 60px 100px 56px 32px";
-    row.innerHTML = `
-      <input type="text" class="ff-input" data-field="descripcion" value="${l.descripcion}" placeholder="Descripción del producto o servicio"/>
-      <input type="number" class="ff-input" data-field="cantidad" value="${l.cantidad}" min="0.01" step="0.01"/>
-      <div class="linea-price-wrap"><span class="linea-euro">€</span>
-        <input type="number" class="linea-price ff-input" data-field="precio" value="${l.precio||""}" placeholder="0.00" step="0.01"/>
-      </div>
-      <select class="linea-iva ff-select" data-field="iva">
-        <option value="21" ${l.iva===21?"selected":""}>21%</option>
-        <option value="10" ${l.iva===10?"selected":""}>10%</option>
-        <option value="4"  ${l.iva===4 ?"selected":""}>4%</option>
-        <option value="0"  ${l.iva===0 ?"selected":""}>0%</option>
-      </select>
-      <button class="linea-del" onclick="window._pfDelLinea(${id})">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>`;
-    row.querySelectorAll("input,select").forEach(el => el.addEventListener("input",()=>{
-      const lx=lineasArr.find(x=>x.id===id); if(!lx)return;
-      const f=el.dataset.field;
-      if(f==="descripcion")lx.descripcion=el.value;
-      else if(f==="cantidad")lx.cantidad=parseFloat(el.value)||0;
-      else if(f==="precio")lx.precio=parseFloat(el.value)||0;
-      else if(f==="iva")lx.iva=parseInt(el.value)||0;
-      calcTotales();
-    }));
-
-    // Autocomplete productos
-    if (PRODUCTOS?.length > 0) {
-      const descEl = row.querySelector("[data-field='descripcion']");
-      if (descEl) {
-        const dd = document.createElement("div");
-        dd.style.cssText = "position:absolute;z-index:300;width:280px;top:100%;left:0;background:var(--srf);border:1px solid var(--brd);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);display:none;max-height:220px;overflow-y:auto";
-        descEl.parentElement.style.position = "relative";
-        descEl.parentElement.appendChild(dd);
-        descEl.addEventListener("input", () => {
-          const q = descEl.value.toLowerCase();
-          const matches = PRODUCTOS.filter(p=>p.activo!==false&&(p.nombre.toLowerCase().includes(q)||(p.descripcion||"").toLowerCase().includes(q))).slice(0,6);
-          if (!q||!matches.length){dd.style.display="none";return;}
-          dd.innerHTML = matches.map(p=>`<div style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--brd);font-size:12px" data-pid="${p.id}" onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background=''">
-            <div style="font-weight:600">${p.nombre}</div><div style="color:var(--t3);font-size:10px">${p.descripcion||""}</div>
-            <div style="color:var(--accent);font-weight:700;font-family:monospace;margin-top:2px">${fmt(p.precio)} · IVA ${p.iva}%</div>
-          </div>`).join("");
-          dd.querySelectorAll("[data-pid]").forEach(item=>item.addEventListener("mousedown",e=>{
-            e.preventDefault();
-            const p=PRODUCTOS.find(x=>x.id===item.dataset.pid);if(!p)return;
-            const lx=lineasArr.find(x=>x.id===id);if(lx){lx.descripcion=p.descripcion||p.nombre;lx.precio=p.precio;lx.iva=p.iva;}
-            descEl.value=p.descripcion||p.nombre;
-            row.querySelector("[data-field='precio']").value=p.precio;
-            row.querySelector("[data-field='iva']").value=p.iva;
-            dd.style.display="none"; calcTotales();
-          }));
-          dd.style.display="";
-        });
-        descEl.addEventListener("blur",()=>setTimeout(()=>{dd.style.display="none";},200));
-      }
-    }
-    cont.appendChild(row); calcTotales();
-  };
-
-  window._pfDelLinea = (id) => {
-    lineasArr = lineasArr.filter(l=>l.id!==id);
-    document.querySelector(`.linea-row[data-linea-id="${id}"]`)?.remove();
-    calcTotales();
-  };
-
-  lineas.forEach(l=>addLinea(l));
-  document.getElementById("pf_addLinea").addEventListener("click",()=>addLinea());
-
-  // Guardar
-  document.getElementById("pf_save").addEventListener("click", async () => {
-    const concepto = document.getElementById("pf_concepto").value.trim();
-    const fecha    = document.getElementById("pf_fecha").value;
-    if (!concepto||!fecha) { toast("Concepto y fecha son obligatorios","error"); return; }
-    if (!lineasArr.length||lineasArr.every(l=>!l.precio||l.precio<=0)) { toast("Añade al menos una línea con precio","error"); return; }
-
-    let base=0; const ivaMap={};
-    lineasArr.forEach(l=>{const sub=l.cantidad*l.precio;base+=sub;ivaMap[l.iva]=(ivaMap[l.iva]||0)+sub*l.iva/100;});
-    const ivaMain = parseInt(Object.entries(ivaMap).sort(([,a],[,b])=>b-a)[0]?.[0])||21;
-
-    // Numeración
-    const year = new Date(fecha).getFullYear();
-    const {data:last} = await supabase.from("proformas").select("numero").eq("user_id",SESSION.user.id)
-      .like("numero",`PRF-${year}-%`).order("numero",{ascending:false}).limit(1);
-    const lastN = last?.[0]?.numero ? parseInt((last[0].numero.match(/-(\d+)$/) || [])[1])||0 : 0;
-    const numero = isEdit ? prefill.numero : `PRF-${year}-${String(lastN+1).padStart(3,"0")}`;
-
-    const payload = {
-      user_id:        SESSION.user.id,
-      numero, concepto, fecha,
-      fecha_validez:  document.getElementById("pf_validez").value||null,
-      estado:         document.getElementById("pf_estado").value||"borrador",
-      cliente_id:     document.getElementById("pf_cliente").value||null,
-      cliente_nombre: document.getElementById("pf_cliente_nombre").value.trim()||null,
-      cliente_nif:    document.getElementById("pf_cliente_nif").value.trim()||null,
-      cliente_email:  document.getElementById("pf_cliente_email").value.trim()||null,
-      base, iva: ivaMain,
-      lineas: JSON.stringify(lineasArr.map(l=>({descripcion:l.descripcion,cantidad:l.cantidad,precio:l.precio,iva:l.iva}))),
-      notas: document.getElementById("pf_notas").value.trim()||null,
-    };
-
-    let err;
-    if (isEdit) { ({error:err}=await supabase.from("proformas").update(payload).eq("id",prefill.id)); }
-    else        { ({error:err}=await supabase.from("proformas").insert(payload)); }
-
-    if (err) { toast("Error: "+err.message,"error"); return; }
-    toast(isEdit?"Proforma actualizada ✅":`Proforma ${numero} creada ✅`,"success");
-    closeModal(); await refreshProforma();
-  });
-
-  if (isEdit) {
-    document.getElementById("pf_del")?.addEventListener("click", async()=>{
-      if(!confirm("¿Eliminar esta proforma?"))return;
-      await supabase.from("proformas").delete().eq("id",prefill.id);
-      closeModal(); toast("Proforma eliminada","success"); await refreshProforma();
-    });
-  }
 }
 
 /* ══════════════════════════
@@ -583,10 +346,7 @@ Atentamente</textarea>
    GLOBAL HANDLERS
 ══════════════════════════ */
 window._editProforma = async (id) => {
-  const {data:p} = await supabase.from("proformas").select("*").eq("id",id).single();
-  if (!p) { toast("Error cargando proforma","error"); return; }
-  const lineas = p.lineas ? JSON.parse(p.lineas) : [];
-  showProformaModal({...p, lineas});
+  await cargarProformaParaEditar(id);
 };
 window._delProforma = (id) => {
   openModal(`
@@ -608,7 +368,7 @@ window._delProforma = (id) => {
    INIT
 ══════════════════════════ */
 export function initProformaView() {
-  document.getElementById("nuevaProformaBtn")?.addEventListener("click", ()=>showProformaModal());
+  document.getElementById("nuevaProformaBtn")?.addEventListener("click", ()=>switchView("nueva-proforma"));
   document.getElementById("proformaSearch")?.addEventListener("input", ()=>refreshProforma());
   ["proformaFilterEstado","proformaFilterDesde","proformaFilterHasta"].forEach(id=>{
     document.getElementById(id)?.addEventListener("change",()=>refreshProforma());
