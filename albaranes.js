@@ -190,86 +190,17 @@ window._verAlbaran = async (id) => {
 
 /* ══════════════════════════
    GENERAR PDF ALBARÁN
+   Delega al motor de presupuestos.js (generarPDFAlbaran)
+   que presenta el modal con/sin precios y genera el PDF.
 ══════════════════════════ */
-window._albaranPDF = async (id) => {
-  const { data: a } = await supabase.from("presupuestos").select("*").eq("id", id).single();
-  if (!a) return;
-
-  // Cargar jsPDF si no está
-  if (!window.jspdf) {
-    await new Promise((res, rej) => {
-      const s = document.createElement("script");
-      s.src = "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
-      s.onload = res; s.onerror = rej; document.head.appendChild(s);
-    });
+window._albaranPDF = (id) => {
+  // window._pdfAlbaran es registrado por presupuestos.js y ya incluye
+  // el modal de selección con/sin precios.
+  if (typeof window._pdfAlbaran === "function") {
+    window._pdfAlbaran(id);
+  } else {
+    toast("Error: módulo de PDF no cargado", "error");
   }
-
-  const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).maybeSingle();
-  const lineas = a.lineas ? (typeof a.lineas === "string" ? JSON.parse(a.lineas) : a.lineas) : [];
-  const total = a.base + a.base * (a.iva || 21) / 100;
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const PW = 210, ML = 18, W = PW - ML * 2;
-  const BLUE = [26, 86, 219], INK = [15, 23, 42];
-
-  // Header
-  doc.setFillColor(...BLUE); doc.rect(0, 0, PW, 32, "F");
-  doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(18);
-  doc.text("ALBARÁN DE ENTREGA", ML, 15);
-  doc.setFontSize(11); doc.setFont("helvetica", "normal");
-  doc.text(`Nº ${a.albaran_numero || a.numero || "S/N"}  ·  ${fmtDate(a.albaran_fecha || a.fecha)}`, ML, 26);
-
-  let y = 44;
-  doc.setTextColor(...INK);
-
-  // Emisor
-  doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-  doc.text(pf?.nombre_razon_social || "Mi empresa", ML, y); y += 6;
-  doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-  if (pf?.nif) { doc.text(`NIF: ${pf.nif}`, ML, y); y += 5; }
-  if (pf?.domicilio_fiscal) { doc.text(pf.domicilio_fiscal, ML, y); y += 5; }
-  y += 4;
-
-  // Cliente
-  doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-  doc.text("Destinatario:", ML, y); y += 6;
-  doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-  doc.text(a.cliente_nombre || "—", ML, y); y += 5;
-  if (a.cliente_nif) { doc.text(`NIF: ${a.cliente_nif}`, ML, y); y += 5; }
-  y += 8;
-
-  // Líneas
-  if (lineas.length) {
-    const cols = [80, 20, 35, 35];
-    const heads = ["Descripción", "Uds.", "Precio", "Importe"];
-    doc.setFillColor(...BLUE); doc.rect(ML, y, W, 8, "F");
-    doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(8);
-    let x = ML;
-    heads.forEach((h, i) => { doc.text(h, x + 2, y + 5.5); x += cols[i]; }); y += 8;
-    doc.setTextColor(...INK); doc.setFont("helvetica", "normal");
-
-    lineas.forEach((l, ri) => {
-      if (ri % 2 === 0) doc.setFillColor(245, 248, 255); else doc.setFillColor(255, 255, 255);
-      doc.rect(ML, y, W, 7, "F");
-      x = ML;
-      const row = [(l.descripcion || "—").substring(0, 40), String(l.cantidad || 1), fmt(l.precio || 0), fmt((l.cantidad || 1) * (l.precio || 0))];
-      row.forEach((v, i) => { doc.setFontSize(8); doc.text(v, x + 2, y + 5); x += cols[i]; });
-      y += 7;
-      if (y > 260) { doc.addPage(); y = 18; }
-    });
-  }
-
-  y += 6;
-  doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-  doc.text(`Total: ${fmt(total)}`, PW - ML, y, { align: "right" });
-
-  y += 20;
-  doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(150, 150, 150);
-  doc.text("Conforme recibido: ____________________________     Fecha: ____/____/________", ML, y);
-
-  doc.save(`albaran_${a.albaran_numero || a.numero || "SN"}.pdf`);
-  toast("PDF de albarán descargado ✅", "success");
 };
 
 /* ══════════════════════════
