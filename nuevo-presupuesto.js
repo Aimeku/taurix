@@ -138,6 +138,26 @@ function _buildProdDropdown(descInput, onSelect) {
 
 
 
+/* ══════════════════════════════════════════════════════
+   COLUMNAS DINÁMICAS — esquema centralizado
+   Cada columna tiene: key, label, fr (proporción grid),
+   minW (ancho mínimo en px), align, inputType.
+   El grid se recalcula cada vez que cambia la plantilla.
+══════════════════════════════════════════════════════ */
+const _COL_SCHEMA = {
+  descripcion: { label:"Descripción",  fr:3.0, minW:120, align:"left",  inputType:"text",   dataField:"descripcion" },
+  cantidad:    { label:"Cant.",        fr:0.7, minW:52,  align:"right", inputType:"number", dataField:"cantidad",   step:"0.01", min:"0.01" },
+  precio:      { label:"P. unit.",     fr:1.0, minW:72,  align:"right", inputType:"number", dataField:"precio",    step:"0.01", placeholder:"0.00" },
+  descuento:   { label:"Dto.",         fr:0.8, minW:60,  align:"right", inputType:"text",   dataField:"descuento", placeholder:"10%/5€" },
+  subtotal:    { label:"Subtotal",     fr:1.0, minW:72,  align:"right", inputType:null,     dataField:null },
+  codigo:      { label:"Código",       fr:0.7, minW:55,  align:"left",  inputType:"text",   dataField:"codigo" },
+  coeficiente: { label:"Coef.",        fr:0.6, minW:50,  align:"right", inputType:"number", dataField:"coeficiente", step:"0.01" },
+  iva:         { label:"IVA",          fr:0.6, minW:56,  align:"right", inputType:"select", dataField:"iva" },
+  total:       { label:"Total",        fr:0.9, minW:68,  align:"right", inputType:null,     dataField:null },
+};
+const _COL_DEL     = { fr:0.28, minW:28 };
+const _DEFAULT_COLS = ["descripcion","cantidad","precio","iva","total"];
+
 /* ── Sistema de grid dinámico para NP ── */
 let _npColsActivas = [..._DEFAULT_COLS];
 
