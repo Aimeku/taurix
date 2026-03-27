@@ -151,7 +151,7 @@ async function _logoToBase64(url) {
    ─ plantillaId: string UUID o null
    ─ descargar: boolean (default true)
 ══════════════════════════════════════════════════════ */
-export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId = null, descargar = true }) {
+export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId = null, descargar = true, mostrarPrecios = true }) {
   await _loadJsPDF();
   const { jsPDF } = window.jspdf;
 
@@ -267,7 +267,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   // ── CABECERA ──
   // En el preview: logo es position:absolute encima de ep_pv_cab_wrap.
   // En el PDF: dibujamos cabecera → texto → logo (z-order = orden de dibujo).
-  const tipoLabel = tipo === "factura" ? "FACTURA" : "PRESUPUESTO";
+  const tipoLabel = tipo === "factura" ? "FACTURA" : tipo === "albaran" ? "ALBARÁN / DELIVERY NOTE" : "PRESUPUESTO";
   const numero    = docData.numero_factura || docData.numero || "BORRADOR";
   const fecha     = docData.fecha;
   const fmtFecha  = d => { if(!d)return"—"; const [yr,mo,dy]=d.split("-"); return `${dy}/${mo}/${yr}`; };
@@ -371,8 +371,8 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   doc.line(ML, y, PW - MR, y);
   y += 6;
 
-  // Concepto (para presupuesto)
-  if (docData.concepto && tipo === "presupuesto") {
+  // Concepto (para presupuesto y albarán)
+  if (docData.concepto && (tipo === "presupuesto" || tipo === "albaran")) {
     doc.setFont(font, "bold");
     doc.setFontSize(12);
     doc.setTextColor(...colores.letra);
@@ -382,13 +382,27 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
 
   // ── TABLA DE LÍNEAS ──
   // Columnas: si la plantilla define cols_activas, usarlas; si no, usar columnas por defecto
-  const DEFAULT_COLS = [
-    { key: "descripcion", label: "Descripción",  width: null },
-    { key: "cantidad",    label: "Cant.",         width: null },
-    { key: "precio",      label: "P. unit.",      width: null },
-    { key: "iva",         label: "IVA",           width: null },
-    { key: "total",       label: "Total",         width: null },
+  // Columnas por defecto según tipo y opción mostrarPrecios
+  const DEFAULT_COLS_PRECIOS  = [
+    { key: "descripcion", label: "Descripción", width: null },
+    { key: "cantidad",    label: "Cant.",        width: null },
+    { key: "precio",      label: "P. unit.",     width: null },
+    { key: "iva",         label: "IVA",          width: null },
+    { key: "total",       label: "Total",        width: null },
   ];
+  const DEFAULT_COLS_ALBARAN_SIN = [
+    { key: "descripcion", label: "Descripción", width: null },
+    { key: "cantidad",    label: "Cantidad",    width: null },
+  ];
+  // Columnas de importe que se ocultan cuando mostrarPrecios=false
+  const PRECIO_KEYS = new Set(["precio","subtotal","total","descuento","iva","coeficiente"]);
+
+  let DEFAULT_COLS;
+  if (tipo === "albaran" && !mostrarPrecios) {
+    DEFAULT_COLS = DEFAULT_COLS_ALBARAN_SIN;
+  } else {
+    DEFAULT_COLS = DEFAULT_COLS_PRECIOS;
+  }
 
   const COL_LABELS = {
     descripcion: "Descripción",  cantidad: "Cant.",   precio: "P. unit.",
@@ -396,7 +410,14 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     descuento:   "Descuento",   codigo:   "Código",  coeficiente: "Coef.",
   };
 
-  const activeCols = cols || DEFAULT_COLS;
+  // Para albarán sin precios: quitar columnas de importe aunque la plantilla las tenga
+  let activeCols = cols || DEFAULT_COLS;
+  if (tipo === "albaran" && !mostrarPrecios) {
+    activeCols = activeCols.filter(c => !PRECIO_KEYS.has(c.key));
+    // Garantizar descripcion + cantidad mínimo
+    if (!activeCols.find(c => c.key === "descripcion")) activeCols.unshift({ key:"descripcion", label:"Descripción", width:null });
+    if (!activeCols.find(c => c.key === "cantidad"))    activeCols.push({ key:"cantidad", label:"Cantidad", width:null });
+  }
 
   // Calcular anchos reales en mm
   // Las columnas con width definido reciben ese % del ancho total
@@ -524,8 +545,12 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   doc.line(ML, y, PW - MR, y);
   y += 8;
 
-  // ── TOTALES ──
+  // ── TOTALES ── (no se muestran en albarán sin precios)
   const ivaTotal    = Object.values(ivaMap).reduce((a, b) => a + b, 0);
+  if (tipo === "albaran" && !mostrarPrecios) {
+    // Saltar bloque de totales
+    y += 4;
+  } else {
   const irpfAmt     = baseTotal * (docData.irpf_retencion || 0) / 100;
   const totalFinal  = baseTotal + ivaTotal - irpfAmt;
 
@@ -569,6 +594,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   doc.text("TOTAL", xTL, y + 7);
   doc.text(totalFinal.toFixed(2) + " €", xTV, y + 7, { align: "right" });
   y += 20;
+  } // end if mostrarPrecios
 
   // ── NOTAS ──
   const notas = docData.notas;
@@ -643,6 +669,8 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
 
     const pieIzq = tipo === "factura"
       ? ({ nacional:"Operación sujeta a IVA español · Ley 37/1992.", intracomunitaria:"Op. intracomunitaria exenta IVA · Art. 25 LIVA.", exportacion:"Exportación exenta de IVA · Art. 21 LIVA.", importacion:"IVA liquidado en aduana mediante DUA.", inversion_sujeto_pasivo:"Inversión sujeto pasivo · Art. 84 LIVA." }[docData.tipo_operacion] || "")
+      : tipo === "albaran"
+      ? "Albarán de entrega · Este documento no tiene validez fiscal · No sustituye a la factura."
       : (docData.fecha_validez ? "Válido hasta: " + fmtFecha(docData.fecha_validez) : "");
 
     doc.text(pieIzq, ML, PH - 10);
@@ -650,9 +678,57 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.text(pieDer, PW - MR, PH - 10, { align: "right" });
   }
 
+  // ── SECCIÓN FIRMA (solo albaranes) ──
+  if (tipo === "albaran" && y < PH - 65) {
+    y += 6;
+    // Nota sin validez fiscal
+    doc.setFillColor(255,251,235);
+    doc.setDrawColor(253,230,138);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(ML, y, W, 11, 1.5, 1.5, "FD");
+    doc.setFont(font, "normal"); doc.setFontSize(7.5);
+    doc.setTextColor(146, 64, 14);
+    doc.text("! Este documento no tiene validez fiscal. No incluye IVA. No sustituye a la factura.", ML + 4, y + 7);
+    y += 17;
+
+    // Cuadro firma receptor
+    const firmaW = W / 2 - 4;
+    const firmaH = 38;
+    doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
+    doc.roundedRect(ML, y, firmaW, firmaH, 1.5, 1.5, "D");
+    doc.setFont(font, "bold"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+    doc.text("FIRMA DEL RECEPTOR / RECIPIENT SIGNATURE", ML + 4, y + 7);
+    doc.setFont(font, "normal"); doc.setFontSize(7.5);
+    doc.text("Nombre / Name: ________________________________", ML + 4, y + 17);
+    doc.text("DNI / ID: _____________________________________", ML + 4, y + 24);
+    doc.text("Fecha / Date: __________________________________", ML + 4, y + 31);
+
+    // Cuadro estado facturación
+    const infoX = PW / 2 + 4;
+    const infoW = W / 2 - 4;
+    doc.roundedRect(infoX, y, infoW, firmaH, 1.5, 1.5, "D");
+    doc.setFont(font, "bold"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+    doc.text("ESTADO DE FACTURACIÓN / BILLING STATUS", infoX + 4, y + 7);
+    const esFact = docData.estado_facturacion === "facturado";
+    doc.setFont(font, "normal"); doc.setFontSize(9);
+    doc.setTextColor(esFact ? 5 : 146, esFact ? 150 : 64, esFact ? 105 : 14);
+    doc.text(esFact ? "✓ Facturado / Invoiced" : "⏳ Pendiente de facturar", infoX + 4, y + 20);
+    if (esFact && docData.fecha_facturacion) {
+      doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+      doc.text("Fecha: " + new Date(docData.fecha_facturacion + "T12:00:00").toLocaleDateString("es-ES"), infoX + 4, y + 28);
+    }
+    // Badge sin precios si aplica
+    if (!mostrarPrecios) {
+      doc.setFillColor(254,243,199); doc.setDrawColor(253,230,138); doc.setLineWidth(0.3);
+      doc.roundedRect(infoX + 4, y + 30, 42, 6, 1, 1, "FD");
+      doc.setFont(font, "bold"); doc.setFontSize(6.5); doc.setTextColor(146,64,14);
+      doc.text("ALBARÁN SIN PRECIOS", infoX + 6, y + 34);
+    }
+  }
+
   // ── GUARDAR / DEVOLVER ──
-  const tipoFmt  = tipo === "factura" ? "factura" : "presupuesto";
-  const numFmt   = (docData.numero_factura || docData.numero || docData.id?.slice(0, 8) || "doc").replace(/[\/\\]/g, "-");
+  const tipoFmt  = tipo === "factura" ? "factura" : tipo === "albaran" ? "albaran" : "presupuesto";
+  const numFmt   = (docData.numero_factura || docData.numero_albaran || docData.numero || docData.id?.slice(0, 8) || "doc").replace(/[\/\\]/g, "-");
   const filename = `${tipoFmt}_${numFmt}.pdf`;
 
   if (descargar) {
@@ -698,4 +774,26 @@ export async function exportPresupuestoPDFConPlantilla(presId, plantillaId = nul
     || null;
 
   return generarPDFConPlantilla({ doc: p, tipo: "presupuesto", plantillaId: selId, descargar });
+}
+
+/** Genera PDF de albarán usando el motor de plantillas.
+ *  mostrarPrecios: si false, oculta columnas de precio/importe/IVA.
+ */
+export async function exportAlbaranPDFConPlantilla(presId, plantillaId = null, descargar = true, mostrarPrecios = true) {
+  const { data: p, error } = await supabase
+    .from("presupuestos")
+    .select("*")
+    .eq("id", presId)
+    .single();
+  if (error || !p) { toast("Albarán no encontrado", "error"); return null; }
+
+  const selId = plantillaId || null;
+
+  return generarPDFConPlantilla({
+    doc:           p,
+    tipo:          "albaran",
+    plantillaId:   selId,
+    descargar,
+    mostrarPrecios,
+  });
 }
