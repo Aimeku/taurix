@@ -267,7 +267,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   // ── CABECERA ──
   // En el preview: logo es position:absolute encima de ep_pv_cab_wrap.
   // En el PDF: dibujamos cabecera → texto → logo (z-order = orden de dibujo).
-  const tipoLabel = tipo === "factura" ? "FACTURA" : tipo === "albaran" ? "ALBARÁN / DELIVERY NOTE" : "PRESUPUESTO";
+  const tipoLabel = tipo === "factura" ? "FACTURA" : tipo === "albaran" ? "ALBARÁN / DELIVERY NOTE" : tipo === "proforma" ? "FACTURA PROFORMA" : "PRESUPUESTO";
   const numero    = docData.numero_factura || docData.numero || "BORRADOR";
   const fecha     = docData.fecha;
   const fmtFecha  = d => { if(!d)return"—"; const [yr,mo,dy]=d.split("-"); return `${dy}/${mo}/${yr}`; };
@@ -322,6 +322,20 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
 
   let y = CAB_TOP + cabH + 6;
 
+  // ── BANNER PROFORMA — aviso sin validez fiscal ──
+  if (tipo === "proforma") {
+    // Franja amarilla de aviso sobre el carácter no fiscal del documento
+    doc.setFillColor(255, 251, 235);
+    doc.setDrawColor(253, 230, 138);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(ML, y - 4, W, 9, 1.5, 1.5, "FD");
+    doc.setFont(font, "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(146, 64, 14);
+    doc.text("DOCUMENTO SIN VALIDEZ FISCAL — No sustituye a la factura.", PW / 2, y + 1.5, { align: "center" });
+    y += 10;
+  }
+
   // ── EMISOR / CLIENTE ──
   // Posiciones con offsets de la plantilla
   const emisorX = ML + (plantilla?.emisor_x ?? 0);
@@ -372,7 +386,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   y += 6;
 
   // Concepto (para presupuesto y albarán)
-  if (docData.concepto && (tipo === "presupuesto" || tipo === "albaran")) {
+  if (docData.concepto && (tipo === "presupuesto" || tipo === "albaran" || tipo === "proforma")) {
     doc.setFont(font, "bold");
     doc.setFontSize(12);
     doc.setTextColor(...colores.letra);
@@ -671,6 +685,8 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
       ? ({ nacional:"Operación sujeta a IVA español · Ley 37/1992.", intracomunitaria:"Op. intracomunitaria exenta IVA · Art. 25 LIVA.", exportacion:"Exportación exenta de IVA · Art. 21 LIVA.", importacion:"IVA liquidado en aduana mediante DUA.", inversion_sujeto_pasivo:"Inversión sujeto pasivo · Art. 84 LIVA." }[docData.tipo_operacion] || "")
       : tipo === "albaran"
       ? "Albarán de entrega · Este documento no tiene validez fiscal · No sustituye a la factura."
+      : tipo === "proforma"
+      ? "FACTURA PROFORMA · Documento sin validez fiscal · No sustituye a la factura original · Art. 11 RD 1619/2012"
       : (docData.fecha_validez ? "Válido hasta: " + fmtFecha(docData.fecha_validez) : "");
 
     doc.text(pieIzq, ML, PH - 10);
@@ -727,7 +743,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   }
 
   // ── GUARDAR / DEVOLVER ──
-  const tipoFmt  = tipo === "factura" ? "factura" : tipo === "albaran" ? "albaran" : "presupuesto";
+  const tipoFmt  = tipo === "factura" ? "factura" : tipo === "albaran" ? "albaran" : tipo === "proforma" ? "proforma" : "presupuesto";
   const numFmt   = (docData.numero_factura || docData.numero_albaran || docData.numero || docData.id?.slice(0, 8) || "doc").replace(/[\/\\]/g, "-");
   const filename = `${tipoFmt}_${numFmt}.pdf`;
 
@@ -795,5 +811,27 @@ export async function exportAlbaranPDFConPlantilla(presId, plantillaId = null, d
     plantillaId:   selId,
     descargar,
     mostrarPrecios,
+  });
+}
+
+/** Genera PDF de proforma usando el motor de plantillas.
+ *  La proforma se renderiza igual que factura/presupuesto pero
+ *  indica claramente que no tiene validez fiscal.
+ */
+export async function exportProformaPDFConPlantilla(proformaId, plantillaId = null, descargar = true) {
+  const { data: p, error } = await supabase
+    .from("proformas")
+    .select("*")
+    .eq("id", proformaId)
+    .single();
+  if (error || !p) { toast("Proforma no encontrada", "error"); return null; }
+
+  const selId = plantillaId || p.plantilla_id || null;
+
+  return generarPDFConPlantilla({
+    doc:         p,
+    tipo:        "proforma",
+    plantillaId: selId,
+    descargar,
   });
 }
