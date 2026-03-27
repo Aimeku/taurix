@@ -106,35 +106,97 @@ function _addLinea(pf={}) {
     el.addEventListener("change",()=>_onChange(id,el));
   });
   const di=row.querySelector("[data-field='descripcion']");
-  if(di&&PRODUCTOS?.length) _autocomplete(di,row,id);
+  if(di) _buildProdDropdown(di, (p) => {
+    const lx=LINEAS.find(x=>x.id===id);
+    if(lx){lx.descripcion=p.descripcion||p.nombre;lx.precio=p.precio;lx.iva=p.iva;}
+    const f=(field,val)=>{const el=row.querySelector(`[data-field="${field}"]`);if(el)el.value=val;};
+    f("descripcion",p.descripcion||p.nombre);f("precio",p.precio);f("iva",p.iva);
+    const tot=document.getElementById(`npfLt${id}`);
+    if(tot)tot.textContent=fmt((lx?.cantidad||1)*p.precio);
+    _calcTotales();
+  });
   cont.appendChild(row); _calcTotales();
 }
 
-function _autocomplete(inp,row,id){
-  const dd=document.createElement("div");
-  dd.style.cssText="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:300;min-width:260px";
-  inp.parentElement.style.position="relative"; inp.parentElement.appendChild(dd);
-  const rend=lista=>{
-    if(!lista.length){dd.style.display="none";return;}
-    dd.innerHTML=lista.map(p=>`<div class="csd-item" data-pid="${p.id}"><div class="csd-name">${p.nombre}</div><div style="font-size:11px;color:var(--accent);font-family:monospace">${fmt(p.precio)}</div></div>`).join("");
-    dd.querySelectorAll(".csd-item").forEach(item=>item.addEventListener("mousedown",e=>{
-      e.preventDefault();
-      const p=PRODUCTOS.find(x=>x.id===item.dataset.pid); if(!p)return;
-      const lx=LINEAS.find(x=>x.id===id);
-      if(lx){lx.descripcion=p.descripcion||p.nombre;lx.precio=p.precio;lx.iva=p.iva;}
-      const f=(field,val)=>{const el=row.querySelector(`[data-field="${field}"]`);if(el)el.value=val;};
-      f("descripcion",p.descripcion||p.nombre);f("precio",p.precio);f("iva",p.iva);
-      const tot=document.getElementById(`npfLt${id}`);
-      if(tot)tot.textContent=fmt((lx?.cantidad||1)*p.precio);
-      dd.style.display="none"; _calcTotales();
-    }));
-    dd.style.display="";
+/* ══════════════════════════════════════════════════════
+   DROPDOWN CATÁLOGO DE PRODUCTOS
+   Réplica exacta de nueva-factura.js — mismas clases CSS,
+   mismos campos buscados, mismo comportamiento al focus.
+══════════════════════════════════════════════════════ */
+function _buildProdDropdown(descInput, onSelect) {
+  if (!descInput) return;
+
+  const dd = document.createElement("div");
+  dd.className = "csc-dropdown";
+  dd.style.cssText = "display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:300;min-width:280px";
+  descInput.parentElement.style.position = "relative";
+  descInput.parentElement.appendChild(dd);
+
+  const _render = (lista) => {
+    if (!lista.length) {
+      dd.innerHTML = `<div class="csd-empty">Sin productos en el catálogo</div>`;
+      dd.style.display = "";
+      return;
+    }
+    dd.innerHTML = lista.map(p => {
+      const stockBadge = p.tipo !== "servicio" && p.stock_actual != null
+        ? `<span style="font-size:11px;padding:1px 7px;border-radius:5px;font-weight:700;margin-left:6px;background:${p.stock_actual>0?"#dcfce7":"#fee2e2"};color:${p.stock_actual>0?"#166534":"#991b1b"}">Stock: ${p.stock_actual}</span>`
+        : "";
+      return `<div class="csd-item" data-pid="${p.id}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div style="flex:1;min-width:0">
+            <div class="csd-name">${p.nombre}${stockBadge}</div>
+            ${p.descripcion ? `<div class="csd-meta">${p.descripcion}</div>` : ""}
+            ${p.referencia  ? `<div class="csd-meta" style="font-family:monospace">Ref: ${p.referencia}</div>` : ""}
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:13px;font-weight:800;color:var(--accent);font-family:monospace">${fmt(p.precio)}</div>
+            <div class="csd-meta">IVA ${p.iva}%</div>
+          </div>
+        </div>
+      </div>`;
+    }).join("");
+    dd.querySelectorAll(".csd-item").forEach(item => {
+      item.addEventListener("mousedown", e => {
+        e.preventDefault();
+        const p = PRODUCTOS.find(x => x.id === item.dataset.pid);
+        if (p && onSelect) onSelect(p);
+        dd.style.display = "none";
+      });
+    });
+    dd.style.display = "";
   };
-  inp.addEventListener("input",()=>{
-    const q=inp.value.toLowerCase().trim();
-    rend(PRODUCTOS.filter(p=>p.activo!==false&&(!q||p.nombre.toLowerCase().includes(q)||(p.referencia||"").toLowerCase().includes(q))).slice(0,8));
+
+  // Focus: muestra todo el catálogo (igual que nueva-factura)
+  descInput.addEventListener("focus", () => {
+    if (!PRODUCTOS?.length) return;
+    _render(PRODUCTOS.filter(p => p.activo !== false).slice(0, 12));
   });
-  inp.addEventListener("blur",()=>setTimeout(()=>{dd.style.display="none";},200));
+
+  // Input: filtra por nombre, descripcion y referencia
+  descInput.addEventListener("input", () => {
+    if (!PRODUCTOS?.length) return;
+    const q = descInput.value.toLowerCase().trim();
+    if (!q) {
+      _render(PRODUCTOS.filter(p => p.activo !== false).slice(0, 12));
+      return;
+    }
+    const m = PRODUCTOS.filter(p =>
+      p.activo !== false && (
+        p.nombre.toLowerCase().includes(q) ||
+        (p.descripcion || "").toLowerCase().includes(q) ||
+        (p.referencia  || "").toLowerCase().includes(q)
+      )
+    ).slice(0, 10);
+    if (!m.length) {
+      dd.innerHTML = `<div class="csd-empty">Sin resultados para "${q}"</div>`;
+      dd.style.display = "";
+      return;
+    }
+    _render(m);
+  });
+
+  descInput.addEventListener("blur", () => setTimeout(() => { dd.style.display = "none"; }, 200));
 }
 
 function _onChange(id,el){
