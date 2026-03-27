@@ -51,8 +51,10 @@ function generateCode() {
    ENVIAR CÓDIGO 2FA VÍA SUPABASE EDGE FUNCTION + RESEND
 ══════════════════════════════════════════════════════════ */
 async function send2FACode(email) {
-  const code      = generateCode();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  const code = generateCode();
+
+  // Debug: verificar que email y code existen antes del fetch
+  console.log("2FA data:", email, code);
 
   let res;
   try {
@@ -64,9 +66,8 @@ async function send2FACode(email) {
         "Authorization": "Bearer " + SUPABASE_ANON_KEY,
       },
       body: JSON.stringify({
-        email:     email,
-        code:      code,
-        expiresAt: expiresAt.toISOString(),
+        email: email,
+        code:  code,
       }),
     });
   } catch (fetchErr) {
