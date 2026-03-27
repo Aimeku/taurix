@@ -11,7 +11,6 @@
    ═══════════════════════════════════════════════════════ */
 
 import { supabase } from "./supabase.js";
-import { exportPresupuestoPDFConPlantilla } from "./pdf-plantilla.js";
 import {
   SESSION, CLIENTES, fmt, fmtDate, toast,
   openModal, closeModal, getYear, getTrim, getFechaRango
@@ -1032,11 +1031,183 @@ async function logoToBase64(url) {
    GENERAR PDF PROFESIONAL
 ══════════════════════════════════════════════════ */
 export async function generarPDFPresupuesto(presId, descargar = true) {
-  // Delega al motor PDF con soporte de plantillas.
-  // Lee el selector activo del formulario si está disponible.
-  const plantillaId = document.getElementById("npPlantillaSel")?.value || null;
-  const result = await exportPresupuestoPDFConPlantilla(presId, plantillaId, descargar);
-  return result; // null si descargar=true, objeto {blob,filename,dataUri} si false
+  const { data: p, error } = await supabase.from("presupuestos")
+    .select("*").eq("id", presId).single();
+  if (error || !p) { toast("Error cargando presupuesto", "error"); return null; }
+
+  const perfil = await cargarPerfil();
+  const lineas = p.lineas ? JSON.parse(p.lineas) : [];
+
+  if (!window.jspdf?.jsPDF && !window.jsPDF) {
+    await new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  const { jsPDF } = window.jspdf || window;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+  const PW=210, PH=297, ML=18, MR=18, W=PW-ML-MR;
+  const INK=[15,23,42], MUTED=[100,116,139], LIGHT=[248,250,252], BORDER=[226,232,240], WHITE=[255,255,255];
+
+  doc.setFillColor(...WHITE); doc.rect(0,0,PW,PH,"F");
+
+  doc.setFont("helvetica","bold"); doc.setFontSize(28); doc.setTextColor(...INK);
+  doc.text("PRESUPUESTO", ML, 22);
+  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(...MUTED);
+  doc.text("QUOTE", ML, 29);
+
+  let logoOk=false;
+  let logoB64=perfil.logo_url ? await logoToBase64(perfil.logo_url) : null;
+  if(logoB64){
+    try{
+      const mime=logoB64.split(";")[0].split(":")[1];
+      doc.addImage(logoB64, mime.includes("png")?"PNG":"JPEG", PW-MR-42, 8, 42, 28, "", "FAST");
+      logoOk=true;
+    }catch(e){}
+  }
+  if(!logoOk){
+    doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.setTextColor(...INK);
+    doc.text(perfil.nombre_razon_social||"", PW-MR, 24, {align:"right"});
+  }
+
+  doc.setDrawColor(...BORDER); doc.setLineWidth(0.5);
+  doc.line(ML, 36, PW-MR, 36);
+
+  let y=46;
+  const COL1=ML, COL2=PW/2+6, cW=W/2-10;
+
+  doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+  doc.text("DE / FROM", COL1, y); doc.text("PARA / TO", COL2, y); y+=5;
+
+  const yBlock=y;
+  doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...INK);
+  doc.text((perfil.nombre_razon_social||"—").substring(0,32), COL1, y); y+=5.5;
+  doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...MUTED);
+  if(perfil.nif)             { doc.text("NIF: "+perfil.nif, COL1, y); y+=4.5; }
+  if(perfil.domicilio_fiscal){ const ls=doc.splitTextToSize(perfil.domicilio_fiscal,cW); doc.text(ls,COL1,y); }
+
+  doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...INK);
+  doc.text((p.cliente_nombre||"—").substring(0,32), COL2, yBlock);
+
+  y=Math.max(y+5, yBlock+12)+4;
+
+  if(p.concepto){
+    doc.setFont("helvetica","bold"); doc.setFontSize(14); doc.setTextColor(...INK);
+    doc.text(p.concepto, ML, y); y+=7;
+  }
+
+  const tDesc=ML+2, tQty=92, tPrice=135, tTotal=PW-MR-15;
+
+  doc.setFillColor(...INK); doc.roundedRect(ML, y, W, 10, 1, 1, "F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
+  doc.text("DESCRIPCIÓN / DESCRIPTION", tDesc, y+5.8);
+  doc.text("CANTIDAD / QTY", tQty, y+5.8, {align:"center"});
+  doc.text("PRECIO UNIT. / UNIT PRICE", tPrice, y+5.8, {align:"center"});
+  doc.text("TOTAL / AMOUNT", tTotal, y+5.8, {align:"center"});
+  y+=10;
+
+  let baseTotal=0; const ivaMap={};
+  let descuentoTotal = 0;
+
+  lineas.forEach((l,idx)=>{
+    const qty    = l.cantidad||1;
+    const precio = l.precio||0;
+    const desc   = (l.descripcion||"").trim();
+    const isDesc = !!l.esDescuento;
+
+    if (isDesc) {
+      descuentoTotal += Math.abs(precio);
+    } else {
+      const sub = qty*precio;
+      baseTotal+=sub;
+      ivaMap[l.iva]=(ivaMap[l.iva]||0)+sub*(l.iva||0)/100;
+    }
+
+    const rH=9;
+    doc.setFillColor(isDesc ? 255 : (idx%2===0?249:255), isDesc ? 249 : (idx%2===0?250:255), isDesc ? 249 : (idx%2===0?251:255));
+    doc.rect(ML,y,W,rH,"F");
+    doc.setDrawColor(...BORDER); doc.setLineWidth(0.1); doc.line(ML,y+rH,ML+W,y+rH);
+
+    const dl=doc.splitTextToSize(desc||"—", 94);
+    doc.setFont("helvetica", isDesc ? "italic" : "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(isDesc ? 180 : INK[0], isDesc ? 50 : INK[1], isDesc ? 50 : INK[2]);
+    doc.text(dl[0], tDesc, y+5.8);
+    if(dl.length>1){ doc.setFontSize(7.5); doc.text(dl[1],tDesc,y+9.5); }
+
+    if (!isDesc) {
+      doc.setFontSize(8.5); doc.setTextColor(...MUTED);
+      doc.text(String(qty), tQty, y+5.8, {align:"center"});
+      doc.text(precio.toFixed(2)+" €", tPrice, y+5.8, {align:"center"});
+      doc.setFont("helvetica","bold"); doc.setTextColor(...INK);
+      doc.text((qty*precio).toFixed(2)+" €", tTotal, y+5.8, {align:"center"});
+    } else {
+      // Descuento — fila completa en la tabla, bilingüe
+      doc.setFontSize(8.5); doc.setTextColor(200,50,50);
+      doc.setFont("helvetica","italic");
+      // Mostrar "DESCUENTO / DISCOUNT" como badge en columna cantidad
+      doc.text("DESCUENTO", tQty, y+4.5, {align:"center"});
+      doc.setFontSize(6.5);
+      doc.text("DISCOUNT", tQty, y+8.5, {align:"center"});
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica","bold");
+      doc.text("- "+Math.abs(precio).toFixed(2)+" €", tTotal, y+5.8, {align:"center"});
+    }
+    y+=rH;
+    if(y>PH-80){doc.addPage();y=20;}
+  });
+
+  doc.setDrawColor(...BORDER); doc.setLineWidth(0.4); doc.line(ML,y,PW-MR,y); y+=10;
+
+  const xTL=PW-MR-80, xTV=PW-MR;
+  const ivaTotal=Object.values(ivaMap).reduce((a,b)=>a+b,0);
+
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
+  doc.text("Subtotal / Subtotal", xTL, y);
+  doc.setTextColor(...INK); doc.text(baseTotal.toFixed(2)+" €",xTV,y,{align:"right"}); y+=7;
+
+  if (descuentoTotal > 0) {
+    doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(200,50,50);
+    doc.text("Descuentos / Discounts", xTL, y);
+    doc.text("- "+descuentoTotal.toFixed(2)+" €",xTV,y,{align:"right"}); y+=7;
+  }
+
+  Object.entries(ivaMap).filter(([,v])=>v>0).sort(([a],[b])=>Number(b)-Number(a)).forEach(([pct,amt])=>{
+    doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
+    doc.text("IVA / VAT "+pct+"%", xTL, y);
+    doc.setTextColor(...INK); doc.text(amt.toFixed(2)+" €",xTV,y,{align:"right"}); y+=7;
+  });
+
+  doc.setDrawColor(...BORDER); doc.setLineWidth(0.3); doc.line(xTL,y,xTV,y); y+=4;
+  doc.setFillColor(...INK); doc.roundedRect(xTL-4,y-2,xTV-xTL+8,13,1.5,1.5,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(...WHITE);
+  doc.text("TOTAL", xTL, y+7);
+  doc.text((baseTotal-descuentoTotal+ivaTotal).toFixed(2)+" €", xTV, y+7, {align:"right"});
+  y+=22;
+
+  if(p.notas&&y<PH-50){
+    doc.setFillColor(...LIGHT); doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
+    const nl=doc.splitTextToSize(p.notas,W-10);
+    const nh=nl.length*4.5+13;
+    doc.roundedRect(ML,y,W,nh,1.5,1.5,"FD");
+    doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+    doc.text("NOTAS / NOTES",ML+5,y+6);
+    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...INK);
+    doc.text(nl,ML+5,y+11.5);
+  }
+
+  doc.setDrawColor(...BORDER); doc.setLineWidth(0.4); doc.line(ML,PH-16,PW-MR,PH-16);
+  doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
+  const pie=[perfil.nombre_razon_social,perfil.nif?"NIF "+perfil.nif:null].filter(Boolean).join("  ·  ");
+  doc.text(pie, ML, PH-10);
+  doc.text(new Date().toLocaleDateString("es-ES"), PW-MR, PH-10, {align:"right"});
+
+  const filename=`presupuesto_${(p.numero||p.id.slice(0,8)).replace(/\//g,"-")}.pdf`;
+  if(descargar){doc.save(filename);toast("📄 PDF descargado","success");return null;}
+  return {blob:doc.output("blob"),filename,dataUri:doc.output("datauristring")};
 }
 
 /* ══════════════════════════════════════════════════
@@ -1234,12 +1405,12 @@ async function albaranAFactura(presId) {
 /* ══════════════════════════════════════════════════
    PDF ALBARÁN PROFESIONAL
 ══════════════════════════════════════════════════ */
-export async function generarPDFAlbaran(presId) {
+export async function generarPDFAlbaran(presId, mostrarPrecios = true) {
   const { data: p, error } = await supabase.from("presupuestos").select("*").eq("id", presId).single();
   if (error || !p) { toast("Error cargando albarán", "error"); return; }
 
   const perfil = await cargarPerfil();
-  const lineas = p.lineas ? JSON.parse(p.lineas) : [];
+  const lineas = (p.lineas ? JSON.parse(p.lineas) : []).filter(l => !l.esDescuento);
 
   if (!window.jspdf?.jsPDF) {
     await new Promise((res, rej) => {
@@ -1258,14 +1429,13 @@ export async function generarPDFAlbaran(presId) {
 
   doc.setFillColor(...WHITE); doc.rect(0,0,PW,PH,"F");
 
-  // Cabecera verde para diferenciar del presupuesto
+  // ── Cabecera verde ──
   doc.setFillColor(...GREEN); doc.rect(0,0,PW,32,"F");
   doc.setFont("helvetica","bold"); doc.setFontSize(26); doc.setTextColor(...WHITE);
   doc.text("ALBARÁN", ML, 20);
   doc.setFont("helvetica","normal"); doc.setFontSize(10);
   doc.text("DELIVERY NOTE", ML, 28);
 
-  // Número de albarán + estado facturación
   const numAlb = p.numero_albaran || "S/N";
   doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(...WHITE);
   doc.text(numAlb, PW-MR, 16, {align:"right"});
@@ -1275,21 +1445,27 @@ export async function generarPDFAlbaran(presId) {
     : "Pendiente de facturar / Pending invoice";
   doc.text(facState, PW-MR, 24, {align:"right"});
 
-  // Logo o nombre empresa
-  let logoOk=false;
+  // Badge "SIN PRECIOS" visible en el PDF cuando aplica
+  if (!mostrarPrecios) {
+    doc.setFillColor(254,243,199); doc.setDrawColor(253,230,138); doc.setLineWidth(0.3);
+    doc.roundedRect(PW-MR-52, 34, 52, 7, 1.5, 1.5, "FD");
+    doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(146,64,14);
+    doc.text("ALBARÁN SIN PRECIOS", PW-MR-48, 38.5);
+  }
+
+  // ── Logo ──
   let logoB64 = perfil.logo_url ? await logoToBase64(perfil.logo_url) : null;
   if (logoB64) {
     try {
       const mime = logoB64.split(";")[0].split(":")[1];
       doc.addImage(logoB64, mime.includes("png")?"PNG":"JPEG", PW-MR-42, 2, 38, 24, "", "FAST");
-      logoOk=true;
     } catch(e){}
   }
 
   doc.setDrawColor(...BORDER); doc.setLineWidth(0.5);
   doc.line(ML, 38, PW-MR, 38);
 
-  // DE / PARA
+  // ── Emisor / Destinatario ──
   let y=48;
   const COL1=ML, COL2=PW/2+6, cW=W/2-10;
 
@@ -1308,7 +1484,7 @@ export async function generarPDFAlbaran(presId) {
 
   y = Math.max(y+5, yBlock+12)+4;
 
-  // Info del albarán
+  // ── Info del albarán ──
   doc.setFillColor(240,253,244); doc.setDrawColor(167,243,208); doc.setLineWidth(0.3);
   doc.roundedRect(ML, y, W, 18, 1.5, 1.5, "FD");
   doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...MUTED);
@@ -1318,67 +1494,153 @@ export async function generarPDFAlbaran(presId) {
   doc.text(`Basado en presupuesto / Based on quote: ${p.numero || "—"}`, ML+5, y+17);
   y += 24;
 
-  // Tabla líneas
-  const tDesc=ML+2, tQty=118, tPrice=148, tTotal=PW-MR-2;
-  doc.setFillColor(...INK); doc.roundedRect(ML, y, W, 10, 1, 1, "F");
-  doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
-  doc.text("DESCRIPCIÓN / DESCRIPTION", tDesc, y+6);
-  doc.text("CANTIDAD / QTY", tQty, y+6, {align:"center"});
-  doc.text("UNIDAD / UNIT", tPrice, y+6, {align:"center"});
-  doc.text("OBSERVACIONES", tTotal, y+6, {align:"right"});
-  y+=10;
+  /* ── TABLA DE LÍNEAS — columnas dinámicas ──────────────────────────────
+     Con precios:    Descripción | Cantidad | Precio unit. | Total
+     Sin precios:    Descripción | Cantidad
+     Se calcula la posición X de cada columna en función de las activas.
+  ─────────────────────────────────────────────────────────────────────── */
+  const COL_DEFS = mostrarPrecios
+    ? [
+        { label: "DESCRIPCIÓN / DESCRIPTION", w: 84, align: "left"  },
+        { label: "CANT. / QTY",               w: 20, align: "center"},
+        { label: "P. UNIT. / UNIT PRICE",     w: 35, align: "center"},
+        { label: "TOTAL / AMOUNT",             w: 35, align: "right" },
+      ]
+    : [
+        { label: "DESCRIPCIÓN / DESCRIPTION", w: 130, align: "left"  },
+        { label: "CANTIDAD / QTY",            w:  44, align: "center"},
+      ];
 
-  lineas.filter(l => !l.esDescuento).forEach((l,idx)=>{
-    const rH=9;
-    doc.setFillColor(idx%2===0?249:255, idx%2===0?253:255, idx%2===0?250:255);
-    doc.rect(ML,y,W,rH,"F");
-    doc.setDrawColor(...BORDER); doc.setLineWidth(0.1); doc.line(ML,y+rH,ML+W,y+rH);
-    const dl = doc.splitTextToSize((l.descripcion||"—").trim(), 88);
-    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...INK);
-    doc.text(dl[0], tDesc, y+5.8);
-    doc.setTextColor(...MUTED);
-    doc.text(String(l.cantidad||1), tQty, y+5.8, {align:"center"});
-    doc.text(l.unidad||"unidad", tPrice, y+5.8, {align:"center"});
-    y+=rH;
-    if(y>PH-80){doc.addPage();y=20;}
+  // Calcular posiciones X
+  let xPositions = [ML];
+  COL_DEFS.forEach((c,i) => {
+    if (i < COL_DEFS.length - 1) xPositions.push(xPositions[i] + c.w);
   });
 
-  doc.setDrawColor(...BORDER); doc.setLineWidth(0.4); doc.line(ML,y,PW-MR,y); y+=14;
+  // Cabecera de la tabla
+  doc.setFillColor(...INK); doc.roundedRect(ML, y, W, 10, 1, 1, "F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
+  COL_DEFS.forEach((c, i) => {
+    const x = xPositions[i];
+    const xT = c.align === "right" ? x + c.w - 2 : c.align === "center" ? x + c.w/2 : x + 2;
+    doc.text(c.label, xT, y+6, { align: c.align === "center" ? "center" : c.align === "right" ? "right" : "left" });
+  });
+  y += 10;
 
-  // Nota sin IVA
+  // Filas de datos
+  lineas.forEach((l, idx) => {
+    const rH = 9;
+    doc.setFillColor(idx%2===0?249:255, idx%2===0?253:255, idx%2===0?250:255);
+    doc.rect(ML, y, W, rH, "F");
+    doc.setDrawColor(...BORDER); doc.setLineWidth(0.1);
+    doc.line(ML, y+rH, ML+W, y+rH);
+
+    const qty   = l.cantidad || 1;
+    const price = l.precio || 0;
+    const total = qty * price;
+
+    const values = mostrarPrecios
+      ? [
+          (l.descripcion||"—").trim(),
+          String(qty),
+          price.toFixed(2)+" €",
+          total.toFixed(2)+" €",
+        ]
+      : [
+          (l.descripcion||"—").trim(),
+          String(qty),
+        ];
+
+    COL_DEFS.forEach((c, i) => {
+      const x   = xPositions[i];
+      const val = values[i] || "";
+      const xT  = c.align === "right" ? x + c.w - 2
+                : c.align === "center" ? x + c.w / 2
+                : x + 2;
+      doc.setFont("helvetica", i===COL_DEFS.length-1 && mostrarPrecios ? "bold" : "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(i===0 ? INK[0] : MUTED[0], i===0 ? INK[1] : MUTED[1], i===0 ? INK[2] : MUTED[2]);
+      const maxW = c.w - 4;
+      if (i === 0) {
+        const dl = doc.splitTextToSize(val, maxW);
+        doc.text(dl[0], xT, y+5.8);
+      } else {
+        doc.text(val, xT, y+5.8, { align: c.align === "center" ? "center" : c.align === "right" ? "right" : "left" });
+      }
+    });
+    doc.setFont("helvetica","normal");
+
+    y += rH;
+    if (y > PH-80) { doc.addPage(); y=20; }
+  });
+
+  doc.setDrawColor(...BORDER); doc.setLineWidth(0.4);
+  doc.line(ML, y, PW-MR, y);
+  y += 8;
+
+  // ── Total — solo si mostrarPrecios ──
+  if (mostrarPrecios) {
+    const base  = lineas.reduce((s,l) => s + (l.cantidad||1)*(l.precio||0), 0);
+    const ivaPct = p.iva || 21;
+    const ivaAmt = base * ivaPct / 100;
+    const total  = base + ivaAmt;
+
+    const xTL = PW-MR-80, xTV = PW-MR;
+    const totRow = (label, val, bold=false) => {
+      doc.setFont("helvetica", bold ? "bold" : "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(...MUTED);
+      doc.text(label, xTL, y);
+      doc.setTextColor(...INK);
+      doc.text(val, xTV, y, {align:"right"});
+      y += 6.5;
+    };
+    totRow("Base imponible", base.toFixed(2)+" €");
+    totRow(`IVA ${ivaPct}%`, ivaAmt.toFixed(2)+" €");
+    doc.setDrawColor(...BORDER); doc.setLineWidth(0.3); doc.line(xTL, y, xTV, y); y+=4;
+    doc.setFillColor(...GREEN);
+    doc.roundedRect(xTL-4, y-2, xTV-xTL+8, 13, 1.5, 1.5, "F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(...WHITE);
+    doc.text("TOTAL", xTL, y+7);
+    doc.text(total.toFixed(2)+" €", xTV, y+7, {align:"right"});
+    y += 20;
+  }
+
+  // ── Nota sin validez fiscal ──
   doc.setFillColor(255,251,235); doc.setDrawColor(253,230,138); doc.setLineWidth(0.3);
   doc.roundedRect(ML, y, W/2-4, 12, 1.5, 1.5, "FD");
   doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(146,64,14);
   doc.text("! Este documento no tiene validez fiscal.", ML+4, y+5);
-  doc.text("No incluye IVA. No sustituye a la factura.", ML+4, y+9.5);
+  doc.text("No sustituye a la factura.", ML+4, y+9.5);
   y += 18;
 
-  // Sección firma del receptor
+  // ── Sección firma ──
   doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
-  const firmaX = ML, firmaY = y, firmaW = W/2-4, firmaH = 40;
+  const firmaX=ML, firmaY=y, firmaW=W/2-4, firmaH=40;
   doc.roundedRect(firmaX, firmaY, firmaW, firmaH, 1.5, 1.5, "D");
   doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...MUTED);
   doc.text("FIRMA DEL RECEPTOR / RECIPIENT SIGNATURE", firmaX+4, firmaY+7);
   doc.setFont("helvetica","normal"); doc.setFontSize(7.5);
   doc.text("Nombre / Name: ________________________________", firmaX+4, firmaY+18);
-  doc.text("DNI / ID: _____________________________________", firmaX+4, firmaY+25);
-  doc.text("Fecha / Date: _________________________________", firmaX+4, firmaY+32);
+  doc.text("DNI / ID: _____________________________________",  firmaX+4, firmaY+25);
+  doc.text("Fecha / Date: _________________________________",  firmaX+4, firmaY+32);
 
-  // Info facturación
-  const infoX = PW/2+4, infoW = W/2-4;
+  // ── Estado facturación ──
+  const infoX=PW/2+4, infoW=W/2-4;
   doc.roundedRect(infoX, firmaY, infoW, firmaH, 1.5, 1.5, "D");
   doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...MUTED);
   doc.text("ESTADO DE FACTURACIÓN / BILLING STATUS", infoX+4, firmaY+7);
   doc.setFont("helvetica","normal"); doc.setFontSize(9);
-  doc.setTextColor(p.estado_facturacion === "facturado" ? 5 : 146, p.estado_facturacion === "facturado" ? 150 : 64, p.estado_facturacion === "facturado" ? 105 : 14);
-  doc.text(p.estado_facturacion === "facturado" ? "Facturado / Invoiced" : "Pendiente de facturar", infoX+4, firmaY+20);
-  if(p.estado_facturacion === "facturado" && p.fecha_facturacion) {
+  const esFact = p.estado_facturacion === "facturado";
+  doc.setTextColor(esFact?5:146, esFact?150:64, esFact?105:14);
+  doc.text(esFact ? "Facturado / Invoiced" : "Pendiente de facturar", infoX+4, firmaY+20);
+  if (esFact && p.fecha_facturacion) {
     doc.setFontSize(8); doc.setTextColor(...MUTED);
     doc.text(`Fecha: ${new Date(p.fecha_facturacion+"T12:00:00").toLocaleDateString("es-ES")}`, infoX+4, firmaY+28);
   }
 
-  // Notas
-  if(p.notas) {
+  // ── Notas ──
+  if (p.notas) {
     y = firmaY + firmaH + 10;
     doc.setFillColor(...LIGHT); doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
     const nl = doc.splitTextToSize(p.notas, W-10);
@@ -1390,22 +1652,73 @@ export async function generarPDFAlbaran(presId) {
     doc.text(nl, ML+5, y+11.5);
   }
 
-  // Pie
+  // ── Pie ──
   doc.setDrawColor(...BORDER); doc.setLineWidth(0.4); doc.line(ML,PH-16,PW-MR,PH-16);
   doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
-  const pie = [perfil.nombre_razon_social, perfil.nif?"NIF "+perfil.nif:null].filter(Boolean).join("  ·  ");
+  const pie=[perfil.nombre_razon_social, perfil.nif?"NIF "+perfil.nif:null].filter(Boolean).join("  ·  ");
   doc.text(pie, ML, PH-10);
   doc.text(new Date().toLocaleDateString("es-ES"), PW-MR, PH-10, {align:"right"});
 
   const filename = `albaran_${numAlb.replace(/\//g,"-")}.pdf`;
   doc.save(filename);
-  toast("PDF de albarán descargado", "success");
+  toast("📄 PDF de albarán descargado", "success");
 }
 
 window._presTofact  = convertirAFactura;
 window._presAlbaran  = convertirAAlbaran;
 window._albaranToFact = albaranAFactura;
-window._pdfAlbaran   = (id) => generarPDFAlbaran(id);
+window._pdfAlbaran = (id) => {
+  openModal(`
+    <div class="modal" style="max-width:360px">
+      <div class="modal-hd">
+        <span class="modal-title">📄 Generar albarán PDF</span>
+        <button class="modal-x" onclick="window._cm()">×</button>
+      </div>
+      <div class="modal-bd">
+        <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:14px">¿Incluir precios en el albarán?</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <label style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--accent);background:rgba(26,86,219,.05);cursor:pointer">
+            <input type="radio" name="alb_precios" value="con" checked style="accent-color:var(--accent);width:16px;height:16px"/>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--t1)">Con precios</div>
+              <div style="font-size:11px;color:var(--t3);margin-top:2px">Incluye precio unitario, subtotal e IVA</div>
+            </div>
+          </label>
+          <label style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--brd);cursor:pointer" id="alb_sin_lbl">
+            <input type="radio" name="alb_precios" value="sin" style="accent-color:var(--accent);width:16px;height:16px"/>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--t1)">Sin precios</div>
+              <div style="font-size:11px;color:var(--t3);margin-top:2px">Solo descripción y cantidad — ideal para trabajadores</div>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
+        <button class="btn-modal-save" id="_albPdfOk">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Descargar PDF
+        </button>
+      </div>
+    </div>`);
+
+  // Estilo interactivo en los radio buttons
+  document.querySelectorAll("input[name='alb_precios']").forEach(r => {
+    r.addEventListener("change", () => {
+      document.querySelectorAll("input[name='alb_precios']").forEach(rb => {
+        const lbl = rb.closest("label");
+        lbl.style.borderColor = rb.checked ? "var(--accent)" : "var(--brd)";
+        lbl.style.background  = rb.checked ? "rgba(26,86,219,.05)" : "";
+      });
+    });
+  });
+
+  document.getElementById("_albPdfOk").addEventListener("click", async () => {
+    const conPrecios = document.querySelector("input[name='alb_precios']:checked")?.value !== "sin";
+    closeModal();
+    await generarPDFAlbaran(id, conPrecios);
+  });
+};
 window._presPDF     = (id) => generarPDFPresupuesto(id, true);
 
 /* ══════════════════════════════════════════════════════
