@@ -572,14 +572,6 @@ function _npGetPlantillaData(id) {
   return _npGetPlantillaDataLocal(p);
 }
 
-    } else {
-      if (existing) existing.remove();
-      if (linea) { linea.descuento = ""; }
-    }
-  });
-  updateTotalesUI(); updatePreview();
-}
-
 window._applyPlantillaToPresupuesto = function(data) {
   if (!data) return;
   npPlantillaActual = data;
