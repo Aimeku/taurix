@@ -51,7 +51,7 @@ function generateCode() {
 ══════════════════════════════════════════════════════════ */
 
 // Anon key pública (la misma de supabase.js)
-const SUPABASE_ANON_KEY = "sb_publishable_0N1Nv7SkjpynYh10lieang_uUoHRHOf";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpaXl6anpkdnVhaGFqbmRsdGFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4NjI5MzEsImV4cCI6MjA4NTQzODkzMX0.sm_0aKM08sduk3E0elmMaLRCuqlxgWulTp7Kx3WHc_4";
 
 async function send2FACode(email) {
   const code      = generateCode();
