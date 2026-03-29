@@ -367,52 +367,67 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
 
   // ── EMISOR / CLIENTE ──
   /*
-   * Sistema de coordenadas — réplica exacta del preview HTML
-   * ─────────────────────────────────────────────────────────
-   * Preview: layout base = display:grid, 2 columnas 1fr 1fr
-   *   Emisor  → columna izquierda:  X base = ML,              Y base = y
-   *   Cliente → columna derecha:    X base = ML + W/2 + GAP,  Y base = y
+   * Sistema de coordenadas CENTRADO por cuadrante — réplica del preview.
+   * ─────────────────────────────────────────────────────────────────────
+   * X=0  → bloque centrado en su cuadrante (emisor=izq, cliente=der)
+   * X<0  → se desplaza a la izquierda     X>0 → a la derecha
+   * Y=0  → posición vertical base         Y<0 → sube  Y>0 → baja
    *
-   * Los sliders almacenan offsets en "unidades de plantilla":
-   *   X: [-80, +80]   Y: [-30, +30]
+   * Fórmula idéntica al logo:
+   *   offsetPx = clamp(sX × (pvW/240), ±(pvW/2 - pad))
+   *   offset_mm = offsetPx × 0.5
    *
-   * El preview los escala: SCALE = pvW/595 (pvW ≈ 420px)
-   * y aplica transform:translate(tx, ty) RELATIVO a la posición base.
-   *
-   * Conversión a mm para el PDF:
-   *   _SCALE_EC = 420/595
-   *   _PX2MM_EC = 210/420 = 0.5  (px_preview → mm A4)
-   *   tx_mm = clamp(sliderX * _SCALE_EC, -(halfW_px-8), halfW_px-8) * _PX2MM_EC
-   *   ty_mm = clamp(sliderY * _SCALE_EC, -20, 20)                   * _PX2MM_EC
+   * Clamp final: emisorX ∈ [ML+PAD, PW/2-PAD], clienteX ∈ [PW/2+PAD, PW-MR-PAD]
    */
-  const _PVW_EC   = 420;
-  const _SCALE_EC = _PVW_EC / 595;
-  const _PX2MM_EC = 210 / _PVW_EC;         // 0.5 mm/px exacto
-  const _halfW_px = _PVW_EC / 2;           // 210 px
 
-  // Offsets de la plantilla (valores brutos del slider)
+  // ── Constantes del sistema de coordenadas (sincronizadas con el preview) ──
+  //
+  // El preview (ep_pv_doc) tiene pvW=420px que corresponde a 210mm (A4 completo).
+  // Padding visual del preview = 18px = 18mm (= ML).
+  // Cuadrante útil = (420 - 2×18) / 2 = 192px = 96mm.
+  //
+  // Centros de cuadrante (mismo cálculo en px×0.5 que en el preview):
+  //   emisor  → 18 + 96     = 114px → 57mm desde borde izq de página
+  //   cliente → 18 + 96×3  = 306px → 153mm desde borde izq de página
+  //
+  // Ancho de bloque: 192 - 8 = 184px → 92mm
+  //
+  // Offset de slider: sX × (pvW/240), clamp ±(pvW/2 - pad) — igual que el logo.
+  const _EC_PVW    = 420;                          // px — ancho preview doc
+  const _EC_PAD    = 18;                           // px — padding visual preview (= ML en mm)
+  const _EC_PX2MM  = PW / _EC_PVW;                // 0.5 mm/px
+  const _EC_QW     = (_EC_PVW - 2 * _EC_PAD) / 2; // 192px — ancho cuadrante preview
+  const _EC_MAXOFF = _EC_PVW / 2 - _EC_PAD;       // 192px — clamp máx offset
+
+  // Centros de cuadrante en mm (sincronizados con preview)
+  const _cEmMm = (_EC_PAD + _EC_QW / 2)   * _EC_PX2MM;  // 57mm
+  const _cClMm = (_EC_PAD + _EC_QW * 3/2) * _EC_PX2MM;  // 153mm
+  const cW     = (_EC_QW - 8)             * _EC_PX2MM;   // 92mm — ancho de bloque
+
+  // Bordes izquierdos base: centro del cuadrante − la mitad del bloque
+  const _emBaseX = _cEmMm - cW / 2;   // 57 - 46 = 11mm
+  const _clBaseX = _cClMm - cW / 2;   // 153 - 46 = 107mm
+
+  // Offsets del slider — fórmula idéntica al logo:
+  //   offsetPx = clamp(sX × (pvW/240), ±_EC_MAXOFF)
+  //   offset_mm = offsetPx × _EC_PX2MM
   const _sEmX = plantilla?.emisor_x  ?? 0;
   const _sEmY = plantilla?.emisor_y  ?? 0;
   const _sClX = plantilla?.cliente_x ?? 0;
   const _sClY = plantilla?.cliente_y ?? 0;
 
-  // Convertir a mm con el mismo clamp que el preview
-  const _txEm = Math.max(-(_halfW_px - 8), Math.min(_halfW_px - 8, _sEmX * _SCALE_EC)) * _PX2MM_EC;
-  const _tyEm = Math.max(-20, Math.min(20, _sEmY * _SCALE_EC)) * _PX2MM_EC;
-  const _txCl = Math.max(-(_halfW_px - 8), Math.min(_halfW_px - 8, _sClX * _SCALE_EC)) * _PX2MM_EC;
-  const _tyCl = Math.max(-20, Math.min(20, _sClY * _SCALE_EC)) * _PX2MM_EC;
+  const _offEmX = Math.max(-_EC_MAXOFF, Math.min(_EC_MAXOFF, _sEmX * (_EC_PVW / 240))) * _EC_PX2MM;
+  const _offEmY = Math.max(-10,         Math.min(10,         _sEmY * (_EC_PVW / 240))) * _EC_PX2MM;
+  const _offClX = Math.max(-_EC_MAXOFF, Math.min(_EC_MAXOFF, _sClX * (_EC_PVW / 240))) * _EC_PX2MM;
+  const _offClY = Math.max(-10,         Math.min(10,         _sClY * (_EC_PVW / 240))) * _EC_PX2MM;
 
-  // Posiciones BASE (réplica del grid 1fr 1fr del HTML)
-  const GAP_COLS       = 6;                      // mm de separación entre columnas
-  const BASE_EMISOR_X  = ML + PAD;               // columna izquierda — mismo eje X que texto de cabecera
-  const BASE_CLIENTE_X = ML + PAD + W / 2 + GAP_COLS; // columna derecha
-  const cW = W / 2 - GAP_COLS - PAD;            // ancho máximo por bloque
-
-  // Posición final = base + offset escalado (igual que el CSS transform del preview)
-  const emisorX  = BASE_EMISOR_X  + _txEm;
-  const emisorY  = y              + _tyEm;
-  const clienteX = BASE_CLIENTE_X + _txCl;
-  const clienteY = y              + _tyCl;
+  // Posición final con clamp: ningún bloque sale del área [ML+PAD, PW-MR-PAD]
+  // El clamp asegura que aunque el bloque base esté en 11mm (< ML+PAD=22mm),
+  // el texto siempre quede dentro del área imprimible.
+  const emisorX  = Math.max(ML + PAD,     Math.min(PW / 2 - PAD,     _emBaseX + _offEmX));
+  const emisorY  = y + _offEmY;
+  const clienteX = Math.max(PW / 2 + PAD, Math.min(PW - MR - PAD,   _clBaseX + _offClX));
+  const clienteY = y + _offClY;
 
   const mostrarEmisor = plantilla ? (plantilla.mostrar_emisor !== false) : true;
 
