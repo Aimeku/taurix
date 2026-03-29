@@ -194,6 +194,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   const MR  = plantilla?.margen   ?? 18;
   const PW  = 210, PH = 297;
   const W   = PW - ML - MR;
+  const PAD  = 4;    // mm de padding interno — mismo offset que el texto de cabecera (ML+4)
   const tamF = Math.max(7, Math.min(12, (plantilla?.tam_fuente ?? 9)));
 
   // Estilo de cabecera: "solido" | "gradiente" | "linea" | "sin"
@@ -403,9 +404,9 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
 
   // Posiciones BASE (réplica del grid 1fr 1fr del HTML)
   const GAP_COLS       = 6;                      // mm de separación entre columnas
-  const BASE_EMISOR_X  = ML;                     // columna izquierda
-  const BASE_CLIENTE_X = ML + W / 2 + GAP_COLS; // columna derecha
-  const cW = W / 2 - GAP_COLS - 4;              // ancho máximo por bloque
+  const BASE_EMISOR_X  = ML + PAD;               // columna izquierda — mismo eje X que texto de cabecera
+  const BASE_CLIENTE_X = ML + PAD + W / 2 + GAP_COLS; // columna derecha
+  const cW = W / 2 - GAP_COLS - PAD;            // ancho máximo por bloque
 
   // Posición final = base + offset escalado (igual que el CSS transform del preview)
   const emisorX  = BASE_EMISOR_X  + _txEm;
@@ -464,7 +465,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.setFont(font, "bold");
     doc.setFontSize(12);
     doc.setTextColor(...colores.letra);
-    doc.text(docData.concepto.substring(0, 60), ML, y);
+    doc.text(docData.concepto.substring(0, 60), ML + PAD, y);
     y += 8;
   }
 
@@ -548,7 +549,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     const isRight = col.key !== "descripcion";
     const xPos = isRight
       ? colX[i] + colWidths[i] - 1
-      : colX[i] + 2;
+      : colX[i] + PAD / 2;
     doc.text(label.toUpperCase(), xPos, y + 5.8, { align: isRight ? "right" : "left" });
   });
   y += 8.5;
@@ -617,7 +618,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
 
       const xPos = isRight
         ? colX[i] + colWidths[i] - 1
-        : colX[i] + 2;
+        : colX[i] + PAD / 2;
       const dl = doc.splitTextToSize(val, colWidths[i] - 2);
       doc.text(dl[0], xPos, y + 5.2, { align: isRight ? "right" : "left" });
       if (col.key === "total") doc.setFont(font, "normal");
@@ -697,11 +698,11 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.setFont(font, "bold");
     doc.setFontSize(7.5);
     doc.setTextColor(...MUTED);
-    doc.text("NOTAS / NOTES", ML + 5, y + 6);
+    doc.text("NOTAS / NOTES", ML + PAD, y + 6);
     doc.setFont(font, "normal");
     doc.setFontSize(tamF);
     doc.setTextColor(...colores.letra);
-    doc.text(nl, ML + 5, y + 11.5);
+    doc.text(nl, ML + PAD, y + 11.5);
     y += nh + 6;
   }
 
@@ -712,7 +713,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.setFontSize(7);
     doc.setTextColor(...MUTED);
     const pieL = doc.splitTextToSize(textoPie, W);
-    doc.text(pieL, ML, y);
+    doc.text(pieL, ML + PAD, y);
     y += pieL.length * 4 + 4;
   }
 
@@ -722,7 +723,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.setFont(font, "normal");
     doc.setFontSize(8);
     doc.setTextColor(...colores.letra);
-    doc.text("Datos bancarios: " + iban, ML, y);
+    doc.text("Datos bancarios: " + iban, ML + PAD, y);
     y += 6;
   }
 
@@ -763,7 +764,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
       ? "FACTURA PROFORMA · Documento sin validez fiscal · No sustituye a la factura original · Art. 11 RD 1619/2012"
       : (docData.fecha_validez ? "Válido hasta: " + fmtFecha(docData.fecha_validez) : "");
 
-    doc.text(pieIzq, ML, PH - 10);
+    doc.text(pieIzq, ML + PAD, PH - 10);
     const pieDer = [perfil.nombre_razon_social, perfil.nif ? "NIF " + perfil.nif : null].filter(Boolean).join(" · ");
     doc.text(pieDer, PW - MR, PH - 10, { align: "right" });
   }
