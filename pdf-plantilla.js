@@ -66,6 +66,26 @@ async function _loadPlantilla(plantillaId) {
 /* ── Normalizar cols_activas de la plantilla ──
    Soporta formato nuevo [{ key, width }] y legacy ["id", ...]
 ── */
+/* ── Catálogo canónico de labels — espejo exacto de COLUMNAS_CATALOGO en plantillas-usuario.js ── */
+const _CATALOG_LABELS = {
+  descripcion: { es: "Descripción",  en: "Description" },
+  cantidad:    { es: "Cantidad",     en: "Qty"          },
+  precio:      { es: "Precio",       en: "Price"        },
+  subtotal:    { es: "Subtotal",     en: "Subtotal"     },
+  descuento:   { es: "Descuento",    en: "Discount"     },
+  codigo:      { es: "Código",       en: "Code"         },
+  coeficiente: { es: "Coeficiente",  en: "Coef."        },
+  iva:         { es: "IVA",          en: "VAT"          },
+  total:       { es: "Total",        en: "Total"        },
+};
+
+/* Devuelve el label canónico para una columna dado el idioma de la plantilla */
+function _colLabel(key, idioma) {
+  const cat = _CATALOG_LABELS[key];
+  if (!cat) return key;
+  return idioma === "en" ? cat.en : cat.es;
+}
+
 function _parseCols(plantilla) {
   if (!plantilla?.cols_activas) return null;
   try {
@@ -73,7 +93,15 @@ function _parseCols(plantilla) {
       ? JSON.parse(plantilla.cols_activas)
       : plantilla.cols_activas;
     if (!Array.isArray(raw) || !raw.length) return null;
-    return raw.map(c => typeof c === "object" ? { key: c.key, width: c.width || null } : { key: c, width: null });
+    const idioma = plantilla?.idioma || "es";
+    return raw.map(c => {
+      if (typeof c === "object") {
+        // Formato nuevo: { key, width }.  El label canónico viene del catálogo.
+        return { key: c.key, width: c.width || null, label: _colLabel(c.key, idioma) };
+      }
+      // Formato legacy: string con el id de la columna
+      return { key: c, width: null, label: _colLabel(c, idioma) };
+    });
   } catch(e) { return null; }
 }
 
@@ -396,17 +424,20 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
 
   // ── TABLA DE LÍNEAS ──
   // Columnas: si la plantilla define cols_activas, usarlas; si no, usar columnas por defecto
-  // Columnas por defecto según tipo y opción mostrarPrecios
+  // Los labels por defecto usan el catálogo canónico (_CATALOG_LABELS) exactamente como el preview.
+  const idioma = plantilla?.idioma || "es";
+  const _dl = key => ({ key, width: null, label: _colLabel(key, idioma) });
+
   const DEFAULT_COLS_PRECIOS  = [
-    { key: "descripcion", label: "Descripción", width: null },
-    { key: "cantidad",    label: "Cant.",        width: null },
-    { key: "precio",      label: "P. unit.",     width: null },
-    { key: "iva",         label: "IVA",          width: null },
-    { key: "total",       label: "Total",        width: null },
+    _dl("descripcion"),
+    _dl("cantidad"),
+    _dl("precio"),
+    _dl("iva"),
+    _dl("total"),
   ];
   const DEFAULT_COLS_ALBARAN_SIN = [
-    { key: "descripcion", label: "Descripción", width: null },
-    { key: "cantidad",    label: "Cantidad",    width: null },
+    _dl("descripcion"),
+    _dl("cantidad"),
   ];
   // Columnas de importe que se ocultan cuando mostrarPrecios=false
   const PRECIO_KEYS = new Set(["precio","subtotal","total","descuento","iva","coeficiente"]);
@@ -418,19 +449,15 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     DEFAULT_COLS = DEFAULT_COLS_PRECIOS;
   }
 
-  const COL_LABELS = {
-    descripcion: "Descripción",  cantidad: "Cant.",   precio: "P. unit.",
-    subtotal:    "Subtotal",     iva:      "IVA",     total:  "Total",
-    descuento:   "Descuento",   codigo:   "Código",  coeficiente: "Coef.",
-  };
+  // COL_LABELS eliminado: los labels vienen siempre de activeCols[i].label (catálogo canónico)
 
   // Para albarán sin precios: quitar columnas de importe aunque la plantilla las tenga
   let activeCols = cols || DEFAULT_COLS;
   if (tipo === "albaran" && !mostrarPrecios) {
     activeCols = activeCols.filter(c => !PRECIO_KEYS.has(c.key));
     // Garantizar descripcion + cantidad mínimo
-    if (!activeCols.find(c => c.key === "descripcion")) activeCols.unshift({ key:"descripcion", label:"Descripción", width:null });
-    if (!activeCols.find(c => c.key === "cantidad"))    activeCols.push({ key:"cantidad", label:"Cantidad", width:null });
+    if (!activeCols.find(c => c.key === "descripcion")) activeCols.unshift(_dl("descripcion"));
+    if (!activeCols.find(c => c.key === "cantidad"))    activeCols.push(_dl("cantidad"));
   }
 
   // Calcular anchos reales en mm
@@ -470,7 +497,8 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   doc.setFontSize(7.5);
   doc.setTextColor(...WHITE);
   activeCols.forEach((col, i) => {
-    const label = COL_LABELS[col.key] || col.key;
+    // Usar siempre col.label (viene del catálogo canónico, igual que el preview)
+    const label = col.label || _colLabel(col.key, idioma);
     const isRight = col.key !== "descripcion";
     const xPos = isRight
       ? colX[i] + colWidths[i] - 1
