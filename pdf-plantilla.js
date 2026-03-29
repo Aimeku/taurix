@@ -365,21 +365,67 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   }
 
   // ── EMISOR / CLIENTE ──
-  // Posiciones con offsets de la plantilla
-  const emisorX = ML + (plantilla?.emisor_x ?? 0);
-  const emisorY = y + (plantilla?.emisor_y ?? 0);
-  const clienteX = PW / 2 + 6 + (plantilla?.cliente_x ?? 0);
-  const clienteY = y + (plantilla?.cliente_y ?? 0);
-  const cW = W / 2 - 12;
+  /*
+   * Sistema de coordenadas — réplica exacta del preview HTML
+   * ─────────────────────────────────────────────────────────
+   * Preview: layout base = display:grid, 2 columnas 1fr 1fr
+   *   Emisor  → columna izquierda:  X base = ML,              Y base = y
+   *   Cliente → columna derecha:    X base = ML + W/2 + GAP,  Y base = y
+   *
+   * Los sliders almacenan offsets en "unidades de plantilla":
+   *   X: [-80, +80]   Y: [-30, +30]
+   *
+   * El preview los escala: SCALE = pvW/595 (pvW ≈ 420px)
+   * y aplica transform:translate(tx, ty) RELATIVO a la posición base.
+   *
+   * Conversión a mm para el PDF:
+   *   _SCALE_EC = 420/595
+   *   _PX2MM_EC = 210/420 = 0.5  (px_preview → mm A4)
+   *   tx_mm = clamp(sliderX * _SCALE_EC, -(halfW_px-8), halfW_px-8) * _PX2MM_EC
+   *   ty_mm = clamp(sliderY * _SCALE_EC, -20, 20)                   * _PX2MM_EC
+   */
+  const _PVW_EC   = 420;
+  const _SCALE_EC = _PVW_EC / 595;
+  const _PX2MM_EC = 210 / _PVW_EC;         // 0.5 mm/px exacto
+  const _halfW_px = _PVW_EC / 2;           // 210 px
+
+  // Offsets de la plantilla (valores brutos del slider)
+  const _sEmX = plantilla?.emisor_x  ?? 0;
+  const _sEmY = plantilla?.emisor_y  ?? 0;
+  const _sClX = plantilla?.cliente_x ?? 0;
+  const _sClY = plantilla?.cliente_y ?? 0;
+
+  // Convertir a mm con el mismo clamp que el preview
+  const _txEm = Math.max(-(_halfW_px - 8), Math.min(_halfW_px - 8, _sEmX * _SCALE_EC)) * _PX2MM_EC;
+  const _tyEm = Math.max(-20, Math.min(20, _sEmY * _SCALE_EC)) * _PX2MM_EC;
+  const _txCl = Math.max(-(_halfW_px - 8), Math.min(_halfW_px - 8, _sClX * _SCALE_EC)) * _PX2MM_EC;
+  const _tyCl = Math.max(-20, Math.min(20, _sClY * _SCALE_EC)) * _PX2MM_EC;
+
+  // Posiciones BASE (réplica del grid 1fr 1fr del HTML)
+  const GAP_COLS       = 6;                      // mm de separación entre columnas
+  const BASE_EMISOR_X  = ML;                     // columna izquierda
+  const BASE_CLIENTE_X = ML + W / 2 + GAP_COLS; // columna derecha
+  const cW = W / 2 - GAP_COLS - 4;              // ancho máximo por bloque
+
+  // Posición final = base + offset escalado (igual que el CSS transform del preview)
+  const emisorX  = BASE_EMISOR_X  + _txEm;
+  const emisorY  = y              + _tyEm;
+  const clienteX = BASE_CLIENTE_X + _txCl;
+  const clienteY = y              + _tyCl;
 
   const mostrarEmisor = plantilla ? (plantilla.mostrar_emisor !== false) : true;
 
   if (mostrarEmisor) {
+    const lblDe   = (plantilla?.idioma === "en") ? "FROM"    : "DE / FROM";
+    const lblPara = (plantilla?.idioma === "en")
+      ? (tipo === "factura" ? "BILL TO" : "TO")
+      : (tipo === "factura" ? "FACTURAR A / BILL TO" : "PARA / TO");
+
     doc.setFont(font, "bold");
     doc.setFontSize(7);
     doc.setTextColor(...MUTED);
-    doc.text("DE / FROM", emisorX, emisorY);
-    doc.text(tipo === "factura" ? "FACTURAR A / BILL TO" : "PARA / TO", clienteX, clienteY);
+    doc.text(lblDe,   emisorX,  emisorY);
+    doc.text(lblPara, clienteX, clienteY);
 
     let ey = emisorY + 5;
     doc.setFont(font, "bold");
