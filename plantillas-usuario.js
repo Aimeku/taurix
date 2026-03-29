@@ -391,26 +391,71 @@ function _runPreview() {
   if (feEl) { feEl.style.color = txtColor; if (!feEl.textContent) feEl.textContent = new Date().toLocaleDateString("es-ES"); }
 
   /* ── Emisor / Cliente ──
-     X simétrico [-80,+80] → translate en px escalados al preview.
-     Y simétrico [-30,+30] → translate en px escalados al preview.
-     Clampeamos al ancho/alto del bloque para que no salga del documento.
+     Sistema de coordenadas CENTRADO por cuadrante — idéntico al del logo.
+     ─────────────────────────────────────────────────────────────────────
+     X=0  → bloque centrado en su cuadrante (izq=emisor, der=cliente)
+     X<0  → se desplaza hacia la izquierda del cuadrante
+     X>0  → se desplaza hacia la derecha del cuadrante
+     Y=0  → posición vertical base; Y<0 sube, Y>0 baja
+
+     Implementación — espejo exacto del logo:
+       left = center_del_cuadrante_px
+       transform = translateX(calc(-50% + offsetPx)) translateY(tyPx)
+     Donde offsetPx = clamp(sX * (pvW/240), ±(pvW/2 - 8))
+
+     El contenedor ep_pv_emisor_row es position:relative + overflow:hidden.
+     Los bloques son position:absolute.
+     Límite de bloque = [8px, pvW-8px] en coordenadas del doc.
   ── */
   const er = _g("ep_pv_emisor_row");
-  if (er) er.style.display = mostEmisor ? "grid" : "none";
+  if (er) {
+    er.style.display = mostEmisor ? "block" : "none";
+    // Altura dinámica: fijar suficiente para contener texto de empresa + datos
+    er.style.minHeight = "68px";
+    er.style.position  = "relative";
+    er.style.overflow  = "hidden";
+  }
 
-  const halfW = pvW / 2; // cada bloque ocupa ~mitad del ancho
+  // Centro de cada cuadrante en coordenadas del preview (en px)
+  // El área útil del doc = pvW - 2*18px (padding visual de 18px a cada lado)
+  // Cuadrante izq: [18, pvW/2], centro = 18 + (pvW/2-18)/2 = 9 + pvW/4
+  // Cuadrante der: [pvW/2, pvW-18], centro = pvW/2 + (pvW/2-18)/2 = pvW - 9 - pvW/4
+  const _pad_pv   = 18;                           // px — padding visual del doc preview
+  const _qW       = (pvW - 2 * _pad_pv) / 2;     // ancho de cada cuadrante útil (px)
+  const _cEmPx    = _pad_pv + _qW / 2;            // centro cuadrante izq (px)
+  const _cClPx    = _pad_pv + _qW + _qW / 2;      // centro cuadrante der (px)
+  const _maxOff   = pvW / 2 - _pad_pv;            // clamp máximo offset (px)
+  const _tyClamp  = 20;                            // clamp vertical (px)
+
+  // Escala: misma fórmula que el logo → sX * (pvW/240)
+  const _offEmX = Math.max(-_maxOff, Math.min(_maxOff, emisorX  * (pvW / 240)));
+  const _offEmY = Math.max(-_tyClamp, Math.min(_tyClamp, emisorY * SCALE));
+  const _offClX = Math.max(-_maxOff, Math.min(_maxOff, clienteX * (pvW / 240)));
+  const _offClY = Math.max(-_tyClamp, Math.min(_tyClamp, clienteY * SCALE));
+
+  // Ancho de cada bloque = cuadrante útil - un pequeño gap interno
+  const _blkW = Math.round(_qW - 8);              // px, con gap de 4px a cada lado
 
   const eb = _g("ep_pv_emisor_bloque");
   if (eb) {
-    const tx = Math.max(-(halfW - 8), Math.min(halfW - 8, emisorX * SCALE));
-    const ty = Math.max(-20, Math.min(20, emisorY * SCALE));
-    eb.style.transform = `translate(${tx}px,${ty}px)`;
+    eb.style.position  = "absolute";
+    eb.style.left      = _cEmPx + "px";
+    eb.style.top       = (10 + _offEmY) + "px";   // 10px de padding top base
+    eb.style.width     = _blkW + "px";
+    eb.style.transform = `translateX(calc(-50% + ${_offEmX}px))`;
+    // Clamp: nunca salir del área visible del doc
+    // Con left=_cEmPx y translate=-50%: borde izq = _cEmPx - _blkW/2 + offsetX
+    // Mínimo: borde izq >= _pad_pv → offsetX >= _pad_pv - (_cEmPx - _blkW/2)
+    // Máximo: borde der <= pvW/2 → offsetX <= pvW/2 - (_cEmPx + _blkW/2)
+    // El clamp _maxOff ya es conservador, y el parent overflow:hidden hace de red de seguridad.
   }
   const cb2 = _g("ep_pv_cliente_bloque");
   if (cb2) {
-    const tx = Math.max(-(halfW - 8), Math.min(halfW - 8, clienteX * SCALE));
-    const ty = Math.max(-20, Math.min(20, clienteY * SCALE));
-    cb2.style.transform = `translate(${tx}px,${ty}px)`;
+    cb2.style.position  = "absolute";
+    cb2.style.left      = _cClPx + "px";
+    cb2.style.top       = (10 + _offClY) + "px";
+    cb2.style.width     = _blkW + "px";
+    cb2.style.transform = `translateX(calc(-50% + ${_offClX}px))`;
   }
 
   const st = (id,v) => { const e=_g(id); if(e) e.textContent=v; };
