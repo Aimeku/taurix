@@ -13,7 +13,7 @@
 
 import { supabase } from "./supabase.js";
 import { SESSION, toast, openModal, closeModal } from "./utils.js";
-import { loadCarteraGestor } from "./gestor/cartera.js";
+import { loadCarteraGestor } from "./gestor-cartera.js";
 
 /* ══════════════════════════════════════════
    DEFINICIÓN DE MODOS
