@@ -66,7 +66,7 @@ import { initPlantillasView, refreshPlantillas } from "./plantillas-usuario.js";
 import { initAlbaranesView, refreshAlbaranes } from "./albaranes.js";
 import { initProformaView, refreshProforma } from "./proforma.js";
 import { initNuevaProforma } from "./nueva-proforma.js";
-import { restaurarContextoSiExiste } from "./gestor/context.js";
+import { restaurarContextoSiExiste } from "./gestor-context.js";
 
 
 
