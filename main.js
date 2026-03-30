@@ -90,7 +90,16 @@ async function fullRefresh() {
   }
 }
 window._refresh = fullRefresh;
-window._switchView = switchView;  // alias global para módulos externos
+
+// switchView con renderizado lazy para vistas que lo necesitan
+const _switchViewBase = switchView;
+window._switchView = async (view) => {
+  _switchViewBase(view);
+  if (view === "revision-cliente") {
+    const { renderRevisionCliente } = await import("./gestor-revision-cliente.js");
+    await renderRevisionCliente(document.getElementById("view-revision-cliente"));
+  }
+};
 
 /* ══════════════════════════
    COBROS Y VENCIMIENTOS
@@ -570,6 +579,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (view === "empleados")       { const { refreshEmpleados } = await import("./nominas.js"); if(refreshEmpleados) await refreshEmpleados(); }
         if (view === "colaboradores")   await refreshColaboradoresView();
         if (view === "cartera")         await refreshCartera();
+        if (view === "revision-cliente") {
+          const { renderRevisionCliente } = await import("./gestor-revision-cliente.js");
+          await renderRevisionCliente(document.getElementById("view-revision-cliente"));
+        }
         if (view === "trabajos")        await refreshTrabajos();
         if (view === "agenda")          await refreshAgenda();
         if (view === "informes")        initInformesView();
