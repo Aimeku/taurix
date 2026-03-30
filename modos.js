@@ -71,6 +71,7 @@ export const MODOS = {
       // Lo que ve un gestor/asesor — completo
       { sep: true, label: null },
       { view:"cartera",      label:"Cartera de clientes",  icon:"briefcase", badge:"carteraBadge", gestor:true },
+      { view:"revision-cliente", label:"Revisión fiscal",    icon:"check-square", gestor:true },
       { view:"dashboard",    label:"Dashboard",            icon:"grid" },
       { view:"alertas",      label:"Alertas fiscales",     icon:"bell",   badge:"snBadgeAlertas" },
       { sep: true, label:"Clientes y presupuestos" },
