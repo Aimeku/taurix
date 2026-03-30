@@ -11,11 +11,13 @@ import {
   getYear, getTrim, getFacturasTrim, getFacturasYear,
   calcIVA, calcIRPF, TRIM_LABELS
 } from "./utils.js";
+import { getQueryContext } from "./services/query-context.js";
 
 let _chartAnual = null;
 
 export async function refreshDashboard() {
   const year = getYear(), trim = getTrim();
+  const _ctx = getQueryContext();
 
   const [
     facturasTrim, facturasAnio, facturasAnioPrev,
@@ -25,15 +27,15 @@ export async function refreshDashboard() {
     getFacturasYear(year),
     getFacturasYear(year - 1),
     supabase.from("facturas").select("base,iva,fecha,fecha_vencimiento,cliente_nombre,concepto")
-      .eq("user_id",SESSION.user.id).eq("tipo","emitida").eq("estado","emitida").eq("cobrada",false),
+      .eq(_ctx.field,_ctx.value).eq("tipo","emitida").eq("estado","emitida").eq("cobrada",false),
     supabase.from("gastos_recurrentes").select("importe,proxima_fecha,nombre")
-      .eq("user_id",SESSION.user.id).eq("activo",true),
+      .eq(_ctx.field,_ctx.value).eq("activo",true),
     supabase.from("nominas").select("salario_bruto,ss_empresa")
-      .eq("user_id",SESSION.user.id).gte("fecha",`${year}-01-01`),
+      .eq(_ctx.field,_ctx.value).gte("fecha",`${year}-01-01`),
     supabase.from("pipeline_oportunidades").select("etapa,valor")
-      .eq("user_id",SESSION.user.id).neq("etapa","perdida"),
+      .eq(_ctx.field,_ctx.value).neq("etapa","perdida"),
     supabase.from("bienes_inversion").select("valor_adquisicion,coeficiente,tipo_bien")
-      .eq("user_id",SESSION.user.id),
+      .eq(_ctx.field,_ctx.value),
   ]);
 
   const { ingresos, gastos, rendimiento } = calcIRPF(facturasTrim);
@@ -267,9 +269,10 @@ async function drawChartAnual(year) {
   if (!window.Chart) {
     await new Promise((res,rej)=>{ const s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
   }
+  const _ctx = getQueryContext();
   const { data: allFacts } = await supabase.from("facturas")
     .select("tipo,base,iva,fecha,cobrada,estado")
-    .eq("user_id",SESSION.user.id)
+    .eq(_ctx.field,_ctx.value)
     .gte("fecha",`${year}-01-01`).lte("fecha",`${year}-12-31`);
   const byMes = Array(12).fill(null).map(()=>({ing:0,gst:0,cob:0}));
   (allFacts||[]).forEach(f=>{
@@ -372,10 +375,11 @@ export async function refreshHistorico() {
 export async function refreshIS() {
   const year=getYear();
   const ejEl=document.getElementById("isEjercicio"); if(ejEl) ejEl.textContent=year;
+  const _ctx=getQueryContext();
   const [fR,nR,bR]=await Promise.all([
-    supabase.from("facturas").select("tipo,base,iva,estado,irpf,irpf_retencion").eq("user_id",SESSION.user.id).gte("fecha",`${year}-01-01`).lte("fecha",`${year}-12-31`),
-    supabase.from("nominas").select("salario_bruto,ss_empresa").eq("user_id",SESSION.user.id).gte("fecha",`${year}-01-01`),
-    supabase.from("bienes_inversion").select("valor_adquisicion,coeficiente,tipo_bien").eq("user_id",SESSION.user.id),
+    supabase.from("facturas").select("tipo,base,iva,estado,irpf,irpf_retencion").eq(_ctx.field,_ctx.value).gte("fecha",`${year}-01-01`).lte("fecha",`${year}-12-31`),
+    supabase.from("nominas").select("salario_bruto,ss_empresa").eq(_ctx.field,_ctx.value).gte("fecha",`${year}-01-01`),
+    supabase.from("bienes_inversion").select("valor_adquisicion,coeficiente,tipo_bien").eq(_ctx.field,_ctx.value),
   ]);
   const facs=fR.data||[]; const noms=nR.data||[]; const bienes=bR.data||[];
   const ing=facs.filter(f=>f.tipo==="emitida"&&f.estado==="emitida").reduce((a,f)=>a+f.base,0);
