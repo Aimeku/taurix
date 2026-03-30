@@ -11,7 +11,7 @@ import {
   getYear, getTrim, getFacturasTrim, getFacturasYear,
   calcIVA, calcIRPF, TRIM_LABELS
 } from "./utils.js";
-import { getQueryContext } from "./services/query-context.js";
+import { getQueryContext } from "./query-context.js";
 
 let _chartAnual = null;
 
