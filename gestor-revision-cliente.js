@@ -1,0 +1,472 @@
+/* ═══════════════════════════════════════════════════════
+   TAURIX · gestor-revision-cliente.js
+
+   Panel de revisión fiscal por cliente para el gestor.
+   El gestor revisa un trimestre completo en ~1 minuto.
+
+   USO:
+     import { renderRevisionCliente } from './gestor-revision-cliente.js';
+     renderRevisionCliente(document.getElementById('view-revision-cliente'));
+   ═══════════════════════════════════════════════════════ */
+
+import { supabase }    from './supabase.js';
+import {
+  getYear, getTrim, getFacturasTrim,
+  calcIVA, calcIRPF,
+  fmt, fmtDate,
+  TRIM_LABELS, TRIM_PLAZOS,
+  toast
+} from './utils.js';
+import { getContextoCliente } from './gestor-context.js';
+import { invalidarCartera }   from './gestor-store.js';
+
+/* ──────────────────────────────────────────
+   ESTADO LOCAL
+────────────────────────────────────────── */
+const _state = {
+  checks: {
+    ingresos:    false,
+    gastos:      false,
+    sin_nif:     false,
+    pendientes:  false,
+    iva:         false,
+    irpf:        false,
+    todo_listo:  false,
+  },
+  notas: '',
+};
+
+/* ──────────────────────────────────────────
+   ENTRADA PRINCIPAL
+────────────────────────────────────────── */
+
+/**
+ * Renderiza el panel de revisión en el contenedor dado.
+ * @param {HTMLElement} container
+ */
+export async function renderRevisionCliente(container) {
+  if (!container) return;
+
+  const ctx      = getContextoCliente();
+  const year     = getYear();
+  const trim     = getTrim();
+  const periodo  = `${TRIM_LABELS[trim]} · ${year}`;
+  const nombre   = ctx?.nombre || 'Cliente';
+
+  container.innerHTML = `
+    <div class="view-header">
+      <div class="view-title-group">
+        <h1 class="view-title">Revisión fiscal</h1>
+        <p class="view-sub">${nombre} · ${periodo}</p>
+      </div>
+      <div class="view-actions">
+        <button class="btn-outline" onclick="window._switchView('dashboard')">
+          ← Volver al dashboard
+        </button>
+      </div>
+    </div>
+    <div id="revisionContent">
+      <div style="text-align:center;padding:40px;color:var(--t3);font-size:13px">
+        Cargando datos fiscales…
+      </div>
+    </div>`;
+
+  // Cargar datos
+  const [facturas, cierre, facturasTrimAnterior] = await Promise.all([
+    getFacturasTrim(year, trim),
+    _loadCierre(ctx?.empresa_id, year, trim),
+    _loadTrimAnterior(year, trim),
+  ]);
+
+  // Calcular métricas
+  const iva  = calcIVA(facturas);
+  const irpf = calcIRPF(facturas);
+
+  const emitidas  = facturas.filter(f => f.tipo === 'emitida' && f.estado === 'emitida');
+  const recibidas = facturas.filter(f => f.tipo === 'recibida');
+  const sin_nif   = emitidas.filter(f => !f.cliente_nif?.trim());
+  const sin_cobrar = emitidas.filter(f => !f.cobrada);
+  const sin_proveedor = recibidas.filter(f => !f.proveedor_nombre?.trim() && !f.cliente_nombre?.trim());
+
+  // Comparar con trimestre anterior para detectar ingresos anormales
+  const irpfAnt = calcIRPF(facturasTrimAnterior);
+  const ingresoAnormal = irpfAnt.ingresos > 0 &&
+    irpf.ingresos > irpfAnt.ingresos * 1.5;
+
+  // Semáforo global
+  const problemas = [
+    sin_nif.length > 0,
+    emitidas.length === 0 && recibidas.length === 0,
+    ingresoAnormal,
+  ].filter(Boolean).length;
+
+  const semaforo = cierre?.gestor_revisado_en
+    ? 'verde'
+    : problemas > 0
+    ? 'rojo'
+    : 'amarillo';
+
+  // Restaurar checks del estado guardado si hay cierre previo
+  if (cierre?.gestor_revisado_en) {
+    Object.keys(_state.checks).forEach(k => { _state.checks[k] = true; });
+  }
+  if (cierre?.gestor_notas) {
+    _state.notas = cierre.gestor_notas;
+  }
+
+  _renderContent(container.querySelector('#revisionContent'), {
+    facturas, emitidas, recibidas,
+    sin_nif, sin_cobrar, sin_proveedor,
+    iva, irpf, irpfAnt,
+    ingresoAnormal, semaforo, cierre,
+    year, trim, periodo, nombre,
+    empresa_id: ctx?.empresa_id,
+  });
+}
+
+/* ──────────────────────────────────────────
+   RENDER PRINCIPAL
+────────────────────────────────────────── */
+
+function _renderContent(wrap, d) {
+  const {
+    emitidas, recibidas, sin_nif, sin_cobrar, sin_proveedor,
+    iva, irpf, irpfAnt, ingresoAnormal,
+    semaforo, cierre, year, trim, periodo, nombre, empresa_id,
+  } = d;
+
+  const revisadoEn = cierre?.gestor_revisado_en
+    ? fmtDate(cierre.gestor_revisado_en.slice(0, 10))
+    : null;
+
+  const COLOR = { verde: '#059669', amarillo: '#d97706', rojo: '#dc2626' };
+  const BG    = { verde: '#f0fdf4', amarillo: '#fefce8', rojo: '#fef2f2' };
+  const LABEL = { verde: 'Revisado', amarillo: 'Pendiente', rojo: 'Requiere atención' };
+
+  wrap.innerHTML = `
+
+    <!-- Banner de estado -->
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;
+                background:${BG[semaforo]};border-radius:12px;
+                border:1px solid ${COLOR[semaforo]}33;margin-bottom:24px">
+      <div style="width:10px;height:10px;border-radius:50%;
+                  background:${COLOR[semaforo]};flex-shrink:0"></div>
+      <div style="flex:1;font-size:13px;font-weight:600;color:${COLOR[semaforo]}">
+        ${LABEL[semaforo]}
+        ${revisadoEn ? `<span style="font-weight:400;color:var(--t3)"> · Revisado el ${revisadoEn}</span>` : ''}
+      </div>
+      <span style="font-size:12px;color:var(--t3)">${periodo}</span>
+    </div>
+
+    <!-- Grid 2 columnas -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+      <!-- COL 1: Resumen fiscal -->
+      <div>
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;
+                    letter-spacing:.6px;color:var(--t3);margin-bottom:14px">
+          Resumen fiscal
+        </div>
+
+        <!-- KPIs -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+          ${_kpi('Ingresos netos', fmt(irpf.ingresos), 'blue')}
+          ${_kpi('Gastos deducibles', fmt(irpf.gastos), 'amber')}
+          ${_kpi('IVA modelo 303', fmt(iva.resultado),
+              iva.resultado > 0 ? 'red' : 'green',
+              iva.resultado > 0 ? 'A ingresar' : 'A compensar')}
+          ${_kpi('IRPF modelo 130', fmt(irpf.resultado),
+              irpf.resultado > 0 ? 'red' : 'green',
+              irpf.resultado > 0 ? 'A ingresar' : 'Sin pago')}
+        </div>
+
+        <!-- Detalle de operaciones -->
+        <div style="background:var(--srf);border:1px solid var(--brd);
+                    border-radius:12px;padding:16px;margin-bottom:16px">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;
+                      letter-spacing:.6px;color:var(--t3);margin-bottom:12px">
+            Detalle de operaciones
+          </div>
+          ${_fila('Facturas emitidas', emitidas.length, emitidas.length === 0 ? 'warn' : 'ok')}
+          ${_fila('Facturas recibidas (gastos)', recibidas.length, recibidas.length === 0 ? 'warn' : 'ok')}
+          ${_fila('Facturas sin NIF cliente', sin_nif.length, sin_nif.length > 0 ? 'error' : 'ok')}
+          ${_fila('Facturas sin cobrar', sin_cobrar.length, sin_cobrar.length > 3 ? 'warn' : 'ok')}
+          ${_fila('Gastos sin proveedor', sin_proveedor.length, sin_proveedor.length > 0 ? 'warn' : 'ok')}
+          ${ingresoAnormal ? _fila('Ingresos +50% vs trimestre anterior', '⚠️ Sí', 'warn') : ''}
+          ${emitidas.length === 0 && recibidas.length === 0
+            ? `<div style="margin-top:8px;padding:8px 10px;background:#fef2f2;
+                           border-radius:8px;font-size:12px;color:#dc2626;font-weight:600">
+                ⚠️ Sin actividad registrada en este trimestre
+              </div>`
+            : ''}
+        </div>
+
+        <!-- IVA desglose -->
+        <div style="background:var(--srf);border:1px solid var(--brd);
+                    border-radius:12px;padding:16px">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;
+                      letter-spacing:.6px;color:var(--t3);margin-bottom:12px">
+            Desglose IVA (Mod. 303)
+          </div>
+          ${_fila('IVA repercutido 21%', fmt(iva.rep[21]))}
+          ${_fila('IVA repercutido 10%', fmt(iva.rep[10]))}
+          ${_fila('IVA repercutido 4%',  fmt(iva.rep[4]))}
+          ${_fila('IVA soportado (gastos)', fmt(iva.sop.total))}
+          <div style="border-top:1px solid var(--brd);margin-top:8px;padding-top:8px">
+            ${_fila('Resultado', fmt(iva.resultado),
+                iva.resultado > 0 ? 'error' : 'ok',
+                true)}
+          </div>
+        </div>
+      </div>
+
+      <!-- COL 2: Checklist -->
+      <div>
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;
+                    letter-spacing:.6px;color:var(--t3);margin-bottom:14px">
+          Checklist de revisión
+        </div>
+
+        <div style="background:var(--srf);border:1px solid var(--brd);
+                    border-radius:12px;padding:18px;margin-bottom:16px">
+          ${_check('ingresos',   'Ingresos revisados')}
+          ${_check('gastos',     'Gastos revisados')}
+          ${_check('sin_nif',    'Facturas sin NIF revisadas')}
+          ${_check('pendientes', 'Facturas pendientes de cobro revisadas')}
+          ${_check('iva',        'IVA (Mod. 303) correcto')}
+          ${_check('irpf',       'IRPF (Mod. 130) correcto')}
+          <div style="border-top:1px solid var(--brd);margin-top:12px;padding-top:12px">
+            ${_check('todo_listo', 'Todo listo para presentar impuestos', true)}
+          </div>
+        </div>
+
+        <!-- Notas del gestor -->
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:11px;font-weight:800;
+                         text-transform:uppercase;letter-spacing:.6px;
+                         color:var(--t3);margin-bottom:8px">
+            Notas internas
+          </label>
+          <textarea id="revisionNotas"
+            class="ff-input"
+            rows="4"
+            placeholder="Observaciones sobre este cliente y trimestre…"
+            style="resize:vertical;font-size:13px">${_state.notas}</textarea>
+        </div>
+
+        <!-- Botón marcar revisado -->
+        <button
+          id="btnMarcarRevisado"
+          class="btn-primary"
+          style="width:100%;justify-content:center;font-size:14px;padding:12px"
+          onclick="window._marcarTrimRevisado()">
+          ${cierre?.gestor_revisado_en
+            ? '✓ Trimestre ya revisado — Actualizar notas'
+            : '✓ Marcar trimestre como revisado'}
+        </button>
+
+        ${revisadoEn
+          ? `<div style="margin-top:10px;text-align:center;font-size:12px;color:var(--t3)">
+               Revisado por última vez el ${revisadoEn}
+             </div>`
+          : ''}
+
+        <!-- Plazo fiscal -->
+        <div style="margin-top:16px;padding:12px 14px;background:var(--bg2);
+                    border-radius:10px;font-size:12px;color:var(--t3)">
+          <span style="font-weight:600;color:var(--t2)">Plazo presentación:</span>
+          ${TRIM_PLAZOS[trim] || '—'}
+        </div>
+      </div>
+
+    </div>`;
+
+  // Restaurar checks del estado
+  _syncChecks();
+
+  // Registrar handlers de checkboxes
+  wrap.querySelectorAll('.revision-check').forEach(cb => {
+    cb.addEventListener('change', () => {
+      _state.checks[cb.dataset.key] = cb.checked;
+      _actualizarProgreso(wrap);
+    });
+  });
+
+  // Guardar notas en estado al escribir
+  const notasEl = wrap.querySelector('#revisionNotas');
+  if (notasEl) {
+    notasEl.addEventListener('input', () => {
+      _state.notas = notasEl.value;
+    });
+  }
+
+  // Handler del botón — expuesto en window
+  window._marcarTrimRevisado = () => _guardarRevision(empresa_id, year, trim);
+
+  _actualizarProgreso(wrap);
+}
+
+/* ──────────────────────────────────────────
+   GUARDAR REVISIÓN EN BD
+────────────────────────────────────────── */
+
+async function _guardarRevision(empresa_id, year, trim) {
+  if (!empresa_id) {
+    toast('No hay cliente activo.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btnMarcarRevisado');
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+
+  const notas = document.getElementById('revisionNotas')?.value?.trim() || null;
+
+  const payload = {
+    empresa_id,
+    year,
+    trimestre:          trim,
+    gestor_revisado_en: new Date().toISOString(),
+    modelo_303_ok:      true,
+    modelo_130_ok:      true,
+    gestor_notas:       notas,
+  };
+
+  // Upsert: crea la fila si no existe, actualiza si ya existe
+  const { error } = await supabase
+    .from('cierres_trimestrales')
+    .upsert(payload, { onConflict: 'empresa_id,year,trimestre' });
+
+  if (error) {
+    // Si falla el upsert por constraint, intentar insert + update
+    const { error: insErr } = await supabase
+      .from('cierres_trimestrales')
+      .insert(payload);
+
+    if (insErr) {
+      // Ya existe — hacer update
+      await supabase
+        .from('cierres_trimestrales')
+        .update({
+          gestor_revisado_en: payload.gestor_revisado_en,
+          modelo_303_ok:      true,
+          modelo_130_ok:      true,
+          gestor_notas:       notas,
+        })
+        .eq('empresa_id', empresa_id)
+        .eq('year', year)
+        .eq('trimestre', trim);
+    }
+  }
+
+  toast('✅ Trimestre marcado como revisado', 'success');
+
+  // Invalida cache de cartera para que el semáforo se actualice
+  invalidarCartera();
+
+  // Re-render con datos actualizados
+  const container = document.getElementById('view-revision-cliente');
+  if (container) await renderRevisionCliente(container);
+}
+
+/* ──────────────────────────────────────────
+   HELPERS DE DATOS
+────────────────────────────────────────── */
+
+async function _loadCierre(empresa_id, year, trim) {
+  if (!empresa_id) return null;
+  const { data } = await supabase
+    .from('cierres_trimestrales')
+    .select('gestor_revisado_en, gestor_notas, modelo_303_ok, modelo_130_ok')
+    .eq('empresa_id', empresa_id)
+    .eq('year', year)
+    .eq('trimestre', trim)
+    .maybeSingle();
+  return data;
+}
+
+async function _loadTrimAnterior(year, trim) {
+  const trims   = ['T1','T2','T3','T4'];
+  const idx     = trims.indexOf(trim);
+  const antTrim = idx === 0 ? 'T4' : trims[idx - 1];
+  const antYear = idx === 0 ? year - 1 : year;
+  return getFacturasTrim(antYear, antTrim);
+}
+
+/* ──────────────────────────────────────────
+   HELPERS UI
+────────────────────────────────────────── */
+
+function _kpi(label, value, color = 'blue', sub = '') {
+  const icons = {
+    blue:  `<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>`,
+    amber: `<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>`,
+    red:   `<polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>`,
+    green: `<polyline points="20 6 9 17 4 12"/>`,
+  };
+  return `
+    <div class="kpi-card kpi-${color}">
+      <div class="kpi-top">
+        <span class="kpi-lbl">${label}</span>
+        <div class="kpi-icon kpi-icon--${color}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5">${icons[color] || icons.blue}</svg>
+        </div>
+      </div>
+      <div class="kpi-val">${value}</div>
+      ${sub ? `<div class="kpi-sub">${sub}</div>` : ''}
+    </div>`;
+}
+
+function _fila(label, value, estado = 'ok', negrita = false) {
+  const color = estado === 'error' ? '#dc2626'
+              : estado === 'warn'  ? '#d97706'
+              : 'var(--t3)';
+  const dot = estado !== 'ok'
+    ? `<span style="width:6px;height:6px;border-radius:50%;
+                    background:${color};flex-shrink:0;margin-top:1px"></span>`
+    : `<span style="width:6px;height:6px;border-radius:50%;
+                    background:#d1d5db;flex-shrink:0;margin-top:1px"></span>`;
+  return `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;
+                gap:8px;padding:5px 0;border-bottom:1px solid var(--brd)">
+      <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--t2)">
+        ${dot}${label}
+      </div>
+      <span style="font-size:12px;font-weight:${negrita ? '700' : '500'};
+                   color:${estado !== 'ok' ? color : 'var(--t1)'};
+                   white-space:nowrap">
+        ${value}
+      </span>
+    </div>`;
+}
+
+function _check(key, label, destacado = false) {
+  const checked = _state.checks[key] ? 'checked' : '';
+  return `
+    <label style="display:flex;align-items:center;gap:10px;padding:8px 0;
+                  cursor:pointer;${destacado ? 'font-weight:700' : ''}
+                  border-bottom:1px solid var(--brd)">
+      <input type="checkbox" class="revision-check"
+             data-key="${key}" ${checked}
+             style="width:16px;height:16px;cursor:pointer;accent-color:#059669;flex-shrink:0"/>
+      <span style="font-size:13px;color:var(--t${destacado ? '1' : '2'})">${label}</span>
+    </label>`;
+}
+
+function _syncChecks() {
+  document.querySelectorAll('.revision-check').forEach(cb => {
+    cb.checked = !!_state.checks[cb.dataset.key];
+  });
+}
+
+function _actualizarProgreso(wrap) {
+  const total     = Object.keys(_state.checks).length;
+  const marcados  = Object.values(_state.checks).filter(Boolean).length;
+  const pct       = Math.round((marcados / total) * 100);
+  const btn       = document.getElementById('btnMarcarRevisado');
+  if (btn && marcados === total) {
+    btn.style.opacity = '1';
+  } else if (btn) {
+    btn.style.opacity = '0.7';
+  }
+}
