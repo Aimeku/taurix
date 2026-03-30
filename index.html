@@ -880,6 +880,11 @@
             <p class="view-sub" id="dashPeriodoLabel">Cargando…</p>
           </div>
           <div class="view-actions">
+            <button class="btn-primary" id="dashRevisionBtn" style="display:none"
+              onclick="window._switchView('revision-cliente')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+              Revisión fiscal
+            </button>
             <button class="btn-outline" id="dashExportBtn">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exportar resumen
@@ -3656,6 +3661,13 @@
         <!-- Grid de tarjetas -->
         <div id="carteraGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
           <div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--t3)">Cargando cartera…</div>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: REVISIÓN CLIENTE (gestor) ═══ -->
+      <div class="view" id="view-revision-cliente">
+        <div style="text-align:center;padding:40px;color:var(--t3);font-size:13px">
+          Cargando revisión…
         </div>
       </div>
 
