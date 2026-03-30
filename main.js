@@ -66,6 +66,7 @@ import { initPlantillasView, refreshPlantillas } from "./plantillas-usuario.js";
 import { initAlbaranesView, refreshAlbaranes } from "./albaranes.js";
 import { initProformaView, refreshProforma } from "./proforma.js";
 import { initNuevaProforma } from "./nueva-proforma.js";
+import { restaurarContextoSiExiste } from "./gestor/context.js";
 
 
 
@@ -296,6 +297,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const session = await getSession();
   if (!session) return;
   setSession(session);
+
+  // Exponer sesión globalmente — necesario para query-context.js y gestor/store.js
+  window.__TAURIX_SESSION__ = session;
+
+  // Restaurar contexto gestor si estaba activo (sessionStorage persiste la sesión)
+  restaurarContextoSiExiste();
 
   document.getElementById("landingPage")?.classList.add("hidden");
   document.getElementById("appShell")?.classList.remove("hidden");
