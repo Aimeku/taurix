@@ -5,6 +5,20 @@
 import { supabase } from "./supabase.js";
 import { logout } from "./auth.js";
 
+/* ─── Contexto de query (gestor/empresa activa/usuario) ─── */
+function _getCtx() {
+  try {
+    const raw = sessionStorage.getItem('tg_gestor_ctx');
+    if (raw) {
+      const ctx = JSON.parse(raw);
+      if (ctx?.empresa_id) return { field: 'empresa_id', value: ctx.empresa_id };
+    }
+  } catch (_) {}
+  const empresaId = localStorage.getItem('tg_empresa_id');
+  if (empresaId) return { field: 'empresa_id', value: empresaId };
+  return { field: 'user_id', value: SESSION?.user?.id ?? null };
+}
+
 export let SESSION = null;
 export let CLIENTES = [];
 export let EMPRESA_ACTIVA = null;
@@ -173,16 +187,18 @@ export function getFechaRango(year, trim) {
 export async function getFacturasTrim(year, trim) {
   if (!SESSION) return [];
   const { ini, fin } = getFechaRango(year, trim);
+  const ctx = _getCtx();
   const { data, error } = await supabase.from("facturas").select("*")
-    .eq("user_id", SESSION.user.id).gte("fecha", ini).lte("fecha", fin);
+    .eq(ctx.field, ctx.value).gte("fecha", ini).lte("fecha", fin);
   if (error) { console.error("getFacturasTrim:", error.message); return []; }
   return data || [];
 }
 
 export async function getFacturasYear(year) {
   if (!SESSION) return [];
+  const ctx = _getCtx();
   const { data, error } = await supabase.from("facturas").select("*")
-    .eq("user_id", SESSION.user.id)
+    .eq(ctx.field, ctx.value)
     .gte("fecha", `${year}-01-01`)
     .lte("fecha", `${year}-12-31`);
   if (error) { console.error("getFacturasYear:", error.message); return []; }
