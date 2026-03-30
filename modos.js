@@ -13,6 +13,7 @@
 
 import { supabase } from "./supabase.js";
 import { SESSION, toast, openModal, closeModal } from "./utils.js";
+import { loadCarteraGestor } from "./gestor/cartera.js";
 
 /* ══════════════════════════════════════════
    DEFINICIÓN DE MODOS
@@ -471,39 +472,37 @@ export async function refreshCartera() {
   const wrap = document.getElementById("carteraGrid");
   if (!wrap) return;
 
-  // Cargar empresas gestionadas (from colaboradores where this user is gestor)
-  const { data: colaboraciones } = await supabase.from("colaboradores")
-    .select("owner_id, nombre, email, rol, estado, ultima_actividad")
-    .eq("colaborador_id", SESSION.user.id)
-    .eq("estado", "activo");
+  // Mostrar estado de carga
+  wrap.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--t3)">
+    <div style="font-size:13px">Cargando cartera…</div>
+  </div>`;
 
-  // También cargar las propias empresas del gestor
-  const { data: misEmpresas } = await supabase.from("empresas")
-    .select("*").eq("user_id", SESSION.user.id);
+  const clientes = await loadCarteraGestor();
 
-  const totalClientes = (colaboraciones||[]).length + (misEmpresas||[]).length;
+  // KPIs del encabezado
+  const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const urgentes  = clientes.filter(c => c.semaforo === "rojo").length;
+  const pendientes = clientes.filter(c => c.semaforo === "amarillo").length;
+  const listos    = clientes.filter(c => c.semaforo === "verde").length;
+  s("carteraTotal",    clientes.length);
+  s("carteraActivos",  urgentes + pendientes);
+  s("carteraPropias",  listos);
 
-  // Badge en sidebar
+  // Badge sidebar
   const badge = document.getElementById("carteraBadge");
   if (badge) {
-    badge.textContent = totalClientes;
-    badge.style.display = totalClientes ? "" : "none";
-    badge.style.background = "#059669";
+    badge.textContent = urgentes || "";
+    badge.style.display = urgentes ? "" : "none";
+    badge.style.background = "#dc2626";
   }
 
-  // KPIs
-  const s = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
-  s("carteraTotal",   totalClientes);
-  s("carteraActivos", (colaboraciones||[]).filter(c=>c.estado==="activo").length);
-  s("carteraPropias", (misEmpresas||[]).length);
-
-  if (!totalClientes) {
+  if (!clientes.length) {
     wrap.innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--t3)">
         <div style="font-size:48px;margin-bottom:16px">💼</div>
         <div style="font-size:16px;font-weight:700;margin-bottom:8px">Tu cartera está vacía</div>
         <div style="font-size:13px;margin-bottom:24px;line-height:1.6;max-width:400px;margin-left:auto;margin-right:auto">
-          Como gestor, puedes acceder a los datos de tus clientes cuando ellos te inviten como colaborador desde su cuenta de Taurix.
+          Los clientes que te inviten como colaborador aparecerán aquí con sus datos fiscales en tiempo real.
         </div>
         <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
           <button class="btn-primary" onclick="window._copyInviteInstructions()">
@@ -517,53 +516,106 @@ export async function refreshCartera() {
     return;
   }
 
-  // Tarjetas de empresas propias
-  const tarjetasPropias = (misEmpresas||[]).map(e => `
-    <div class="cartera-card cartera-card--propia" onclick="window._switchView('dashboard')"
-         title="Tu empresa principal">
-      <div class="cartera-card-header">
-        <div class="cartera-card-avatar" style="background:linear-gradient(135deg,#1a56db,#3b82f6)">
-          ${(e.nombre||"E").charAt(0).toUpperCase()}
-        </div>
-        <div style="flex:1;min-width:0">
-          <div class="cartera-card-nombre">${e.nombre || "Mi empresa"}</div>
-          <div class="cartera-card-nif">${e.nif || "—"}</div>
-        </div>
-        <span style="background:#eff6ff;color:#1a56db;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px">Principal</span>
-      </div>
-      <div class="cartera-card-footer">
-        <span style="color:var(--t4);font-size:11px">Tu empresa</span>
-        <button class="btn-outline" style="font-size:11px;padding:3px 10px">Gestionar →</button>
-      </div>
-    </div>`).join("");
+  const fmt = (n) => new Intl.NumberFormat("es-ES", {
+    style:"currency", currency:"EUR", maximumFractionDigits:0
+  }).format(n || 0);
 
-  // Tarjetas de clientes gestionados
-  const tarjetasClientes = (colaboraciones||[]).map(c => `
-    <div class="cartera-card" onclick="window._entrarEnCuenta('${c.owner_id}','${(c.nombre||c.email).replace(/'/g,"\\'")}')">
+  const SEMAFORO_COLOR = { rojo:"#dc2626", amarillo:"#d97706", verde:"#059669" };
+  const SEMAFORO_BG    = { rojo:"#fef2f2", amarillo:"#fefce8", verde:"#f0fdf4" };
+  const SEMAFORO_LABEL = { rojo:"Requiere atención", amarillo:"Pendiente revisar", verde:"Al día" };
+
+  wrap.innerHTML = clientes.map(c => {
+    const color = SEMAFORO_COLOR[c.semaforo];
+    const bg    = SEMAFORO_BG[c.semaforo];
+    const label = SEMAFORO_LABEL[c.semaforo];
+    const inicial = (c.nombre_cliente || "?")[0].toUpperCase();
+
+    // Líneas de alerta (máximo 2 visibles)
+    const alertasHtml = c.alertas.slice(0, 2).map(a =>
+      `<div style="font-size:11px;color:${color};display:flex;align-items:center;gap:4px">
+         <span style="width:5px;height:5px;border-radius:50%;background:${color};flex-shrink:0"></span>
+         ${a}
+       </div>`
+    ).join("");
+
+    // Último acceso del cliente
+    const ultimoAcceso = c.ultimo_acceso
+      ? (() => {
+          const dias = Math.floor((Date.now() - new Date(c.ultimo_acceso)) / 86400000);
+          return dias === 0 ? "hoy" : dias === 1 ? "ayer" : `hace ${dias} días`;
+        })()
+      : "nunca";
+
+    return `
+    <div class="cartera-card" style="cursor:pointer;border-left:3px solid ${color}"
+         onclick="window._entrarEnCuenta_gc('${c.empresa_id}','${c.nombre_cliente.replace(/'/g,"\\'")}')">
+
       <div class="cartera-card-header">
-        <div class="cartera-card-avatar" style="background:linear-gradient(135deg,#059669,#10b981)">
-          ${(c.nombre||c.email||"C").charAt(0).toUpperCase()}
+        <div class="cartera-card-avatar"
+             style="background:${color};color:#fff;font-weight:700;font-size:15px;
+                    width:36px;height:36px;border-radius:50%;display:flex;
+                    align-items:center;justify-content:center;flex-shrink:0">
+          ${inicial}
         </div>
         <div style="flex:1;min-width:0">
-          <div class="cartera-card-nombre">${c.nombre || c.email}</div>
-          <div class="cartera-card-nif" style="font-size:11px;color:var(--t4)">${c.email}</div>
+          <div class="cartera-card-nombre">${c.nombre_cliente}</div>
+          <div style="font-size:11px;color:var(--t4)">${c.nif || c.email_cliente || "—"}</div>
         </div>
-        <span style="background:#f0fdf4;color:#059669;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px">Cliente</span>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 0">
-        <span style="font-size:11px;background:var(--bg2);color:var(--t3);padding:2px 7px;border-radius:5px">
-          ${c.rol === "manager" ? "Gestor total" : c.rol === "accountant" ? "Contable" : c.rol === "editor" ? "Colaborador" : "Solo lectura"}
+        <span style="background:${bg};color:${color};font-size:10px;font-weight:700;
+                     padding:2px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0">
+          ${label}
         </span>
-        ${c.ultima_actividad ? `<span style="font-size:11px;color:var(--t4)">Última actividad: ${new Date(c.ultima_actividad).toLocaleDateString("es-ES")}</span>` : ""}
       </div>
-      <div class="cartera-card-footer">
-        <span style="color:var(--t4);font-size:11px">Click para gestionar</span>
-        <button class="btn-primary" style="font-size:11px;padding:3px 12px">Entrar →</button>
-      </div>
-    </div>`).join("");
 
-  wrap.innerHTML = tarjetasPropias + tarjetasClientes;
+      <!-- Métricas fiscales -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 0 6px;
+                  border-top:1px solid var(--brd);border-bottom:1px solid var(--brd);margin:8px 0">
+        <div>
+          <div style="font-size:10px;color:var(--t4);margin-bottom:2px">Facturación trim.</div>
+          <div style="font-size:13px;font-weight:700">${fmt(c.facturacion_trim)}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--t4);margin-bottom:2px">IVA estimado</div>
+          <div style="font-size:13px;font-weight:700;color:${c.iva_estimado > 0 ? "#dc2626" : "#059669"}">
+            ${fmt(c.iva_estimado)}
+          </div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--t4);margin-bottom:2px">Gastos</div>
+          <div style="font-size:13px;font-weight:${c.gastos_count === 0 ? "700" : "400"};
+                      color:${c.gastos_count === 0 ? "#d97706" : "inherit"}">
+            ${c.gastos_count === 0 ? "Sin gastos" : fmt(c.gastos_trim)}
+          </div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--t4);margin-bottom:2px">IRPF estimado</div>
+          <div style="font-size:13px">${fmt(c.irpf_estimado)}</div>
+        </div>
+      </div>
+
+      <!-- Alertas -->
+      ${alertasHtml ? `<div style="display:flex;flex-direction:column;gap:3px;padding:4px 0">${alertasHtml}</div>` : ""}
+
+      <!-- Footer -->
+      <div class="cartera-card-footer" style="margin-top:8px">
+        <span style="font-size:11px;color:var(--t4)">Cliente: ${ultimoAcceso}</span>
+        <button class="btn-primary" style="font-size:11px;padding:3px 12px;pointer-events:none">
+          Revisar →
+        </button>
+      </div>
+    </div>`;
+  }).join("");
+
+  // onclick directo por empresa_id (sin resolver owner_id)
+  window._entrarEnCuenta_gc = (empresa_id, nombre) => {
+    if (window._entrarEnCliente) {
+      window._entrarEnCliente(empresa_id, nombre);
+    } else {
+      toast("Módulo gestor no cargado. Recarga la página.", "error");
+    }
+  };
 }
+
 
 // Copiar instrucciones para el cliente
 window._copyInviteInstructions = () => {
@@ -584,26 +636,27 @@ Un saludo`;
   });
 };
 
-// Entrar en cuenta de un cliente (futuro: cargar sus datos)
-window._entrarEnCuenta = (ownerId, nombre) => {
-  openModal(`
-    <div class="modal" style="max-width:460px">
-      <div class="modal-hd">
-        <span class="modal-title">💼 Entrar como gestor</span>
-        <button class="modal-x" onclick="window._cm()">×</button>
-      </div>
-      <div class="modal-bd">
-        <div style="text-align:center;padding:20px 0">
-          <div style="font-size:36px;margin-bottom:12px">🔄</div>
-          <div style="font-size:15px;font-weight:700;margin-bottom:8px">Entrando en cuenta de <strong>${nombre}</strong></div>
-          <div style="font-size:13px;color:var(--t3);line-height:1.6">
-            Esta función está disponible cuando el cliente te ha invitado como colaborador y usas su enlace de acceso.<br><br>
-            <strong>Por ahora:</strong> el cliente debe darte acceso desde su cuenta y tú entras con tus credenciales en su sesión de Taurix.
-          </div>
-        </div>
-      </div>
-      <div class="modal-ft">
-        <button class="btn-modal-cancel" onclick="window._cm()">Cerrar</button>
-      </div>
-    </div>`);
-};
+// Entrar en cuenta de un cliente — context switch real
+// gestor/context.js define window._entrarEnCuenta cuando se importa.
+// Esta línea garantiza que el override de modos.js no sobrescriba el de context.js.
+// Si context.js ya lo definió, lo dejamos; si no, ponemos un fallback informativo.
+if (!window._entrarEnCuenta || window._entrarEnCuenta.toString().includes("Esta función")) {
+  window._entrarEnCuenta = async (ownerId, nombre) => {
+    const { data: empresa } = await supabase
+      .from("empresas")
+      .select("id, nombre")
+      .eq("user_id", ownerId)
+      .limit(1)
+      .maybeSingle();
+    if (!empresa) {
+      toast("Este cliente aún no tiene empresa configurada en Taurix.", "warn");
+      return;
+    }
+    // context.js define window._entrarEnCliente
+    if (window._entrarEnCliente) {
+      window._entrarEnCliente(empresa.id, empresa.nombre || nombre);
+    } else {
+      toast("Módulo de contexto gestor no cargado aún.", "error");
+    }
+  };
+}
