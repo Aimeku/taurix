@@ -113,6 +113,13 @@ export async function refreshDashboard() {
   await refreshAlertasDashboard(ivaRes, Math.max(0,rendimiento*0.20));
   await drawChartAnual(year);
   await renderActividadReciente(facturasTrim);
+
+  // Botón "Revisión fiscal" — solo visible cuando el gestor está en contexto cliente
+  const btnRev = document.getElementById("dashRevisionBtn");
+  if (btnRev) {
+    const enCliente = !!sessionStorage.getItem("tg_gestor_ctx");
+    btnRev.style.display = enCliente ? "" : "none";
+  }
 }
 
 function _coefDefault(tipo) {
