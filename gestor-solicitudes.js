@@ -302,7 +302,7 @@ export async function renderSolicitudesCliente(container, empresa_id) {
               ${msgNoLeidos} mensaje${msgNoLeidos > 1 ? 's' : ''}
             </span>` : ''}
         </div>
-        <button onclick="window._switchView('revision-cliente')"
+        <button onclick="window._verDetallesGestor('${empresa_id}')"
           style="font-size:12px;font-weight:600;color:#d97706;background:none;
                  border:1px solid #fde68a;border-radius:7px;padding:3px 10px;cursor:pointer">
           Ver detalles →
@@ -325,3 +325,163 @@ export async function renderSolicitudesCliente(container, empresa_id) {
         </div>` : ''}
     </div>`;
 }
+
+/* ──────────────────────────────────────────
+   MODAL CLIENTE — ver solicitudes y mensajes
+   Abre un modal con todo pendiente del gestor.
+   No requiere contexto gestor.
+────────────────────────────────────────── */
+
+/**
+ * Registra window._verDetallesGestor para uso desde HTML inline.
+ * Llamar una vez al cargar el módulo.
+ */
+window._verDetallesGestor = async (empresa_id) => {
+  if (!empresa_id) return;
+
+  const { openModal, closeModal, fmtDate } = await import('./utils.js');
+
+  // Mostrar modal con loading
+  openModal(`
+    <div class="modal" style="max-width:560px">
+      <div class="modal-hd">
+        <span class="modal-title">📋 Tu gestor necesita esto</span>
+        <button class="modal-x" onclick="window._cm()">×</button>
+      </div>
+      <div class="modal-bd" id="detallesGestorBody">
+        <div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">
+          Cargando…
+        </div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn-modal-cancel" onclick="window._cm()">Cerrar</button>
+      </div>
+    </div>`);
+
+  // Cargar datos en paralelo
+  const [solRes, msgRes] = await Promise.all([
+    supabase.from('solicitudes_documentos')
+      .select('id, titulo, descripcion, trimestre, year, fecha_limite, creada_en, estado')
+      .eq('empresa_id', empresa_id)
+      .order('creada_en', { ascending: false })
+      .limit(20),
+
+    supabase.from('mensajes')
+      .select('id, texto, leido, creado_en, autor_tipo')
+      .eq('empresa_id', empresa_id)
+      .order('creado_en', { ascending: false })
+      .limit(20),
+  ]);
+
+  const solicitudes = solRes.data || [];
+  const mensajes    = msgRes.data || [];
+
+  const body = document.getElementById('detallesGestorBody');
+  if (!body) return;
+
+  const solHtml = solicitudes.length
+    ? solicitudes.map(s => {
+        const pendiente = s.estado === 'pendiente';
+        const color = pendiente ? '#d97706' : '#059669';
+        const bg    = pendiente ? '#fefce8' : '#f0fdf4';
+        return `
+          <div style="padding:10px 0;border-bottom:1px solid var(--brd)">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:600;color:var(--t1)">${s.titulo}</div>
+                ${s.descripcion ? `<div style="font-size:12px;color:var(--t3);margin-top:2px">${s.descripcion}</div>` : ''}
+                <div style="font-size:11px;color:var(--t4);margin-top:4px">
+                  ${s.trimestre ? `${s.trimestre} ${s.year} · ` : ''}
+                  Recibida ${fmtDate(s.creada_en?.slice(0, 10))}
+                  ${s.fecha_limite ? ` · <strong>Límite: ${fmtDate(s.fecha_limite)}</strong>` : ''}
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+                <span style="background:${bg};color:${color};font-size:10px;
+                             font-weight:700;padding:2px 8px;border-radius:5px">
+                  ${pendiente ? 'Pendiente' : 'Completada'}
+                </span>
+                ${pendiente ? `
+                  <button
+                    onclick="window._clienteMarcarCompletada('${s.id}', '${empresa_id}', this)"
+                    style="background:#059669;color:#fff;border:none;border-radius:6px;
+                           padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer">
+                    ✓ Listo
+                  </button>` : ''}
+              </div>
+            </div>
+          </div>`;
+      }).join('')
+    : `<p style="font-size:13px;color:var(--t3);padding:8px 0">Sin solicitudes pendientes.</p>`;
+
+  const msgDeGestor = mensajes.filter(m => m.autor_tipo === 'gestor');
+  const msgHtml = msgDeGestor.length
+    ? msgDeGestor.slice(0, 5).map(m => `
+        <div style="padding:8px 0;border-bottom:1px solid var(--brd)">
+          <div style="font-size:13px;color:var(--t1);line-height:1.5">${m.texto}</div>
+          <div style="font-size:11px;color:var(--t4);margin-top:3px">
+            ${m.leido ? '' : '<span style="color:#d97706;font-weight:600">Nuevo · </span>'}
+            ${fmtDate(m.creado_en?.slice(0, 10))}
+          </div>
+        </div>`).join('')
+    : `<p style="font-size:13px;color:var(--t3);padding:8px 0">Sin mensajes del gestor.</p>`;
+
+  body.innerHTML = `
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;
+                  letter-spacing:.6px;color:var(--t3);margin-bottom:10px">
+        Solicitudes de documentos
+      </div>
+      ${solHtml}
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;
+                  letter-spacing:.6px;color:var(--t3);margin-bottom:10px">
+        Mensajes del gestor
+      </div>
+      ${msgHtml}
+    </div>`;
+
+  // Marcar mensajes del gestor como leídos
+  supabase.from('mensajes')
+    .update({ leido: true })
+    .eq('empresa_id', empresa_id)
+    .eq('autor_tipo', 'gestor')
+    .eq('leido', false)
+    .then(() => {});
+};
+
+// El cliente marca una solicitud como completada
+window._clienteMarcarCompletada = async (id, empresa_id, btn) => {
+  btn.disabled = true;
+  btn.textContent = '…';
+  const { toast } = await import('./utils.js');
+  const { error } = await supabase
+    .from('solicitudes_documentos')
+    .update({ estado: 'completado', completada_en: new Date().toISOString() })
+    .eq('id', id);
+  if (error) {
+    toast('Error al actualizar: ' + error.message, 'error');
+    btn.disabled = false;
+    btn.textContent = '✓ Listo';
+    return;
+  }
+  // Actualizar UI en el modal
+  const fila = btn.closest('[style*="border-bottom"]');
+  if (fila) {
+    const badge = fila.querySelector('[style*="fefce8"]');
+    if (badge) {
+      badge.style.background = '#f0fdf4';
+      badge.style.color = '#059669';
+      badge.textContent = 'Completada';
+    }
+    btn.remove();
+  }
+  toast('✅ Marcado como completado.', 'success');
+  // Refrescar el banner del dashboard si está visible
+  const bannerEl = document.getElementById('gestorSolicitudesBanner');
+  if (bannerEl && empresa_id) {
+    const { renderSolicitudesCliente } = await import('./gestor-solicitudes.js');
+    await renderSolicitudesCliente(bannerEl, empresa_id);
+  }
+};
