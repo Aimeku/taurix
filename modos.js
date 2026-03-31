@@ -600,9 +600,16 @@ export async function refreshCartera() {
       <!-- Footer -->
       <div class="cartera-card-footer" style="margin-top:8px">
         <span style="font-size:11px;color:var(--t4)">Cliente: ${ultimoAcceso}</span>
-        <button class="btn-primary" style="font-size:11px;padding:3px 12px;pointer-events:none">
-          Revisar →
-        </button>
+        <div style="display:flex;align-items:center;gap:6px">
+          ${c.solicitudes_pendientes > 0 ? `
+            <span style="background:#fef2f2;color:#dc2626;font-size:10px;font-weight:700;
+                         padding:2px 7px;border-radius:5px">
+              📋 ${c.solicitudes_pendientes} pendiente${c.solicitudes_pendientes > 1 ? "s" : ""}
+            </span>` : ""}
+          <button class="btn-primary" style="font-size:11px;padding:3px 12px;pointer-events:none">
+            Revisar →
+          </button>
+        </div>
       </div>
     </div>`;
   }).join("");
