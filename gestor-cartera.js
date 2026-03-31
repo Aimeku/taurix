@@ -20,6 +20,7 @@
 import { supabase }   from './supabase.js';
 import { getYear, getTrim, getFechaRango } from './utils.js';
 import { getGestorUserId, getCarteraCache, setCarteraCache } from './gestor-store.js';
+import { calcularScoreFiscal } from './gestor-score.js';
 
 const ORDEN_SEMAFORO = { rojo: 0, amarillo: 1, verde: 2 };
 
@@ -170,6 +171,16 @@ export async function loadCarteraGestor(forzar = false) {
       facturacion_trim, ultimo_acceso: cliente.ultimo_acceso,
     });
 
+    const { score: score_fiscal, estado: estado_fiscal, motivos: score_motivos } =
+      calcularScoreFiscal({
+        facturacion_trim,
+        gastos_trim,
+        iva_estimado,
+        alertas,
+        solicitudes_pendientes: solicPorEmpresa[cliente.empresa_id] || 0,
+        facturas_emitidas_count: emitidas.length,
+      });
+
     return {
       empresa_id:              cliente.empresa_id,
       nombre_cliente:          cliente.nombre_cliente || '(sin nombre)',
@@ -189,6 +200,9 @@ export async function loadCarteraGestor(forzar = false) {
       modelo_303_ok:           !!cierre?.modelo_303_ok,
       semaforo:                _semaforo({ emitidas, recibidas, alertas, cierre }),
       alertas,
+      score_fiscal,
+      estado_fiscal,
+      score_motivos,
     };
   });
 
