@@ -99,7 +99,7 @@ export async function loadCarteraGestor(forzar = false) {
   /* ── 2. Una query para todas las facturas del trimestre ── */
   const empresaIds = clientesBase.map(c => c.empresa_id).filter(Boolean);
 
-  const [trimRes, cobrosRes, cierresRes] = await Promise.all([
+  const [trimRes, cobrosRes, cierresRes, solicitudesRes] = await Promise.all([
     // Facturas del trimestre (emitidas + recibidas)
     supabase.from('facturas')
       .select('empresa_id, tipo, base, iva, cobrada, cliente_nif')
@@ -120,17 +120,28 @@ export async function loadCarteraGestor(forzar = false) {
       .in('empresa_id', empresaIds)
       .eq('year', year)
       .eq('trimestre', trim),
+
+    // Solicitudes pendientes por empresa
+    supabase.from('solicitudes_documentos')
+      .select('empresa_id')
+      .in('empresa_id', empresaIds)
+      .eq('estado', 'pendiente'),
   ]);
 
-  const facturasRaw = trimRes.data   || [];
-  const cobrosRaw   = cobrosRes.data || [];
-  const cierresRaw  = cierresRes.data || [];
+  const facturasRaw = trimRes.data       || [];
+  const cobrosRaw   = cobrosRes.data     || [];
+  const cierresRaw  = cierresRes.data    || [];
+  const solicRaw    = solicitudesRes.data || [];
 
   // Indexar por empresa_id → O(1) lookup
   const facPorEmpresa    = _agrupar(facturasRaw);
   const cobrosPorEmpresa = _agrupar(cobrosRaw);
   const cierrePorEmpresa = {};
   cierresRaw.forEach(c => { cierrePorEmpresa[c.empresa_id] = c; });
+  const solicPorEmpresa  = {};
+  solicRaw.forEach(s => {
+    solicPorEmpresa[s.empresa_id] = (solicPorEmpresa[s.empresa_id] || 0) + 1;
+  });
 
   /* ── 3. Calcular métricas por cliente ── */
   const resultado = clientesBase.map(cliente => {
@@ -173,6 +184,7 @@ export async function loadCarteraGestor(forzar = false) {
       facturas_emitidas_count: emitidas.length,
       gastos_count:            recibidas.length,
       sin_nif,
+      solicitudes_pendientes:  solicPorEmpresa[cliente.empresa_id] || 0,
       gestor_revisado:         !!cierre?.gestor_revisado_en,
       modelo_303_ok:           !!cierre?.modelo_303_ok,
       semaforo:                _semaforo({ emitidas, recibidas, alertas, cierre }),
