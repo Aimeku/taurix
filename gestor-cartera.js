@@ -171,7 +171,7 @@ export async function loadCarteraGestor(forzar = false) {
       facturacion_trim, ultimo_acceso: cliente.ultimo_acceso,
     });
 
-    const { score: score_fiscal, estado: estado_fiscal, motivos: score_motivos } =
+    const { score: score_fiscal, estado: estado_fiscal_calc, motivos: score_motivos } =
       calcularScoreFiscal({
         facturacion_trim,
         gastos_trim,
@@ -180,6 +180,10 @@ export async function loadCarteraGestor(forzar = false) {
         solicitudes_pendientes: solicPorEmpresa[cliente.empresa_id] || 0,
         facturas_emitidas_count: emitidas.length,
       });
+
+    // Si el gestor revisó el trimestre, forzar estado a ok independientemente del score
+    const revisado       = !!cierre?.gestor_revisado_en;
+    const estado_fiscal  = revisado ? 'ok' : estado_fiscal_calc;
 
     return {
       empresa_id:              cliente.empresa_id,
@@ -196,13 +200,13 @@ export async function loadCarteraGestor(forzar = false) {
       gastos_count:            recibidas.length,
       sin_nif,
       solicitudes_pendientes:  solicPorEmpresa[cliente.empresa_id] || 0,
-      gestor_revisado:         !!cierre?.gestor_revisado_en,
+      gestor_revisado:         revisado,
       modelo_303_ok:           !!cierre?.modelo_303_ok,
       semaforo:                _semaforo({ emitidas, recibidas, alertas, cierre }),
       alertas,
-      score_fiscal,
+      score_fiscal:            revisado ? Math.max(score_fiscal, 80) : score_fiscal,
       estado_fiscal,
-      score_motivos,
+      score_motivos:           revisado ? [] : score_motivos,
     };
   });
 
@@ -246,12 +250,15 @@ function _alertas({ emitidas, recibidas, sin_nif, iva_estimado, facturacion_trim
 }
 
 function _semaforo({ emitidas, recibidas, alertas, cierre }) {
+  // El gestor marcó el trimestre como revisado → siempre verde
+  // El gestor es quien decide si está listo, no el algoritmo
+  if (cierre?.gestor_revisado_en) return 'verde';
+
+  // Sin revisión: evaluar por alertas y actividad
   const criticas = alertas.filter(a =>
     a.includes('Sin actividad') || a.includes('sin NIF') ||
     a.includes('IVA estimado inusualmente alto')
   );
   if (criticas.length > 0) return 'rojo';
-  if (emitidas.length > 0 && recibidas.length > 0 && cierre?.gestor_revisado_en)
-    return 'verde';
   return 'amarillo';
 }
