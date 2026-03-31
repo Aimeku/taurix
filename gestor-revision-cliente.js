@@ -58,6 +58,16 @@ export async function renderRevisionCliente(container) {
   const periodo  = `${TRIM_LABELS[trim]} · ${year}`;
   const nombre   = ctx?.nombre || 'Cliente';
 
+  // Resetear estado local — cada cliente y trimestre empieza limpio
+  _state.checks.ingresos   = false;
+  _state.checks.gastos     = false;
+  _state.checks.sin_nif    = false;
+  _state.checks.pendientes = false;
+  _state.checks.iva        = false;
+  _state.checks.irpf       = false;
+  _state.checks.todo_listo = false;
+  _state.notas = '';
+
   container.innerHTML = `
     <div class="view-header">
       <div class="view-title-group">
@@ -487,10 +497,12 @@ async function _guardarRevision(empresa_id, year, trim) {
 
   toast('✅ Trimestre marcado como revisado', 'success');
 
-  // Invalida cache de cartera para que el semáforo se actualice
+  // Invalida cache de cartera y la recarga en segundo plano
+  // para que al volver a cartera el semáforo ya sea verde
   invalidarCartera();
+  if (window._refreshCartera) window._refreshCartera();
 
-  // Re-render con datos actualizados
+  // Re-render de esta vista con datos actualizados
   const container = document.getElementById('view-revision-cliente');
   if (container) await renderRevisionCliente(container);
 }
