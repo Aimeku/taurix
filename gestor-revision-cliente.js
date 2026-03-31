@@ -19,6 +19,9 @@ import {
 } from './utils.js';
 import { getContextoCliente } from './gestor-context.js';
 import { invalidarCartera }   from './gestor-store.js';
+import { calcularAlertasCliente, renderAlertasHtml } from './gestor-alertas.js';
+import { abrirModalSolicitud, renderSolicitudesGestor } from './gestor-solicitudes.js';
+import { renderMensajesCliente } from './gestor-mensajes.js';
 
 /* ──────────────────────────────────────────
    ESTADO LOCAL
@@ -60,6 +63,14 @@ export async function renderRevisionCliente(container) {
         <p class="view-sub">${nombre} · ${periodo}</p>
       </div>
       <div class="view-actions">
+        <button class="btn-outline" onclick="window._abrirModalSolicitud()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Solicitar documentos
+        </button>
         <button class="btn-outline" onclick="window._switchView('dashboard')">
           ← Volver al dashboard
         </button>
@@ -71,11 +82,15 @@ export async function renderRevisionCliente(container) {
       </div>
     </div>`;
 
-  // Cargar datos
-  const [facturas, cierre, facturasTrimAnterior] = await Promise.all([
+  // Exponer modal de solicitud
+  window._abrirModalSolicitud = abrirModalSolicitud;
+
+  // Cargar datos + alertas en paralelo
+  const [facturas, cierre, facturasTrimAnterior, alertas] = await Promise.all([
     getFacturasTrim(year, trim),
     _loadCierre(ctx?.empresa_id, year, trim),
     _loadTrimAnterior(year, trim),
+    calcularAlertasCliente(ctx?.empresa_id),
   ]);
 
   // Calcular métricas
@@ -119,6 +134,7 @@ export async function renderRevisionCliente(container) {
     sin_nif, sin_cobrar, sin_proveedor,
     iva, irpf, irpfAnt,
     ingresoAnormal, semaforo, cierre,
+    alertas,
     year, trim, periodo, nombre,
     empresa_id: ctx?.empresa_id,
   });
@@ -132,7 +148,7 @@ function _renderContent(wrap, d) {
   const {
     emitidas, recibidas, sin_nif, sin_cobrar, sin_proveedor,
     iva, irpf, irpfAnt, ingresoAnormal,
-    semaforo, cierre, year, trim, periodo, nombre, empresa_id,
+    semaforo, cierre, alertas = [], year, trim, periodo, nombre, empresa_id,
   } = d;
 
   const revisadoEn = cierre?.gestor_revisado_en
@@ -279,6 +295,49 @@ function _renderContent(wrap, d) {
         </div>
       </div>
 
+    </div>
+
+    <!-- Alertas detectadas -->
+    <div id="revisionAlertas" style="margin-top:20px"></div>
+
+    <!-- Solicitudes y mensajes -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px">
+
+      <!-- Solicitudes -->
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;
+                    margin-bottom:12px">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;
+                      letter-spacing:.6px;color:var(--t3)">
+            Solicitudes de documentos
+          </div>
+          <button onclick="window._abrirModalSolicitud()"
+            style="font-size:11px;font-weight:600;color:var(--ox);background:none;
+                   border:1px solid var(--ox);border-radius:6px;
+                   padding:3px 9px;cursor:pointer">
+            + Nueva
+          </button>
+        </div>
+        <div style="background:var(--srf);border:1px solid var(--brd);
+                    border-radius:12px;padding:14px">
+          <div id="revisionSolicitudes">
+            <div style="font-size:12px;color:var(--t3)">Cargando…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mensajes -->
+      <div>
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;
+                    letter-spacing:.6px;color:var(--t3);margin-bottom:12px">
+          Mensajes con el cliente
+        </div>
+        <div style="background:var(--srf);border:1px solid var(--brd);
+                    border-radius:12px;padding:14px">
+          <div id="revisionMensajes"></div>
+        </div>
+      </div>
+
     </div>`;
 
   // Restaurar checks del estado
@@ -304,6 +363,18 @@ function _renderContent(wrap, d) {
   window._marcarTrimRevisado = () => _guardarRevision(empresa_id, year, trim);
 
   _actualizarProgreso(wrap);
+
+  // Alertas detectadas
+  const alertasEl = wrap.querySelector('#revisionAlertas');
+  if (alertasEl) alertasEl.innerHTML = renderAlertasHtml(alertas);
+
+  // Solicitudes (async, no bloquea el render)
+  const solEl = wrap.querySelector('#revisionSolicitudes');
+  if (solEl && empresa_id) renderSolicitudesGestor(solEl, empresa_id);
+
+  // Mensajes (async)
+  const msgEl = wrap.querySelector('#revisionMensajes');
+  if (msgEl && empresa_id) renderMensajesCliente(msgEl, empresa_id);
 }
 
 /* ──────────────────────────────────────────
