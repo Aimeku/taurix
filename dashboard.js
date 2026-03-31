@@ -121,25 +121,43 @@ export async function refreshDashboard() {
     btnRev.style.display = enCliente ? "" : "none";
   }
 
-  // Bloque "Tu gestor necesita esto" — solo visible para clientes (no en modo gestor)
+  // Bloque "Tu gestor necesita esto" — solo para clientes, nunca cuando el gestor está operando
   const enContextoGestor = !!sessionStorage.getItem("tg_gestor_ctx");
-  if (!enContextoGestor) {
-    const bannerEl = document.getElementById("gestorSolicitudesBanner");
-    if (bannerEl) {
-      // Resolver empresa_id: localStorage primero, si no hay buscar en BD por user_id
-      let empresaId = localStorage.getItem("tg_empresa_id");
-      if (!empresaId && SESSION?.user?.id) {
-        const { data: emp } = await supabase.from("empresas")
-          .select("id").eq("user_id", SESSION.user.id).limit(1).maybeSingle();
+  if (!enContextoGestor && SESSION?.user?.id) {
+    // Resolver empresa_id de forma robusta:
+    // 1. localStorage (si el usuario ya seleccionó empresa antes)
+    // 2. BD: primera empresa del usuario (caso más común — autónomo con una sola empresa)
+    // 3. null → no mostrar el bloque
+    let empresaId = localStorage.getItem("tg_empresa_id") || null;
+
+    if (!empresaId) {
+      try {
+        const { data: emp } = await supabase
+          .from("empresas")
+          .select("id")
+          .eq("user_id", SESSION.user.id)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
         if (emp?.id) {
           empresaId = emp.id;
+          // Guardar para próximas cargas — evita la query extra
           localStorage.setItem("tg_empresa_id", emp.id);
         }
-      }
-      if (empresaId) {
+      } catch (_) { /* sin empresa registrada — no mostrar el bloque */ }
+    }
+
+    const bannerEl = document.getElementById("gestorSolicitudesBanner");
+    if (bannerEl && empresaId) {
+      try {
         const { renderSolicitudesCliente } = await import("./gestor-solicitudes.js");
         await renderSolicitudesCliente(bannerEl, empresaId);
+      } catch (e) {
+        console.warn("gestorSolicitudesBanner:", e.message);
+        bannerEl.innerHTML = "";
       }
+    } else if (bannerEl) {
+      bannerEl.innerHTML = "";
     }
   }
 }
