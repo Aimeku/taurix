@@ -125,7 +125,15 @@ export async function renderRevisionCliente(container) {
 
   // Restaurar checks del estado guardado si hay cierre previo
   if (cierre?.gestor_revisado_en) {
-    Object.keys(_state.checks).forEach(k => { _state.checks[k] = true; });
+    // Restaurar cada check individualmente desde los campos guardados.
+    // Si el campo es null (registro antiguo antes de la migración) → true por defecto.
+    _state.checks.ingresos   = cierre.check_ingresos   ?? true;
+    _state.checks.gastos     = cierre.check_gastos     ?? true;
+    _state.checks.sin_nif    = cierre.check_sin_nif    ?? true;
+    _state.checks.pendientes = cierre.check_pendientes ?? true;
+    _state.checks.iva        = cierre.check_iva        ?? true;
+    _state.checks.irpf       = cierre.check_irpf       ?? true;
+    _state.checks.todo_listo = cierre.check_todo_listo ?? true;
   }
   if (cierre?.gestor_notas) {
     _state.notas = cierre.gestor_notas;
@@ -430,9 +438,17 @@ async function _guardarRevision(empresa_id, year, trim) {
     year,
     trimestre:          trim,
     gestor_revisado_en: new Date().toISOString(),
-    modelo_303_ok:      true,
-    modelo_130_ok:      true,
+    modelo_303_ok:      !!_state.checks.iva,
+    modelo_130_ok:      !!_state.checks.irpf,
     gestor_notas:       notas,
+    // Persistir cada check individualmente
+    check_ingresos:   !!_state.checks.ingresos,
+    check_gastos:     !!_state.checks.gastos,
+    check_sin_nif:    !!_state.checks.sin_nif,
+    check_pendientes: !!_state.checks.pendientes,
+    check_iva:        !!_state.checks.iva,
+    check_irpf:       !!_state.checks.irpf,
+    check_todo_listo: !!_state.checks.todo_listo,
   };
 
   // Upsert: crea la fila si no existe, actualiza si ya existe
@@ -452,9 +468,16 @@ async function _guardarRevision(empresa_id, year, trim) {
         .from('cierres_trimestrales')
         .update({
           gestor_revisado_en: payload.gestor_revisado_en,
-          modelo_303_ok:      true,
-          modelo_130_ok:      true,
+          modelo_303_ok:      payload.modelo_303_ok,
+          modelo_130_ok:      payload.modelo_130_ok,
           gestor_notas:       notas,
+          check_ingresos:     payload.check_ingresos,
+          check_gastos:       payload.check_gastos,
+          check_sin_nif:      payload.check_sin_nif,
+          check_pendientes:   payload.check_pendientes,
+          check_iva:          payload.check_iva,
+          check_irpf:         payload.check_irpf,
+          check_todo_listo:   payload.check_todo_listo,
         })
         .eq('empresa_id', empresa_id)
         .eq('year', year)
@@ -480,7 +503,12 @@ async function _loadCierre(empresa_id, year, trim) {
   if (!empresa_id) return null;
   const { data } = await supabase
     .from('cierres_trimestrales')
-    .select('gestor_revisado_en, gestor_notas, modelo_303_ok, modelo_130_ok')
+    .select(`
+      gestor_revisado_en, gestor_notas,
+      modelo_303_ok, modelo_130_ok,
+      check_ingresos, check_gastos, check_sin_nif,
+      check_pendientes, check_iva, check_irpf, check_todo_listo
+    `)
     .eq('empresa_id', empresa_id)
     .eq('year', year)
     .eq('trimestre', trim)
