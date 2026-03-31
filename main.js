@@ -619,8 +619,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   window._rebindNav();
 
   // Toggle modo global
-  window._toggleModo = () => toggleModo();
+  window._toggleModo       = () => toggleModo();
   window._refreshDashboard = () => refreshDashboard();
+  window._refreshCartera   = () => refreshCartera();
 
   // Navegación gestionada por _rebindNav() ↑
 
