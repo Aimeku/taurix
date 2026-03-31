@@ -14,6 +14,7 @@
 import { supabase } from "./supabase.js";
 import { SESSION, toast, openModal, closeModal } from "./utils.js";
 import { loadCarteraGestor } from "./gestor-cartera.js";
+import { scoreBadgeHtml, scoreBarra } from "./gestor-score.js";
 
 /* ══════════════════════════════════════════
    DEFINICIÓN DE MODOS
@@ -482,12 +483,37 @@ export async function refreshCartera() {
 
   // KPIs del encabezado
   const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  const urgentes  = clientes.filter(c => c.semaforo === "rojo").length;
+  const urgentes   = clientes.filter(c => c.semaforo === "rojo").length;
   const pendientes = clientes.filter(c => c.semaforo === "amarillo").length;
-  const listos    = clientes.filter(c => c.semaforo === "verde").length;
-  s("carteraTotal",    clientes.length);
-  s("carteraActivos",  urgentes + pendientes);
-  s("carteraPropias",  listos);
+  const listos     = clientes.filter(c => c.semaforo === "verde").length;
+  s("carteraTotal",   clientes.length);
+  s("carteraActivos", urgentes + pendientes);
+  s("carteraPropias", listos);
+
+  // Resumen score fiscal
+  const scoreOk      = clientes.filter(c => c.estado_fiscal === "ok").length;
+  const scoreRevisar = clientes.filter(c => c.estado_fiscal === "revisar").length;
+  const scoreRiesgo  = clientes.filter(c => c.estado_fiscal === "riesgo").length;
+  const resumenEl = document.getElementById("carteraScoreResumen");
+  if (resumenEl) {
+    resumenEl.innerHTML = clientes.length ? `
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+                  padding:10px 16px;background:var(--srf);border:1px solid var(--brd);
+                  border-radius:10px;margin-bottom:20px;font-size:12px">
+        <span style="font-weight:700;color:var(--t2)">Salud fiscal:</span>
+        <span style="color:#059669;font-weight:700">
+          ● ${scoreOk} OK
+        </span>
+        <span style="color:var(--t4)">·</span>
+        <span style="color:#d97706;font-weight:700">
+          ● ${scoreRevisar} Revisar
+        </span>
+        <span style="color:var(--t4)">·</span>
+        <span style="color:#dc2626;font-weight:700">
+          ● ${scoreRiesgo} Riesgo
+        </span>
+      </div>` : "";
+  }
 
   // Badge sidebar
   const badge = document.getElementById("carteraBadge");
@@ -592,6 +618,21 @@ export async function refreshCartera() {
           <div style="font-size:10px;color:var(--t4);margin-bottom:2px">IRPF estimado</div>
           <div style="font-size:13px">${fmt(c.irpf_estimado)}</div>
         </div>
+      </div>
+
+      <!-- Score fiscal -->
+      <div style="padding:6px 0 4px">
+        <div style="display:flex;align-items:center;justify-content:space-between;
+                    margin-bottom:5px">
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;
+                       letter-spacing:.5px;color:var(--t3)">Salud fiscal</span>
+          ${scoreBadgeHtml(c.estado_fiscal, c.score_fiscal)}
+        </div>
+        ${scoreBarra(c.score_fiscal, c.estado_fiscal)}
+        ${c.score_motivos?.length ? `
+          <div style="font-size:11px;color:var(--t3);margin-top:5px;line-height:1.5">
+            ${c.score_motivos[0]}${c.score_motivos.length > 1 ? ` +${c.score_motivos.length - 1} más` : ""}
+          </div>` : ""}
       </div>
 
       <!-- Alertas -->
