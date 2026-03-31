@@ -120,6 +120,28 @@ export async function refreshDashboard() {
     const enCliente = !!sessionStorage.getItem("tg_gestor_ctx");
     btnRev.style.display = enCliente ? "" : "none";
   }
+
+  // Bloque "Tu gestor necesita esto" — solo visible para clientes (no en modo gestor)
+  const enContextoGestor = !!sessionStorage.getItem("tg_gestor_ctx");
+  if (!enContextoGestor) {
+    const bannerEl = document.getElementById("gestorSolicitudesBanner");
+    if (bannerEl) {
+      // Resolver empresa_id: localStorage primero, si no hay buscar en BD por user_id
+      let empresaId = localStorage.getItem("tg_empresa_id");
+      if (!empresaId && SESSION?.user?.id) {
+        const { data: emp } = await supabase.from("empresas")
+          .select("id").eq("user_id", SESSION.user.id).limit(1).maybeSingle();
+        if (emp?.id) {
+          empresaId = emp.id;
+          localStorage.setItem("tg_empresa_id", emp.id);
+        }
+      }
+      if (empresaId) {
+        const { renderSolicitudesCliente } = await import("./gestor-solicitudes.js");
+        await renderSolicitudesCliente(bannerEl, empresaId);
+      }
+    }
+  }
 }
 
 function _coefDefault(tipo) {
