@@ -443,15 +443,16 @@ async function _guardarRevision(empresa_id, year, trim) {
 
   const notas = document.getElementById('revisionNotas')?.value?.trim() || null;
 
-  const payload = {
-    empresa_id,
-    year,
-    trimestre:          trim,
+  // Campos base — siempre guardan aunque las columnas check_* no existan aún
+  const camposBase = {
     gestor_revisado_en: new Date().toISOString(),
-    modelo_303_ok:      !!_state.checks.iva,
+    modelo_303_ok:      !!_state.checks.iva || !!_state.checks.irpf,
     modelo_130_ok:      !!_state.checks.irpf,
     gestor_notas:       notas,
-    // Persistir cada check individualmente
+  };
+
+  // Campos check_* — se añaden si existen en la tabla (migración opcional)
+  const camposCheck = {
     check_ingresos:   !!_state.checks.ingresos,
     check_gastos:     !!_state.checks.gastos,
     check_sin_nif:    !!_state.checks.sin_nif,
@@ -461,44 +462,69 @@ async function _guardarRevision(empresa_id, year, trim) {
     check_todo_listo: !!_state.checks.todo_listo,
   };
 
-  // Upsert: crea la fila si no existe, actualiza si ya existe
-  const { error } = await supabase
+  // 1. Intentar actualizar si ya existe la fila
+  const { data: existente, error: selectErr } = await supabase
     .from('cierres_trimestrales')
-    .upsert(payload, { onConflict: 'empresa_id,year,trimestre' });
+    .select('id')
+    .eq('empresa_id', empresa_id)
+    .eq('year', year)
+    .eq('trimestre', trim)
+    .maybeSingle();
 
-  if (error) {
-    // Si falla el upsert por constraint, intentar insert + update
-    const { error: insErr } = await supabase
+  let guardadoOk = false;
+
+  if (existente?.id) {
+    // UPDATE — la fila ya existe
+    const { error: updateErr } = await supabase
       .from('cierres_trimestrales')
-      .insert(payload);
+      .update({ ...camposBase, ...camposCheck })
+      .eq('id', existente.id);
 
-    if (insErr) {
-      // Ya existe — hacer update
-      await supabase
+    if (updateErr) {
+      // Reintentar sin check_* por si las columnas no están migradas
+      const { error: updateErr2 } = await supabase
         .from('cierres_trimestrales')
-        .update({
-          gestor_revisado_en: payload.gestor_revisado_en,
-          modelo_303_ok:      payload.modelo_303_ok,
-          modelo_130_ok:      payload.modelo_130_ok,
-          gestor_notas:       notas,
-          check_ingresos:     payload.check_ingresos,
-          check_gastos:       payload.check_gastos,
-          check_sin_nif:      payload.check_sin_nif,
-          check_pendientes:   payload.check_pendientes,
-          check_iva:          payload.check_iva,
-          check_irpf:         payload.check_irpf,
-          check_todo_listo:   payload.check_todo_listo,
-        })
-        .eq('empresa_id', empresa_id)
-        .eq('year', year)
-        .eq('trimestre', trim);
+        .update(camposBase)
+        .eq('id', existente.id);
+      if (updateErr2) {
+        toast('Error al guardar: ' + updateErr2.message, 'error');
+        if (btn) { btn.disabled = false; btn.textContent = '✓ Marcar trimestre como revisado'; }
+        return;
+      }
     }
+    guardadoOk = true;
+
+  } else {
+    // INSERT — primera vez para este trimestre
+    const { error: insertErr } = await supabase
+      .from('cierres_trimestrales')
+      .insert({
+        empresa_id,
+        year,
+        trimestre: trim,
+        ...camposBase,
+        ...camposCheck,
+      });
+
+    if (insertErr) {
+      // Reintentar sin check_* por si las columnas no están migradas
+      const { error: insertErr2 } = await supabase
+        .from('cierres_trimestrales')
+        .insert({ empresa_id, year, trimestre: trim, ...camposBase });
+      if (insertErr2) {
+        toast('Error al guardar: ' + insertErr2.message, 'error');
+        if (btn) { btn.disabled = false; btn.textContent = '✓ Marcar trimestre como revisado'; }
+        return;
+      }
+    }
+    guardadoOk = true;
   }
+
+  if (!guardadoOk) return;
 
   toast('✅ Trimestre marcado como revisado', 'success');
 
-  // Invalida cache de cartera y la recarga en segundo plano
-  // para que al volver a cartera el semáforo ya sea verde
+  // Invalidar cache y recargar cartera en segundo plano
   invalidarCartera();
   if (window._refreshCartera) window._refreshCartera();
 
@@ -516,6 +542,7 @@ async function _loadCierre(empresa_id, year, trim) {
   const { data } = await supabase
     .from('cierres_trimestrales')
     .select(`
+      id,
       gestor_revisado_en, gestor_notas,
       modelo_303_ok, modelo_130_ok,
       check_ingresos, check_gastos, check_sin_nif,
