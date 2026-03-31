@@ -479,7 +479,7 @@ export async function refreshCartera() {
     <div style="font-size:13px">Cargando cartera…</div>
   </div>`;
 
-  const clientes = await loadCarteraGestor();
+  const clientes = await loadCarteraGestor(true); // forzar recarga — invalida cache viejo
 
   // KPIs del encabezado
   const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
@@ -554,7 +554,8 @@ export async function refreshCartera() {
   wrap.innerHTML = clientes.map(c => {
     const color = SEMAFORO_COLOR[c.semaforo];
     const bg    = SEMAFORO_BG[c.semaforo];
-    const label = SEMAFORO_LABEL[c.semaforo];
+    // Si el gestor marcó como revisado, mostrar "✓ Revisado" en el badge principal
+    const label = c.gestor_revisado ? "✓ Revisado" : SEMAFORO_LABEL[c.semaforo];
     const inicial = (c.nombre_cliente || "?")[0].toUpperCase();
 
     // Líneas de alerta (máximo 2 visibles)
@@ -640,14 +641,7 @@ export async function refreshCartera() {
 
       <!-- Footer -->
       <div class="cartera-card-footer" style="margin-top:8px">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          ${c.gestor_revisado ? `
-            <span style="background:#f0fdf4;color:#059669;font-size:10px;font-weight:700;
-                         padding:2px 7px;border-radius:5px;border:1px solid #bbf7d0">
-              ✓ Revisado
-            </span>` : ""}
-          <span style="font-size:11px;color:var(--t4)">Cliente: ${ultimoAcceso}</span>
-        </div>
+        <span style="font-size:11px;color:var(--t4)">Cliente: ${ultimoAcceso}</span>
         <div style="display:flex;align-items:center;gap:6px">
           ${c.solicitudes_pendientes > 0 ? `
             <span style="background:#fef2f2;color:#dc2626;font-size:10px;font-weight:700;
@@ -655,7 +649,7 @@ export async function refreshCartera() {
               📋 ${c.solicitudes_pendientes} pendiente${c.solicitudes_pendientes > 1 ? "s" : ""}
             </span>` : ""}
           <button class="btn-primary" style="font-size:11px;padding:3px 12px;pointer-events:none">
-            Revisar →
+            ${c.gestor_revisado ? "Ver →" : "Revisar →"}
           </button>
         </div>
       </div>
