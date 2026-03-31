@@ -22,6 +22,8 @@ import { invalidarCartera }   from './gestor-store.js';
 import { calcularAlertasCliente, renderAlertasHtml } from './gestor-alertas.js';
 import { abrirModalSolicitud, renderSolicitudesGestor } from './gestor-solicitudes.js';
 import { renderMensajesCliente } from './gestor-mensajes.js';
+import { calcularScoreFiscal } from './gestor-score.js';
+import { calcularChecklistDesde, renderChecklistCierreHtml } from './gestor-cierre-checklist.js';
 
 /* ──────────────────────────────────────────
    ESTADO LOCAL
@@ -129,12 +131,36 @@ export async function renderRevisionCliente(container) {
     _state.notas = cierre.gestor_notas;
   }
 
+  // Score fiscal (sin queries extra — usa datos ya calculados)
+  const solicitudes_pendientes_count = alertas
+    .filter(a => a.tipo === 'solicitudes_pendientes').length;
+
+  const { score: score_fiscal } = calcularScoreFiscal({
+    facturacion_trim:        irpf.ingresos,
+    gastos_trim:             irpf.gastos,
+    iva_estimado:            iva.resultado,
+    alertas,
+    solicitudes_pendientes:  solicitudes_pendientes_count,
+    facturas_emitidas_count: emitidas.length,
+  });
+
+  // Checklist de cierre (sin queries extra)
+  const checklistCierre = calcularChecklistDesde({
+    emitidas, recibidas,
+    sin_nif: sin_nif.length,
+    iva, irpf,
+    alertas,
+    solicitudes_pendientes: solicitudes_pendientes_count,
+    score_fiscal,
+    cierre,
+  });
+
   _renderContent(container.querySelector('#revisionContent'), {
     facturas, emitidas, recibidas,
     sin_nif, sin_cobrar, sin_proveedor,
     iva, irpf, irpfAnt,
     ingresoAnormal, semaforo, cierre,
-    alertas,
+    alertas, score_fiscal, checklistCierre,
     year, trim, periodo, nombre,
     empresa_id: ctx?.empresa_id,
   });
@@ -148,7 +174,8 @@ function _renderContent(wrap, d) {
   const {
     emitidas, recibidas, sin_nif, sin_cobrar, sin_proveedor,
     iva, irpf, irpfAnt, ingresoAnormal,
-    semaforo, cierre, alertas = [], year, trim, periodo, nombre, empresa_id,
+    semaforo, cierre, alertas = [],
+    checklistCierre, year, trim, periodo, nombre, empresa_id,
   } = d;
 
   const revisadoEn = cierre?.gestor_revisado_en
@@ -236,19 +263,25 @@ function _renderContent(wrap, d) {
         </div>
       </div>
 
-      <!-- COL 2: Checklist -->
+      <!-- COL 2: Checklist de cierre automático + confirmación gestor -->
       <div>
         <div style="font-size:11px;font-weight:800;text-transform:uppercase;
                     letter-spacing:.6px;color:var(--t3);margin-bottom:14px">
-          Checklist de revisión
+          Checklist de cierre
         </div>
 
+        <!-- Checklist automático -->
+        ${checklistCierre ? renderChecklistCierreHtml(checklistCierre, trim, year) : ''}
+
+        <!-- Confirmación manual del gestor -->
         <div style="background:var(--srf);border:1px solid var(--brd);
-                    border-radius:12px;padding:18px;margin-bottom:16px">
+                    border-radius:12px;padding:18px;margin-top:14px;margin-bottom:16px">
+          <div style="font-size:11px;font-weight:700;color:var(--t3);
+                      margin-bottom:12px">Confirmación del gestor</div>
           ${_check('ingresos',   'Ingresos revisados')}
           ${_check('gastos',     'Gastos revisados')}
           ${_check('sin_nif',    'Facturas sin NIF revisadas')}
-          ${_check('pendientes', 'Facturas pendientes de cobro revisadas')}
+          ${_check('pendientes', 'Facturas pendientes revisadas')}
           ${_check('iva',        'IVA (Mod. 303) correcto')}
           ${_check('irpf',       'IRPF (Mod. 130) correcto')}
           <div style="border-top:1px solid var(--brd);margin-top:12px;padding-top:12px">
@@ -265,7 +298,7 @@ function _renderContent(wrap, d) {
           </label>
           <textarea id="revisionNotas"
             class="ff-input"
-            rows="4"
+            rows="3"
             placeholder="Observaciones sobre este cliente y trimestre…"
             style="resize:vertical;font-size:13px">${_state.notas}</textarea>
         </div>
