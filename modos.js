@@ -640,7 +640,14 @@ export async function refreshCartera() {
 
       <!-- Footer -->
       <div class="cartera-card-footer" style="margin-top:8px">
-        <span style="font-size:11px;color:var(--t4)">Cliente: ${ultimoAcceso}</span>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          ${c.gestor_revisado ? `
+            <span style="background:#f0fdf4;color:#059669;font-size:10px;font-weight:700;
+                         padding:2px 7px;border-radius:5px;border:1px solid #bbf7d0">
+              ✓ Revisado
+            </span>` : ""}
+          <span style="font-size:11px;color:var(--t4)">Cliente: ${ultimoAcceso}</span>
+        </div>
         <div style="display:flex;align-items:center;gap:6px">
           ${c.solicitudes_pendientes > 0 ? `
             <span style="background:#fef2f2;color:#dc2626;font-size:10px;font-weight:700;
