@@ -45,8 +45,13 @@ export function salirDeCliente() {
   _ocultarBanner();
   _marcarSidebarGestor(false);
   invalidarCartera();
-  if (window._refresh)    window._refresh();
   if (window._switchView) window._switchView('cartera');
+  // Recargar la cartera con datos frescos — refleja el estado revisado inmediatamente
+  setTimeout(() => {
+    if (window._refreshCartera) {
+      window._refreshCartera();
+    }
+  }, 50);
 }
 
 /* ──────────────────────────────────────────
