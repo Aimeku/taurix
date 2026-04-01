@@ -113,7 +113,12 @@ export async function refreshPresupuestos() {
     .order("fecha", { ascending: false })
     .range(desde, desde + POR_PAGINA - 1);
 
-  if (estadof) q = q.eq("estado", estadof);
+  if (estadof) {
+    q = q.eq("estado", estadof);
+  } else {
+    // Los presupuestos convertidos a albarán solo aparecen en la sección Albaranes
+    q = q.neq("estado", "albaran");
+  }
 
   const { data, count, error } = await q;
   if (error) { console.error("refreshPresupuestos:", error.message); return; }
@@ -891,8 +896,8 @@ async function convertirAAlbaran(presId) {
         <p style="font-size:13.5px;color:var(--t2);line-height:1.6;margin-bottom:16px">
           Se generará un albarán independiente basado en el presupuesto
           <strong>${p.numero}</strong> para <strong>${p.cliente_nombre || "—"}</strong>.
-          El presupuesto pasará a estado <em>Aceptado</em> y el albarán quedará
-          <em>Pendiente de facturar</em>.
+          El presupuesto desaparecerá de la lista de presupuestos y el albarán quedará
+          <em>Pendiente de facturar</em> en la sección Albaranes.
         </p>
         <div class="modal-field"><label>Fecha del albarán *</label>
           <input type="date" id="alb_fecha" class="ff-input" value="${new Date().toISOString().slice(0, 10)}"/></div>
