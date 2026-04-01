@@ -214,14 +214,14 @@ export async function refreshFacturas() {
     let cobroBadge;
     if (f.tipo==="emitida" && f.estado==="emitida") {
       if (f.cobrada) {
-        cobroBadge = `<span class="badge b-cobrada" title="Cobrada el ${fmtDate(f.fecha_cobro)}">✅ Cobrada${f.fecha_cobro?`<br><span style="font-size:9px;opacity:.7">${fmtDate(f.fecha_cobro)}</span>`:"" }</span>`;
+        cobroBadge = `<span class="badge b-cobrada" title="Cobrada el ${fmtDate(f.fecha_cobro)}">Cobrada${f.fecha_cobro?`<br><span style="font-size:9px;opacity:.7">${fmtDate(f.fecha_cobro)}</span>`:"" }</span>`;
       } else {
         // Detectar vencida: si la fecha de la factura tiene > 30 días y no está cobrada
         const diasPendiente = Math.floor((Date.now() - new Date(f.fecha+"T12:00:00")) / 86400000);
         const vencida = diasPendiente > 30;
         cobroBadge = vencida
-          ? `<span class="badge b-vencida" title="${diasPendiente} días sin cobrar">⚠️ Vencida</span>`
-          : `<span class="badge b-pendiente">⏳ Pendiente</span>`;
+          ? `<span class="badge b-vencida" title="${diasPendiente} días sin cobrar">Vencida</span>`
+          : `<span class="badge b-pendiente">Pendiente</span>`;
       }
     } else {
       cobroBadge = `<span style="color:var(--t4);font-size:11px">—</span>`;
@@ -237,7 +237,7 @@ export async function refreshFacturas() {
         <td class="mono fw7">${fmt(f.base)}</td>
         <td style="font-size:12px">${f.iva}%<br><span style="color:var(--t4);font-size:11px">${fmt(ivaAmt)}</span></td>
         <td class="mono fw7">${fmt(total)}</td>
-        <td><span class="badge ${f.tipo==="emitida"?"b-income":"b-expense"}">${f.tipo==="emitida"?"📤 Emitida":"📥 Recibida"}</span></td>
+        <td><span class="badge ${f.tipo==="emitida"?"b-income":"b-expense"}">${f.tipo==="emitida"?"Emitida":"Recibida"}</span></td>
         <td><span class="badge ${f.estado==="emitida"?"b-emit":"b-draft"}">${f.estado==="emitida"?"Oficial":"Borrador"}</span></td>
         <td>${cobroBadge}</td>
         <td>${f.verifactu_hash ? `<span class="verifactu-badge" title="${f.verifactu_hash.substring(0,16)}…" style="font-size:9px;padding:2px 7px">✓ VF</span>` : `<span style="color:var(--t4);font-size:11px">—</span>`}</td>
