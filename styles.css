@@ -1759,3 +1759,82 @@ html.dark .lp-plan--gestor {
 
 #onboardingBanner:empty { display: none !important; height: 0 !important; overflow: hidden; }
 #onboardingBanner { min-height: 0; overflow: hidden; }
+
+/* ═══════════════════════════════════════════════════════
+   TABLA FACTURAS — Compacidad para encajar todas las columnas
+   Aplica SOLO a #facturasTable, sin afectar otras tablas
+   ═══════════════════════════════════════════════════════ */
+
+/* Reducir padding de celdas y fuente base */
+#facturasTable th,
+#facturasTable td {
+  padding: 8px 8px;
+  font-size: 12px;
+}
+
+/* Cabeceras más ajustadas */
+#facturasTable th {
+  font-size: 10px;
+  padding: 7px 8px;
+  white-space: nowrap;
+}
+
+/* Columnas cortas: ancho mínimo fijo para no ocupar más de lo necesario */
+#facturasTable th:nth-child(1),   /* Fecha */
+#facturasTable td:nth-child(1) { width: 82px; white-space: nowrap; }
+
+#facturasTable th:nth-child(2),   /* Nº Factura */
+#facturasTable td:nth-child(2) { width: 100px; white-space: nowrap; }
+
+#facturasTable th:nth-child(5),   /* Operación */
+#facturasTable td:nth-child(5) { width: 80px; white-space: nowrap; }
+
+#facturasTable th:nth-child(6),   /* Base */
+#facturasTable td:nth-child(6) { width: 72px; white-space: nowrap; text-align: right; }
+
+#facturasTable th:nth-child(7),   /* IVA */
+#facturasTable td:nth-child(7) { width: 60px; white-space: nowrap; text-align: right; }
+
+#facturasTable th:nth-child(8),   /* Total */
+#facturasTable td:nth-child(8) { width: 78px; white-space: nowrap; text-align: right; }
+
+#facturasTable th:nth-child(9),   /* Tipo */
+#facturasTable td:nth-child(9) { width: 70px; white-space: nowrap; }
+
+#facturasTable th:nth-child(10),  /* Cobro */
+#facturasTable td:nth-child(10) { width: 74px; white-space: nowrap; }
+
+#facturasTable th:nth-child(11),  /* Verifactu */
+#facturasTable td:nth-child(11) { width: 62px; white-space: nowrap; text-align: center; }
+
+#facturasTable th:nth-child(12),  /* Acciones */
+#facturasTable td:nth-child(12) { width: auto; white-space: nowrap; }
+
+/* Columnas Concepto (3) y Cliente (4) absorben el espacio sobrante */
+#facturasTable th:nth-child(3),
+#facturasTable td:nth-child(3) { max-width: 140px; }
+
+#facturasTable th:nth-child(4),
+#facturasTable td:nth-child(4) { max-width: 120px; }
+
+/* Badges más compactos dentro de la tabla de facturas */
+#facturasTable .badge {
+  padding: 2px 7px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+/* Botones de acción más compactos */
+#facturasTable .ta-btn {
+  padding: 3px 6px;
+  font-size: 10px;
+}
+
+#facturasTable .tbl-act {
+  gap: 3px;
+}
+
+/* Dark mode — hereda los overrides anteriores automáticamente */
+html.dark #facturasTable tbody tr:hover td {
+  background: rgba(249,115,22,.04);
+}
