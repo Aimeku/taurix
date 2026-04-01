@@ -103,7 +103,7 @@ window._albaranToFactura = async (id) => {
           <div style="font-size:13px;font-weight:600">${a.concepto || "Sin concepto"}</div>
           <div style="font-size:12px;color:var(--t3);margin-top:4px">${a.cliente_nombre || "Sin cliente"} · ${fmt(a.base + a.base * (a.iva || 21) / 100)}</div>
         </div>
-        <p style="font-size:13px;color:var(--t2);line-height:1.6">Se creará una factura en estado <strong>borrador</strong> con todos los datos de este albarán. Luego puedes revisarla y emitirla.</p>
+        <p style="font-size:13px;color:var(--t2);line-height:1.6">Se creará una factura con todos los datos de este albarán. Una vez creada, la factura quedará emitida y no podrá editarse ni eliminarse. Si necesitas modificarla, deberás crear una factura rectificativa.</p>
       </div>
       <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
@@ -136,7 +136,7 @@ window._albaranToFactura = async (id) => {
     await supabase.from("presupuestos").update({ factura_id: factura.id }).eq("id", id);
 
     closeModal();
-    toast("📤 Factura creada como borrador — revísala en Facturas", "success", 4000);
+    toast("Factura creada y emitida — disponible en Facturas", "success", 4000);
     await refreshAlbaranes();
   });
 };
