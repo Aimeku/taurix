@@ -1012,6 +1012,11 @@ async function convertirAFactura(presId) {
 
     toast("✅ Factura creada · Presupuesto marcado como Aceptado", "success");
     closeModal();
+    // Refrescar lista de facturas inmediatamente
+    try {
+      const { refreshFacturas } = await import("./facturas.js");
+      await refreshFacturas();
+    } catch(_) {}
     await refreshPresupuestos();
   });
 }
@@ -1245,6 +1250,11 @@ async function albaranAFactura(presId) {
 
     toast("✅ Factura creada · Albarán marcado como Facturado", "success");
     closeModal();
+    // Refrescar lista de facturas inmediatamente
+    try {
+      const { refreshFacturas } = await import("./facturas.js");
+      await refreshFacturas();
+    } catch(_) {}
     await refreshPresupuestos();
   });
 }
