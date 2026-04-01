@@ -74,8 +74,8 @@ export async function refreshAlbaranes() {
       <td style="font-size:12px;color:var(--t4)">Pres. ${a.numero || "—"}</td>
       <td>
         ${facturado
-          ? `<span class="badge b-cobrada">✅ Facturado</span>`
-          : `<span class="badge b-pendiente">⏳ Pendiente</span>`}
+          ? `<span class="badge b-cobrada">Facturado</span>`
+          : `<span class="badge b-pendiente">Pendiente</span>`}
       </td>
       <td>
         <div class="tbl-act">
