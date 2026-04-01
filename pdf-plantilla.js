@@ -297,7 +297,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   // En el preview: logo es position:absolute encima de ep_pv_cab_wrap.
   // En el PDF: dibujamos cabecera → texto → logo (z-order = orden de dibujo).
   const tipoLabel = tipo === "factura" ? "FACTURA" : tipo === "albaran" ? "ALBARÁN / DELIVERY NOTE" : tipo === "proforma" ? "FACTURA PROFORMA" : "PRESUPUESTO";
-  const numero    = docData.numero_factura || docData.numero || "BORRADOR";
+  const numero    = docData.numero_factura || docData.numero || "—";
   const fecha     = docData.fecha;
   const fmtFecha  = d => { if(!d)return"—"; const [yr,mo,dy]=d.split("-"); return `${dy}/${mo}/${yr}`; };
 
