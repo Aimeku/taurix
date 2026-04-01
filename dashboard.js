@@ -19,6 +19,9 @@ export async function refreshDashboard() {
   const year = getYear(), trim = getTrim();
   const _ctx = getQueryContext();
 
+  // DEBUG — eliminar tras confirmar funcionamiento
+  console.log("[Dashboard] ctx:", _ctx, "year:", year, "trim:", trim);
+
   const [
     facturasTrim, facturasAnio, facturasAnioPrev,
     porCobrarRes, recurrentesRes, nominasRes, pipelineRes, bienesRes,
@@ -37,6 +40,10 @@ export async function refreshDashboard() {
     supabase.from("bienes_inversion").select("valor_adquisicion,coeficiente,tipo_bien")
       .eq(_ctx.field,_ctx.value),
   ]);
+
+  // DEBUG — muestra qué facturas llegan y sus estados
+  console.log("[Dashboard] facturasTrim count:", facturasTrim.length, facturasTrim.map(f=>({id:f.id,fecha:f.fecha,tipo:f.tipo,estado:f.estado,base:f.base})));
+  console.log("[Dashboard] facturasAnio count:", facturasAnio.length);
 
   const { ingresos, gastos, rendimiento } = calcIRPF(facturasTrim);
   const { resultado: ivaRes } = calcIVA(facturasTrim);
