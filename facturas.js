@@ -1,4 +1,4 @@
-ç/* ═══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════
    TUGESTOR · facturas.js
    Módulo de facturas: tabla, acciones, emitir, cobro,
    gasto rápido con "Deshacer", numeración configurable
