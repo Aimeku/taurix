@@ -274,27 +274,71 @@ export async function loadEmpresas() {
 }
 
 export async function initMultiEmpresa() {
-  const empresas = await loadEmpresas();
-  const sel = document.getElementById("empresaSelect");
-  if (!sel) return;
-  sel.innerHTML = `<option value="">— Empresa personal —</option>`;
-  empresas.forEach(e => {
-    const opt = document.createElement("option");
-    opt.value = e.id; opt.textContent = `${e.nombre} · ${e.nif || ""}`;
-    sel.appendChild(opt);
-  });
-  const lastId = localStorage.getItem("tg_empresa_id");
-  if (lastId && empresas.find(e => e.id === lastId)) {
-    sel.value = lastId;
-  } else if (lastId) {
-    // El id guardado ya no existe — limpiar para evitar queries con empresa_id fantasma
+  // Importar esModoGestor dinámicamente para evitar dependencia circular
+  const { esModoGestor } = await import("./modos.js");
+  const gestor = esModoGestor();
+
+  const sel         = document.getElementById("empresaSelect");
+  const btnNueva    = document.getElementById("nuevaEmpresaTopBtn");
+  const spanNombre  = document.getElementById("empresaNombreTop");
+  const btnEditar   = document.getElementById("editarEmpresaBtn");
+
+  if (gestor) {
+    // ── MODO GESTOR: mostrar selector múltiple ────────────────
+    if (sel)      sel.style.display      = "";
+    if (btnNueva) btnNueva.style.display = "";
+    if (spanNombre) spanNombre.style.display = "none";
+    if (btnEditar)  btnEditar.style.display  = "none";
+
+    const empresas = await loadEmpresas();
+    if (!sel) return;
+    sel.innerHTML = `<option value="">— Empresa personal —</option>`;
+    empresas.forEach(e => {
+      const opt = document.createElement("option");
+      opt.value = e.id; opt.textContent = `${e.nombre} · ${e.nif || ""}`;
+      sel.appendChild(opt);
+    });
+    const lastId = localStorage.getItem("tg_empresa_id");
+    if (lastId && empresas.find(e => e.id === lastId)) {
+      sel.value = lastId;
+    } else if (lastId) {
+      localStorage.removeItem("tg_empresa_id");
+      setEmpresaActiva(null);
+    }
+    if (!sel._multiEmpresaInit) {
+      sel._multiEmpresaInit = true;
+      sel.addEventListener("change", async () => {
+        setEmpresaActiva(empresas.find(e => e.id === sel.value) || null);
+        if (window._refresh) await window._refresh();
+      });
+    }
+  } else {
+    // ── MODO NORMAL: una sola empresa, solo botón editar ──────
+    // Ocultar selector y botón +, mostrar nombre y botón editar
+    if (sel)      sel.style.display      = "none";
+    if (btnNueva) btnNueva.style.display = "none";
+    if (spanNombre) spanNombre.style.display = "";
+    if (btnEditar)  btnEditar.style.display  = "";
+
+    // Limpiar cualquier empresa_id residual en localStorage — usuario normal siempre usa user_id
     localStorage.removeItem("tg_empresa_id");
     setEmpresaActiva(null);
+
+    // Mostrar nombre de empresa desde perfil_fiscal
+    const { data: pf } = await supabase.from("perfil_fiscal")
+      .select("nombre_razon_social").eq("user_id", SESSION.user.id).maybeSingle();
+    if (spanNombre) {
+      spanNombre.textContent = pf?.nombre_razon_social || "Mi empresa";
+    }
+
+    // Botón editar abre el modal de perfil fiscal
+    if (btnEditar && !btnEditar._editarInit) {
+      btnEditar._editarInit = true;
+      btnEditar.addEventListener("click", () => {
+        if (window.showPerfilModal) window.showPerfilModal();
+      });
+    }
   }
-  sel.addEventListener("change", async () => {
-    setEmpresaActiva(empresas.find(e => e.id === sel.value) || null);
-    if (window._refresh) await window._refresh();
-  });
 }
 
 export function checkFiscalDeadlines() {
