@@ -16,7 +16,7 @@ import {
   getYear, getTrim,
   checkFiscalDeadlines, checkOnboarding, checkRecordatoriosTrimestrales,
   showPerfilModal, fmt, fmtDate,
-  initMultiEmpresa, refreshVerifactu, calcModelo347
+  initMultiEmpresa, calcModelo347
 } from "./utils.js";
 
 import { refreshDashboard, refreshHistorico, refreshIS } from "./dashboard.js";
@@ -84,10 +84,7 @@ async function fullRefresh() {
   await refreshCobros();
   // IS solo si es sociedad
   try { await refreshIS(); } catch (e) { console.warn("IS refresh:", e.message); }
-  // Verifactu si vista activa
-  if (document.getElementById("view-verifactu")?.classList.contains("active")) {
-    await refreshVerifactu();
-  }
+
 }
 window._refresh = fullRefresh;
 
@@ -415,13 +412,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("exportIrpfBtn")?.addEventListener("click", exportLibroGstPDF);
   document.getElementById("exportISBtn")?.addEventListener("click", () => toast("Exportación IS en desarrollo", "info"));
 
-  /* ── Verifactu ── */
-  document.getElementById("view-verifactu")?.addEventListener("click", async () => {
-    if (document.getElementById("view-verifactu")?.classList.contains("active")) {
-      await refreshVerifactu();
-    }
-  });
-  document.getElementById("verifactuExportBtn")?.addEventListener("click", () => toast("Export XML Verifactu en desarrollo", "info"));
+
 
   /* ── Otros modelos ── */
   ["export111Btn", "export115Btn", "export347Btn", "export349Btn", "export190Btn", "export390Btn"].forEach(id => {
@@ -571,7 +562,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (view === "alertas")         await refreshAlertas();
         if (view === "documentos")      { const { refreshDocumentos } = await import("./documentos.js"); await refreshDocumentos(); }
         if (view === "tesoreria")       await refreshTesoreria();
-        if (view === "verifactu")       { const { refreshVerifactu } = await import("./utils.js"); await refreshVerifactu(); }
+
         if (view === "otros-modelos")   await initOtrosModelosView();
         if (view === "contabilidad")    await refreshLibroDiario();
         if (view === "amortizaciones")  { const { refreshBienesInversion } = await import("./amortizaciones.js"); await refreshBienesInversion(); }
