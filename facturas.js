@@ -147,7 +147,7 @@ export async function refreshFacturas() {
   if (error) {
     console.error("refreshFacturas:", error.message);
     const tbody = document.getElementById("facturasBody");
-    if (tbody) tbody.innerHTML = `<tr class="dt-empty"><td colspan="12">Error cargando facturas. Comprueba tu conexión.</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr class="dt-empty"><td colspan="11">Error cargando facturas. Comprueba tu conexión.</td></tr>`;
     return;
   }
 
@@ -173,7 +173,7 @@ export async function refreshFacturas() {
   if (!tbody) return;
 
   if (!facturas.length) {
-    tbody.innerHTML = `<tr class="dt-empty"><td colspan="12">Sin facturas para este periodo y filtros aplicados.</td></tr>`;
+    tbody.innerHTML = `<tr class="dt-empty"><td colspan="11">Sin facturas para este periodo y filtros aplicados.</td></tr>`;
     document.getElementById("facturasPaginacion").innerHTML = "";
     return;
   }
@@ -230,7 +230,7 @@ export async function refreshFacturas() {
     return `
       <tr>
         <td class="mono" style="font-size:12px">${fmtDate(f.fecha)}</td>
-        <td>${f.estado==="emitida"?`<span class="badge b-income mono" style="font-size:11px">${f.numero_factura}</span>`:`<span class="badge b-draft">Borrador</span>`}</td>
+        <td>${f.estado==="emitida"?`<span class="badge b-income mono" style="font-size:11px">${f.numero_factura}</span>`:`<span style="color:var(--t4);font-size:11px">—</span>`}</td>
         <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${f.concepto||"—"}</td>
         <td style="font-size:12px;color:var(--t3)">${f.cliente_nombre||"—"}</td>
         <td><span class="badge ${opBadges[opKey]||"b-nac"}" style="font-size:10px">${opLabels[opKey]||"—"}</span></td>
@@ -238,7 +238,6 @@ export async function refreshFacturas() {
         <td style="font-size:12px">${f.iva}%<br><span style="color:var(--t4);font-size:11px">${fmt(ivaAmt)}</span></td>
         <td class="mono fw7">${fmt(total)}</td>
         <td><span class="badge ${f.tipo==="emitida"?"b-income":"b-expense"}">${f.tipo==="emitida"?"Emitida":"Recibida"}</span></td>
-        <td><span class="badge ${f.estado==="emitida"?"b-emit":"b-draft"}">${f.estado==="emitida"?"Oficial":"Borrador"}</span></td>
         <td>${cobroBadge}</td>
         <td>${f.verifactu_hash ? `<span class="verifactu-badge" title="${f.verifactu_hash.substring(0,16)}…" style="font-size:9px;padding:2px 7px">✓ VF</span>` : `<span style="color:var(--t4);font-size:11px">—</span>`}</td>
         <td>${acciones}</td>
