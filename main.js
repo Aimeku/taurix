@@ -558,6 +558,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       btn.addEventListener("click", async () => {
         const view = btn.dataset.view;
         switchView(view);
+        if (view === "facturas")        await refreshFacturas();
         if (view === "pipeline")        await refreshPipeline();
         if (view === "alertas")         await refreshAlertas();
         if (view === "documentos")      { const { refreshDocumentos } = await import("./documentos.js"); await refreshDocumentos(); }
