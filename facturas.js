@@ -25,7 +25,7 @@ export async function emitirFacturaDB(facturaId) {
   if (fe || !f) throw new Error(fe?.message || "Factura no encontrada");
 
   const { data: pfRaw } = await supabase.from("perfil_fiscal").select("serie_formato").eq("user_id", SESSION.user.id).single();
-  const formatoSerie = pfRaw?.serie_formato || "{YEAR}-{NUM4}";
+  const formatoSerie = pfRaw?.serie_formato || "F-{YEAR}-{NUM4}";
 
   const serie = new Date(f.fecha).getFullYear().toString();
 
@@ -504,7 +504,7 @@ export function showGastoRapidoModal() {
 ══════════════════════════════════════════ */
 export async function showSerieConfigModal() {
   const { data: pf } = await supabase.from("perfil_fiscal").select("serie_formato").eq("user_id", SESSION.user.id).single();
-  const formato = pf?.serie_formato || "{YEAR}-{NUM4}";
+  const formato = pf?.serie_formato || "F-{YEAR}-{NUM4}";
 
   // Calcular preview con el número 1
   const previewNum = (f) => f
@@ -564,11 +564,11 @@ export async function showSerieConfigModal() {
   // Preview en tiempo real
   document.getElementById("serie_formato")?.addEventListener("input", e => {
     const el = document.getElementById("serie_preview");
-    if (el) el.textContent = previewNum(e.target.value || "{YEAR}-{NUM4}");
+    if (el) el.textContent = previewNum(e.target.value || "F-{YEAR}-{NUM4}");
   });
 
   document.getElementById("serie_save").onclick = async () => {
-    const nuevoFormato = document.getElementById("serie_formato").value.trim() || "{YEAR}-{NUM4}";
+    const nuevoFormato = document.getElementById("serie_formato").value.trim() || "F-{YEAR}-{NUM4}";
     const { error } = await supabase.from("perfil_fiscal").upsert({
       user_id: SESSION.user.id,
       serie_formato: nuevoFormato,
