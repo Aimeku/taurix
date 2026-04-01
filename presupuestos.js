@@ -110,7 +110,8 @@ export async function refreshPresupuestos() {
   let q = supabase.from("presupuestos").select("*", { count: "exact" })
     .eq("user_id", SESSION.user.id)
     .gte("fecha", desdef || ini).lte("fecha", hastaf || fin)
-    .order("fecha", { ascending: false })
+    .order("fecha", { ascending: false, nullsFirst: false })
+    .order("id", { ascending: false, nullsFirst: false })
     .range(desde, desde + POR_PAGINA - 1);
 
   if (estadof) {
@@ -160,6 +161,7 @@ export async function refreshPresupuestos() {
     albaran:   `<span class="badge b-ic">Albarán</span>`,
   };
 
+  presupuestos.sort((a,b) => b.fecha.localeCompare(a.fecha) || b.id.localeCompare(a.id));
   tbody.innerHTML = presupuestos.map(p => {
     const total  = p.base + (p.base * p.iva / 100);
     const hoy    = new Date().toISOString().slice(0, 10);
