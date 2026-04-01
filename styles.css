@@ -1774,12 +1774,15 @@ html.dark .lp-plan--gestor {
 #facturasTable th:nth-child(9),   /* Tipo */
 #facturasTable td:nth-child(9) { width: 70px; white-space: nowrap; }
 
-#facturasTable th:nth-child(10),  /* Cobro */
-#facturasTable td:nth-child(10) { width: 74px; white-space: nowrap; }
+#facturasTable th:nth-child(10),  /* Factura rect. */
+#facturasTable td:nth-child(10) { width: 68px; white-space: nowrap; text-align: center; }
+
+#facturasTable th:nth-child(11),  /* Cobro */
+#facturasTable td:nth-child(11) { width: 74px; white-space: nowrap; }
 
 
-#facturasTable th:nth-child(11),  /* Acciones */
-#facturasTable td:nth-child(11) { width: auto; white-space: nowrap; }
+#facturasTable th:nth-child(12),  /* Acciones */
+#facturasTable td:nth-child(12) { width: auto; white-space: nowrap; }
 
 /* Columnas Concepto (3) y Cliente (4) absorben el espacio sobrante */
 #facturasTable th:nth-child(3),
