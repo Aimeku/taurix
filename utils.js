@@ -247,64 +247,7 @@ export function calcIRPF(facturas) {
   return { ingresos, gastos, rendimiento, retenciones, pagoFrac, resultado: Math.max(0, pagoFrac - retenciones) };
 }
 
-export async function calcVerifactuHash(factura, hashAnterior = "") {
-  const campos = [
-    factura.numero_factura || "",
-    factura.fecha || "",
-    factura.base?.toFixed(2) || "0.00",
-    factura.iva?.toString() || "0",
-    factura.cliente_nif || "",
-    hashAnterior
-  ].join("|");
-  const encoder = new TextEncoder();
-  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(campos));
-  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
-}
 
-export async function registrarVerifactu(facturaId) {
-  const { data: f } = await supabase.from("facturas").select("*").eq("id", facturaId).single();
-  if (!f) throw new Error("Factura no encontrada");
-  const { data: ultima } = await supabase.from("verifactu_registro")
-    .select("hash_factura").eq("user_id", SESSION.user.id)
-    .order("created_at", { ascending: false }).limit(1).maybeSingle();
-  const hash = await calcVerifactuHash(f, ultima?.hash_factura || "");
-  const { error } = await supabase.from("verifactu_registro").insert({
-    user_id: SESSION.user.id, factura_id: facturaId,
-    numero_factura: f.numero_factura, hash_factura: hash,
-    hash_anterior: ultima?.hash_factura || "",
-    fecha_registro: new Date().toISOString(), firmado: true
-  });
-  if (error) throw new Error(error.message);
-  await supabase.from("facturas").update({ verifactu_hash: hash, verifactu_fecha: new Date().toISOString() }).eq("id", facturaId);
-  return hash;
-}
-
-export async function refreshVerifactu() {
-  if (!SESSION) return;
-  const { data, error } = await supabase.from("verifactu_registro")
-    .select("*").eq("user_id", SESSION.user.id)
-    .order("created_at", { ascending: false }).limit(50);
-  if (error) { console.error("refreshVerifactu:", error.message); return; }
-  const lista = data || [];
-  const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  s("vfFactFirmadas", lista.length);
-  s("vfUltimoReg", lista[0] ? fmtDate(lista[0].created_at?.slice(0, 10)) : "—");
-  s("vfHash", lista[0]?.hash_factura || "—");
-  s("vfRectif", lista.filter(r => r.numero_factura?.includes("R")).length || "0");
-  const tbody = document.getElementById("verifactuBody");
-  if (!tbody) return;
-  if (!lista.length) { tbody.innerHTML = `<tr class="dt-empty"><td colspan="7">Sin facturas firmadas</td></tr>`; return; }
-  tbody.innerHTML = lista.map(r => `
-    <tr>
-      <td><span class="badge b-income mono" style="font-size:11px">${r.numero_factura || "—"}</span></td>
-      <td class="mono" style="font-size:12px">${fmtDate(r.created_at?.slice(0, 10))}</td>
-      <td style="font-size:12px;color:var(--t3)">—</td>
-      <td class="mono fw7">—</td>
-      <td style="font-size:10px;font-family:monospace;color:var(--t4);max-width:180px;overflow:hidden;text-overflow:ellipsis">${r.hash_factura || "—"}</td>
-      <td><button class="ta-btn" data-id="${r.factura_id}" onclick="window._verQR(this.dataset.id)" title="Ver QR">📱</button></td>
-      <td><span class="badge b-cobrada">✓ Firmada</span></td>
-    </tr>`).join("");
-}
 
 export async function calcModelo347(year) {
   if (!SESSION) return [];
@@ -452,24 +395,7 @@ export async function showPerfilModal() {
         </div>
       </div>
 
-      <!-- Verifactu toggle -->
-      <div style="margin:0;padding:16px 24px;border-top:1px solid var(--brd);background:var(--bg2)">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:700;color:var(--t1);display:flex;align-items:center;gap:8px">
-              <span class="verifactu-badge" style="font-size:10px;padding:2px 8px">✓ VERIFACTU</span>
-              Activar Verifactu automático
-            </div>
-            <div style="font-size:12px;color:var(--t3);margin-top:4px;line-height:1.5">
-              Cuando actives esta opción, cada factura que emitas quedará firmada digitalmente y encadenada de forma automática conforme al RD 1007/2023. Puedes activarlo o desactivarlo en cualquier momento.
-            </div>
-          </div>
-          <label class="irpf-toggle" style="flex-shrink:0">
-            <input type="checkbox" id="pf_verifactu" ${p?.verifactu_activo ? "checked" : ""}/>
-            <span class="irpf-toggle-slider" style="background:${p?.verifactu_activo ? 'var(--accent)' : 'var(--brd)'}"></span>
-          </label>
-        </div>
-      </div>
+
 
       <div class="modal-ft" style="justify-content:space-between">
         <button class="btn-modal-danger" id="pf_delete_account" style="margin-right:auto">🗑️ Eliminar cuenta</button>
@@ -523,7 +449,7 @@ export async function showPerfilModal() {
         const uid = SESSION.user.id;
         const tables = ["facturas","clientes","perfil_fiscal","cierres_trimestrales","factura_series",
                         "presupuestos","productos","proveedores","gastos_recurrentes",
-                        "nominas","empleados","verifactu_registro","empresas",
+                        "nominas","empleados","empresas",
                         "agenda_eventos","trabajos","pipeline_oportunidades","pipeline_actividad",
                         "colaboradores","conexiones_bancarias","cuentas_bancarias",
                         "movimientos_bancarios","documentos","bienes_inversion"];
@@ -563,7 +489,6 @@ export async function showPerfilModal() {
       bic:                document.getElementById("pf_bic").value.trim(),
       registro_mercantil: document.getElementById("pf_regmercantil").value.trim(),
       lei:                document.getElementById("pf_lei").value.trim(),
-      verifactu_activo:   document.getElementById("pf_verifactu")?.checked || false,
       logo_url:           _logoBase64,
       regime,
       updated_at:         new Date().toISOString()
@@ -578,7 +503,7 @@ export async function showPerfilModal() {
           telefono: document.getElementById("pf_tel").value.trim(), email: document.getElementById("pf_email").value.trim(),
           iban: document.getElementById("pf_iban").value.trim(), bic: document.getElementById("pf_bic").value.trim(),
           registro_mercantil: document.getElementById("pf_regmercantil").value.trim(),
-          lei: document.getElementById("pf_lei").value.trim(), logo_url: _logoBase64, regime, verifactu_activo: document.getElementById("pf_verifactu")?.checked||false, updated_at: new Date().toISOString()
+          lei: document.getElementById("pf_lei").value.trim(), logo_url: _logoBase64, regime, updated_at: new Date().toISOString()
         }).eq("user_id", SESSION.user.id);
         if (ue2) { toast("Error guardando perfil: " + ue2.message, "error"); return; }
       } else {
