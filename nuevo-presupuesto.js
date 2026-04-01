@@ -624,6 +624,12 @@ window._applyPlantillaToPresupuesto = function(data) {
   const colsActivas = (data.colsActivas || []).filter(k => _COL_SCHEMA[k]);
   _npColsActivas = colsActivas.length ? colsActivas : [..._DEFAULT_COLS];
   if (!_npColsActivas.includes("descripcion")) _npColsActivas.unshift("descripcion");
+  // IVA siempre visible — debe poder elegirse por línea
+  if (!_npColsActivas.includes("iva")) {
+    const totalIdx = _npColsActivas.indexOf("total");
+    if (totalIdx >= 0) _npColsActivas.splice(totalIdx, 0, "iva");
+    else _npColsActivas.push("iva");
+  }
   _npApplyGridToHeader();
   _npRebuildAllRows();
 };
