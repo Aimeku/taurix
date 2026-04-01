@@ -91,6 +91,7 @@ export async function refreshAlbaranes() {
           ${!facturado ? `<button class="ta-btn ta-emit" onclick="window._albaranToFactura('${a.id}')" title="Convertir a factura">📤 Facturar</button>` : ""}
           <button class="ta-btn" onclick="window._verAlbaran('${a.id}')" title="Ver detalle">👁</button>
           <button class="ta-btn" onclick="window._albaranPDF('${a.id}')" title="Descargar PDF">📄</button>
+          ${!facturado ? `<button class="ta-btn ta-del" onclick="window._delAlbaran('${a.id}', '${(a.albaran_numero || a.numero || "S/N").replace(/'/g,"")}')" title="Eliminar albarán">🗑️ Borrar</button>` : ""}
         </div>
       </td>
     </tr>`;
@@ -241,6 +242,37 @@ window._nuevoAlbaranDesdePresupuesto = async (presupuestoId) => {
   await refreshAlbaranes();
 };
 
+
+/* ══════════════════════════
+   ELIMINAR ALBARÁN
+══════════════════════════ */
+window._delAlbaran = async (id, numero) => {
+  const { data: alb, error } = await supabase.from("presupuestos").select("factura_id").eq("id", id).single();
+  if (error || !alb) { toast("Error cargando albarán", "error"); return; }
+  if (alb.factura_id) {
+    openModal(`
+      <div class="modal">
+        <div class="modal-hd"><span class="modal-title">No se puede eliminar</span><button class="modal-x" onclick="window._cm()">×</button></div>
+        <div class="modal-bd"><p class="modal-warn">⚠️ No se puede eliminar un albarán que ya ha sido facturado.</p></div>
+        <div class="modal-ft"><button class="btn-modal-cancel" onclick="window._cm()">Cerrar</button></div>
+      </div>`);
+    return;
+  }
+  openModal(`
+    <div class="modal">
+      <div class="modal-hd"><span class="modal-title">Eliminar albarán</span><button class="modal-x" onclick="window._cm()">×</button></div>
+      <div class="modal-bd"><p class="modal-warn">⚠️ ¿Eliminar el albarán ${numero}? Esta acción no se puede deshacer.</p></div>
+      <div class="modal-ft">
+        <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
+        <button class="btn-modal-danger" id="_daOk">Sí, eliminar</button>
+      </div>
+    </div>`);
+  document.getElementById("_daOk").addEventListener("click", async () => {
+    await supabase.from("presupuestos").delete().eq("id", id);
+    closeModal(); toast("Albarán eliminado", "success");
+    await refreshAlbaranes();
+  });
+};
 /* ══════════════════════════
    INIT
 ══════════════════════════ */
