@@ -171,7 +171,7 @@ export async function refreshFacturas() {
   const opBadges = {nacional:"b-nac",intracomunitaria:"b-ic",exportacion:"b-exp",importacion:"b-imp",inversion_sujeto_pasivo:"b-isp"};
   const opLabels = {nacional:"Nacional",intracomunitaria:"Intracom.",exportacion:"Exportación",importacion:"Importación",inversion_sujeto_pasivo:"Inv. SP"};
 
-  facturas.sort((a,b) => b.fecha.localeCompare(a.fecha) || b.id.localeCompare(a.id));
+  facturas.sort((a,b) => (b.fecha||"").localeCompare(a.fecha||""));
   tbody.innerHTML = facturas.map(f => {
     const total  = f.base + (f.base*f.iva)/100;
     const ivaAmt = (f.base*f.iva)/100;
