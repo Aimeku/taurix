@@ -192,20 +192,27 @@ export async function refreshPresupuestos() {
         <td style="font-size:12px;color:var(--t4)">${p.fecha_aceptacion ? fmtDate(p.fecha_aceptacion) : "—"}</td>
         <td>
           <div class="tbl-act">
-            ${p.estado !== "aceptado" && p.estado !== "albaran"
-              ? `<button class="ta-btn ta-emit" onclick="window._presTofact('${p.id}')" title="Convertir a factura">Convertir Fac</button>
-                 <button class="ta-btn" onclick="window._presAlbaran('${p.id}')" title="Convertir a albarán">Convertir Alb</button>`
-              : ""}
-            ${p.estado === "albaran"
-              ? `<button class="ta-btn ta-emit" onclick="window._albaranToFact('${p.id}')" title="Emitir factura desde albarán" style="background:var(--green-lt,#d1fae5);color:var(--green,#059669)">Convertir Fac</button>
-                 <button class="ta-btn" onclick="window._pdfAlbaran('${p.id}')" title="PDF Albarán">PDF Alb</button>
-                 ${p.estado_facturacion !== 'facturado' ? `<button class="ta-btn ta-del" onclick="window._delAlb('${p.id}')" title="Eliminar albarán">🗑️ Borrar</button>` : ''}`
-              : ""}
-            <button class="ta-btn ta-email" onclick="window._presEmail('${p.id}')" title="Enviar por email">📧 Email</button>
-            <button class="ta-btn" onclick="window._presPDF('${p.id}')" title="Descargar PDF presupuesto">PDF Pre</button>
-            <button class="ta-btn" onclick="window._dupPres('${p.id}')" title="Duplicar">Duplicar</button>
-            <button class="ta-btn" onclick="window._editPres('${p.id}')" title="Editar">✏️ Editar</button>
-            <button class="ta-btn ta-del" onclick="window._delPres('${p.id}')" title="Eliminar">🗑️ Borrar</button>
+            ${(() => {
+              const bloqueado = p.estado === "aceptado" || (p.estado === "albaran" && p.estado_facturacion === "facturado");
+              return `
+                ${!bloqueado && p.estado !== "albaran"
+                  ? `<button class="ta-btn ta-emit" onclick="window._presTofact('${p.id}')" title="Convertir a factura">Convertir Fac</button>
+                     <button class="ta-btn" onclick="window._presAlbaran('${p.id}')" title="Convertir a albarán">Convertir Alb</button>`
+                  : ""}
+                ${p.estado === "albaran"
+                  ? `${!bloqueado ? `<button class="ta-btn ta-emit" onclick="window._albaranToFact('${p.id}')" title="Emitir factura desde albarán" style="background:var(--green-lt,#d1fae5);color:var(--green,#059669)">Convertir Fac</button>` : ""}
+                     <button class="ta-btn" onclick="window._pdfAlbaran('${p.id}')" title="PDF Albarán">PDF Alb</button>
+                     ${!bloqueado ? `<button class="ta-btn ta-del" onclick="window._delAlb('${p.id}')" title="Eliminar albarán">🗑️ Borrar</button>` : ""}`
+                  : ""}
+                <button class="ta-btn ta-email" onclick="window._presEmail('${p.id}')" title="Enviar por email">📧 Email</button>
+                <button class="ta-btn" onclick="window._presPDF('${p.id}')" title="Descargar PDF presupuesto">PDF Pre</button>
+                <button class="ta-btn" onclick="window._dupPres('${p.id}')" title="Duplicar">Duplicar</button>
+                ${bloqueado
+                  ? `<span title="Presupuesto ya facturado — no se puede modificar" style="font-size:13px;opacity:.45;cursor:default;padding:4px 6px">🔒</span>`
+                  : `<button class="ta-btn" onclick="window._editPres('${p.id}')" title="Editar">✏️ Editar</button>
+                     <button class="ta-btn ta-del" onclick="window._delPres('${p.id}')" title="Eliminar">🗑️ Borrar</button>`}
+              `;
+            })()}
           </div>
         </td>
       </tr>`;
