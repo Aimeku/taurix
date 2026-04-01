@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════
    TAURIX · main.js  — v3 MÁXIMO
    Orquestador principal. Inicializa todos los módulos:
-   auth, dashboard, fiscal, IS, Verifactu, nóminas,
+   auth, dashboard, fiscal, IS, nóminas,
    empleados, contabilidad, tesorería, pipeline, 347, 349...
    ═══════════════════════════════════════════════════════ */
 
