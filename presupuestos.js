@@ -110,7 +110,7 @@ export async function refreshPresupuestos() {
   let q = supabase.from("presupuestos").select("*", { count: "exact" })
     .eq("user_id", SESSION.user.id)
     .gte("fecha", desdef || ini).lte("fecha", hastaf || fin)
-    .order("created_at", { ascending: false })
+    .order("fecha", { ascending: false })
     .range(desde, desde + POR_PAGINA - 1);
 
   if (estadof) {
