@@ -127,10 +127,11 @@ export function showNuevoClienteModal(prefill = {}) {
         <div class="modal-grid2">
           <div class="modal-field"><label>Tipo de identificador</label>
             <select id="mc_tipo_id_fiscal">
+              <option value="DNI"      ${prefill.tipo_identificador_fiscal==="DNI"?"selected":""}>DNI</option>
               <option value="NIF"      ${(prefill.tipo_identificador_fiscal||"NIF")==="NIF"?"selected":""}>NIF</option>
               <option value="CIF"      ${prefill.tipo_identificador_fiscal==="CIF"?"selected":""}>CIF</option>
-              <option value="VAT"      ${prefill.tipo_identificador_fiscal==="VAT"?"selected":""}>VAT (UE)</option>
               <option value="NIE"      ${prefill.tipo_identificador_fiscal==="NIE"?"selected":""}>NIE</option>
+              <option value="VAT"      ${prefill.tipo_identificador_fiscal==="VAT"?"selected":""}>VAT (UE)</option>
               <option value="PASSPORT" ${prefill.tipo_identificador_fiscal==="PASSPORT"?"selected":""}>Pasaporte</option>
             </select>
           </div>
