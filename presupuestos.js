@@ -958,7 +958,7 @@ async function convertirAFactura(presId) {
         <p style="font-size:13.5px;color:var(--t2);line-height:1.6;margin-bottom:20px">
           Se creará una factura independiente basada en el presupuesto
           <strong>${p.numero}</strong> para <strong>${p.cliente_nombre || "—"}</strong>.
-          La factura quedará en borrador lista para emitir.
+          Una vez creada, la factura quedará emitida y no podrá editarse ni eliminarse. Si necesitas modificarla, deberás crear una factura rectificativa.
         </p>
         <div class="modal-field"><label>Fecha de factura *</label>
           <input type="date" id="ctf_fecha" class="ff-input" value="${new Date().toISOString().slice(0, 10)}"/></div>
@@ -1184,7 +1184,7 @@ async function albaranAFactura(presId) {
         <button class="modal-x" onclick="window._cm()">×</button></div>
       <div class="modal-bd">
         <p style="font-size:13.5px;color:var(--t2);line-height:1.6;margin-bottom:16px">
-          Se creará una factura en borrador vinculada al albarán <strong>${p.numero_albaran || p.numero}</strong>
+          Se creará una factura vinculada al albarán <strong>${p.numero_albaran || p.numero}</strong>
           para <strong>${p.cliente_nombre || "—"}</strong>.
         </p>
         <div class="modal-field"><label>Fecha de factura *</label>
