@@ -260,9 +260,7 @@ export function aplicarModo(modo) {
       ? `<span class="sn-badge sn-badge--red" id="${item.badge}" style="display:none"></span>`
       : "";
 
-    const special = item.view === "verifactu"
-      ? `<span class="verifactu-badge" style="font-size:9px;padding:1px 6px">✓</span>`
-      : item.view === "is"
+    const special = item.view === "is"
       ? `<span class="is-badge" style="font-size:9px;padding:1px 6px">IS</span>`
       : "";
 
