@@ -395,9 +395,9 @@ async function savePresupuesto() {
   const year = new Date(fecha).getFullYear();
   const { data: last } = await supabase.from("presupuestos")
     .select("numero").eq("user_id", SESSION.user.id)
-    .like("numero", `PRE-${year}-%`).order("numero", { ascending: false }).limit(1);
+    .like("numero", `P-${year}-%`).order("numero", { ascending: false }).limit(1);
   const lastNum = last?.[0]?.numero ? parseInt((last[0].numero.match(/-(\d+)$/) || [])[1]) || 0 : 0;
-  const numero = `PRE-${year}-${String(lastNum + 1).padStart(3, "0")}`;
+  const numero = `P-${year}-${String(lastNum + 1).padStart(4, "0")}`;
 
   const { error } = await supabase.from("presupuestos").insert({
     user_id: SESSION.user.id,
