@@ -57,11 +57,11 @@ export async function refreshProforma() {
 
   const estadoBadge = {
     borrador:   `<span class="badge b-draft">Borrador</span>`,
-    enviada:    `<span class="badge b-pendiente">📤 Enviada</span>`,
-    confirmada: `<span class="badge b-cobrada">✅ Confirmada</span>`,
-    rechazada:  `<span class="badge b-vencida">❌ Rechazada</span>`,
-    convertida: `<span class="badge b-ic">🔄 Convertida</span>`,
-    caducada:   `<span class="badge" style="background:#f3f4f6;color:#6b7280">⏰ Caducada</span>`,
+    enviada:    `<span class="badge b-pendiente">Enviada</span>`,
+    confirmada: `<span class="badge b-cobrada">Confirmada</span>`,
+    rechazada:  `<span class="badge b-vencida">Rechazada</span>`,
+    convertida: `<span class="badge b-ic">Convertida</span>`,
+    caducada:   `<span class="badge" style="background:#f3f4f6;color:#6b7280">Caducada</span>`,
   };
 
   tbody.innerHTML = lista.map(p => {
