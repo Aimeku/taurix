@@ -215,7 +215,16 @@ window._albaranPDF = (id) => {
    NUEVO ALBARÁN (desde presupuesto)
 ══════════════════════════ */
 window._nuevoAlbaranDesdePresupuesto = async (presupuestoId) => {
-  const num = `ALB-${new Date().getFullYear()}-${String(Date.now() % 10000).padStart(4, "0")}`;
+  const year = new Date().getFullYear();
+  const { data: lastAlb } = await supabase.from("presupuestos")
+    .select("albaran_numero").eq("user_id", SESSION.user.id)
+    .eq("estado", "albaran")
+    .like("albaran_numero", `A-${year}-%`)
+    .order("albaran_numero", { ascending: false }).limit(1);
+  const lastNum = lastAlb?.[0]?.albaran_numero
+    ? parseInt(lastAlb[0].albaran_numero.split("-")[2]) || 0 : 0;
+  const num = `A-${year}-${String(lastNum + 1).padStart(4, "0")}`;
+
   await supabase.from("presupuestos").update({
     estado: "albaran",
     albaran_numero: num,
