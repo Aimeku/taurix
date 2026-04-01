@@ -115,12 +115,16 @@ export async function loadCarteraGestor(forzar = false) {
       .eq('tipo', 'emitida')
       .eq('cobrada', false),
 
-    // Estado de revisión del gestor en este trimestre
+    // Estado de revisión del gestor — carga el trimestre actual Y el anterior.
+    // Razón: si el gestor revisó T1 y el calendario ya está en T2, la query
+    // filtrada por trim='T2' no encuentra nada y el cliente aparece sin revisar.
+    // Solución: traer cierres revisados de los últimos ~6 meses sin filtrar por trimestre exacto.
     supabase.from('cierres_trimestrales')
-      .select('empresa_id, gestor_revisado_en, modelo_303_ok, modelo_130_ok')
+      .select('empresa_id, gestor_revisado_en, modelo_303_ok, modelo_130_ok, year, trimestre')
       .in('empresa_id', empresaIds)
-      .eq('year', year)
-      .eq('trimestre', trim),
+      .not('gestor_revisado_en', 'is', null)
+      .gte('year', year - 1)
+      .order('gestor_revisado_en', { ascending: false }),
 
     // Solicitudes pendientes por empresa
     supabase.from('solicitudes_documentos')
@@ -135,10 +139,17 @@ export async function loadCarteraGestor(forzar = false) {
   const solicRaw    = solicitudesRes.data || [];
 
   // Indexar por empresa_id → O(1) lookup
+  // Para cierres: si hay varios (trim actual + anterior), usar el más reciente con revisión
   const facPorEmpresa    = _agrupar(facturasRaw);
   const cobrosPorEmpresa = _agrupar(cobrosRaw);
   const cierrePorEmpresa = {};
-  cierresRaw.forEach(c => { cierrePorEmpresa[c.empresa_id] = c; });
+  cierresRaw.forEach(c => {
+    const existing = cierrePorEmpresa[c.empresa_id];
+    // Guardar si no había ninguno, o si este es más reciente
+    if (!existing || new Date(c.gestor_revisado_en) > new Date(existing.gestor_revisado_en)) {
+      cierrePorEmpresa[c.empresa_id] = c;
+    }
+  });
   const solicPorEmpresa  = {};
   solicRaw.forEach(s => {
     solicPorEmpresa[s.empresa_id] = (solicPorEmpresa[s.empresa_id] || 0) + 1;
@@ -219,6 +230,14 @@ export async function loadCarteraGestor(forzar = false) {
 }
 
 /* ── helpers ── */
+
+function _trimAnterior(year, trim) {
+  const trims = ['T1','T2','T3','T4'];
+  const idx   = trims.indexOf(trim);
+  return idx === 0
+    ? { year: year - 1, trim: 'T4' }
+    : { year,           trim: trims[idx - 1] };
+}
 
 function _agrupar(rows) {
   return rows.reduce((acc, r) => {
