@@ -904,7 +904,7 @@ async function convertirAAlbaran(presId) {
         <div class="modal-field"><label>Fecha del albarán *</label>
           <input type="date" id="alb_fecha" class="ff-input" value="${new Date().toISOString().slice(0, 10)}"/></div>
         <div class="modal-field" style="margin-top:10px"><label>Referencia de albarán</label>
-          <input id="alb_ref" class="ff-input" placeholder="Ej: ALB-001 (opcional)"/></div>
+          <input id="alb_ref" class="ff-input" placeholder="Ej: A-2026-0001 (opcional)"/></div>
       </div>
       <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
@@ -917,22 +917,22 @@ async function convertirAAlbaran(presId) {
     const fecha = document.getElementById("alb_fecha").value;
     if (!fecha) { toast("Introduce la fecha", "error"); return; }
 
-    // Generar número de albarán correlativo
+    // Generar número de albarán correlativo (formato A-YYYY-NNN)
     const year = new Date(fecha).getFullYear();
     const { data: lastAlb } = await supabase.from("presupuestos")
-      .select("numero_albaran").eq("user_id", SESSION.user.id)
+      .select("albaran_numero").eq("user_id", SESSION.user.id)
       .eq("estado", "albaran")
-      .like("numero_albaran", `ALB-${year}-%`)
-      .order("numero_albaran", { ascending: false }).limit(1);
-    const lastNum = lastAlb?.[0]?.numero_albaran
-      ? parseInt(lastAlb[0].numero_albaran.split("-")[2]) || 0 : 0;
-    const numeroAlbaran = `ALB-${year}-${String(lastNum + 1).padStart(3, "0")}`;
+      .like("albaran_numero", `A-${year}-%`)
+      .order("albaran_numero", { ascending: false }).limit(1);
+    const lastNum = lastAlb?.[0]?.albaran_numero
+      ? parseInt(lastAlb[0].albaran_numero.split("-")[2]) || 0 : 0;
+    const numeroAlbaran = `A-${year}-${String(lastNum + 1).padStart(4, "0")}`;
 
     const refAlb = document.getElementById("alb_ref").value.trim();
     const { error: ue } = await supabase.from("presupuestos").update({
       estado:             "albaran",
       fecha_aceptacion:   fecha,
-      numero_albaran:     numeroAlbaran,
+      albaran_numero:     numeroAlbaran,
       estado_facturacion: "pendiente",
       notas: [p.notas, refAlb ? `Ref. albarán: ${refAlb}` : ""].filter(Boolean).join("\n"),
     }).eq("id", presId);
@@ -1186,11 +1186,11 @@ async function albaranAFactura(presId) {
 
   openModal(`
     <div class="modal">
-      <div class="modal-hd"><span class="modal-title">Facturar albarán ${p.numero_albaran || p.numero}</span>
+      <div class="modal-hd"><span class="modal-title">Facturar albarán ${p.albaran_numero || p.numero}</span>
         <button class="modal-x" onclick="window._cm()">×</button></div>
       <div class="modal-bd">
         <p style="font-size:13.5px;color:var(--t2);line-height:1.6;margin-bottom:16px">
-          Se creará una factura vinculada al albarán <strong>${p.numero_albaran || p.numero}</strong>
+          Se creará una factura vinculada al albarán <strong>${p.albaran_numero || p.numero}</strong>
           para <strong>${p.cliente_nombre || "—"}</strong>.
         </p>
         <div class="modal-field"><label>Fecha de factura *</label>
@@ -1211,7 +1211,7 @@ async function albaranAFactura(presId) {
 
     const notasFactura = [
       p.notas,
-      `Correspondiente al albarán: ${p.numero_albaran || p.numero}`,
+      `Correspondiente al albarán: ${p.albaran_numero || p.numero}`,
       p.numero ? `Basado en presupuesto: ${p.numero}` : ""
     ].filter(Boolean).join("\n");
 
@@ -1282,7 +1282,7 @@ export async function generarPDFAlbaran(presId, mostrarPrecios = true) {
   doc.setFont("helvetica","normal"); doc.setFontSize(10);
   doc.text("DELIVERY NOTE", ML, 28);
 
-  const numAlb = p.numero_albaran || "S/N";
+  const numAlb = p.albaran_numero || "S/N";
   doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(...WHITE);
   doc.text(numAlb, PW-MR, 16, {align:"right"});
   doc.setFont("helvetica","normal"); doc.setFontSize(9);
