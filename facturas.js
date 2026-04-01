@@ -128,7 +128,7 @@ export async function refreshFacturas() {
 
   let q = supabase.from("facturas").select("*", {count:"exact"})
     .eq("user_id", SESSION.user.id).gte("fecha",ini).lte("fecha",fin)
-    .order("fecha",{ascending:false,nullsFirst:false}).order("id",{ascending:false,nullsFirst:false}).range(desde, desde+POR_PAGINA-1);
+    .order("numero_factura",{ascending:false,nullsFirst:false}).order("id",{ascending:false,nullsFirst:false}).range(desde, desde+POR_PAGINA-1);
   if (tipof)  q = q.eq("tipo", tipof);
   if (estadof) q = q.eq("estado", estadof);
   if (opf)    q = q.eq("tipo_operacion", opf);
