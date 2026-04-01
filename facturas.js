@@ -211,21 +211,9 @@ export async function refreshFacturas() {
     }
 
     /* ── Columna cobro (badge) ── */
-    let cobroBadge;
-    if (f.tipo==="emitida" && f.estado==="emitida") {
-      if (f.cobrada) {
-        cobroBadge = `<span class="badge b-cobrada" title="Cobrada el ${fmtDate(f.fecha_cobro)}">Cobrada${f.fecha_cobro?`<br><span style="font-size:9px;opacity:.7">${fmtDate(f.fecha_cobro)}</span>`:"" }</span>`;
-      } else {
-        // Detectar vencida: si la fecha de la factura tiene > 30 días y no está cobrada
-        const diasPendiente = Math.floor((Date.now() - new Date(f.fecha+"T12:00:00")) / 86400000);
-        const vencida = diasPendiente > 30;
-        cobroBadge = vencida
-          ? `<span class="badge b-vencida" title="${diasPendiente} días sin cobrar">Vencida</span>`
-          : `<span class="badge b-pendiente">Pendiente</span>`;
-      }
-    } else {
-      cobroBadge = `<span style="color:var(--t4);font-size:11px">—</span>`;
-    }
+    const cobroBadge = f.cobrada
+      ? `<span class="badge b-cobrada">Cobrada</span>`
+      : `<span class="badge b-pendiente">Pendiente</span>`;
 
     return `
       <tr>
