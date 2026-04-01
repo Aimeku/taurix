@@ -15,13 +15,27 @@
    CONSTANTES
 ────────────────────────────────────────── */
 const PENALIZACIONES = {
-  sin_gastos:           20,   // sin gastos registrados
-  margen_excesivo:      15,   // margen bruto > 80%
-  iva_incoherente:      15,   // IVA negativo o > 40% de facturación
-  solicitudes_pendientes: 10, // por cada solicitud pendiente (max 20)
-  alerta:               10,   // por cada alerta detectada (max 30)
-  sin_ingresos_con_historial: 25, // sin facturación habiendo facturado antes
+  sin_gastos:             20,
+  margen_excesivo:        15,
+  iva_incoherente:        15,
+  solicitudes_pendientes: 10,
+  alerta:                 10,
+  sin_ingresos:           25,
 };
+
+// Fecha de inicio de cada trimestre (mes-día)
+const TRIM_INICIO = { T1: '01-01', T2: '04-01', T3: '07-01', T4: '10-01' };
+
+/**
+ * Días transcurridos desde el inicio del trimestre hasta hoy.
+ * Devuelve null si no se puede calcular (datos insuficientes).
+ */
+function _diasDesdeInicioTrim(year, trim) {
+  if (!year || !trim || !TRIM_INICIO[trim]) return null;
+  const inicio = new Date(`${year}-${TRIM_INICIO[trim]}T00:00:00`);
+  const hoy    = new Date();
+  return Math.floor((hoy - inicio) / 86400000);
+}
 
 /* ──────────────────────────────────────────
    FUNCIÓN PRINCIPAL — usa datos precalculados
@@ -32,32 +46,43 @@ const PENALIZACIONES = {
  * Calcula el score fiscal a partir de datos ya disponibles en la cartera.
  *
  * @param {object} datos  Objeto cliente de loadCarteraGestor()
+ * @param {number} [datos.year]   Año del trimestre evaluado
+ * @param {string} [datos.trim]   Trimestre evaluado ('T1'–'T4')
  * @returns {{ score: number, estado: string, motivos: string[] }}
  */
 export function calcularScoreFiscal(datos) {
   const {
-    facturacion_trim = 0,
-    gastos_trim      = 0,
-    iva_estimado     = 0,
-    alertas          = [],
-    solicitudes_pendientes = 0,
+    facturacion_trim        = 0,
+    gastos_trim             = 0,
+    iva_estimado            = 0,
+    alertas                 = [],
+    solicitudes_pendientes  = 0,
     facturas_emitidas_count = 0,
+    year                    = null,
+    trim                    = null,
   } = datos;
+
+  // ── Inicio de trimestre: período de gracia de 20 días ──
+  // Si el trimestre lleva menos de 20 días activo, no penalizar por falta de actividad.
+  const diasTrim        = _diasDesdeInicioTrim(year, trim);
+  const enPeriodoGracia = diasTrim !== null && diasTrim < 20;
 
   let score   = 100;
   const motivos = [];
 
-  // ── Sin gastos en el trimestre ──
-  if (facturacion_trim > 0 && gastos_trim === 0) {
+  // ── Sin gastos ──
+  if (!enPeriodoGracia && facturacion_trim > 0 && gastos_trim === 0) {
     score -= PENALIZACIONES.sin_gastos;
     motivos.push('Sin gastos registrados en el trimestre');
   }
 
-  // ── Sin ingresos (cuando hay actividad previa conocida) ──
-  // En cartera no tenemos historial, pero sí sabemos si hay 0 facturas
+  // ── Sin actividad ──
   if (facturas_emitidas_count === 0 && gastos_trim === 0) {
-    score -= PENALIZACIONES.sin_ingresos_con_historial;
-    motivos.push('Sin actividad registrada en el trimestre');
+    if (!enPeriodoGracia) {
+      score -= PENALIZACIONES.sin_ingresos;
+      motivos.push('Sin actividad registrada en el trimestre');
+    }
+    // En período de gracia: no penalizar ni añadir motivo
   } else if (facturas_emitidas_count === 0 && gastos_trim > 0) {
     score -= 15;
     motivos.push('Sin facturas emitidas (solo gastos)');
@@ -73,8 +98,6 @@ export function calcularScoreFiscal(datos) {
   }
 
   // ── IVA incoherente ──
-  // Negativo (más soportado que repercutido) en T1-T3 puede ser normal,
-  // pero IVA repercutido > 40% de facturación indica error de clasificación
   if (facturacion_trim > 0 && iva_estimado > facturacion_trim * 0.40) {
     score -= PENALIZACIONES.iva_incoherente;
     motivos.push('IVA estimado inusualmente alto respecto a la facturación');
@@ -95,16 +118,18 @@ export function calcularScoreFiscal(datos) {
   if (alertas.length > 0) {
     const pen = Math.min(alertas.length * PENALIZACIONES.alerta, 30);
     score -= pen;
-    // No añadir motivos de alertas — ya se muestran por separado en la tarjeta
   }
 
   score = Math.max(0, Math.min(100, score));
 
-  const estado = score >= 80 ? 'ok'
-               : score >= 50 ? 'revisar'
-               :               'riesgo';
+  let estado = score >= 80 ? 'ok'
+             : score >= 50 ? 'revisar'
+             :               'riesgo';
 
-  return { score, estado, motivos };
+  // En período de gracia: nunca mostrar riesgo aunque el score sea bajo
+  if (enPeriodoGracia && estado === 'riesgo') estado = 'revisar';
+
+  return { score, estado, motivos, enPeriodoGracia: !!enPeriodoGracia };
 }
 
 /* ──────────────────────────────────────────
