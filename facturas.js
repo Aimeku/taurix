@@ -208,8 +208,8 @@ export async function refreshFacturas() {
         <td class="mono fw7">${fmt(f.base)}</td>
         <td style="font-size:12px">${f.iva}%<br><span style="color:var(--t4);font-size:11px">${fmt(ivaAmt)}</span></td>
         <td class="mono fw7">${fmt(total)}</td>
-        <td><span class="badge ${f.tipo==="emitida"?"b-income":"b-expense"}">${f.tipo==="emitida"?"Emitida":"Recibida"}</span></td>
-        <td style="font-size:12px;color:var(--t3);text-align:center">${f.factura_rectif_de ? '<span style="color:#dc2626;font-weight:600;font-size:11px">Sí</span>' : '<span style="color:var(--t4);font-size:11px">No</span>'}</td>
+        <td><span class="badge ${f.tipo==="emitida"?"b-income":"b-expense"}">${f.tipo==="emitida"?"Expedida":"Recibida"}</span></td>
+        <td style="font-size:11px;text-align:center;color:var(--t3)">${f.factura_rectif_de ? 'S&iacute;' : 'No'}</td>
         <td>${cobroBadge}</td>
         <td>${acciones}</td>
       </tr>`;
