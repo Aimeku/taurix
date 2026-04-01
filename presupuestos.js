@@ -153,10 +153,10 @@ export async function refreshPresupuestos() {
 
   const estadoBadge = {
     borrador:  `<span class="badge b-draft">Borrador</span>`,
-    enviado:   `<span class="badge b-pendiente">📤 Enviado</span>`,
+    enviado:   `<span class="badge b-pendiente">Enviado</span>`,
     aceptado:  `<span class="badge b-cobrada">Aceptado</span>`,
-    rechazado: `<span class="badge b-vencida">❌ Rechazado</span>`,
-    expirado:  `<span class="badge" style="background:#f3f4f6;color:#6b7280">⏰ Expirado</span>`,
+    rechazado: `<span class="badge b-vencida">Rechazado</span>`,
+    expirado:  `<span class="badge" style="background:#f3f4f6;color:#6b7280">Expirado</span>`,
     albaran:   `<span class="badge b-ic">Albarán</span>`,
   };
 
