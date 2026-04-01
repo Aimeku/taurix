@@ -62,7 +62,10 @@ export async function refreshAlbaranes() {
     return;
   }
 
-  albaranes.sort((a,b) => (b.fecha||"").localeCompare(a.fecha||""));
+  albaranes.sort((a,b) => {
+    if (a.fecha === b.fecha) return (b.id || "").localeCompare(a.id || "");
+    return (b.fecha || "").localeCompare(a.fecha || "");
+  });
   tbody.innerHTML = albaranes.map(a => {
     const total = a.base + a.base * (a.iva || 21) / 100;
     const facturado = !!a.factura_id;
