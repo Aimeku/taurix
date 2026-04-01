@@ -162,7 +162,11 @@ export async function refreshPresupuestos() {
   };
 
   presupuestos.sort((a,b) => {
-    if (a.fecha === b.fecha) return (b.id || "").localeCompare(a.id || "");
+    if (a.fecha === b.fecha) {
+      const numA = parseInt((a.numero||"").split("-")[2]) || 0;
+      const numB = parseInt((b.numero||"").split("-")[2]) || 0;
+      return numB - numA;
+    }
     return (b.fecha || "").localeCompare(a.fecha || "");
   });
   tbody.innerHTML = presupuestos.map(p => {
