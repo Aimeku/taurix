@@ -549,7 +549,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ── Tesorería ── */
   initTesoreriaView();
 
-  /* ── Nueva empresa ── */
+  /* ── Nueva empresa (solo visible en modo gestor, initMultiEmpresa lo controla) ── */
   document.getElementById("nuevaEmpresaTopBtn")?.addEventListener("click", showNuevaEmpresaModal);
 
   /* ── Notificaciones ── */
