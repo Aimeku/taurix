@@ -151,6 +151,16 @@ export async function refreshFacturas() {
   if (importeMin>0)  facturas = facturas.filter(f => f.base >= importeMin);
   if (importeMax>0)  facturas = facturas.filter(f => f.base <= importeMax);
 
+  // Ordenar por número de factura descendente (extrae parte numérica final: F-2026-0010 → 20260010)
+  facturas.sort((a, b) => {
+    const parseNum = n => {
+      if (!n) return 0;
+      const m = n.match(/-(\d{4})-(\d+)$/);
+      return m ? parseInt(m[1]) * 100000 + parseInt(m[2]) : 0;
+    };
+    return parseNum(b.numero_factura) - parseNum(a.numero_factura);
+  });
+
   const countEl = document.getElementById("facturasCount");
   if (countEl) countEl.textContent = `${count||0} facturas en el periodo`;
 
