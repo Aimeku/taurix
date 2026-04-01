@@ -143,11 +143,6 @@ window._albaranToFactura = async (id) => {
 
     closeModal();
     toast("Factura creada y emitida — disponible en Facturas", "success", 4000);
-    // Refrescar lista de facturas inmediatamente
-    try {
-      const { refreshFacturas } = await import("./facturas.js");
-      await refreshFacturas();
-    } catch(_) {}
     await refreshAlbaranes();
   });
 };
