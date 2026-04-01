@@ -26,7 +26,8 @@ export async function refreshAlbaranes() {
     .eq("user_id", SESSION.user.id)
     .eq("estado", "albaran")
     .gte("fecha", desdeF || ini).lte("fecha", hastaF || fin)
-    .order("fecha", { ascending: false });
+    .order("fecha", { ascending: false, nullsFirst: false })
+    .order("id", { ascending: false, nullsFirst: false });
 
   if (error) { console.error("albaranes:", error.message); return; }
 
@@ -61,6 +62,7 @@ export async function refreshAlbaranes() {
     return;
   }
 
+  albaranes.sort((a,b) => b.fecha.localeCompare(a.fecha) || b.id.localeCompare(a.id));
   tbody.innerHTML = albaranes.map(a => {
     const total = a.base + a.base * (a.iva || 21) / 100;
     const facturado = !!a.factura_id;
