@@ -92,6 +92,9 @@ window._refresh = fullRefresh;
 const _switchViewBase = switchView;
 window._switchView = async (view) => {
   _switchViewBase(view);
+  if (view === "nuevo-presupuesto") {
+    initNuevoPresupuesto();
+  }
   if (view === "revision-cliente") {
     const { renderRevisionCliente } = await import("./gestor-revision-cliente.js");
     await renderRevisionCliente(document.getElementById("view-revision-cliente"));
