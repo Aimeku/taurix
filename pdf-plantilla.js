@@ -742,24 +742,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     y += 6;
   }
 
-  // ── VERIFACTU block (solo facturas) ──
-  if (tipo === "factura" && docData.verifactu_hash && y < PH - 35) {
-    doc.setFillColor(240, 253, 244);
-    doc.setDrawColor(187, 247, 208);
-    doc.setLineWidth(0.3);
-    const vfH = 14;
-    doc.roundedRect(ML, y, W, vfH, 1.5, 1.5, "FD");
-    doc.setFont(font, "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(22, 101, 52);
-    doc.text("✓ VERIFACTU — RD 1007/2023 · Factura verificable electrónicamente", ML + 4, y + 5);
-    doc.setFont(font, "normal");
-    doc.setFontSize(7);
-    doc.text("Hash: " + docData.verifactu_hash.substring(0, 32) + "…", ML + 4, y + 10);
-    const fecha_vf = docData.verifactu_fecha ? new Date(docData.verifactu_fecha).toLocaleDateString("es-ES") : "";
-    doc.text("Firmado: " + fecha_vf, PW - MR, y + 10, { align: "right" });
-    y += vfH + 6;
-  }
+
 
   // ── PIE DE PÁGINA ──
   const mostrarPie = plantilla ? (plantilla.mostrar_pie !== false) : true;
