@@ -132,6 +132,12 @@ window._albaranToFactura = async (id) => {
 
     if (fe) { toast("Error: " + fe.message, "error"); return; }
 
+    // Numerar y emitir inmediatamente
+    try {
+      const { emitirFacturaDB } = await import("./facturas.js");
+      await emitirFacturaDB(factura.id);
+    } catch(numErr) { console.warn("Numeración automática:", numErr.message); }
+
     // Marcar el albarán como facturado
     await supabase.from("presupuestos").update({ factura_id: factura.id }).eq("id", id);
 
