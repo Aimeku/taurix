@@ -28,6 +28,7 @@ export function setClientes(c) { CLIENTES = c; }
 export function setEmpresaActiva(e) {
   EMPRESA_ACTIVA = e;
   if (e?.id) localStorage.setItem("tg_empresa_id", e.id);
+  else       localStorage.removeItem("tg_empresa_id");  // limpia contexto al volver a empresa personal
 }
 
 export const TRIM_RANGOS = {
@@ -283,7 +284,13 @@ export async function initMultiEmpresa() {
     sel.appendChild(opt);
   });
   const lastId = localStorage.getItem("tg_empresa_id");
-  if (lastId && empresas.find(e => e.id === lastId)) sel.value = lastId;
+  if (lastId && empresas.find(e => e.id === lastId)) {
+    sel.value = lastId;
+  } else if (lastId) {
+    // El id guardado ya no existe — limpiar para evitar queries con empresa_id fantasma
+    localStorage.removeItem("tg_empresa_id");
+    setEmpresaActiva(null);
+  }
   sel.addEventListener("change", async () => {
     setEmpresaActiva(empresas.find(e => e.id === sel.value) || null);
     if (window._refresh) await window._refresh();
