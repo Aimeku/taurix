@@ -190,6 +190,8 @@ export async function loadCarteraGestor(forzar = false) {
         alertas,
         solicitudes_pendientes: solicPorEmpresa[cliente.empresa_id] || 0,
         facturas_emitidas_count: emitidas.length,
+        year,
+        trim,
       });
 
     // Si el gestor revisó el trimestre, forzar estado a ok independientemente del score
