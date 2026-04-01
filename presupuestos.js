@@ -198,7 +198,8 @@ export async function refreshPresupuestos() {
               : ""}
             ${p.estado === "albaran"
               ? `<button class="ta-btn ta-emit" onclick="window._albaranToFact('${p.id}')" title="Emitir factura desde albarán" style="background:var(--green-lt,#d1fae5);color:var(--green,#059669)">Convertir Fac</button>
-                 <button class="ta-btn" onclick="window._pdfAlbaran('${p.id}')" title="PDF Albarán">PDF Alb</button>`
+                 <button class="ta-btn" onclick="window._pdfAlbaran('${p.id}')" title="PDF Albarán">PDF Alb</button>
+                 ${p.estado_facturacion !== 'facturado' ? `<button class="ta-btn ta-del" onclick="window._delAlb('${p.id}')" title="Eliminar albarán">🗑️ Borrar</button>` : ''}`
               : ""}
             <button class="ta-btn ta-email" onclick="window._presEmail('${p.id}')" title="Enviar por email">📧 Email</button>
             <button class="ta-btn" onclick="window._presPDF('${p.id}')" title="Descargar PDF presupuesto">PDF Pre</button>
@@ -2003,7 +2004,9 @@ window._editPres = async (id) => {
   const { data, error } = await supabase.from("presupuestos").select("*").eq("id", id).single();
   if (error || !data) { toast("Error cargando presupuesto", "error"); return; }
   const lineas = data.lineas ? JSON.parse(data.lineas) : [];
-  showNuevoPresupuestoModal({ ...data, lineas });
+  // Pasar los datos al módulo de nuevo-presupuesto y abrir la vista completa
+  window._npEditData = { ...data, lineas };
+  if (window._switchView) window._switchView("nuevo-presupuesto");
 };
 window._dupPres = async (id) => {
   const { data, error } = await supabase.from("presupuestos").select("*").eq("id", id).single();
@@ -2025,6 +2028,34 @@ window._delPres = (id) => {
   document.getElementById("_dpOk").addEventListener("click", async () => {
     await supabase.from("presupuestos").delete().eq("id", id);
     closeModal(); toast("Presupuesto eliminado", "success");
+    await refreshPresupuestos();
+  });
+};
+
+window._delAlb = async (id) => {
+  const { data: alb, error } = await supabase.from("presupuestos").select("estado_facturacion, numero").eq("id", id).single();
+  if (error || !alb) { toast("Error cargando albarán", "error"); return; }
+  if (alb.estado_facturacion === "facturado") {
+    openModal(`
+      <div class="modal">
+        <div class="modal-hd"><span class="modal-title">No se puede eliminar</span><button class="modal-x" onclick="window._cm()">×</button></div>
+        <div class="modal-bd"><p class="modal-warn">⚠️ No se puede eliminar un albarán que ya ha sido facturado.</p></div>
+        <div class="modal-ft"><button class="btn-modal-cancel" onclick="window._cm()">Cerrar</button></div>
+      </div>`);
+    return;
+  }
+  openModal(`
+    <div class="modal">
+      <div class="modal-hd"><span class="modal-title">Eliminar albarán</span><button class="modal-x" onclick="window._cm()">×</button></div>
+      <div class="modal-bd"><p class="modal-warn">⚠️ ¿Eliminar el albarán ${alb.numero || ""}? Esta acción no se puede deshacer.</p></div>
+      <div class="modal-ft">
+        <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
+        <button class="btn-modal-danger" id="_daOk">Sí, eliminar</button>
+      </div>
+    </div>`);
+  document.getElementById("_daOk").addEventListener("click", async () => {
+    await supabase.from("presupuestos").delete().eq("id", id);
+    closeModal(); toast("Albarán eliminado", "success");
     await refreshPresupuestos();
   });
 };
