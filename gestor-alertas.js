@@ -85,13 +85,19 @@ export async function calcularAlertasCliente(empresa_id) {
   const recibidas = facturas.filter(f => f.tipo === 'recibida');
   const sin_nif   = emitidas.filter(f => !f.cliente_nif?.trim());
 
+  // Período de gracia: primeros 20 días del trimestre
+  const TRIM_INICIO_DIA = { T1: '01-01', T2: '04-01', T3: '07-01', T4: '10-01' };
+  const inicioTrim = new Date(`${year}-${TRIM_INICIO_DIA[trim]}T00:00:00`);
+  const diasTranscurridos = Math.floor((hoy - inicioTrim) / 86400000);
+  const enPeriodoGracia = diasTranscurridos < 20;
+
   /* ── Reglas ── */
 
-  // Sin actividad
-  if (emitidas.length === 0 && recibidas.length === 0) {
+  // Sin actividad — no alertar en los primeros 20 días del trimestre
+  if (!enPeriodoGracia && emitidas.length === 0 && recibidas.length === 0) {
     alertas.push({ tipo: 'sin_actividad', nivel: 'critico',
       mensaje: 'No hay facturas ni gastos registrados en este trimestre.' });
-  } else {
+  } else if (!enPeriodoGracia) {
     // Sin facturas emitidas
     if (emitidas.length === 0) {
       alertas.push({ tipo: 'sin_facturas', nivel: 'warning',
