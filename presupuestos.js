@@ -983,7 +983,7 @@ async function convertirAFactura(presId) {
       `Basado en presupuesto: ${p.numero}`
     ].filter(Boolean).join("\n");
 
-    const { error: fe } = await supabase.from("facturas").insert({
+    const { data: facturaNew1, error: fe } = await supabase.from("facturas").insert({
       user_id:            SESSION.user.id,
       tipo:               "emitida",
       estado:             "borrador",
@@ -996,8 +996,14 @@ async function convertirAFactura(presId) {
       tipo_operacion:     "nacional",
       notas:              notasPres,
       presupuesto_origen: p.id,
-    });
+    }).select().single();
     if (fe) { toast("Error creando factura: " + fe.message, "error"); return; }
+
+    // Numerar y emitir inmediatamente
+    try {
+      const { emitirFacturaDB } = await import("./facturas.js");
+      await emitirFacturaDB(facturaNew1.id);
+    } catch(numErr) { console.warn("Numeración automática:", numErr.message); }
 
     await supabase.from("presupuestos").update({
       estado:           "aceptado",
@@ -1210,7 +1216,7 @@ async function albaranAFactura(presId) {
       p.numero ? `Basado en presupuesto: ${p.numero}` : ""
     ].filter(Boolean).join("\n");
 
-    const { error: fe } = await supabase.from("facturas").insert({
+    const { data: facturaNew2, error: fe } = await supabase.from("facturas").insert({
       user_id:            SESSION.user.id,
       tipo:               "emitida",
       estado:             "borrador",
@@ -1223,8 +1229,14 @@ async function albaranAFactura(presId) {
       tipo_operacion:     "nacional",
       notas:              notasFactura,
       presupuesto_origen: p.id,
-    });
+    }).select().single();
     if (fe) { toast("Error creando factura: " + fe.message, "error"); return; }
+
+    // Numerar y emitir inmediatamente
+    try {
+      const { emitirFacturaDB } = await import("./facturas.js");
+      await emitirFacturaDB(facturaNew2.id);
+    } catch(numErr) { console.warn("Numeración automática:", numErr.message); }
 
     await supabase.from("presupuestos").update({
       estado_facturacion: "facturado",
