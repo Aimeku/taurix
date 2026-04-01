@@ -1,4 +1,4 @@
-/* ═══════════════════════════════════════════════════════
+ç/* ═══════════════════════════════════════════════════════
    TUGESTOR · facturas.js
    Módulo de facturas: tabla, acciones, emitir, cobro,
    gasto rápido con "Deshacer", numeración configurable
@@ -81,7 +81,7 @@ export async function emitirFacturaDB(facturaId) {
   const { error: ue } = await supabase.from("facturas").update({
     numero_factura: numero, serie, estado: "emitida",
     fecha_emision: new Date().toISOString().slice(0,10)
-  }).eq("id", facturaId).eq("estado","borrador");
+  }).eq("id", facturaId);
   if (ue) throw new Error(ue.message);
 
 
@@ -137,7 +137,7 @@ export async function refreshFacturas() {
   if (error) {
     console.error("refreshFacturas:", error.message);
     const tbody = document.getElementById("facturasBody");
-    if (tbody) tbody.innerHTML = `<tr class="dt-empty"><td colspan="11">Error cargando facturas. Comprueba tu conexión.</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr class="dt-empty"><td colspan="12">Error cargando facturas. Comprueba tu conexión.</td></tr>`;
     return;
   }
 
@@ -163,7 +163,7 @@ export async function refreshFacturas() {
   if (!tbody) return;
 
   if (!facturas.length) {
-    tbody.innerHTML = `<tr class="dt-empty"><td colspan="11">Sin facturas para este periodo y filtros aplicados.</td></tr>`;
+    tbody.innerHTML = `<tr class="dt-empty"><td colspan="12">Sin facturas para este periodo y filtros aplicados.</td></tr>`;
     document.getElementById("facturasPaginacion").innerHTML = "";
     return;
   }
@@ -209,8 +209,8 @@ export async function refreshFacturas() {
         <td style="font-size:12px">${f.iva}%<br><span style="color:var(--t4);font-size:11px">${fmt(ivaAmt)}</span></td>
         <td class="mono fw7">${fmt(total)}</td>
         <td><span class="badge ${f.tipo==="emitida"?"b-income":"b-expense"}">${f.tipo==="emitida"?"Emitida":"Recibida"}</span></td>
+        <td style="font-size:12px;color:var(--t3);text-align:center">${f.factura_rectif_de ? '<span style="color:#dc2626;font-weight:600;font-size:11px">Sí</span>' : '<span style="color:var(--t4);font-size:11px">No</span>'}</td>
         <td>${cobroBadge}</td>
-        <td><span style="color:var(--t4);font-size:10px;white-space:nowrap">Próxim.</span></td>
         <td>${acciones}</td>
       </tr>`;
   }).join("");
