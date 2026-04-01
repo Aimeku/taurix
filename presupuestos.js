@@ -161,7 +161,10 @@ export async function refreshPresupuestos() {
     albaran:   `<span class="badge b-ic">Albarán</span>`,
   };
 
-  presupuestos.sort((a,b) => (b.fecha||"").localeCompare(a.fecha||""));
+  presupuestos.sort((a,b) => {
+    if (a.fecha === b.fecha) return (b.id || "").localeCompare(a.id || "");
+    return (b.fecha || "").localeCompare(a.fecha || "");
+  });
   tbody.innerHTML = presupuestos.map(p => {
     const total  = p.base + (p.base * p.iva / 100);
     const hoy    = new Date().toISOString().slice(0, 10);
