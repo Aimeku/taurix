@@ -391,7 +391,45 @@ async function savePresupuesto() {
 
   const clienteObj = cId ? CLIENTES.find(c => c.id === cId) : null;
 
-  // Numeración automática
+  const lineasJson = JSON.stringify(LINEAS.map(l => ({
+    descripcion: l.descripcion, cantidad: l.cantidad, precio: l.precio, iva: l.iva,
+    descuento: l.descuento ?? "",
+    subtotal: Math.max(0, l.cantidad*l.precio - _parseDescuento(l.descuento, l.cantidad*l.precio)),
+  })));
+
+  const payload = {
+    concepto, fecha,
+    fecha_validez: document.getElementById("npValidez")?.value || null,
+    cliente_id: cId || null,
+    cliente_nombre: clienteNombre || clienteObj?.nombre || "",
+    cliente_nif: clienteNif || clienteObj?.nif || "",
+    cliente_direccion: clienteDir || clienteObj?.direccion || "",
+    base: baseTotal,
+    iva: ivaMain,
+    lineas: lineasJson,
+    notas: document.getElementById("npNotas")?.value.trim() || null,
+  };
+
+  // ── MODO EDICIÓN: UPDATE manteniendo el mismo número ──────
+  const editingId = window._npEditingId || null;
+  if (editingId) {
+    const numero = window._npEditingNumero;
+    const { error } = await supabase.from("presupuestos").update(payload).eq("id", editingId);
+    if (error) {
+      if (btn) { btn.disabled = false; btn.textContent = "Actualizar presupuesto"; }
+      toast("Error: " + error.message, "error"); return;
+    }
+    window._npEditingId = null;
+    window._npEditingNumero = null;
+    toast(`✅ Presupuesto ${numero} actualizado`, "success");
+    resetForm();
+    if (btn) { btn.disabled = false; btn.textContent = "Guardar presupuesto"; }
+    await refreshPresupuestos();
+    switchView("presupuestos");
+    return;
+  }
+
+  // ── MODO CREACIÓN: INSERT con nuevo número ─────────────────
   const year = new Date(fecha).getFullYear();
   const { data: last } = await supabase.from("presupuestos")
     .select("numero").eq("user_id", SESSION.user.id)
@@ -402,20 +440,8 @@ async function savePresupuesto() {
   const { error } = await supabase.from("presupuestos").insert({
     user_id: SESSION.user.id,
     numero,
-    concepto, fecha,
-    fecha_validez: document.getElementById("npValidez")?.value || null,
     estado: "borrador",
-    cliente_id: cId || null,
-    cliente_nombre: clienteNombre || clienteObj?.nombre || "",
-    cliente_nif: clienteNif || clienteObj?.nif || "",
-    base: baseTotal,
-    iva: ivaMain,
-    lineas: JSON.stringify(LINEAS.map(l => ({
-      descripcion: l.descripcion, cantidad: l.cantidad, precio: l.precio, iva: l.iva,
-      descuento: l.descuento ?? "",
-      subtotal: Math.max(0, l.cantidad*l.precio - _parseDescuento(l.descuento, l.cantidad*l.precio)),
-    }))),
-    notas: document.getElementById("npNotas")?.value.trim() || null,
+    ...payload,
   });
 
   if (error) {
@@ -617,6 +643,12 @@ function _npRebuildAllRows() {
    INIT
 ══════════════════════════ */
 export function initNuevoPresupuesto() {
+  const editData = window._npEditData || null;
+  window._npEditData = null; // consumir el dato — solo se usa una vez
+
+  // Resetear siempre al entrar a la vista
+  resetForm();
+
   const fechaEl = document.getElementById("npFecha");
   if (fechaEl && !fechaEl.value) fechaEl.value = new Date().toISOString().slice(0, 10);
 
@@ -630,9 +662,58 @@ export function initNuevoPresupuesto() {
   document.getElementById("npAddLineaBtn")?.addEventListener("click", () => addLinea());
   document.getElementById("npGuardarBtn")?.addEventListener("click", () => savePresupuesto());
 
-  if (LINEAS.length === 0) addLinea();
   _npApplyGridToHeader();
   _npInitPlantillaSelector();
+
+  // ── MODO EDICIÓN ──────────────────────────────────────────
+  if (editData) {
+    // Título y botón
+    const titleEl = document.querySelector("#view-nuevo-presupuesto .view-title");
+    if (titleEl) titleEl.textContent = `Editar presupuesto ${editData.numero || ""}`;
+    const btn = document.getElementById("npGuardarBtn");
+    if (btn) btn.textContent = "Actualizar presupuesto";
+
+    // Campos de texto
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ""; };
+    set("npConcepto",      editData.concepto);
+    set("npFecha",         editData.fecha);
+    set("npValidez",       editData.fecha_validez);
+    set("npClienteNombre", editData.cliente_nombre);
+    set("npClienteNif",    editData.cliente_nif);
+    set("npClienteDir",    editData.cliente_direccion);
+    set("npNotas",         editData.notas);
+
+    // Cliente seleccionado
+    clienteSeleccionadoId = editData.cliente_id || null;
+    if (clienteSeleccionadoId) {
+      const searchEl = document.getElementById("npClienteSearch");
+      const cliente = (window.CLIENTES || []).find(c => c.id === clienteSeleccionadoId);
+      if (searchEl && cliente) searchEl.value = cliente.nombre;
+    }
+
+    // Líneas
+    LINEAS = []; lineaIdCounter = 0;
+    const container = document.getElementById("npLineasContainer");
+    if (container) container.innerHTML = "";
+    (editData.lineas || []).forEach(l => addLinea(l));
+    if (LINEAS.length === 0) addLinea();
+
+    updateTotalesUI();
+    updatePreview();
+
+    // Guardar id de edición para que savePresupuesto haga UPDATE
+    window._npEditingId     = editData.id;
+    window._npEditingNumero = editData.numero;
+  } else {
+    // Modo creación normal — limpiar título por si venimos de editar
+    const titleEl = document.querySelector("#view-nuevo-presupuesto .view-title");
+    if (titleEl) titleEl.textContent = "Nuevo presupuesto";
+    const btn = document.getElementById("npGuardarBtn");
+    if (btn) btn.textContent = "Guardar presupuesto";
+    window._npEditingId     = null;
+    window._npEditingNumero = null;
+    if (LINEAS.length === 0) addLinea();
+  }
 }
 
 // Exponer para que main.js o switchView puedan refrescar el selector al abrir la vista
