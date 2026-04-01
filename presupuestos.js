@@ -974,9 +974,7 @@ async function convertirAFactura(presId) {
     const fecha = document.getElementById("ctf_fecha").value;
     if (!fecha) { toast("Introduce la fecha", "error"); return; }
 
-    // Concepto: extraer de líneas (descripcion), no de concepto del presupuesto
-    const concepto = lineas.filter(l => !l.esDescuento && l.descripcion)
-      .map(l => l.descripcion).join(" · ") || p.concepto;
+    const concepto = p.concepto || lineas.filter(l => !l.esDescuento && l.descripcion)[0]?.descripcion || "";
 
     const notasPres = [
       p.notas,
@@ -1207,8 +1205,7 @@ async function albaranAFactura(presId) {
     const fecha = document.getElementById("af_fecha").value;
     if (!fecha) { toast("Introduce la fecha", "error"); return; }
 
-    const concepto = lineas.filter(l => !l.esDescuento && l.descripcion)
-      .map(l => l.descripcion).join(" · ") || p.concepto;
+    const concepto = p.concepto || lineas.filter(l => !l.esDescuento && l.descripcion)[0]?.descripcion || "";
 
     const notasFactura = [
       p.notas,
