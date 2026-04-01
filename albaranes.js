@@ -26,7 +26,7 @@ export async function refreshAlbaranes() {
     .eq("user_id", SESSION.user.id)
     .eq("estado", "albaran")
     .gte("fecha", desdeF || ini).lte("fecha", hastaF || fin)
-    .order("fecha", { ascending: false });
+    .order("created_at", { ascending: false });
 
   if (error) { console.error("albaranes:", error.message); return; }
 
