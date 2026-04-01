@@ -383,8 +383,8 @@ async function renderActividadReciente(facturasTrim) {
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${f.concepto||"—"}</td>
       <td style="font-size:12px;color:var(--t3)">${f.cliente_nombre||"—"}</td>
       <td class="mono fw7">${fmt(total)}</td>
-      <td><span class="badge ${f.tipo==="emitida"?"b-income":"b-expense"}" style="font-size:10px">${f.tipo==="emitida"?"📤":"📥"}</span></td>
-      <td>${f.tipo==="emitida"&&f.estado==="emitida"?`<span class="badge ${f.cobrada?"b-cobrada":"b-pendiente"}">${f.cobrada?"✅":"⏳"}</span>`:"<span style='color:var(--t4);font-size:11px'>—</span>"}</td>
+      <td><span class="badge ${f.tipo==="emitida"?"b-income":"b-expense"}" style="font-size:10px">${f.tipo==="emitida"?"Emitida":"Recibida"}</span></td>
+      <td>${f.tipo==="emitida"&&f.estado==="emitida"?`<span class="badge ${f.cobrada?"b-cobrada":"b-pendiente"}">${f.cobrada?"Cobrada":"Pendiente"}</span>`:"<span style='color:var(--t4);font-size:11px'>—</span>"}</td>
     </tr>`;
   }).join("");
 }
