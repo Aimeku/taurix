@@ -96,7 +96,7 @@ async function renderMovimientos() {
       <div class="bank-row-amt ${m.importe > 0 ? "pos" : "neg"}">${m.importe > 0 ? "+" : ""}${fmt(m.importe)}</div>
       <div class="bank-row-status">
         ${m.conciliado
-          ? `<span class="badge b-cobrada" style="font-size:10px">✓ Conciliado</span>`
+          ? `<span class="badge b-cobrada" style="font-size:10px">Conciliado</span>`
           : `<button class="ta-btn ta-emit" onclick="window._conciliarMov('${m.id}')" style="font-size:11px;padding:3px 8px">Conciliar</button>`}
       </div>
     </div>`).join("");
