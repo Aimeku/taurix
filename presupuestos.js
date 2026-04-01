@@ -188,7 +188,6 @@ export async function refreshPresupuestos() {
         <td style="font-size:12px;color:var(--t3)">${p.cliente_nombre || "—"}</td>
         <td class="mono fw7">${fmt(total)}</td>
         <td>${badgeEstado}</td>
-        <td style="font-size:12px;color:var(--t4)">${p.fecha_validez ? fmtDate(p.fecha_validez) : "—"}</td>
         <td style="font-size:12px;color:var(--t4)">${p.fecha_aceptacion ? fmtDate(p.fecha_aceptacion) : "—"}</td>
         <td>
           <div class="tbl-act">
