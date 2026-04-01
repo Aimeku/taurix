@@ -193,13 +193,6 @@ export async function refreshFacturas() {
         <button class="ta-btn" onclick="window._pdfFact('${f.id}')" title="Descargar PDF">📄 PDF</button>
         <span class="ta-locked">🔒</span>
       </div>`;
-    } else if (f.estado !== "emitida") {
-      // Borrador (solo de recurrentes) — se puede emitir o eliminar, NO editar
-      acciones = `<div class="tbl-act">
-        <button class="ta-btn ta-emit" onclick="window._emitir('${f.id}')">📤 Emitir</button>
-        <button class="ta-btn" onclick="window._pdfFact('${f.id}')" title="PDF borrador">📄 PDF</button>
-        <button class="ta-btn ta-del" onclick="window._delFact('${f.id}')">🗑️</button>
-      </div>`;
     } else {
       // Emitida — INMUTABLE: solo PDF, cobro, duplicar, nota de crédito
       acciones = `<div class="tbl-act">
@@ -347,55 +340,7 @@ window._pdfFact = (id, plantillaId = null) => {
   import("./exports.js").then(m => m.exportFacturaPDF(id, pid));
 };
 
-window._emitir = async id => {
-  try {
-    const { data: f, error: fe } = await supabase.from("facturas").select("*").eq("id",id).single();
-    if (fe || !f) { toast("Factura no encontrada","error"); return; }
-    if (f.estado==="emitida") { toast("Ya está emitida","info"); return; }
-    const year = new Date(f.fecha).getFullYear();
-    const trim = "T"+(Math.floor(new Date(f.fecha).getMonth()/3)+1);
-    if (await isCerrado(year,trim)) { toast("El trimestre está cerrado","error"); return; }
 
-    const total = f.base + (f.base * f.iva / 100);
-    openModal(`
-      <div class="modal">
-        <div class="modal-hd">
-          <span class="modal-title">📤 Confirmar emisión</span>
-          <button class="modal-x" onclick="window._cm()">×</button>
-        </div>
-        <div class="modal-bd">
-          <div style="text-align:center;padding:8px 0 16px">
-            <div style="width:52px;height:52px;border-radius:50%;background:#fff7ed;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:24px">📤</div>
-            <p style="font-size:15px;font-weight:600;color:var(--t1);margin:0 0 6px">${f.concepto||"Factura"}</p>
-            <p style="font-size:13px;color:var(--t3);margin:0 0 4px">${f.cliente_nombre||"—"} · ${fmtDate(f.fecha)}</p>
-            <p style="font-size:22px;font-weight:800;color:#f97316;margin:10px 0 0">${fmt(total)}</p>
-          </div>
-          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 14px;font-size:13px;color:#92400e;display:flex;gap:10px">
-            <span style="font-size:16px;flex-shrink:0">⚠️</span>
-            <span>Una vez emitida, <strong>la factura no podrá editarse ni eliminarse</strong>. Se asignará un número correlativo definitivo.</span>
-          </div>
-        </div>
-        <div class="modal-ft">
-          <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
-          <button id="_confirmEmitir" style="padding:10px 22px;border:none;border-radius:10px;background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px">
-            📤 Sí, emitir factura
-          </button>
-        </div>
-      </div>
-    `);
-
-    document.getElementById("_confirmEmitir").addEventListener("click", async () => {
-      closeModal();
-      try {
-        const num = await emitirFacturaDB(id);
-        toast(`Factura emitida: ${num}`,"success");
-        const { refreshDashboard } = await import("./dashboard.js");
-        await refreshDashboard(); await refreshFacturas();
-      } catch(e) { toast("Error: "+e.message,"error"); }
-    });
-
-  } catch(e) { toast("Error: "+e.message,"error"); }
-};
 
 window._editFact = async id => {
   const { data: f, error } = await supabase.from("facturas").select("*").eq("id",id).single();
