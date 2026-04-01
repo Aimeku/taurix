@@ -31,13 +31,7 @@
 /* ─── PROMO BADGE ─── */
 .lp-plan-promo{display:inline-block;margin:6px 0 2px;padding:4px 10px;background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;border-radius:20px;font-size:12px;font-weight:600}
 
-/* ─── VERIFACTU BADGE ─── */
-.verifactu-badge {
-  display:inline-flex;align-items:center;gap:5px;
-  background:linear-gradient(135deg,#0f9d58,#34a853);
-  color:#fff;padding:3px 10px;border-radius:20px;
-  font-size:11px;font-weight:700;letter-spacing:.04em;
-}
+
 
 /* ─── NUEVO: IS (Impuesto de Sociedades) ─── */
 .is-badge {
@@ -240,34 +234,7 @@
 .delta-down { background:#fee2e2;color:#991b1b; }
 .widget-sparkline { margin-top:12px;height:40px; }
 
-/* ─── NUEVO: VERIFACTU VIEW ─── */
-.verifactu-status-card {
-  background:linear-gradient(135deg,#0f9d58,#34a853);
-  border-radius:16px;padding:28px;color:#fff;
-  display:flex;justify-content:space-between;align-items:center;
-  margin-bottom:20px;
-}
-.vf-status-left h3 { font-size:22px;font-weight:800;margin-bottom:6px; }
-.vf-status-left p  { opacity:.85;font-size:14px;line-height:1.5; }
-.vf-status-badge {
-  background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);
-  padding:8px 20px;border-radius:100px;font-weight:700;font-size:14px;
-}
-.vf-chain-row {
-  display:flex;align-items:center;gap:0;
-  border:1px solid var(--brd);border-radius:12px;overflow:hidden;margin-bottom:8px;
-}
-.vf-chain-step {
-  flex:1;padding:12px 16px;font-size:12px;position:relative;
-  display:flex;align-items:center;gap:8px;border-right:1px solid var(--brd);
-}
-.vf-chain-step:last-child{border:none;}
-.vf-chain-step.done { background:#f0fdf4; }
-.vf-chain-step.active { background:#eff6ff; }
-.vf-chain-step.pending { background:var(--bg2); }
-.vf-step-icon { font-size:16px;flex-shrink:0; }
-.vf-step-name { font-weight:600;color:var(--t1);font-size:12px; }
-.vf-step-desc { font-size:11px;color:var(--t3); }
+
 .vf-hash { font-family:monospace;font-size:10px;color:var(--t4);margin-top:2px;word-break:break-all; }
 
 /* ─── NUEVO: SELLO TEMPORAL ─── */
@@ -954,10 +921,7 @@
             <div class="qa-icon" style="background:rgba(16,185,129,.1);color:#059669"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
             <div class="qa-text"><div class="qa-label">Generar nómina</div><div class="qa-sub">Mes actual</div></div>
           </div>
-          <div class="qa-card" onclick="window._switchView('verifactu')">
-            <div class="qa-icon" style="background:rgba(15,157,88,.1);color:#0f9d58"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-            <div class="qa-text"><div class="qa-label">Verifactu</div><div class="qa-sub">Próximamente</div></div>
-          </div>
+
         </div>
 
         <!-- Charts row -->
@@ -1090,16 +1054,7 @@
           </div>
         </div>
 
-        <div class="alerta-fiscal alerta-fiscal--info">
-          <div class="af-icon">ℹ️</div>
-          <div class="af-body">
-            <div class="af-title">Verifactu — Próximamente</div>
-            <div class="af-desc">Todas tus facturas del trimestre están firmadas digitalmente y encadenadas conforme al RD 1007/2023. Último registro: hace 2 horas.</div>
-            <div class="af-actions">
 
-            </div>
-          </div>
-        </div>
 
         <div class="alerta-fiscal alerta-fiscal--aviso" style="margin-top:0">
           <div class="af-icon">📋</div>
@@ -2328,82 +2283,21 @@
         </div>
       </div>
 
-      <!-- ═══ VIEW: VERIFACTU ═══ -->
+            <!-- ═══ VIEW: VERIFACTU ═══ -->
       <div class="view" id="view-verifactu">
         <div class="view-header">
           <div class="view-title-group">
             <h1 class="view-title">Verifactu</h1>
-            <p class="view-sub">Sistema de verificación de facturas · RD 1007/2023</p>
           </div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px;text-align:center">
-          <div style="width:64px;height:64px;border-radius:16px;background:var(--srf2);display:flex;align-items:center;justify-content:center;margin-bottom:24px">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <div style="width:56px;height:56px;border-radius:14px;background:var(--srf2);display:flex;align-items:center;justify-content:center;margin-bottom:20px">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
-          <h2 style="font-size:20px;font-weight:700;color:var(--t1);margin:0 0 12px">Integración con Verifactu disponible próximamente</h2>
-          <p style="font-size:14px;color:var(--t3);max-width:420px;line-height:1.7;margin:0">Taurix integrará el sistema Verifactu para el cumplimiento de la normativa fiscal española (RD 1007/2023). Esta funcionalidad estará disponible en una próxima actualización.</p>
+          <h2 style="font-size:18px;font-weight:700;color:var(--t1);margin:0 0 10px">Integración disponible próximamente</h2>
+          <p style="font-size:13px;color:var(--t3);max-width:380px;line-height:1.7;margin:0">Taurix incorporará Verifactu para cumplir con la normativa fiscal española.</p>
         </div>
       </div>
-
-        <!-- Estado Verifactu -->
-        <div class="verifactu-status-card">
-          <div class="vf-status-left">
-            <h3>🔐 Cadena de facturas íntegra</h3>
-            <p>Todas las facturas emitidas están firmadas digitalmente y encadenadas. No se ha detectado ninguna modificación retroactiva. Cumplimiento total con el RD 1007/2023.</p>
-          </div>
-          <div class="vf-status-badge">✓ ACTIVO Y VERIFICADO</div>
-        </div>
-
-        <!-- KPIs Verifactu -->
-        <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
-          <div class="kpi-card kpi-green"><div class="kpi-top"><span class="kpi-lbl">Facturas firmadas</span></div><div class="kpi-val" id="vfFactFirmadas">—</div><div class="kpi-sub">En el periodo activo</div></div>
-          <div class="kpi-card kpi-blue"><div class="kpi-top"><span class="kpi-lbl">Último registro</span></div><div class="kpi-val" id="vfUltimoReg" style="font-size:16px">—</div></div>
-          <div class="kpi-card kpi-indigo"><div class="kpi-top"><span class="kpi-lbl">Hash de cadena</span></div><div class="kpi-val" id="vfHash" style="font-size:11px;font-family:monospace;word-break:break-all">—</div></div>
-          <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">Rectificativas</span></div><div class="kpi-val" id="vfRectif">—</div><div class="kpi-sub">Notas de crédito</div></div>
-        </div>
-
-        <!-- Cómo funciona Verifactu -->
-        <div class="section-card" style="margin-bottom:20px">
-          <div class="sc-header"><span class="sc-title">🔗 Cómo funciona la cadena Verifactu</span></div>
-          <div style="padding:16px">
-            <div class="vf-chain-row">
-              <div class="vf-chain-step done">
-                <div class="vf-step-icon">📝</div>
-                <div><div class="vf-step-name">1. Creación</div><div class="vf-step-desc">Factura generada</div></div>
-              </div>
-              <div class="vf-chain-step done">
-                <div class="vf-step-icon">🔑</div>
-                <div><div class="vf-step-name">2. Firma</div><div class="vf-step-desc">Hash SHA-256</div></div>
-              </div>
-              <div class="vf-chain-step done">
-                <div class="vf-step-icon">🔗</div>
-                <div><div class="vf-step-name">3. Encadenado</div><div class="vf-step-desc">Enlazada con anterior</div></div>
-              </div>
-              <div class="vf-chain-step done">
-                <div class="vf-step-icon">📱</div>
-                <div><div class="vf-step-name">4. QR</div><div class="vf-step-desc">Código en PDF</div></div>
-              </div>
-              <div class="vf-chain-step active">
-                <div class="vf-step-icon">🏛️</div>
-                <div><div class="vf-step-name">5. Disponible AEAT</div><div class="vf-step-desc">Verificación en línea</div></div>
-              </div>
-            </div>
-            <div style="font-size:12px;color:var(--t3);margin-top:12px;line-height:1.7">
-              Cada factura emitida genera una huella digital (hash SHA-256) que incluye los datos fiscales y el hash de la factura anterior, creando una cadena inviolable. Cualquier modificación retroactiva sería inmediatamente detectable. Esto garantiza el cumplimiento del artículo 7 del RD 1007/2023.
-            </div>
-          </div>
-        </div>
-
-        <!-- Registro de facturas Verifactu -->
-        <div class="section-card no-pad">
-          <div class="sc-header" style="padding:16px"><span class="sc-title">📋 Registro de facturas firmadas</span></div>
-          <table class="data-table" id="verifactuTable">
-            <thead><tr><th>Nº Factura</th><th>Fecha emisión</th><th>Cliente</th><th>Importe</th><th>Hash</th><th>QR</th><th>Estado</th></tr></thead>
-            <tbody id="verifactuBody"><tr class="dt-empty"><td colspan="7">Cargando registro Verifactu…</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-
       <!-- ═══ VIEW: IVA ═══ -->
       <div class="view" id="view-iva">
         <div class="view-header">
