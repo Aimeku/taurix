@@ -787,12 +787,7 @@ window._applyPlantillaToFactura = function(data) {
   _nfColsActivas = colsActivas.length ? colsActivas : [..._DEFAULT_COLS];
   // Asegurarse de que descripcion siempre está primero
   if (!_nfColsActivas.includes("descripcion")) _nfColsActivas.unshift("descripcion");
-  // IVA siempre visible — debe poder elegirse por línea
-  if (!_nfColsActivas.includes("iva")) {
-    const totalIdx = _nfColsActivas.indexOf("total");
-    if (totalIdx >= 0) _nfColsActivas.splice(totalIdx, 0, "iva");
-    else _nfColsActivas.push("iva");
-  }
+  // IVA: no forzar — la plantilla del usuario decide si incluirla o no.
   // Reconstruir el header
   _nfApplyGridToHeader();
   // Reconstruir todas las filas con el nuevo grid (sin perder datos)
