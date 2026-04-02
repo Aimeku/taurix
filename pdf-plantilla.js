@@ -598,9 +598,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     const rawDesc    = l.descripcion || "—";
     // Dividir por 
  primero, luego por ancho de columna
-    const descWrapped = rawDesc.split(/
-?
-/).flatMap(line =>
+    const descWrapped = rawDesc.split(/\r?\n/).flatMap(line =>
       doc.splitTextToSize(line || " ", descColW)
     );
     const LINE_H = 4.5;
