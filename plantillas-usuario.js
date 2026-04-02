@@ -562,13 +562,9 @@ function _runPreview() {
     </table>`;
 
   const dw=_g("ep_pv_desc_wrap"), dd=_g("ep_pv_desc");
-  if(dw&&dd){ dw.style.display=desc?"":"none"; dd.innerHTML=desc.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/
-?
-/g,"<br>"); }
+  if(dw&&dd){ dw.style.display=desc?"":"none"; dd.innerHTML=desc.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\r?\n/g,"<br>"); }
   const pvN=_g("ep_pv_notas");
-  if(pvN){ pvN.innerHTML=notas.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/
-?
-/g,"<br>"); pvN.style.display=notas?"":"none"; }
+  if(pvN){ pvN.innerHTML=notas.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\r?\n/g,"<br>"); pvN.style.display=notas?"":"none"; }
   const pvP=_g("ep_pv_pie"), pvPT=_g("ep_pv_pie_txt");
   if(pvP)  pvP.style.display  = mostPie?"flex":"none";
   if(pvPT) pvPT.textContent   = pie || "Texto legal del pie";
