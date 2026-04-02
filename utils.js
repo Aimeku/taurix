@@ -49,8 +49,15 @@ export const OP_INFO = {
   intracomunitaria: "Entrega o adquisición intracomunitaria. Las entregas están exentas (art. 25 LIVA). Las adquisiciones tributan por inversión del sujeto pasivo.",
   exportacion: "Exportación fuera de la UE. Exenta de IVA (art. 21 LIVA). Requiere documentación aduanera.",
   importacion: "Importación de bienes de fuera de la UE. El IVA se liquida en aduana (DUA).",
-  inversion_sujeto_pasivo: "Inversión del sujeto pasivo (art. 84 LIVA). La factura se emite sin IVA."
+  inversion_sujeto_pasivo: "Inversión del sujeto pasivo (art. 84 LIVA). La factura se emite sin IVA repercutido. El destinatario autoliquida el impuesto.",
+  exento: "Operación exenta de IVA. El total coincide con la base imponible. Indique el motivo de exención si procede."
 };
+
+/* Tipos de operación que no aplican IVA al total */
+export const OP_SIN_IVA = ["intracomunitaria", "exportacion", "inversion_sujeto_pasivo", "exento"];
+
+/* Tipos donde el IVA se calcula pero NO se suma al total (inversión sujeto pasivo) */
+export const OP_IVA_NO_REPERCUTIDO = ["inversion_sujeto_pasivo"];
 
 export const fmt = n => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(n || 0);
 export const fmtShort = n => { const v = Math.abs(n || 0); return v >= 1000 ? "€" + (v / 1000).toFixed(1) + "k" : "€" + v.toFixed(2); };
