@@ -176,11 +176,11 @@ export async function refreshPresupuestos() {
     const badgeEstado = vencido ? estadoBadge.expirado : (estadoBadge[p.estado] || estadoBadge.borrador);
 
     const OP_LABELS = {
-      nacional:               { label: "🇪🇸 Nacional",        cls: "b-draft"     },
-      intracomunitaria:       { label: "🇪🇺 Intracom.",       cls: "b-ic"        },
-      exportacion:            { label: "🌍 Exportación",      cls: "b-cobrada"   },
-      importacion:            { label: "📦 Importación",      cls: "b-pendiente" },
-      inversion_sujeto_pasivo:{ label: "🔄 Inv. S.Pasivo",   cls: "b-vencida"   },
+      nacional:               { label: "Nacional",        cls: "b-draft"     },
+      intracomunitaria:       { label: "Intracom.",       cls: "b-ic"        },
+      exportacion:            { label: "Exportación",     cls: "b-cobrada"   },
+      importacion:            { label: "Importación",     cls: "b-pendiente" },
+      inversion_sujeto_pasivo:{ label: "Inv. S.Pasivo",  cls: "b-vencida"   },
     };
     const opInfo  = OP_LABELS[p.tipo_operacion || "nacional"] || OP_LABELS.nacional;
     const badgeOp = `<span class="badge ${opInfo.cls}" style="font-size:10px;white-space:nowrap">${opInfo.label}</span>`;
