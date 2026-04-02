@@ -175,6 +175,16 @@ export async function refreshPresupuestos() {
     const vencido = p.fecha_validez && p.fecha_validez < hoy && p.estado !== "aceptado" && p.estado !== "albaran";
     const badgeEstado = vencido ? estadoBadge.expirado : (estadoBadge[p.estado] || estadoBadge.borrador);
 
+    const OP_LABELS = {
+      nacional:               { label: "🇪🇸 Nacional",        cls: "b-draft"     },
+      intracomunitaria:       { label: "🇪🇺 Intracom.",       cls: "b-ic"        },
+      exportacion:            { label: "🌍 Exportación",      cls: "b-cobrada"   },
+      importacion:            { label: "📦 Importación",      cls: "b-pendiente" },
+      inversion_sujeto_pasivo:{ label: "🔄 Inv. S.Pasivo",   cls: "b-vencida"   },
+    };
+    const opInfo  = OP_LABELS[p.tipo_operacion || "nacional"] || OP_LABELS.nacional;
+    const badgeOp = `<span class="badge ${opInfo.cls}" style="font-size:10px;white-space:nowrap">${opInfo.label}</span>`;
+
     return `
       <tr>
         <td class="mono" style="font-size:12px">${fmtDate(p.fecha)}</td>
@@ -187,7 +197,7 @@ export async function refreshPresupuestos() {
         <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${p.concepto || "—"}</td>
         <td style="font-size:12px;color:var(--t3)">${p.cliente_nombre || "—"}</td>
         <td class="mono fw7">${fmt(total)}</td>
-        <td>${badgeEstado}</td>
+        <td>${badgeOp}</td>
         <td style="font-size:12px;color:var(--t4)">${p.fecha_aceptacion ? fmtDate(p.fecha_aceptacion) : "—"}</td>
         <td>
           <div class="tbl-act">
