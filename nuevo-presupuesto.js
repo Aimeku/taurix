@@ -7,7 +7,7 @@
 import { supabase } from "./supabase.js";
 import {
   SESSION, CLIENTES, fmt, fmtDate, toast,
-  openModal, closeModal, switchView
+  openModal, closeModal, switchView, OP_INFO
 } from "./utils.js";
 import { PRODUCTOS, buscarProductoPorCodigo } from "./productos.js";
 import { PLANTILLAS, getPlantillaDefault } from "./plantillas-usuario.js";
@@ -18,6 +18,7 @@ let LINEAS = [];
 let lineaIdCounter = 0;
 let clienteSeleccionadoId = null;
 let npPlantillaActual = null;
+let npOpTipoActual = "nacional";
 
 /* ══════════════════════════
    TOTALES
@@ -31,6 +32,17 @@ function _parseDescuento(raw, subtotal) {
     return subtotal * pct / 100;
   }
   return parseFloat(s) || 0;
+}
+
+/* ══════════════════════════
+   TIPO DE OPERACIÓN
+══════════════════════════ */
+function updateNpOpUI() {
+  const banner = document.getElementById("npOpInfoBanner");
+  if (banner) {
+    banner.textContent = OP_INFO[npOpTipoActual] || "";
+    banner.classList.toggle("visible", !!OP_INFO[npOpTipoActual]);
+  }
 }
 
 function getLineasTotales() {
@@ -408,6 +420,7 @@ async function savePresupuesto() {
     iva: ivaMain,
     lineas: lineasJson,
     notas: document.getElementById("npNotas")?.value.trim() || null,
+    tipo_operacion: npOpTipoActual,
   };
 
   // ── MODO EDICIÓN: UPDATE manteniendo el mismo número ──────
@@ -664,6 +677,28 @@ export function initNuevoPresupuesto() {
   document.getElementById("npAddLineaBtn")?.addEventListener("click", () => addLinea());
   document.getElementById("npGuardarBtn")?.addEventListener("click", () => savePresupuesto());
 
+  // ── Tipo de operación ─────────────────────────────────────
+  npOpTipoActual = "nacional";
+  document.querySelectorAll(".np-op-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".np-op-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      npOpTipoActual = btn.dataset.op;
+      updateNpOpUI();
+      // Bloquear IVA en operaciones exentas, igual que en facturas
+      const sinIva = ["intracomunitaria","exportacion","inversion_sujeto_pasivo"].includes(npOpTipoActual);
+      if (sinIva) {
+        LINEAS.forEach(l => { l.iva = 0; });
+        document.querySelectorAll("#npLineasContainer [data-field='iva']").forEach(sel => { sel.value = "0"; sel.disabled = true; });
+        updateTotalesUI();
+      } else {
+        document.querySelectorAll("#npLineasContainer [data-field='iva']").forEach(sel => { sel.disabled = false; });
+      }
+      updatePreview();
+    });
+  });
+  updateNpOpUI();
+
   _npApplyGridToHeader();
   _npInitPlantillaSelector();
 
@@ -703,17 +738,30 @@ export function initNuevoPresupuesto() {
     updateTotalesUI();
     updatePreview();
 
+    // Restaurar tipo de operación guardado
+    npOpTipoActual = editData.tipo_operacion || "nacional";
+    document.querySelectorAll(".np-op-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.op === npOpTipoActual);
+    });
+    updateNpOpUI();
+
     // Guardar id de edición para que savePresupuesto haga UPDATE
     window._npEditingId     = editData.id;
     window._npEditingNumero = editData.numero;
   } else {
-    // Modo creación normal — limpiar título por si venimos de editar
+    // Modo creación normal — limpiar título y resetear tipo operación
     const titleEl = document.querySelector("#view-nuevo-presupuesto .view-title");
     if (titleEl) titleEl.textContent = "Nuevo presupuesto";
     const btn = document.getElementById("npGuardarBtn");
     if (btn) btn.textContent = "Guardar presupuesto";
     window._npEditingId     = null;
     window._npEditingNumero = null;
+    // Resetear tipo operación a nacional
+    npOpTipoActual = "nacional";
+    document.querySelectorAll(".np-op-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.op === "nacional");
+    });
+    updateNpOpUI();
     if (LINEAS.length === 0) addLinea();
   }
 }
