@@ -7,7 +7,7 @@
 import { supabase } from "./supabase.js";
 import {
   SESSION, CLIENTES, fmt, fmtDate, toast,
-  openModal, closeModal, switchView, OP_INFO
+  openModal, closeModal, switchView, OP_INFO, OP_SIN_IVA, OP_IVA_NO_REPERCUTIDO
 } from "./utils.js";
 import { PRODUCTOS, buscarProductoPorCodigo } from "./productos.js";
 import { PLANTILLAS, getPlantillaDefault } from "./plantillas-usuario.js";
@@ -39,10 +39,12 @@ function _parseDescuento(raw, subtotal) {
 ══════════════════════════ */
 function updateNpOpUI() {
   const banner = document.getElementById("npOpInfoBanner");
+  const exencionWrap = document.getElementById("npExencionWrap");
   if (banner) {
     banner.textContent = OP_INFO[npOpTipoActual] || "";
     banner.classList.toggle("visible", !!OP_INFO[npOpTipoActual]);
   }
+  if (exencionWrap) exencionWrap.style.display = npOpTipoActual === "exento" ? "" : "none";
 }
 
 function getLineasTotales() {
@@ -57,7 +59,9 @@ function getLineasTotales() {
     ivaMap[l.iva] = (ivaMap[l.iva] || 0) + ivaAmt;
   });
   const ivaTotal = Object.values(ivaMap).reduce((a, b) => a + b, 0);
-  const total = baseTotal + ivaTotal;
+  // Para inversión del sujeto pasivo: el IVA no se repercute en el total
+  const ivaEnTotal = OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual) ? 0 : ivaTotal;
+  const total = baseTotal + ivaEnTotal;
   return { baseTotal, ivaMap, ivaTotal, total };
 }
 
@@ -211,12 +215,13 @@ function _npReapplyGridToAllRows() {
 
 function addLinea(prefill = {}) {
   const id = ++lineaIdCounter;
+  const sinIva = OP_SIN_IVA.includes(npOpTipoActual);
   const linea = {
     id,
     descripcion: prefill.descripcion || "",
     cantidad:    prefill.cantidad    || 1,
     precio:      prefill.precio      || 0,
-    iva:         prefill.iva !== undefined ? prefill.iva : 21,
+    iva:         sinIva ? 0 : (prefill.iva !== undefined ? prefill.iva : 21),
     descuento:   prefill.descuento   ?? "",
     codigo:      prefill.codigo      ?? "",
     coeficiente: prefill.coeficiente ?? "",
@@ -320,6 +325,12 @@ function updateTotalesUI() {
   s("npBase", fmt(baseTotal));
   s("npIva", fmt(ivaTotal));
   s("npTotal", fmt(total));
+  // Ocultar fila IVA cuando la operación no repercute IVA al total
+  const ivaRow = document.getElementById("npIvaRow");
+  if (ivaRow) {
+    const mostrarIva = !OP_SIN_IVA.includes(npOpTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual);
+    ivaRow.style.display = mostrarIva ? "" : "none";
+  }
 }
 
 /* ══════════════════════════
@@ -362,9 +373,9 @@ function updatePreview() {
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t3);margin-bottom:4px">
         <span>Base</span><span>${fmt(baseTotal)}</span>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t3);margin-bottom:8px">
+      ${(!OP_SIN_IVA.includes(npOpTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual)) ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t3);margin-bottom:8px">
         <span>IVA</span><span>${fmt(ivaTotal)}</span>
-      </div>
+      </div>` : ""}
       <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:var(--t1);border-top:2px solid var(--brd);padding-top:8px">
         <span>TOTAL</span><span>${fmt(total)}</span>
       </div>
@@ -432,7 +443,14 @@ async function savePresupuesto() {
     base: baseTotal,
     iva: ivaMain,
     lineas: lineasJson,
-    notas: document.getElementById("npNotas")?.value.trim() || null,
+    notas: (() => {
+      const motivoExencion = document.getElementById("npMotivoExencion")?.value.trim();
+      const notasVal = document.getElementById("npNotas")?.value.trim() || null;
+      if (npOpTipoActual === "exento" && motivoExencion) {
+        return notasVal ? notasVal + "\n\nMotivo de exención: " + motivoExencion : "Motivo de exención: " + motivoExencion;
+      }
+      return notasVal;
+    })(),
     tipo_operacion: npOpTipoActual,
   };
 
@@ -720,7 +738,7 @@ export function initNuevoPresupuesto() {
       npOpTipoActual = btn.dataset.op;
       updateNpOpUI();
       // Bloquear IVA en operaciones exentas, igual que en facturas
-      const sinIva = ["intracomunitaria","exportacion","inversion_sujeto_pasivo"].includes(npOpTipoActual);
+      const sinIva = OP_SIN_IVA.includes(npOpTipoActual);
       if (sinIva) {
         LINEAS.forEach(l => { l.iva = 0; });
         document.querySelectorAll("#npLineasContainer [data-field='iva']").forEach(sel => { sel.value = "0"; sel.disabled = true; });
