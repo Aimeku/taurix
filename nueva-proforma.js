@@ -398,10 +398,7 @@ async function _save(){
     cliente_nombre:document.getElementById("npfClienteNombre")?.value.trim()||null,
     cliente_nif:document.getElementById("npfClienteNif")?.value.trim()||null,
     cliente_email:document.getElementById("npfClienteEmail")?.value.trim()||null,
-    cliente_direccion:document.getElementById("npfClienteDireccion")?.value.trim()||null,
-    cliente_pais:document.getElementById("npfClientePais")?.value||"ES",
     base,iva:ivaMain,
-    tipo_operacion: opTipo,
     lineas:JSON.stringify(LINEAS.map(l=>({descripcion:l.descripcion,cantidad:l.cantidad,precio:l.precio,
       iva:l.iva,descuento:l.descuento??"",codigo:l.codigo??"",coeficiente:l.coeficiente??""}))),
     notas: (() => {
