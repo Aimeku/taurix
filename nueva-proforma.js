@@ -8,7 +8,7 @@
    ═══════════════════════════════════════════════════════ */
 
 import { supabase } from "./supabase.js";
-import { SESSION, CLIENTES, fmt, toast, switchView } from "./utils.js";
+import { SESSION, CLIENTES, fmt, toast, switchView, OP_INFO, OP_SIN_IVA, OP_IVA_NO_REPERCUTIDO } from "./utils.js";
 import { PRODUCTOS } from "./productos.js";
 import { refreshProforma } from "./proforma.js";
 
@@ -17,6 +17,7 @@ let LINEAS        = [];
 let lineaIdCnt    = 0;
 let clienteSelId  = null;
 let editandoId    = null;
+let opTipo        = "nacional";
 
 /* ══════════════════════════════════════════════════════
    COLUMNAS DINÁMICAS
@@ -69,16 +70,39 @@ function _calcTotales() {
     base+=sub; ivaMap[l.iva]=(ivaMap[l.iva]||0)+sub*(l.iva||0)/100;
   });
   const ivaTot=Object.values(ivaMap).reduce((a,b)=>a+b,0);
+  // Para inversión del sujeto pasivo: IVA calculado pero no sumado al total
+  const ivaEnTotal = OP_IVA_NO_REPERCUTIDO.includes(opTipo) ? 0 : ivaTot;
+  const total = base + ivaEnTotal;
   const s=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
-  s("npfBase",fmt(base)); s("npfIva",fmt(ivaTot)); s("npfTotal",fmt(base+ivaTot));
+  s("npfBase",fmt(base)); s("npfIva",fmt(ivaTot)); s("npfTotal",fmt(total));
+  // Ocultar fila IVA cuando la operación no repercute IVA
+  const ivaRow=document.getElementById("npfIvaRow");
+  if(ivaRow){
+    const mostrarIva = !OP_SIN_IVA.includes(opTipo) || OP_IVA_NO_REPERCUTIDO.includes(opTipo);
+    ivaRow.style.display = mostrarIva ? "" : "none";
+  }
   return {base,ivaMap,ivaTot};
+}
+
+/* ── Tipo de operación ── */
+function _updateOpUI() {
+  const banner = document.getElementById("npfOpBanner");
+  const exencionWrap = document.getElementById("npfExencionWrap");
+  const nifNote = document.getElementById("npfNifNote");
+  if (banner) {
+    banner.textContent = OP_INFO[opTipo] || "";
+    banner.classList.toggle("visible", !!OP_INFO[opTipo]);
+  }
+  if (exencionWrap) exencionWrap.style.display = opTipo === "exento" ? "" : "none";
+  if (nifNote) nifNote.textContent = opTipo === "intracomunitaria" ? "(VAT número UE obligatorio)" : "";
 }
 
 /* ── Añadir línea ── */
 function _addLinea(pf={}) {
   const id=++lineaIdCnt;
+  const sinIva = OP_SIN_IVA.includes(opTipo);
   const l={id,descripcion:pf.descripcion||"",cantidad:pf.cantidad||1,precio:pf.precio||0,
-           iva:pf.iva!==undefined?pf.iva:21,descuento:pf.descuento??"",
+           iva:sinIva ? 0 : (pf.iva!==undefined?pf.iva:21),descuento:pf.descuento??"",
            codigo:pf.codigo??"",coeficiente:pf.coeficiente??""};
   LINEAS.push(l);
   const cont=document.getElementById("npfLineasContainer"); if(!cont)return;
@@ -90,7 +114,7 @@ function _addLinea(pf={}) {
     const bs=`width:100%;box-sizing:border-box;${a}`;
     if(k==="total") return`<div id="npfLt${id}" style="font-size:13px;font-weight:700;text-align:right;font-family:monospace;color:var(--t1)">0,00 €</div>`;
     if(k==="subtotal") return`<div style="font-size:12px;text-align:right;font-family:monospace;color:var(--t2)">0,00 €</div>`;
-    if(k==="iva") return`<select class="ff-select" data-field="iva" style="${bs}">
+    if(k==="iva") return`<select class="ff-select" data-field="iva" style="${bs}" ${sinIva?"disabled":""}>
       <option value="21" ${l.iva===21?"selected":""}>21%</option>
       <option value="10" ${l.iva===10?"selected":""}>10%</option>
       <option value="4"  ${l.iva===4?"selected":""}>4%</option>
@@ -349,10 +373,18 @@ async function _save(){
     cliente_nif:document.getElementById("npfClienteNif")?.value.trim()||null,
     cliente_email:document.getElementById("npfClienteEmail")?.value.trim()||null,
     base,iva:ivaMain,
+    tipo_operacion: opTipo,
     plantilla_id:document.getElementById("npfPlantillaSel")?.value||null,
     lineas:JSON.stringify(LINEAS.map(l=>({descripcion:l.descripcion,cantidad:l.cantidad,precio:l.precio,
       iva:l.iva,descuento:l.descuento??"",codigo:l.codigo??"",coeficiente:l.coeficiente??""}))),
-    notas:document.getElementById("npfNotas")?.value.trim()||null,
+    notas: (() => {
+      const motivoExencion = document.getElementById("npfMotivoExencion")?.value.trim();
+      const notasVal = document.getElementById("npfNotas")?.value.trim() || null;
+      if (opTipo === "exento" && motivoExencion) {
+        return notasVal ? notasVal + "\n\nMotivo de exención: " + motivoExencion : "Motivo de exención: " + motivoExencion;
+      }
+      return notasVal;
+    })(),
   };
 
   let err;
@@ -380,6 +412,12 @@ export async function cargarProformaParaEditar(id){
   f("npfEstado",p.estado||"borrador");f("npfClienteNombre",p.cliente_nombre||"");
   f("npfClienteNif",p.cliente_nif||"");f("npfClienteEmail",p.cliente_email||"");
   f("npfNotas",p.notas||"");
+  // Restaurar tipo de operación
+  opTipo = p.tipo_operacion || "nacional";
+  document.querySelectorAll(".npf-op-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.op === opTipo);
+  });
+  _updateOpUI();
   const sel=document.getElementById("npfPlantillaSel"); if(sel&&p.plantilla_id)sel.value=p.plantilla_id;
   const lineas=p.lineas?(typeof p.lineas==="string"?JSON.parse(p.lineas):p.lineas):[];
   lineas.forEach(l=>_addLinea(l)); _calcTotales();
@@ -401,6 +439,9 @@ function _resetForm(clearEditing=true){
   const ti=document.getElementById("npfTitulo");if(ti)ti.textContent="Nueva factura proforma";
   const bt=document.getElementById("npfGuardarBtn");if(bt){bt.disabled=false;bt.textContent="Guardar proforma";}
   const nd=document.getElementById("npfNumeroDisplay");if(nd)nd.textContent="";
+  opTipo="nacional";
+  document.querySelectorAll(".npf-op-btn").forEach(b=>b.classList.toggle("active",b.dataset.op==="nacional"));
+  _updateOpUI();
   _cols=[..._DEFAULT_COLS]; _applyHeader(); _addLinea(); _calcTotales();
 }
 
@@ -415,6 +456,26 @@ export function initNuevaProforma(){
   document.getElementById("npfAddLineaBtn")?.addEventListener("click",()=>_addLinea());
   document.getElementById("npfGuardarBtn")?.addEventListener("click",()=>_save());
   document.getElementById("npfCancelarBtn")?.addEventListener("click",()=>{_resetForm();switchView("proformas");});
+
+  // Tipo de operación
+  document.querySelectorAll(".npf-op-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".npf-op-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      opTipo = btn.dataset.op;
+      _updateOpUI();
+      const sinIva = OP_SIN_IVA.includes(opTipo);
+      if (sinIva) {
+        LINEAS.forEach(l => { l.iva = 0; });
+        document.querySelectorAll("#npfLineasContainer [data-field='iva']").forEach(sel => { sel.value = "0"; sel.disabled = true; });
+      } else {
+        document.querySelectorAll("#npfLineasContainer [data-field='iva']").forEach(sel => { sel.disabled = false; });
+      }
+      _calcTotales();
+    });
+  });
+  _updateOpUI();
+
   if(LINEAS.length===0)_addLinea();
   _applyHeader(); _calcTotales();
 }
