@@ -45,6 +45,7 @@ const COLUMNAS_CATALOGO = [
   { id:"descuento",   label:"Descuento",    labelEn:"Discount",     obligatoria:false },
   { id:"codigo",      label:"Código",       labelEn:"Code",         obligatoria:false },
   { id:"coeficiente", label:"Coeficiente",  labelEn:"Coef.",        obligatoria:false },
+  { id:"iva",         label:"IVA",          labelEn:"VAT",          obligatoria:false },
   { id:"total",       label:"Total",        labelEn:"Total",        obligatoria:false },
 ];
 
@@ -532,6 +533,7 @@ function _runPreview() {
             else if (id==="descuento")    { v="0.00€"; mono=true; }
             else if (id==="codigo")       { v="—"; }
             else if (id==="coeficiente")  { v="1.00"; mono=true; }
+            else if (id==="iva")          { v=(l.i||21)+"%"; mono=true; }
             else if (id==="total")        { v=tot.toFixed(2)+"€"; fw="700"; mono=true; }
             return `<td style="padding:5px 5px;font-size:${tamF+1}px;text-align:${right?"right":"left"};
               font-weight:${fw};${mono?"font-family:monospace;":""}
