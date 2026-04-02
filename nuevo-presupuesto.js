@@ -385,8 +385,15 @@ async function savePresupuesto() {
   const ivaMain = ivaEntry ? parseInt(ivaEntry[0]) : 21;
 
   const clienteNombre = document.getElementById("npClienteNombre")?.value.trim();
-  const clienteNif = document.getElementById("npClienteNif")?.value.trim();
-  const clienteDir = document.getElementById("npClienteDir")?.value.trim();
+  const clienteNif    = document.getElementById("npClienteNif")?.value.trim();
+  const clienteDir    = document.getElementById("npClienteDir")?.value.trim();
+  const clienteEmail  = document.getElementById("npClienteEmail")?.value.trim();
+  const clienteTel    = document.getElementById("npClienteTel")?.value.trim();
+  const clientePais   = document.getElementById("npClientePais")?.value || "ES";
+  const clienteTipo   = document.getElementById("npClienteTipo")?.value || "empresa";
+  const clienteCiudad = document.getElementById("npClienteCiudad")?.value.trim();
+  const clienteProv   = document.getElementById("npClienteProvincia")?.value.trim();
+  const clienteCp     = document.getElementById("npClienteCp")?.value.trim();
   const guardarCliente = document.getElementById("npGuardarCliente")?.checked;
 
   const btn = document.getElementById("npGuardarBtn");
@@ -396,7 +403,13 @@ async function savePresupuesto() {
   let cId = clienteSeleccionadoId;
   if (!cId && guardarCliente && clienteNombre) {
     const { data: nc, error: ce } = await supabase.from("clientes").insert({
-      user_id: SESSION.user.id, nombre: clienteNombre, nif: clienteNif || null, direccion: clienteDir || null
+      user_id: SESSION.user.id, nombre: clienteNombre, nif: clienteNif || null,
+      direccion: clienteDir || null, pais: clientePais, tipo: clienteTipo,
+      ciudad: clienteCiudad || null, provincia: clienteProv || null,
+      codigo_postal: clienteCp || null,
+      email: clienteEmail || null, telefono: clienteTel || null,
+      emails:    clienteEmail ? [clienteEmail] : null,
+      telefonos: clienteTel   ? [clienteTel]   : null,
     }).select().single();
     if (!ce && nc) { cId = nc.id; await refreshClientes(); }
   }
@@ -473,11 +486,15 @@ function resetForm() {
   LINEAS = []; lineaIdCounter = 0; clienteSeleccionadoId = null;
   const container = document.getElementById("npLineasContainer");
   if (container) container.innerHTML = "";
-  ["npClienteNombre", "npClienteNif", "npClienteDir", "npConcepto", "npNotas"].forEach(id => {
+  ["npClienteNombre", "npClienteNif", "npClienteDir", "npClienteEmail", "npClienteTel",
+   "npClienteCiudad", "npClienteProvincia", "npClienteCp", "npConcepto", "npNotas"].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = "";
   });
   const csi = document.getElementById("npClienteSearch"); if (csi) csi.value = "";
   document.getElementById("npFecha").value = new Date().toISOString().slice(0, 10);
+  const paisEl = document.getElementById("npClientePais"); if (paisEl) paisEl.value = "ES";
+  const tipoEl = document.getElementById("npClienteTipo"); if (tipoEl) tipoEl.value = "empresa";
+  const tEmpEl = document.getElementById("npClienteTipoEmpresa"); if (tEmpEl) tEmpEl.value = "";
   document.getElementById("npGuardarCliente").checked = false;
   addLinea();
   updatePreview();
@@ -514,9 +531,20 @@ function initClienteSearch() {
         if (!c) return;
         clienteSeleccionadoId = c.id;
         input.value = c.nombre;
-        document.getElementById("npClienteNombre").value = c.nombre;
-        document.getElementById("npClienteNif").value = c.nif || "";
-        document.getElementById("npClienteDir").value = c.direccion || "";
+        document.getElementById("npClienteNombre").value    = c.nombre;
+        document.getElementById("npClienteNif").value       = c.nif || "";
+        document.getElementById("npClienteDir").value       = c.direccion || "";
+        document.getElementById("npClienteEmail").value     = c.email || "";
+        document.getElementById("npClienteTel").value       = c.telefono || "";
+        document.getElementById("npClienteCiudad").value    = c.ciudad || "";
+        document.getElementById("npClienteProvincia").value = c.provincia || "";
+        document.getElementById("npClienteCp").value        = c.codigo_postal || "";
+        const npPais = document.getElementById("npClientePais");
+        if (npPais) npPais.value = c.pais || "ES";
+        const npTipo = document.getElementById("npClienteTipo");
+        if (npTipo) npTipo.value = c.tipo || "empresa";
+        const npTEmp = document.getElementById("npClienteTipoEmpresa");
+        if (npTEmp) npTEmp.value = c.tipo_empresa || "";
         dropdown.style.display = "none";
         if (clearBtn) clearBtn.style.display = "";
         updatePreview();
@@ -529,7 +557,13 @@ function initClienteSearch() {
   clearBtn?.addEventListener("click", () => {
     clienteSeleccionadoId = null;
     input.value = "";
-    ["npClienteNombre", "npClienteNif", "npClienteDir"].forEach(id => { document.getElementById(id).value = ""; });
+    ["npClienteNombre", "npClienteNif", "npClienteDir", "npClienteEmail", "npClienteTel",
+     "npClienteCiudad", "npClienteProvincia", "npClienteCp"].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = "";
+    });
+    const npPais = document.getElementById("npClientePais"); if (npPais) npPais.value = "ES";
+    const npTipo = document.getElementById("npClienteTipo"); if (npTipo) npTipo.value = "empresa";
+    const npTEmp = document.getElementById("npClienteTipoEmpresa"); if (npTEmp) npTEmp.value = "";
     clearBtn.style.display = "none";
     updatePreview();
   });
