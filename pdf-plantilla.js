@@ -408,18 +408,22 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   const _emBaseX = _cEmMm - cW / 2;   // 57 - 46 = 11mm
   const _clBaseX = _cClMm - cW / 2;   // 153 - 46 = 107mm
 
-  // Offsets del slider — fórmula idéntica al logo:
-  //   offsetPx = clamp(sX × (pvW/240), ±_EC_MAXOFF)
-  //   offset_mm = offsetPx × _EC_PX2MM
+  // Offsets del slider — fórmula sincronizada con _runPreview en plantillas-usuario.js:
+  //   X: offsetPx = clamp(sX × (pvW/240), ±_EC_MAXOFF)   → igual que el logo
+  //   Y: offsetPx = clamp(sY × SCALE,     ±_tyClamp)     → usa SCALE como el preview
+  //      (el preview usa emisorY * SCALE, NO emisorY * (pvW/240))
+  const _EC_SCALE  = _EC_PVW / 595;   // 0.7059 — mismo SCALE que el preview JS
+  const _EC_TYCLAMP = 20;             // px — clamp vertical del preview (_tyClamp)
+
   const _sEmX = plantilla?.emisor_x  ?? 0;
   const _sEmY = plantilla?.emisor_y  ?? 0;
   const _sClX = plantilla?.cliente_x ?? 0;
   const _sClY = plantilla?.cliente_y ?? 0;
 
   const _offEmX = Math.max(-_EC_MAXOFF, Math.min(_EC_MAXOFF, _sEmX * (_EC_PVW / 240))) * _EC_PX2MM;
-  const _offEmY = Math.max(-10,         Math.min(10,         _sEmY * (_EC_PVW / 240))) * _EC_PX2MM;
+  const _offEmY = Math.max(-_EC_TYCLAMP, Math.min(_EC_TYCLAMP, _sEmY * _EC_SCALE))     * _EC_PX2MM;
   const _offClX = Math.max(-_EC_MAXOFF, Math.min(_EC_MAXOFF, _sClX * (_EC_PVW / 240))) * _EC_PX2MM;
-  const _offClY = Math.max(-10,         Math.min(10,         _sClY * (_EC_PVW / 240))) * _EC_PX2MM;
+  const _offClY = Math.max(-_EC_TYCLAMP, Math.min(_EC_TYCLAMP, _sClY * _EC_SCALE))     * _EC_PX2MM;
 
   // Posición final con clamp: ningún bloque sale del área [ML+PAD, PW-MR-PAD]
   // El clamp asegura que aunque el bloque base esté en 11mm (< ML+PAD=22mm),
@@ -522,27 +526,27 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     if (!activeCols.find(c => c.key === "cantidad"))    activeCols.push(_dl("cantidad"));
   }
 
-  // Calcular anchos reales en mm
-  // Las columnas con width definido reciben ese % del ancho total
-  // Las demás se reparten el espacio restante
-  const totalPct  = activeCols.reduce((s, c) => s + (c.width || 0), 0);
-  const pctUsed   = Math.min(100, totalPct);
-  const mmPerPct  = W / 100;
-  const nAuto     = activeCols.filter(c => !c.width).length;
-  const mmAuto    = nAuto > 0 ? (W - pctUsed * mmPerPct) / nAuto : 0;
-  const colWidths = activeCols.map(c => c.width ? c.width * mmPerPct : mmAuto);
+  // Calcular anchos reales en mm — réplica exacta del algoritmo del preview (_runPreview):
+  //   rawWeight = col.width (si definido y >0) ó pesos por defecto (descripcion=35, resto=13)
+  //   Luego se normalizan al 100% y se multiplican por W.
+  // Esto garantiza que columnas sin % personalizado coincidan con el preview.
+  const mmPerPct = W / 100;
+  const rawWeightsPDF = activeCols.map(c =>
+    (c.width && c.width > 0) ? c.width : (c.key === "descripcion" ? 35 : 13)
+  );
+  const totalWeightPDF = rawWeightsPDF.reduce((a, b) => a + b, 0);
+  const colWidths = rawWeightsPDF.map(w => (w / totalWeightPDF) * W);
 
-  // Asegurarse de que la columna descripción tenga un mínimo razonable
+  // Mínimo absoluto por columna: ninguna columna queda ilegible
   const descIdx = activeCols.findIndex(c => c.key === "descripcion");
-  const minDesc = 40;
+  const minDesc = 30;
   if (descIdx !== -1 && colWidths[descIdx] < minDesc) {
     const surplus = minDesc - colWidths[descIdx];
     colWidths[descIdx] = minDesc;
-    // Reducir de otras columnas proporcionalmente
-    const others = colWidths.filter((_, i) => i !== descIdx && colWidths[i] > 8);
-    if (others.length > 0) {
-      const reduce = surplus / others.length;
-      colWidths.forEach((_, i) => { if (i !== descIdx) colWidths[i] = Math.max(8, colWidths[i] - reduce); });
+    const othersIdx = colWidths.map((_, i) => i).filter(i => i !== descIdx && colWidths[i] > 8);
+    if (othersIdx.length > 0) {
+      const reduce = surplus / othersIdx.length;
+      othersIdx.forEach(i => { colWidths[i] = Math.max(8, colWidths[i] - reduce); });
     }
   }
 
@@ -553,8 +557,10 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   }
 
   // Fila cabecera de tabla
+  // Altura: replica el preview (th padding:6px + font 9px + padding:6px ≈ 21px = 10.5mm)
+  const THEAD_H = 10.5;
   doc.setFillColor(...colores.acento);
-  doc.rect(ML, y, W, 8.5, "F");
+  doc.rect(ML, y, W, THEAD_H, "F");
   doc.setFont(font, "bold");
   doc.setFontSize(7.5);
   doc.setTextColor(...WHITE);
@@ -564,10 +570,11 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     const isRight = col.key !== "descripcion";
     const xPos = isRight
       ? colX[i] + colWidths[i] - 1
-      : colX[i] + PAD / 2;
-    doc.text(label.toUpperCase(), xPos, y + 5.8, { align: isRight ? "right" : "left" });
+      : colX[i] + 2.5;
+    // Texto a y+7.0mm: coincide con padding-top 6px (3mm) + baseline 9px*0.7 ≈ 7mm
+    doc.text(label.toUpperCase(), xPos, y + 7.0, { align: isRight ? "right" : "left" });
   });
-  y += 8.5;
+  y += THEAD_H;
 
   // Filas de datos
   let lineas = [];
@@ -594,14 +601,19 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
 
     // ── Calcular líneas de descripción respetando saltos de línea manuales ──
     const descIdx    = activeCols.findIndex(c => c.key === "descripcion");
-    const descColW   = descIdx !== -1 ? colWidths[descIdx] - 2 : 60;
+    const descColW   = descIdx !== -1 ? colWidths[descIdx] - 2.5 : 60;
     const rawDesc    = l.descripcion || "—";
     // Dividir por \n primero, luego por ancho de columna
     const descWrapped = rawDesc.split(/\r?\n/).flatMap(line =>
       doc.splitTextToSize(line || " ", descColW)
     );
-    const LINE_H = 4.5;
-    const rH     = Math.max(8, descWrapped.length * LINE_H + 3.5);
+    // Altura de fila — réplica del preview:
+    //   Preview td: padding-top:5px + font-size:(tamF+1)px * line-height:1.2 * nLines + padding-bottom:5px
+    //   Convertido a mm: (10 + (tamF+1)*1.2*nLines) * 0.5
+    //   = 5 + (tamF+1)*0.6*nLines
+    const LINE_H = (tamF + 1) * 0.6;   // mm por línea (≈ font-size*line-height en mm)
+    const ROW_PAD = 5;                  // mm total de padding vertical (5px top + 5px bottom * 0.5)
+    const rH = Math.max(ROW_PAD + LINE_H, descWrapped.length * LINE_H + ROW_PAD);
 
     // Salto de página si no cabe
     if (y + rH > PH - 30) { doc.addPage(); y = 20; }
@@ -621,8 +633,11 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.setFontSize(tamF);
     doc.setTextColor(...colores.letra);
 
-    // Centrado vertical para celdas de una sola línea
-    const singleLineY = y + rH / 2 + tamF * 0.35;
+    // Centrado vertical para celdas de una sola línea — espejo del preview:
+    //   text baseline ≈ row_top + padding_top + font_cap_height
+    //   padding_top = 5px * 0.5 = 2.5mm; cap_height ≈ tamF_pt * 0.353mm * 0.7
+    const CELL_PAD_TOP = 2.5;                          // mm — padding top (5px*0.5)
+    const singleLineY  = y + CELL_PAD_TOP + tamF * 0.353 * 0.72;
 
     activeCols.forEach((col, i) => {
       let val = "";
@@ -630,9 +645,8 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
 
       switch (col.key) {
         case "descripcion":
-          // Renderizar todas las líneas con wrap + saltos manuales
-          doc.text(descWrapped, colX[i] + PAD / 2, y + LINE_H, { lineHeightFactor: 1.3 });
-          if (col.key === "total") doc.setFont(font, "normal");
+          // Texto empieza en padding_top + primera línea baseline, igual que el preview
+          doc.text(descWrapped, colX[i] + 2.5, y + CELL_PAD_TOP + tamF * 0.353 * 0.72, { lineHeightFactor: 1.35 });
           return; // ya pintado, saltar el doc.text genérico
         case "cantidad":     val = String(qty); break;
         case "precio":       val = precio.toFixed(2) + " €"; break;
@@ -653,7 +667,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
 
       const xPos = isRight
         ? colX[i] + colWidths[i] - 1
-        : colX[i] + PAD / 2;
+        : colX[i] + 2.5;
       // Columnas no-descripcion: texto centrado verticalmente en la fila
       doc.text(String(val), xPos, singleLineY, { align: isRight ? "right" : "left" });
       if (col.key === "total") doc.setFont(font, "normal");
