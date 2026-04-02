@@ -1318,7 +1318,7 @@
           </div>
         </div>
 
-        <div class="nf-layout">
+        <div class="nf-layout" style="grid-template-columns:1fr">
           <div class="nf-form-col">
 
             <!-- PLANTILLA -->
@@ -1361,49 +1361,112 @@
               </div>
             </div>
 
+            <!-- DATOS DE LA PROFORMA -->
+            <div class="form-block">
+              <div class="fb-title">Datos de la proforma</div>
+              <div class="ff-grid3">
+                <div class="ff-field">
+                  <label>Fecha *</label>
+                  <input type="date" id="npfFecha" class="ff-input"/>
+                </div>
+                <div class="ff-field">
+                  <label>Válida hasta</label>
+                  <input type="date" id="npfValidez" class="ff-input"/>
+                </div>
+                <div class="ff-field">
+                  <label>Estado</label>
+                  <select id="npfEstado" class="ff-select">
+                    <option value="borrador">Borrador</option>
+                    <option value="enviada">Enviada</option>
+                    <option value="confirmada">Confirmada</option>
+                    <option value="rechazada">Rechazada</option>
+                  </select>
+                </div>
+              </div>
+              <div class="ff-field">
+                <label>Concepto *</label>
+                <input id="npfConcepto" class="ff-input" placeholder="Descripción del servicio o producto"/>
+              </div>
+              <div class="ff-field">
+                <label>Notas / Condiciones</label>
+                <textarea id="npfNotas" class="ff-input ff-textarea" placeholder="Condiciones de pago, plazos de entrega…"></textarea>
+              </div>
+              <span id="npfNumeroDisplay" style="display:none"></span>
+            </div>
+
             <!-- CLIENTE -->
             <div class="form-block">
               <div class="fb-title">Cliente</div>
               <div class="cliente-search-wrap">
                 <div class="csc-input-wrap">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  <input type="text" id="npfClienteSearch" class="csc-input" placeholder="Buscar cliente existente…"/>
+                  <input type="text" id="npfClienteSearch" class="csc-input" placeholder="Buscar cliente guardado o escribe uno nuevo…" autocomplete="off"/>
                   <button id="npfClienteLimpiar" class="csc-clear" style="display:none">×</button>
                 </div>
                 <div class="csc-dropdown" id="npfClienteDropdown" style="display:none"></div>
               </div>
-              <div class="ff-grid2">
-                <div class="ff-field"><label>Nombre / Razón social</label><input id="npfClienteNombre" class="ff-input" placeholder="Nombre del cliente"/></div>
-                <div class="ff-field"><label>NIF / CIF <span id="npfNifNote" class="ff-note"></span></label><input id="npfClienteNif" class="ff-input" placeholder="B12345678"/></div>
+              <div id="npfClientePanel" class="cliente-panel">
+                <div class="ff-grid2">
+                  <div class="ff-field"><label>Nombre o razón social *</label><input id="npfClienteNombre" class="ff-input" placeholder="Ej: Empresa XYZ S.L."/></div>
+                  <div class="ff-field"><label>Nombre comercial</label><input id="npfClienteNombreComercial" class="ff-input" placeholder="Marca o nombre comercial"/></div>
+                </div>
+                <div class="ff-grid2">
+                  <div class="ff-field">
+                    <label>Tipo de cliente</label>
+                    <select id="npfClienteTipo" class="ff-select">
+                      <option value="empresa">Empresa / Autónomo</option>
+                      <option value="particular">Particular</option>
+                    </select>
+                  </div>
+                  <div class="ff-field">
+                    <label>Tipo de empresa</label>
+                    <select id="npfClienteTipoEmpresa" class="ff-select">
+                      <option value="">— Sin especificar —</option>
+                      <option value="sl">S.L. — Sociedad Limitada</option>
+                      <option value="sa">S.A. — Sociedad Anónima</option>
+                      <option value="autonomo">Autónomo</option>
+                      <option value="cooperativa">Cooperativa</option>
+                      <option value="asociacion">Asociación / ONG</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="ff-grid2">
+                  <div class="ff-field"><label>NIF / CIF / VAT <span id="npfNifNote" class="ff-note"></span></label><input id="npfClienteNif" class="ff-input" placeholder="Ej: B12345678"/></div>
+                  <div class="ff-field">
+                    <label>País</label>
+                    <select id="npfClientePais" class="ff-select">
+                      <option value="ES">España</option>
+                      <option value="DE">Alemania</option>
+                      <option value="FR">Francia</option>
+                      <option value="IT">Italia</option>
+                      <option value="PT">Portugal</option>
+                      <option value="NL">Países Bajos</option>
+                      <option value="BE">Bélgica</option>
+                      <option value="US">EE.UU.</option>
+                      <option value="GB">Reino Unido</option>
+                      <option value="MX">México</option>
+                      <option value="OTHER">Otro</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="ff-field"><label>Dirección fiscal</label><input id="npfClienteDireccion" class="ff-input" placeholder="Calle, número, CP, ciudad"/></div>
+                <div class="ff-grid3">
+                  <div class="ff-field"><label>Ciudad</label><input id="npfClienteCiudad" class="ff-input" placeholder="Ej: Madrid"/></div>
+                  <div class="ff-field"><label>Provincia</label><input id="npfClienteProvincia" class="ff-input" placeholder="Ej: Madrid"/></div>
+                  <div class="ff-field"><label>Código postal</label><input id="npfClienteCp" class="ff-input" placeholder="Ej: 28001"/></div>
+                </div>
+                <div class="ff-grid2">
+                  <div class="ff-field"><label>Email cliente</label><input type="email" id="npfClienteEmail" class="ff-input" placeholder="cliente@empresa.com"/></div>
+                  <div class="ff-field"><label>Teléfono</label><input type="text" id="npfClienteTel" class="ff-input" placeholder="+34 600 000 000"/></div>
+                </div>
+                <div style="margin-top:8px">
+                  <label style="flex-direction:row;align-items:center;gap:6px;cursor:pointer;display:flex">
+                    <input type="checkbox" id="npfGuardarCliente"/>
+                    <span style="font-size:12px;font-weight:500">Guardar cliente</span>
+                  </label>
+                </div>
               </div>
-              <div class="ff-field"><label>Email</label><input id="npfClienteEmail" class="ff-input" type="email" placeholder="cliente@empresa.com"/></div>
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--t2);margin-top:8px">
-                <input type="checkbox" id="npfGuardarCliente"/>
-                <span>Guardar este cliente en mi lista</span>
-              </label>
-            </div>
-
-            <!-- DATOS -->
-            <div class="form-block">
-              <div class="fb-title">Datos de la proforma</div>
-              <div class="ff-field"><label>Concepto *</label><input id="npfConcepto" class="ff-input" placeholder="Descripción del servicio o producto"/></div>
-              <div class="ff-grid2">
-                <div class="ff-field"><label>Fecha *</label><input type="date" id="npfFecha" class="ff-input"/></div>
-                <div class="ff-field"><label>Válida hasta</label><input type="date" id="npfValidez" class="ff-input"/></div>
-              </div>
-              <div class="ff-field"><label>Estado</label>
-                <select id="npfEstado" class="ff-select">
-                  <option value="borrador">Borrador</option>
-                  <option value="enviada">Enviada</option>
-                  <option value="confirmada">Confirmada</option>
-                  <option value="rechazada">Rechazada</option>
-                </select>
-              </div>
-              <div class="ff-field"><label>Notas / Condiciones</label>
-                <textarea id="npfNotas" class="ff-input ff-textarea" placeholder="Condiciones de pago, plazos de entrega…"></textarea>
-              </div>
-              <!-- número en edición (oculto visualmente) -->
-              <span id="npfNumeroDisplay" style="display:none"></span>
             </div>
 
             <!-- LÍNEAS -->
@@ -1432,7 +1495,6 @@
               </button>
             </div>
           </div>
-
         </div>
       </div>
 
