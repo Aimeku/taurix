@@ -581,18 +581,34 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   let descuentoTotalDoc = 0;
 
   lineas.forEach((l, ri) => {
-    const qty          = l.cantidad || 1;
-    const precio       = l.precio || 0;
+    const qty           = l.cantidad || 1;
+    const precio        = l.precio || 0;
     const subtotalBruto = qty * precio;
-    const descAmt      = _parseDescuento(l.descuento, subtotalBruto);
-    const subtotal     = Math.max(0, subtotalBruto - descAmt);
+    const descAmt       = _parseDescuento(l.descuento, subtotalBruto);
+    const subtotal      = Math.max(0, subtotalBruto - descAmt);
 
     descuentoTotalDoc += descAmt;
     baseTotal += subtotal;
     const ivaAmt = subtotal * (l.iva || 0) / 100;
     ivaMap[l.iva] = (ivaMap[l.iva] || 0) + ivaAmt;
 
-    const rH = 8;
+    // ── Calcular líneas de descripción respetando saltos de línea manuales ──
+    const descIdx    = activeCols.findIndex(c => c.key === "descripcion");
+    const descColW   = descIdx !== -1 ? colWidths[descIdx] - 2 : 60;
+    const rawDesc    = l.descripcion || "—";
+    // Dividir por 
+ primero, luego por ancho de columna
+    const descWrapped = rawDesc.split(/
+?
+/).flatMap(line =>
+      doc.splitTextToSize(line || " ", descColW)
+    );
+    const LINE_H = 4.5;
+    const rH     = Math.max(8, descWrapped.length * LINE_H + 3.5);
+
+    // Salto de página si no cabe
+    if (y + rH > PH - 30) { doc.addPage(); y = 20; }
+
     // Fondo alternado
     if (ri % 2 === 0) {
       doc.setFillColor(...colores.fdoTab);
@@ -608,12 +624,19 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.setFontSize(tamF);
     doc.setTextColor(...colores.letra);
 
+    // Centrado vertical para celdas de una sola línea
+    const singleLineY = y + rH / 2 + tamF * 0.35;
+
     activeCols.forEach((col, i) => {
       let val = "";
       const isRight = col.key !== "descripcion";
 
       switch (col.key) {
-        case "descripcion":  val = (l.descripcion || "—").substring(0, 50); break;
+        case "descripcion":
+          // Renderizar todas las líneas con wrap + saltos manuales
+          doc.text(descWrapped, colX[i] + PAD / 2, y + LINE_H, { lineHeightFactor: 1.3 });
+          if (col.key === "total") doc.setFont(font, "normal");
+          return; // ya pintado, saltar el doc.text genérico
         case "cantidad":     val = String(qty); break;
         case "precio":       val = precio.toFixed(2) + " €"; break;
         case "subtotal":     val = subtotal.toFixed(2) + " €"; break;
@@ -634,13 +657,12 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
       const xPos = isRight
         ? colX[i] + colWidths[i] - 1
         : colX[i] + PAD / 2;
-      const dl = doc.splitTextToSize(val, colWidths[i] - 2);
-      doc.text(dl[0], xPos, y + 5.2, { align: isRight ? "right" : "left" });
+      // Columnas no-descripcion: texto centrado verticalmente en la fila
+      doc.text(String(val), xPos, singleLineY, { align: isRight ? "right" : "left" });
       if (col.key === "total") doc.setFont(font, "normal");
     });
 
     y += rH;
-    if (y > PH - 70) { doc.addPage(); y = 20; }
   });
 
   // Línea de cierre tabla
@@ -704,11 +726,18 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   const notas = docData.notas;
   if (notas && y < PH - 50) {
     const LIGHT = colores.fdoTab;
+    // Respetar saltos de línea manuales (
+): dividir primero por 
+, luego splitTextToSize por ancho
+    const notasLines = notas.split(/
+?
+/).flatMap(line =>
+      doc.splitTextToSize(line || " ", W - 10)
+    );
+    const nh = notasLines.length * 4.5 + 13;
     doc.setFillColor(...LIGHT);
     doc.setDrawColor(...BORDER);
     doc.setLineWidth(0.3);
-    const nl = doc.splitTextToSize(notas, W - 10);
-    const nh = nl.length * 4.5 + 13;
     doc.roundedRect(ML, y, W, nh, 1.5, 1.5, "FD");
     doc.setFont(font, "bold");
     doc.setFontSize(7.5);
@@ -717,7 +746,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.setFont(font, "normal");
     doc.setFontSize(tamF);
     doc.setTextColor(...colores.letra);
-    doc.text(nl, ML + PAD, y + 11.5);
+    doc.text(notasLines, ML + PAD, y + 11.5, { lineHeightFactor: 1.4 });
     y += nh + 6;
   }
 
