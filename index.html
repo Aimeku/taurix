@@ -1898,13 +1898,20 @@
             <div class="form-block">
               <div class="fb-title">Tipo de operación</div>
               <div class="op-type-grid" id="npOpTypeGrid">
-                <button class="op-type-btn np-op-btn active" data-op="nacional"><span class="op-flag">🇪🇸</span><span class="op-lbl">Nacional</span></button>
-                <button class="op-type-btn np-op-btn" data-op="intracomunitaria"><span class="op-flag">🇪🇺</span><span class="op-lbl">Intracomunitaria</span></button>
-                <button class="op-type-btn np-op-btn" data-op="exportacion"><span class="op-flag">🌍</span><span class="op-lbl">Exportación</span></button>
-                <button class="op-type-btn np-op-btn" data-op="importacion"><span class="op-flag">📦</span><span class="op-lbl">Importación</span></button>
-                <button class="op-type-btn np-op-btn" data-op="inversion_sujeto_pasivo"><span class="op-flag">🔄</span><span class="op-lbl">Inv. S. Pasivo</span></button>
+                <button class="op-type-btn np-op-btn active" data-op="nacional"><span class="op-lbl">Nacional</span></button>
+                <button class="op-type-btn np-op-btn" data-op="intracomunitaria"><span class="op-lbl">Intracomunitaria</span></button>
+                <button class="op-type-btn np-op-btn" data-op="exportacion"><span class="op-lbl">Exportación</span></button>
+                <button class="op-type-btn np-op-btn" data-op="importacion"><span class="op-lbl">Importación</span></button>
+                <button class="op-type-btn np-op-btn" data-op="inversion_sujeto_pasivo"><span class="op-lbl">Inv. S. Pasivo</span></button>
+                <button class="op-type-btn np-op-btn" data-op="exento"><span class="op-lbl">Exento</span></button>
               </div>
               <div class="op-info-banner" id="npOpInfoBanner"></div>
+              <div id="npExencionWrap" style="display:none;margin-top:8px">
+                <div class="ff-field">
+                  <label>Motivo de exención <span style="font-weight:400;color:var(--t3)">(opcional)</span></label>
+                  <input type="text" id="npMotivoExencion" class="ff-input" placeholder="Ej: Art. 20 LIVA — exención educativa"/>
+                </div>
+              </div>
             </div>
 
             <!-- CLIENTE -->
@@ -2006,7 +2013,7 @@
               <div id="npLineasContainer"></div>
               <div class="lineas-totales">
                 <div class="lt-row"><span>Base imponible</span><strong id="npBase">0,00 €</strong></div>
-                <div class="lt-row"><span>IVA</span><strong id="npIva">0,00 €</strong></div>
+                <div class="lt-row" id="npIvaRow"><span>IVA</span><strong id="npIva">0,00 €</strong></div>
                 <div class="lt-row lt-total"><span>TOTAL</span><strong id="npTotal">0,00 €</strong></div>
               </div>
             </div>
@@ -2118,13 +2125,20 @@
             <div class="form-block">
               <div class="fb-title">Tipo de operación</div>
               <div class="op-type-grid" id="opTypeGrid">
-                <button class="op-type-btn active" data-op="nacional"><span class="op-flag">🇪🇸</span><span class="op-lbl">Nacional</span></button>
-                <button class="op-type-btn" data-op="intracomunitaria"><span class="op-flag">🇪🇺</span><span class="op-lbl">Intracomunitaria</span></button>
-                <button class="op-type-btn" data-op="exportacion"><span class="op-flag">🌍</span><span class="op-lbl">Exportación</span></button>
-                <button class="op-type-btn" data-op="importacion"><span class="op-flag">📦</span><span class="op-lbl">Importación</span></button>
-                <button class="op-type-btn" data-op="inversion_sujeto_pasivo"><span class="op-flag">🔄</span><span class="op-lbl">Inv. S. Pasivo</span></button>
+                <button class="op-type-btn active" data-op="nacional"><span class="op-lbl">Nacional</span></button>
+                <button class="op-type-btn" data-op="intracomunitaria"><span class="op-lbl">Intracomunitaria</span></button>
+                <button class="op-type-btn" data-op="exportacion"><span class="op-lbl">Exportación</span></button>
+                <button class="op-type-btn" data-op="importacion"><span class="op-lbl">Importación</span></button>
+                <button class="op-type-btn" data-op="inversion_sujeto_pasivo"><span class="op-lbl">Inv. S. Pasivo</span></button>
+                <button class="op-type-btn" data-op="exento"><span class="op-lbl">Exento</span></button>
               </div>
               <div class="op-info-banner" id="opInfoBanner"></div>
+              <div id="nfExencionWrap" style="display:none;margin-top:8px">
+                <div class="ff-field">
+                  <label>Motivo de exención <span style="font-weight:400;color:var(--t3)">(opcional)</span></label>
+                  <input type="text" id="nfMotivoExencion" class="ff-input" placeholder="Ej: Art. 20 LIVA — exención educativa"/>
+                </div>
+              </div>
             </div>
 
             <!-- DATOS GENERALES -->
