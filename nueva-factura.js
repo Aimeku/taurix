@@ -7,7 +7,7 @@ import { supabase } from "./supabase.js";
 import {
   SESSION, CLIENTES, fmt, fmtDate, toast,
   openModal, closeModal, isCerrado, switchView,
-  getYear, getTrim, OP_INFO
+  getYear, getTrim, OP_INFO, OP_SIN_IVA, OP_IVA_NO_REPERCUTIDO
 } from "./utils.js";
 import { emitirFacturaDB } from "./facturas.js";
 import { refreshClientes, populateClienteSelect } from "./clientes.js";
@@ -58,7 +58,10 @@ function getLineasTotales() {
   });
   const ivaTotal = Object.values(ivaMap).reduce((a,b) => a+b, 0);
   const irpfAmt = baseTotal * irpfPct / 100;
-  const total   = baseTotal + ivaTotal - irpfAmt;
+  // Para inversión del sujeto pasivo: el IVA no se repercute en el total
+  // Para exento e intracomunitaria/exportación: IVA ya es 0 en líneas
+  const ivaEnTotal = OP_IVA_NO_REPERCUTIDO.includes(opTipoActual) ? 0 : ivaTotal;
+  const total   = baseTotal + ivaEnTotal - irpfAmt;
   return { baseTotal, ivaMap, ivaTotal, irpfAmt, irpfPct, total };
 }
 
@@ -220,7 +223,7 @@ function _nfReapplyGridToAllRows() {
 
 function addLinea(prefill = {}) {
   const id = ++lineaIdCounter;
-  const sinIva = ["intracomunitaria","exportacion","inversion_sujeto_pasivo"].includes(opTipoActual);
+  const sinIva = OP_SIN_IVA.includes(opTipoActual);
   const linea = {
     id,
     descripcion: prefill.descripcion || "",
@@ -347,10 +350,13 @@ function updateTotalesUI() {
   if (el("ltIrpf"))    el("ltIrpf").textContent    = fmt(irpfAmt);
   if (el("ltIrpfLbl")) el("ltIrpfLbl").textContent = `IRPF (−${irpfPct}%)`;
   if (el("ltIvaRows")) {
-    el("ltIvaRows").innerHTML = Object.entries(ivaMap)
-      .filter(([,v])=>v>0).sort(([a],[b])=>b-a)
-      .map(([pct,amt])=>`<div class="lt-row"><span>IVA ${pct}%</span><strong>${fmt(amt)}</strong></div>`)
-      .join("");
+    const mostrarIvaRows = !OP_SIN_IVA.includes(opTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(opTipoActual);
+    el("ltIvaRows").innerHTML = mostrarIvaRows
+      ? Object.entries(ivaMap)
+          .filter(([,v])=>v>0).sort(([a],[b])=>b-a)
+          .map(([pct,amt])=>`<div class="lt-row"><span>IVA ${pct}%</span><strong>${fmt(amt)}</strong></div>`)
+          .join("")
+      : "";
   }
 }
 
@@ -425,14 +431,16 @@ function updateOpUI() {
   const banner    = document.getElementById("opInfoBanner");
   const pvOpNote  = document.getElementById("pvOpNote");
   const nifNote   = document.getElementById("nifNote");
+  const exencionWrap = document.getElementById("nfExencionWrap");
   if (banner)  { banner.textContent=OP_INFO[opTipoActual]||""; banner.classList.toggle("visible",!!OP_INFO[opTipoActual]); }
   if (nifNote) nifNote.textContent = opTipoActual==="intracomunitaria"?"(VAT número UE obligatorio)":"";
+  if (exencionWrap) exencionWrap.style.display = opTipoActual==="exento"?"":"none";
   if (pvOpNote) {
     const notes = {
-      intracomunitaria:     "Operación intracomunitaria — IVA 0% (Art. 25 LIVA).",
-      exportacion:          "Exportación exenta de IVA (Art. 21 LIVA).",
-      inversion_sujeto_pasivo: "Inversión del sujeto pasivo — IVA 0% (Art. 84 LIVA).",
-      importacion:          "Importación — IVA liquidado en aduana (DUA)."
+      intracomunitaria:        "Operación intracomunitaria exenta de IVA según Directiva 2006/112/CE.",
+      exportacion:             "Exportación exenta de IVA según art. 21 LIVA.",
+      inversion_sujeto_pasivo: "Operación con inversión del sujeto pasivo según art. 84.Uno.2º LIVA.",
+      importacion:             "Importación — IVA liquidado en aduana (DUA)."
     };
     pvOpNote.textContent     = notes[opTipoActual]||"";
     pvOpNote.style.display   = notes[opTipoActual]?"":"none";
@@ -449,7 +457,7 @@ function updatePreview() {
   const nif     = document.getElementById("nfNif")?.value     || "";
   const dir     = document.getElementById("nfDireccion")?.value || "";
   const notas   = document.getElementById("nfNotas")?.value   || "";
-  const ops     = {nacional:"Nacional",intracomunitaria:"Intracomunitaria",exportacion:"Exportación",importacion:"Importación",inversion_sujeto_pasivo:"Inv. Sujeto Pasivo"};
+  const ops     = {nacional:"Nacional",intracomunitaria:"Intracomunitaria",exportacion:"Exportación",importacion:"Importación",inversion_sujeto_pasivo:"Inv. Sujeto Pasivo",exento:"Exento"};
   const set     = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
 
   set("pvFecha",  fecha?fmtDate(fecha):"—");
@@ -483,10 +491,13 @@ function updatePreview() {
   if (pvIrpfRow) pvIrpfRow.style.display = irpfPct>0?"":"none";
   const pvIvaDesglose = document.getElementById("pvIvaDesglose");
   if (pvIvaDesglose) {
-    pvIvaDesglose.innerHTML = Object.entries(ivaMap)
-      .filter(([,v])=>v>0).sort(([a],[b])=>b-a)
-      .map(([pct,amt])=>`<div class="fpvt-row"><span>IVA ${pct}%</span><span>${fmt(amt)}</span></div>`)
-      .join("");
+    const mostrarIvaPreview = !OP_SIN_IVA.includes(opTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(opTipoActual);
+    pvIvaDesglose.innerHTML = mostrarIvaPreview
+      ? Object.entries(ivaMap)
+          .filter(([,v])=>v>0).sort(([a],[b])=>b-a)
+          .map(([pct,amt])=>`<div class="fpvt-row"><span>IVA ${pct}%</span><span>${fmt(amt)}</span></div>`)
+          .join("")
+      : "";
   }
   const pvNotas = document.getElementById("pvNotas");
   if (pvNotas) { pvNotas.innerHTML=notas.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\r?\n/g,"<br>"); pvNotas.style.display=notas?"":"none"; }
@@ -658,7 +669,14 @@ async function saveFactura() {
     tipo_cliente: tipoCliente, cliente_id: cId,
     cliente_nombre: resolvedNombre, cliente_nif: resolvedNif,
     cliente_direccion: resolvedDir,
-    cliente_pais: pais, notas,
+    cliente_pais: pais,
+    notas: (() => {
+      const motivoExencion = document.getElementById("nfMotivoExencion")?.value.trim();
+      if (opTipoActual === "exento" && motivoExencion) {
+        return notas ? notas + "\n\nMotivo de exención: " + motivoExencion : "Motivo de exención: " + motivoExencion;
+      }
+      return notas;
+    })(),
     lineas: JSON.stringify(LINEAS.map(l=>({
       descripcion: l.descripcion, cantidad: l.cantidad,
       precio: l.precio, iva: l.iva,
@@ -853,7 +871,7 @@ export function initNuevaFactura() {
       btn.classList.add("active");
       opTipoActual = btn.dataset.op;
       updateOpUI();
-      const sinIva = ["intracomunitaria","exportacion","inversion_sujeto_pasivo"].includes(opTipoActual);
+      const sinIva = OP_SIN_IVA.includes(opTipoActual);
       if (sinIva) {
         LINEAS.forEach(l=>{ l.iva=0; });
         document.querySelectorAll("#lineasContainer [data-field='iva']").forEach(sel=>{ sel.value="0"; sel.disabled=true; });
