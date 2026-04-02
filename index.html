@@ -1897,20 +1897,20 @@
 
             <!-- TIPO OPERACIÓN -->
             <div class="form-block">
-              <div class="fb-title">🌍 Tipo de operación</div>
+              <div class="fb-title">Tipo de operación</div>
               <div class="op-type-grid" id="npOpTypeGrid">
-                <button class="op-type-btn np-op-btn active" data-op="nacional"><span class="op-flag">🇪🇸</span><span class="op-lbl">Nacional</span></button>
-                <button class="op-type-btn np-op-btn" data-op="intracomunitaria"><span class="op-flag">🇪🇺</span><span class="op-lbl">Intracomunitaria</span></button>
-                <button class="op-type-btn np-op-btn" data-op="exportacion"><span class="op-flag">🌍</span><span class="op-lbl">Exportación</span></button>
-                <button class="op-type-btn np-op-btn" data-op="importacion"><span class="op-flag">📦</span><span class="op-lbl">Importación</span></button>
-                <button class="op-type-btn np-op-btn" data-op="inversion_sujeto_pasivo"><span class="op-flag">🔄</span><span class="op-lbl">Inv. S. Pasivo</span></button>
+                <button class="op-type-btn np-op-btn active" data-op="nacional"><span class="op-lbl">Nacional</span></button>
+                <button class="op-type-btn np-op-btn" data-op="intracomunitaria"><span class="op-lbl">Intracomunitaria</span></button>
+                <button class="op-type-btn np-op-btn" data-op="exportacion"><span class="op-lbl">Exportación</span></button>
+                <button class="op-type-btn np-op-btn" data-op="importacion"><span class="op-lbl">Importación</span></button>
+                <button class="op-type-btn np-op-btn" data-op="inversion_sujeto_pasivo"><span class="op-lbl">Inv. S. Pasivo</span></button>
               </div>
               <div class="op-info-banner" id="npOpInfoBanner"></div>
             </div>
 
             <!-- CLIENTE -->
             <div class="form-block">
-              <div class="fb-title">👤 Cliente</div>
+              <div class="fb-title">Cliente</div>
               <div class="cliente-search-wrap">
                 <div class="csc-input-wrap">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1926,13 +1926,13 @@
               <div class="ff-field"><label>Dirección</label><input id="npClienteDir" class="ff-input" placeholder="Calle, número, CP, ciudad"/></div>
               <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--t2);margin-top:8px">
                 <input type="checkbox" id="npGuardarCliente"/>
-                <span>💾 Guardar este cliente en mi lista</span>
+                <span>Guardar este cliente en mi lista</span>
               </label>
             </div>
 
             <!-- DATOS -->
             <div class="form-block">
-              <div class="fb-title">📋 Datos del presupuesto</div>
+              <div class="fb-title">Datos del presupuesto</div>
               <div class="ff-field"><label>Concepto / Asunto *</label><input id="npConcepto" class="ff-input" placeholder="Desarrollo web corporativo"/></div>
               <div class="ff-grid2">
                 <div class="ff-field"><label>Fecha *</label><input type="date" id="npFecha" class="ff-input"/></div>
@@ -1946,7 +1946,7 @@
             <!-- LÍNEAS -->
             <div class="form-block">
               <div class="fb-title-row">
-                <div class="fb-title">📝 Líneas del presupuesto</div>
+                <div class="fb-title">Líneas del presupuesto</div>
                 <button id="npAddLineaBtn" class="btn-add-linea">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   Añadir línea
@@ -2005,15 +2005,15 @@
         </div>
         <div class="filter-bar">
           <input type="text" id="facturasSearch" class="search-input" placeholder="Buscar concepto, cliente, número…" style="min-width:220px"/>
-          <select id="filterTipo" class="filter-sel"><option value="">Todas</option><option value="emitida">📤 Emitidas</option><option value="recibida">📥 Recibidas</option></select>
+          <select id="filterTipo" class="filter-sel"><option value="">Todas</option><option value="emitida">Emitidas</option><option value="recibida">Recibidas</option></select>
           <select id="filterEstado" class="filter-sel"><option value="">Todos los estados</option><option value="borrador">Borrador</option><option value="emitida">Emitida</option></select>
           <select id="filterOp" class="filter-sel">
             <option value="">Todas las operaciones</option>
-            <option value="nacional">🇪🇸 Nacional</option>
-            <option value="intracomunitaria">🇪🇺 Intracomunitaria</option>
-            <option value="exportacion">🌍 Exportación</option>
-            <option value="importacion">📦 Importación</option>
-            <option value="inversion_sujeto_pasivo">🔄 Inv. sujeto pasivo</option>
+            <option value="nacional">Nacional</option>
+            <option value="intracomunitaria">Intracomunitaria</option>
+            <option value="exportacion">Exportación</option>
+            <option value="importacion">Importación</option>
+            <option value="inversion_sujeto_pasivo">Inv. sujeto pasivo</option>
           </select>
         </div>
         <div class="filter-bar filter-bar--secondary">
@@ -2071,11 +2071,11 @@
             <div class="form-block">
               <div class="fb-title">Tipo de operación</div>
               <div class="op-type-grid" id="opTypeGrid">
-                <button class="op-type-btn active" data-op="nacional"><span class="op-flag">🇪🇸</span><span class="op-lbl">Nacional</span></button>
-                <button class="op-type-btn" data-op="intracomunitaria"><span class="op-flag">🇪🇺</span><span class="op-lbl">Intracomunitaria</span></button>
-                <button class="op-type-btn" data-op="exportacion"><span class="op-flag">🌍</span><span class="op-lbl">Exportación</span></button>
-                <button class="op-type-btn" data-op="importacion"><span class="op-flag">📦</span><span class="op-lbl">Importación</span></button>
-                <button class="op-type-btn" data-op="inversion_sujeto_pasivo"><span class="op-flag">🔄</span><span class="op-lbl">Inv. S. Pasivo</span></button>
+                <button class="op-type-btn active" data-op="nacional"><span class="op-lbl">Nacional</span></button>
+                <button class="op-type-btn" data-op="intracomunitaria"><span class="op-lbl">Intracomunitaria</span></button>
+                <button class="op-type-btn" data-op="exportacion"><span class="op-lbl">Exportación</span></button>
+                <button class="op-type-btn" data-op="importacion"><span class="op-lbl">Importación</span></button>
+                <button class="op-type-btn" data-op="inversion_sujeto_pasivo"><span class="op-lbl">Inv. S. Pasivo</span></button>
               </div>
               <div class="op-info-banner" id="opInfoBanner"></div>
             </div>
@@ -2087,8 +2087,8 @@
                 <div class="ff-field">
                   <label>Tipo</label>
                   <select id="nfTipo" class="ff-select">
-                    <option value="emitida">📤 Emitida (ingreso)</option>
-                    <option value="recibida">📥 Recibida (gasto)</option>
+                    <option value="emitida">Emitida (ingreso)</option>
+                    <option value="recibida">Recibida (gasto)</option>
                   </select>
                 </div>
                 <div class="ff-field">
@@ -2164,17 +2164,17 @@
                   <div class="ff-field">
                     <label>País</label>
                     <select id="nfPais" class="ff-select">
-                      <option value="ES">🇪🇸 España</option>
-                      <option value="DE">🇩🇪 Alemania</option>
-                      <option value="FR">🇫🇷 Francia</option>
-                      <option value="IT">🇮🇹 Italia</option>
-                      <option value="PT">🇵🇹 Portugal</option>
-                      <option value="NL">🇳🇱 Países Bajos</option>
-                      <option value="BE">🇧🇪 Bélgica</option>
-                      <option value="US">🇺🇸 EE.UU.</option>
-                      <option value="GB">🇬🇧 Reino Unido</option>
-                      <option value="MX">🇲🇽 México</option>
-                      <option value="OTHER">🌍 Otro</option>
+                      <option value="ES">España</option>
+                      <option value="DE">Alemania</option>
+                      <option value="FR">Francia</option>
+                      <option value="IT">Italia</option>
+                      <option value="PT">Portugal</option>
+                      <option value="NL">Países Bajos</option>
+                      <option value="BE">Bélgica</option>
+                      <option value="US">EE.UU.</option>
+                      <option value="GB">Reino Unido</option>
+                      <option value="MX">México</option>
+                      <option value="OTHER">Otro</option>
                     </select>
                   </div>
                   <div class="ff-field" style="justify-content:flex-end;padding-top:18px">
@@ -2267,7 +2267,7 @@
                 <div class="fpv-cliente-name" id="pvCliente">—</div>
                 <div class="fpv-cliente-nif" id="pvNif">—</div>
                 <div class="fpv-cliente-nif" id="pvClienteDir" style="font-size:11px;color:var(--t3);margin-top:2px"></div>
-                <div class="fpv-op-badge" id="pvOp">🇪🇸 Nacional</div>
+                <div class="fpv-op-badge" id="pvOp">Nacional</div>
               </div>
               <div class="fpv-divider"></div>
               <div class="fpv-lineas-wrap">
