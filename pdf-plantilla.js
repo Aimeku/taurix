@@ -723,9 +723,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   const notas = docData.notas;
   if (notas && y < PH - 50) {
     const LIGHT = colores.fdoTab;
-    // Respetar saltos de línea manuales (
-): dividir primero por 
-, luego splitTextToSize por ancho
+    // Respetar saltos de linea manuales: dividir por \n primero, luego splitTextToSize por ancho
     const notasLines = notas.split(/\r?\n/).flatMap(line =>
       doc.splitTextToSize(line || " ", W - 10)
     );
