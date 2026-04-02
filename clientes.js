@@ -41,7 +41,6 @@ export function renderClientesTable(list) {
       <td class="mono fw7">—</td>
       <td>
         <div class="tbl-act">
-          <button class="ta-btn" onclick="window._verCliente('${c.id}')" title="Ver historial">📊</button>
           <button class="ta-btn" onclick="window._editCliente('${c.id}')">✏️</button>
           <button class="ta-btn ta-del" onclick="window._delCliente('${c.id}')">🗑️</button>
         </div>
