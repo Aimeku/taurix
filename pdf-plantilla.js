@@ -14,7 +14,7 @@
    ═══════════════════════════════════════════════════════ */
 
 import { supabase } from "./supabase.js";
-import { SESSION, toast, fmt } from "./utils.js";
+import { SESSION, toast, fmt, OP_INFO } from "./utils.js";
 
 /* ── Cargar jsPDF si no está disponible ── */
 async function _loadJsPDF() {
@@ -802,8 +802,9 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.setFontSize(7);
     doc.setTextColor(...MUTED);
 
-    const pieIzq = tipo === "factura"
-      ? ({ nacional:"Operación sujeta a IVA español · Ley 37/1992.", intracomunitaria:"Operación intracomunitaria exenta de IVA · Directiva 2006/112/CE.", exportacion:"Exportación exenta de IVA · Art. 21 LIVA.", importacion:"IVA liquidado en aduana mediante DUA.", inversion_sujeto_pasivo:"Operación con inversión del sujeto pasivo · Art. 84.Uno.2º LIVA.", exento:"Operación exenta de IVA." }[docData.tipo_operacion] || "")
+    const notaOperacion = OP_INFO[docData.tipo_operacion || ""] || "";
+    const pieIzq = (tipo === "factura" || tipo === "presupuesto")
+      ? notaOperacion
       : tipo === "albaran"
       ? "Albarán de entrega · Este documento no tiene validez fiscal · No sustituye a la factura."
       : tipo === "proforma"
