@@ -309,8 +309,19 @@ function _initClienteSearch(){
       e.preventDefault();
       const c=CLIENTES.find(x=>x.id===item.dataset.id); if(!c)return;
       clienteSelId=c.id; inp.value=c.nombre; if(lmp)lmp.style.display="";
-      const f=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
-      f("npfClienteNombre",c.nombre);f("npfClienteNif",c.nif||"");f("npfClienteEmail",c.email||"");
+      const f=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||"";};
+      f("npfClienteNombre",c.nombre);
+      f("npfClienteNif",c.nif);
+      f("npfClienteEmail",c.email);
+      f("npfClienteTel",c.telefono);
+      f("npfClienteDireccion",c.direccion);
+      f("npfClienteCiudad",c.ciudad);
+      f("npfClienteProvincia",c.provincia);
+      f("npfClienteCp",c.codigo_postal);
+      f("npfClienteNombreComercial",c.nombre_comercial);
+      if(c.pais){const ps=document.getElementById("npfClientePais");if(ps)ps.value=c.pais;}
+      if(c.tipo){const tp=document.getElementById("npfClienteTipo");if(tp)tp.value=c.tipo;}
+      document.getElementById("npfClientePanel")?.classList.add("cliente-panel--filled");
       dd.style.display="none";
     }));
     dd.style.display="";
@@ -318,7 +329,13 @@ function _initClienteSearch(){
   inp.addEventListener("blur",()=>setTimeout(()=>{dd.style.display="none";},200));
   lmp?.addEventListener("click",()=>{
     clienteSelId=null;inp.value="";lmp.style.display="none";
-    ["npfClienteNombre","npfClienteNif","npfClienteEmail"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+    ["npfClienteNombre","npfClienteNif","npfClienteEmail","npfClienteTel",
+     "npfClienteDireccion","npfClienteCiudad","npfClienteProvincia","npfClienteCp","npfClienteNombreComercial"].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.value="";
+    });
+    const ps=document.getElementById("npfClientePais");if(ps)ps.value="ES";
+    const tp=document.getElementById("npfClienteTipo");if(tp)tp.value="empresa";
+    document.getElementById("npfClientePanel")?.classList.remove("cliente-panel--filled");
   });
 }
 
@@ -352,9 +369,18 @@ async function _save(){
   if(!cId&&document.getElementById("npfGuardarCliente")?.checked){
     const nombre=document.getElementById("npfClienteNombre")?.value.trim();
     if(nombre){
-      const{data:nc}=await supabase.from("clientes").insert({user_id:SESSION.user.id,nombre,
+      const{data:nc}=await supabase.from("clientes").insert({
+        user_id:SESSION.user.id, nombre,
         nif:document.getElementById("npfClienteNif")?.value.trim()||null,
-        email:document.getElementById("npfClienteEmail")?.value.trim()||null
+        email:document.getElementById("npfClienteEmail")?.value.trim()||null,
+        telefono:document.getElementById("npfClienteTel")?.value.trim()||null,
+        direccion:document.getElementById("npfClienteDireccion")?.value.trim()||null,
+        ciudad:document.getElementById("npfClienteCiudad")?.value.trim()||null,
+        provincia:document.getElementById("npfClienteProvincia")?.value.trim()||null,
+        codigo_postal:document.getElementById("npfClienteCp")?.value.trim()||null,
+        nombre_comercial:document.getElementById("npfClienteNombreComercial")?.value.trim()||null,
+        pais:document.getElementById("npfClientePais")?.value||"ES",
+        tipo:document.getElementById("npfClienteTipo")?.value||"empresa",
       }).select().single();
       if(nc)cId=nc.id;
     }
@@ -372,9 +398,10 @@ async function _save(){
     cliente_nombre:document.getElementById("npfClienteNombre")?.value.trim()||null,
     cliente_nif:document.getElementById("npfClienteNif")?.value.trim()||null,
     cliente_email:document.getElementById("npfClienteEmail")?.value.trim()||null,
+    cliente_direccion:document.getElementById("npfClienteDireccion")?.value.trim()||null,
+    cliente_pais:document.getElementById("npfClientePais")?.value||"ES",
     base,iva:ivaMain,
     tipo_operacion: opTipo,
-    plantilla_id:document.getElementById("npfPlantillaSel")?.value||null,
     lineas:JSON.stringify(LINEAS.map(l=>({descripcion:l.descripcion,cantidad:l.cantidad,precio:l.precio,
       iva:l.iva,descuento:l.descuento??"",codigo:l.codigo??"",coeficiente:l.coeficiente??""}))),
     notas: (() => {
@@ -411,6 +438,8 @@ export async function cargarProformaParaEditar(id){
   f("npfConcepto",p.concepto);f("npfFecha",p.fecha);f("npfValidez",p.fecha_validez||"");
   f("npfEstado",p.estado||"borrador");f("npfClienteNombre",p.cliente_nombre||"");
   f("npfClienteNif",p.cliente_nif||"");f("npfClienteEmail",p.cliente_email||"");
+  f("npfClienteDireccion",p.cliente_direccion||"");
+  if(p.cliente_pais){const ps=document.getElementById("npfClientePais");if(ps)ps.value=p.cliente_pais;}
   f("npfNotas",p.notas||"");
   // Restaurar tipo de operación
   opTipo = p.tipo_operacion || "nacional";
@@ -418,7 +447,7 @@ export async function cargarProformaParaEditar(id){
     b.classList.toggle("active", b.dataset.op === opTipo);
   });
   _updateOpUI();
-  const sel=document.getElementById("npfPlantillaSel"); if(sel&&p.plantilla_id)sel.value=p.plantilla_id;
+  const sel=document.getElementById("npfPlantillaSel"); if(sel)sel.value="";
   const lineas=p.lineas?(typeof p.lineas==="string"?JSON.parse(p.lineas):p.lineas):[];
   lineas.forEach(l=>_addLinea(l)); _calcTotales();
   switchView("nueva-proforma");
@@ -429,9 +458,14 @@ function _resetForm(clearEditing=true){
   if(clearEditing)editandoId=null;
   clienteSelId=null; LINEAS=[]; lineaIdCnt=0;
   const c=document.getElementById("npfLineasContainer"); if(c)c.innerHTML="";
-  ["npfClienteNombre","npfClienteNif","npfClienteEmail","npfConcepto","npfValidez","npfNotas"].forEach(id=>{
+  ["npfClienteNombre","npfClienteNif","npfClienteEmail","npfClienteTel","npfClienteDireccion",
+   "npfClienteCiudad","npfClienteProvincia","npfClienteCp","npfClienteNombreComercial",
+   "npfConcepto","npfValidez","npfNotas","npfMotivoExencion"].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value="";
   });
+  const ps=document.getElementById("npfClientePais");if(ps)ps.value="ES";
+  const tp=document.getElementById("npfClienteTipo");if(tp)tp.value="empresa";
+  document.getElementById("npfClientePanel")?.classList.remove("cliente-panel--filled");
   const fe=document.getElementById("npfFecha");if(fe)fe.value=new Date().toISOString().slice(0,10);
   const ee=document.getElementById("npfEstado");if(ee)ee.value="borrador";
   const ci=document.getElementById("npfClienteSearch");if(ci)ci.value="";
