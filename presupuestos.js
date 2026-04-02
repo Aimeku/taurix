@@ -1007,7 +1007,7 @@ async function convertirAFactura(presId) {
       cliente_nombre:     p.cliente_nombre,
       base:               p.base,
       iva:                p.iva,
-      tipo_operacion:     "nacional",
+      tipo_operacion:     p.tipo_operacion || "nacional",
       notas:              notasPres,
       presupuesto_origen: p.id,
     }).select().single();
@@ -1239,7 +1239,7 @@ async function albaranAFactura(presId) {
       cliente_nombre:     p.cliente_nombre,
       base:               p.base,
       iva:                p.iva,
-      tipo_operacion:     "nacional",
+      tipo_operacion:     p.tipo_operacion || "nacional",
       notas:              notasFactura,
       presupuesto_origen: p.id,
     }).select().single();
