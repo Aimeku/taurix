@@ -477,7 +477,7 @@ function updatePreview() {
       .join("");
   }
   const pvNotas = document.getElementById("pvNotas");
-  if (pvNotas) { pvNotas.textContent=notas; pvNotas.style.display=notas?"":"none"; }
+  if (pvNotas) { pvNotas.innerHTML=notas.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\r?\n/g,"<br>"); pvNotas.style.display=notas?"":"none"; }
 }
 
 /* ══════════════════════════
