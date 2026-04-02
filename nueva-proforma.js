@@ -479,34 +479,40 @@ function _resetForm(clearEditing=true){
 /* ══════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════ */
+let _initDone = false;
+
 export function initNuevaProforma(){
   const fe=document.getElementById("npfFecha");
   if(fe&&!fe.value)fe.value=new Date().toISOString().slice(0,10);
-  _initClienteSearch();
-  _initPlantillaSel();
-  document.getElementById("npfAddLineaBtn")?.addEventListener("click",()=>_addLinea());
-  document.getElementById("npfGuardarBtn")?.addEventListener("click",()=>_save());
-  document.getElementById("npfCancelarBtn")?.addEventListener("click",()=>{_resetForm();switchView("proformas");});
 
-  // Tipo de operación
-  document.querySelectorAll(".npf-op-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".npf-op-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      opTipo = btn.dataset.op;
-      _updateOpUI();
-      const sinIva = OP_SIN_IVA.includes(opTipo);
-      if (sinIva) {
-        LINEAS.forEach(l => { l.iva = 0; });
-        document.querySelectorAll("#npfLineasContainer [data-field='iva']").forEach(sel => { sel.value = "0"; sel.disabled = true; });
-      } else {
-        document.querySelectorAll("#npfLineasContainer [data-field='iva']").forEach(sel => { sel.disabled = false; });
-      }
-      _calcTotales();
+  if(!_initDone){
+    _initDone = true;
+    _initClienteSearch();
+    _initPlantillaSel();
+    document.getElementById("npfAddLineaBtn")?.addEventListener("click",()=>_addLinea());
+    document.getElementById("npfGuardarBtn")?.addEventListener("click",()=>_save());
+    document.getElementById("npfCancelarBtn")?.addEventListener("click",()=>{_resetForm();switchView("proformas");});
+
+    // Tipo de operación
+    document.querySelectorAll(".npf-op-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".npf-op-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        opTipo = btn.dataset.op;
+        _updateOpUI();
+        const sinIva = OP_SIN_IVA.includes(opTipo);
+        if (sinIva) {
+          LINEAS.forEach(l => { l.iva = 0; });
+          document.querySelectorAll("#npfLineasContainer [data-field='iva']").forEach(sel => { sel.value = "0"; sel.disabled = true; });
+        } else {
+          document.querySelectorAll("#npfLineasContainer [data-field='iva']").forEach(sel => { sel.disabled = false; });
+        }
+        _calcTotales();
+      });
     });
-  });
-  _updateOpUI();
+  }
 
+  _updateOpUI();
   if(LINEAS.length===0)_addLinea();
   _applyHeader(); _calcTotales();
 }
