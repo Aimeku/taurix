@@ -689,7 +689,12 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     y += 4;
   } else {
   const irpfAmt     = baseTotal * (docData.irpf_retencion || 0) / 100;
-  const totalFinal  = baseTotal + ivaTotal - irpfAmt;
+  // Para inversión del sujeto pasivo el IVA no se repercute en el total
+  const _opIvaNoRepercutido = (docData.tipo_operacion === "inversion_sujeto_pasivo");
+  // Para exento, intracomunitaria y exportación el IVA ya es 0 en líneas; no mostrar fila
+  const _opSinIvaFila = ["exento","intracomunitaria","exportacion"].includes(docData.tipo_operacion || "");
+  const ivaEnTotal  = _opIvaNoRepercutido ? 0 : ivaTotal;
+  const totalFinal  = baseTotal + ivaEnTotal - irpfAmt;
 
   const xTL = PW - MR - 80;
   const xTV = PW - MR;
@@ -710,9 +715,16 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     _totRow("Descuentos", "- " + descuentoTotalDoc.toFixed(2) + " €", [200, 50, 50]);
   }
 
-  Object.entries(ivaMap).filter(([, v]) => v > 0).sort(([a], [b]) => Number(b) - Number(a)).forEach(([pct, amt]) => {
-    _totRow("IVA " + pct + "%", amt.toFixed(2) + " €");
-  });
+  if (!_opSinIvaFila && !_opIvaNoRepercutido) {
+    Object.entries(ivaMap).filter(([, v]) => v > 0).sort(([a], [b]) => Number(b) - Number(a)).forEach(([pct, amt]) => {
+      _totRow("IVA " + pct + "%", amt.toFixed(2) + " €");
+    });
+  } else if (_opIvaNoRepercutido) {
+    // Mostrar IVA indicando que no se repercute
+    Object.entries(ivaMap).filter(([, v]) => v > 0).sort(([a], [b]) => Number(b) - Number(a)).forEach(([pct, amt]) => {
+      _totRow("IVA " + pct + "% (no repercutido)", amt.toFixed(2) + " €", MUTED);
+    });
+  }
 
   if (docData.irpf_retencion > 0) {
     _totRow("IRPF " + docData.irpf_retencion + "%", "- " + irpfAmt.toFixed(2) + " €", [185, 28, 28]);
@@ -791,7 +803,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.setTextColor(...MUTED);
 
     const pieIzq = tipo === "factura"
-      ? ({ nacional:"Operación sujeta a IVA español · Ley 37/1992.", intracomunitaria:"Op. intracomunitaria exenta IVA · Art. 25 LIVA.", exportacion:"Exportación exenta de IVA · Art. 21 LIVA.", importacion:"IVA liquidado en aduana mediante DUA.", inversion_sujeto_pasivo:"Inversión sujeto pasivo · Art. 84 LIVA." }[docData.tipo_operacion] || "")
+      ? ({ nacional:"Operación sujeta a IVA español · Ley 37/1992.", intracomunitaria:"Operación intracomunitaria exenta de IVA · Directiva 2006/112/CE.", exportacion:"Exportación exenta de IVA · Art. 21 LIVA.", importacion:"IVA liquidado en aduana mediante DUA.", inversion_sujeto_pasivo:"Operación con inversión del sujeto pasivo · Art. 84.Uno.2º LIVA.", exento:"Operación exenta de IVA." }[docData.tipo_operacion] || "")
       : tipo === "albaran"
       ? "Albarán de entrega · Este documento no tiene validez fiscal · No sustituye a la factura."
       : tipo === "proforma"
