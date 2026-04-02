@@ -1341,6 +1341,26 @@
               <span><strong>Documento sin valor fiscal.</strong> Se usa para que el cliente confirme el pedido antes de emitir la factura definitiva.</span>
             </div>
 
+            <!-- TIPO OPERACIÓN -->
+            <div class="form-block">
+              <div class="fb-title">Tipo de operación</div>
+              <div class="op-type-grid" id="npfOpTypeGrid">
+                <button class="op-type-btn npf-op-btn active" data-op="nacional"><span class="op-flag">🇪🇸</span><span class="op-lbl">Nacional</span></button>
+                <button class="op-type-btn npf-op-btn" data-op="intracomunitaria"><span class="op-flag">🇪🇺</span><span class="op-lbl">Intracomunitaria</span></button>
+                <button class="op-type-btn npf-op-btn" data-op="exportacion"><span class="op-flag">🌍</span><span class="op-lbl">Exportación</span></button>
+                <button class="op-type-btn npf-op-btn" data-op="importacion"><span class="op-flag">📦</span><span class="op-lbl">Importación</span></button>
+                <button class="op-type-btn npf-op-btn" data-op="inversion_sujeto_pasivo"><span class="op-flag">🔄</span><span class="op-lbl">Inv. S. Pasivo</span></button>
+                <button class="op-type-btn npf-op-btn" data-op="exento"><span class="op-flag">🚫</span><span class="op-lbl">Exento</span></button>
+              </div>
+              <div class="op-info-banner" id="npfOpBanner"></div>
+              <div id="npfExencionWrap" style="display:none;margin-top:8px">
+                <div class="ff-field">
+                  <label>Motivo de exención <span style="font-weight:400;color:var(--t3)">(opcional)</span></label>
+                  <input type="text" id="npfMotivoExencion" class="ff-input" placeholder="Ej: Art. 20 LIVA — exención educativa"/>
+                </div>
+              </div>
+            </div>
+
             <!-- CLIENTE -->
             <div class="form-block">
               <div class="fb-title">Cliente</div>
@@ -1354,7 +1374,7 @@
               </div>
               <div class="ff-grid2">
                 <div class="ff-field"><label>Nombre / Razón social</label><input id="npfClienteNombre" class="ff-input" placeholder="Nombre del cliente"/></div>
-                <div class="ff-field"><label>NIF / CIF</label><input id="npfClienteNif" class="ff-input" placeholder="B12345678"/></div>
+                <div class="ff-field"><label>NIF / CIF <span id="npfNifNote" class="ff-note"></span></label><input id="npfClienteNif" class="ff-input" placeholder="B12345678"/></div>
               </div>
               <div class="ff-field"><label>Email</label><input id="npfClienteEmail" class="ff-input" type="email" placeholder="cliente@empresa.com"/></div>
               <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--t2);margin-top:8px">
@@ -1399,7 +1419,7 @@
               <div id="npfLineasContainer"></div>
               <div class="lineas-totales">
                 <div class="lt-row"><span>Base imponible</span><strong id="npfBase">0,00 €</strong></div>
-                <div class="lt-row"><span>IVA</span><strong id="npfIva">0,00 €</strong></div>
+                <div class="lt-row" id="npfIvaRow"><span>IVA</span><strong id="npfIva">0,00 €</strong></div>
                 <div class="lt-row lt-total"><span>TOTAL PROFORMA</span><strong id="npfTotal">0,00 €</strong></div>
               </div>
             </div>
