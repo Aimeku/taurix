@@ -417,10 +417,10 @@ function updateOpUI() {
   if (nifNote) nifNote.textContent = opTipoActual==="intracomunitaria"?"(VAT número UE obligatorio)":"";
   if (pvOpNote) {
     const notes = {
-      intracomunitaria:     "🇪🇺 Operación intracomunitaria — IVA 0% (Art. 25 LIVA).",
-      exportacion:          "🌍 Exportación exenta de IVA (Art. 21 LIVA).",
-      inversion_sujeto_pasivo: "🔄 Inversión del sujeto pasivo — IVA 0% (Art. 84 LIVA).",
-      importacion:          "📦 Importación — IVA liquidado en aduana (DUA)."
+      intracomunitaria:     "Operación intracomunitaria — IVA 0% (Art. 25 LIVA).",
+      exportacion:          "Exportación exenta de IVA (Art. 21 LIVA).",
+      inversion_sujeto_pasivo: "Inversión del sujeto pasivo — IVA 0% (Art. 84 LIVA).",
+      importacion:          "Importación — IVA liquidado en aduana (DUA)."
     };
     pvOpNote.textContent     = notes[opTipoActual]||"";
     pvOpNote.style.display   = notes[opTipoActual]?"":"none";
@@ -437,7 +437,7 @@ function updatePreview() {
   const nif     = document.getElementById("nfNif")?.value     || "";
   const dir     = document.getElementById("nfDireccion")?.value || "";
   const notas   = document.getElementById("nfNotas")?.value   || "";
-  const ops     = {nacional:"🇪🇸 Nacional",intracomunitaria:"🇪🇺 Intracomunitaria",exportacion:"🌍 Exportación",importacion:"📦 Importación",inversion_sujeto_pasivo:"🔄 Inv. Sujeto Pasivo"};
+  const ops     = {nacional:"Nacional",intracomunitaria:"Intracomunitaria",exportacion:"Exportación",importacion:"Importación",inversion_sujeto_pasivo:"Inv. Sujeto Pasivo"};
   const set     = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
 
   set("pvFecha",  fecha?fmtDate(fecha):"—");
