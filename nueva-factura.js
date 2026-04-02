@@ -387,6 +387,13 @@ function initClienteSearch() {
         set("nfNombre",c.nombre); set("nfNif",c.nif||"");
         set("nfPais",c.pais||"ES"); set("nfTipoCliente",c.tipo||"empresa");
         set("nfDireccion", c.direccion||"");
+        set("nfNombreComercial", c.nombre_comercial||"");
+        set("nfTipoEmpresa",     c.tipo_empresa||"");
+        set("nfCiudad",          c.ciudad||"");
+        set("nfProvincia",       c.provincia||"");
+        set("nfCp",              c.codigo_postal||"");
+        set("nfEmailCliente",    c.email||"");
+        set("nfTelCliente",      c.telefono||"");
         document.getElementById("nfClientePanel")?.classList.add("cliente-panel--filled");
         updateIrpfVisibility();
         updatePreview();
@@ -400,7 +407,12 @@ function initClienteSearch() {
   limpiar.addEventListener("click", () => {
     input.value=""; limpiar.style.display="none"; dropdown.style.display="none";
     clienteSeleccionadoId=null;
-    ["nfNombre","nfNif","nfDireccion"].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=""; });
+    ["nfNombre","nfNif","nfDireccion","nfNombreComercial","nfTipoEmpresa",
+     "nfCiudad","nfProvincia","nfCp","nfEmailCliente","nfTelCliente"].forEach(id=>{
+      const e=document.getElementById(id); if(e) e.value="";
+    });
+    const pais = document.getElementById("nfPais"); if(pais) pais.value="ES";
+    const tipo = document.getElementById("nfTipoCliente"); if(tipo) tipo.value="empresa";
     document.getElementById("nfClientePanel")?.classList.remove("cliente-panel--filled");
     updatePreview();
   });
@@ -579,13 +591,20 @@ async function saveFactura() {
     ? (parseInt(document.getElementById("nfIrpf")?.value) || 0)
     : 0;
   const tipo         = document.getElementById("nfTipo")?.value;
-  const tipoCliente  = document.getElementById("nfTipoCliente")?.value;
-  const clienteNombre= document.getElementById("nfNombre")?.value.trim();
-  const clienteNif   = document.getElementById("nfNif")?.value.trim();
-  const clienteDir   = document.getElementById("nfDireccion")?.value.trim();
-  const pais         = document.getElementById("nfPais")?.value || "ES";
-  const notas        = document.getElementById("nfNotas")?.value.trim();
-  const guardarCliente = document.getElementById("nfGuardarCliente")?.checked;
+  const tipoCliente       = document.getElementById("nfTipoCliente")?.value;
+  const clienteNombre     = document.getElementById("nfNombre")?.value.trim();
+  const clienteNif        = document.getElementById("nfNif")?.value.trim();
+  const clienteDir        = document.getElementById("nfDireccion")?.value.trim();
+  const pais              = document.getElementById("nfPais")?.value || "ES";
+  const notas             = document.getElementById("nfNotas")?.value.trim();
+  const clienteNombreC    = document.getElementById("nfNombreComercial")?.value.trim();
+  const clienteTipoEmp    = document.getElementById("nfTipoEmpresa")?.value || null;
+  const clienteCiudad     = document.getElementById("nfCiudad")?.value.trim();
+  const clienteProvincia  = document.getElementById("nfProvincia")?.value.trim();
+  const clienteCp         = document.getElementById("nfCp")?.value.trim();
+  const clienteEmail      = document.getElementById("nfEmailCliente")?.value.trim();
+  const clienteTel        = document.getElementById("nfTelCliente")?.value.trim();
+  const guardarCliente    = document.getElementById("nfGuardarCliente")?.checked;
 
   if (!fecha)                                         { toast("Introduce la fecha de la factura","error"); return; }
   if (!clienteNombre && !clienteSeleccionadoId)       { toast("Introduce el nombre del cliente","error"); return; }
@@ -612,7 +631,16 @@ async function saveFactura() {
   if (!cId && guardarCliente && clienteNombre) {
     const { data: nc, error: ce } = await supabase.from("clientes").insert({
       user_id: SESSION.user.id, nombre: clienteNombre, nif: clienteNif,
-      tipo: tipoCliente, pais, direccion: clienteDir
+      tipo: tipoCliente, pais, direccion: clienteDir,
+      nombre_comercial: clienteNombreC || null,
+      tipo_empresa:     clienteTipoEmp || null,
+      ciudad:           clienteCiudad || null,
+      provincia:        clienteProvincia || null,
+      codigo_postal:    clienteCp || null,
+      email:            clienteEmail || null,
+      telefono:         clienteTel || null,
+      emails:           clienteEmail ? [clienteEmail] : null,
+      telefonos:        clienteTel   ? [clienteTel]   : null,
     }).select().single();
     if (ce) { toast("Error creando cliente: "+ce.message,"warn"); }
     else    { cId=nc.id; await refreshClientes(); }
@@ -668,7 +696,11 @@ async function saveFactura() {
 function resetForm() {
   LINEAS=[]; lineaIdCounter=0; clienteSeleccionadoId=null; opTipoActual="nacional";
   document.getElementById("lineasContainer").innerHTML="";
-  ["nfNombre","nfNif","nfDireccion","nfNotas"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
+  ["nfNombre","nfNif","nfDireccion","nfNotas","nfNombreComercial",
+   "nfCiudad","nfProvincia","nfCp","nfEmailCliente","nfTelCliente"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
+  const nfTEmp = document.getElementById("nfTipoEmpresa"); if(nfTEmp) nfTEmp.value="";
+  const nfPais = document.getElementById("nfPais"); if(nfPais) nfPais.value="ES";
+  const nfTipo = document.getElementById("nfTipoCliente"); if(nfTipo) nfTipo.value="empresa";
   const csi=document.getElementById("clienteSearchInput"); if(csi) csi.value="";
   const clb=document.getElementById("clienteLimpiarBtn"); if(clb) clb.style.display="none";
   document.getElementById("nfClientePanel")?.classList.remove("cliente-panel--filled");
