@@ -596,8 +596,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     const descIdx    = activeCols.findIndex(c => c.key === "descripcion");
     const descColW   = descIdx !== -1 ? colWidths[descIdx] - 2 : 60;
     const rawDesc    = l.descripcion || "—";
-    // Dividir por 
- primero, luego por ancho de columna
+    // Dividir por \n primero, luego por ancho de columna
     const descWrapped = rawDesc.split(/\r?\n/).flatMap(line =>
       doc.splitTextToSize(line || " ", descColW)
     );
@@ -727,9 +726,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     // Respetar saltos de línea manuales (
 ): dividir primero por 
 , luego splitTextToSize por ancho
-    const notasLines = notas.split(/
-?
-/).flatMap(line =>
+    const notasLines = notas.split(/\r?\n/).flatMap(line =>
       doc.splitTextToSize(line || " ", W - 10)
     );
     const nh = notasLines.length * 4.5 + 13;
