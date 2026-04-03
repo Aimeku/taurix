@@ -294,7 +294,7 @@ function addLinea(prefill = {}) {
   container.appendChild(row);
   updateTotalesUI();
   updatePreview();
-  if (!prefill.descripcion && descInput) descInput.focus();
+  // No auto-focus: el usuario elige por dónde empezar
 }
 
 function onLineaChange(id, el) {
@@ -709,6 +709,8 @@ function _npRebuildAllRows() {
 /* ══════════════════════════
    INIT
 ══════════════════════════ */
+const _npListenersAttached = { main: false, _opBtns: false };
+
 export function initNuevoPresupuesto() {
   const editData = window._npEditData || null;
   window._npEditData = null; // consumir el dato — solo se usa una vez
@@ -721,34 +723,42 @@ export function initNuevoPresupuesto() {
 
   initClienteSearch();
 
-  ["npClienteNombre", "npClienteNif", "npFecha", "npConcepto", "npNotas", "npValidez"].forEach(id => {
-    document.getElementById(id)?.addEventListener("input", updatePreview);
-    document.getElementById(id)?.addEventListener("change", updatePreview);
-  });
+  // ── Adjuntar listeners SOLO la primera vez (evita multiplicación de importes) ──
+  if (!_npListenersAttached.main) {
+    _npListenersAttached.main = true;
 
-  document.getElementById("npAddLineaBtn")?.addEventListener("click", () => addLinea());
-  document.getElementById("npGuardarBtn")?.addEventListener("click", () => savePresupuesto());
+    ["npClienteNombre", "npClienteNif", "npFecha", "npConcepto", "npNotas", "npValidez"].forEach(id => {
+      document.getElementById(id)?.addEventListener("input", updatePreview);
+      document.getElementById(id)?.addEventListener("change", updatePreview);
+    });
+
+    document.getElementById("npAddLineaBtn")?.addEventListener("click", () => addLinea());
+    document.getElementById("npGuardarBtn")?.addEventListener("click", () => savePresupuesto());
+  }
 
   // ── Tipo de operación ─────────────────────────────────────
   npOpTipoActual = "nacional";
-  document.querySelectorAll(".np-op-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".np-op-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      npOpTipoActual = btn.dataset.op;
-      updateNpOpUI();
-      // Bloquear IVA en operaciones exentas, igual que en facturas
-      const sinIva = OP_SIN_IVA.includes(npOpTipoActual);
-      if (sinIva) {
-        LINEAS.forEach(l => { l.iva = 0; });
-        document.querySelectorAll("#npLineasContainer [data-field='iva']").forEach(sel => { sel.value = "0"; sel.disabled = true; });
-        updateTotalesUI();
-      } else {
-        document.querySelectorAll("#npLineasContainer [data-field='iva']").forEach(sel => { sel.disabled = false; });
-      }
-      updatePreview();
+  if (!_npListenersAttached._opBtns) {
+    _npListenersAttached._opBtns = true;
+    document.querySelectorAll(".np-op-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".np-op-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        npOpTipoActual = btn.dataset.op;
+        updateNpOpUI();
+        // Bloquear IVA en operaciones exentas, igual que en facturas
+        const sinIva = OP_SIN_IVA.includes(npOpTipoActual);
+        if (sinIva) {
+          LINEAS.forEach(l => { l.iva = 0; });
+          document.querySelectorAll("#npLineasContainer [data-field='iva']").forEach(sel => { sel.value = "0"; sel.disabled = true; });
+          updateTotalesUI();
+        } else {
+          document.querySelectorAll("#npLineasContainer [data-field='iva']").forEach(sel => { sel.disabled = false; });
+        }
+        updatePreview();
+      });
     });
-  });
+  }
   updateNpOpUI();
 
   _npApplyGridToHeader();
