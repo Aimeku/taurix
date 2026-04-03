@@ -175,6 +175,15 @@ table{border-collapse:collapse}
 .topbar-icon-btn{width:40px;height:40px;background:none;border:1px solid var(--brd);border-radius:10px;color:var(--t3);display:flex;align-items:center;justify-content:center;transition:all .12s}
 .topbar-icon-btn:hover{background:var(--srf2);color:var(--t1);border-color:var(--brd2)}
 .topbar-avatar{width:38px;height:38px;background:linear-gradient(135deg,var(--ox) 0%,#FBBF24 100%);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;box-shadow:0 2px 10px rgba(249,115,22,.35)}
+/* ══ TOPBAR EMPRESA ══ */
+.topbar-empresa-wrap{display:flex;align-items:center;gap:0;margin-left:14px;background:var(--srf2);border:1px solid var(--brd);border-radius:10px;padding:0 4px 0 10px;height:36px;transition:border-color .15s}
+.topbar-empresa-wrap:hover{border-color:var(--brd2)}
+.topbar-empresa-icon{display:flex;align-items:center;color:var(--ox);flex-shrink:0;margin-right:7px}
+.topbar-empresa-nombre{font-size:12px;font-weight:700;color:var(--t1);max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.1px}
+.topbar-empresa-sel{font-weight:700;max-width:180px;border:none;background:transparent;padding:0}
+.topbar-empresa-edit{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border:none;background:none;border-radius:7px;color:var(--t4);cursor:pointer;margin-left:4px;transition:all .12s;flex-shrink:0}
+.topbar-empresa-edit:hover{background:var(--ox-lt);color:var(--ox)}
+html.dark .topbar-empresa-wrap{background:var(--srf2);border-color:var(--brd)}
 
 /* ══ LAYOUT ══ */
 .app-layout{display:flex;padding-top:var(--top-h);min-height:100vh}
@@ -229,7 +238,7 @@ table{border-collapse:collapse}
 /* ══ KPI ══ */
 .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:24px}
 .kpi-row.kpi-row--small{grid-template-columns:repeat(4,1fr)}
-.kpi-card{background:var(--srf);border:1px solid var(--brd);border-radius:var(--r-lg);padding:18px 20px;position:relative;overflow:hidden;transition:box-shadow .15s,transform .15s}
+.kpi-card{background:var(--srf);border:1px solid var(--brd);border-radius:var(--r-lg);padding:18px 20px;position:relative;overflow:hidden;transition:box-shadow .15s,transform .15s;display:flex;flex-direction:column}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r-lg) var(--r-lg) 0 0}
 .kpi-card:hover{box-shadow:var(--sh);transform:translateY(-2px)}
 .kpi-blue::before{background:linear-gradient(90deg,var(--ox),#FBBF24)}
@@ -238,7 +247,7 @@ table{border-collapse:collapse}
 .kpi-amber::before{background:var(--amber)}
 .kpi-indigo::before{background:var(--indigo)}
 .kpi-rose::before{background:#e11d48}
-.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0}
 .kpi-lbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--t3)}
 .kpi-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center}
 .kpi-icon--blue{background:var(--ox-lt);color:var(--ox)}
