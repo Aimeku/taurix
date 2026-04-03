@@ -86,5 +86,20 @@ export {
   AÑO_ACTIVO,
 } from "./tax-rules.js";
 
+// ── Contexto para Claude ──────────────────────────────────────────
+export {
+  buildTaxContext,
+} from "./tax-context.js";
+
+// ── Conector con la UI ────────────────────────────────────────────
+export {
+  refreshIVA_engine,
+  refreshIRPF_engine,
+  refreshAlertasEngine,
+  getContextoParaClaude,
+  getTaxContextResult,
+  invalidarCache,
+} from "./tax-connector.js";
+
 // ── Versión del engine ────────────────────────────────────────────
-export const TAX_ENGINE_VERSION = "1.1.0";
+export const TAX_ENGINE_VERSION = "1.2.0";
