@@ -45,7 +45,7 @@ export function salirDeCliente() {
   _ocultarBanner();
   _marcarSidebarGestor(false);
   invalidarCartera();
-  if (window._switchView) window._switchView('cartera');
+  if (window._switchView) window._switchView('dashboard');
   // Recargar la cartera con datos frescos — refleja el estado revisado inmediatamente
   setTimeout(() => {
     if (window._refreshCartera) {
@@ -174,3 +174,28 @@ export function restaurarContextoSiExiste() {
   _mostrarBanner(ctx.nombre || 'Cliente');
   _marcarSidebarGestor(true);
 }
+
+/* ──────────────────────────────────────────
+   UTILS GESTOR
+────────────────────────────────────────── */
+
+// Copiar instrucciones para invitar a un cliente como colaborador.
+// Referenciada desde el botón en view-cartera (index.html).
+window._copyInviteInstructions = () => {
+  const texto = `Hola,
+
+Para que pueda gestionar tu contabilidad desde Taurix, necesito que hagas lo siguiente:
+
+1. Ve a taurix.es y crea una cuenta (o entra si ya tienes una)
+2. En el menú lateral, ve a "Colaboradores"
+3. Haz click en "Invitar colaborador"
+4. Introduce mi email y asígnate el rol "Gestor / Asesor"
+
+Con esto podré acceder a tus datos para llevar tu contabilidad.
+
+Un saludo`;
+  navigator.clipboard.writeText(texto).then(async () => {
+    const { toast } = await import('./utils.js');
+    toast('✅ Instrucciones copiadas al portapapeles', 'success');
+  });
+};
