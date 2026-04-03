@@ -1628,23 +1628,75 @@
 
             <!-- CLIENTE -->
             <div class="form-block">
-              <div class="fb-title">Cliente</div>
+              <div class="fb-title">Cliente / Proveedor</div>
               <div class="cliente-search-wrap">
                 <div class="csc-input-wrap">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  <input type="text" id="nrClienteSearch" class="csc-input" placeholder="Buscar cliente guardado…" autocomplete="off"/>
+                  <input type="text" id="nrClienteSearch" class="csc-input" placeholder="Buscar cliente guardado o escribe uno nuevo…" autocomplete="off"/>
                   <button id="nrClienteLimpiar" class="csc-clear" style="display:none">×</button>
                 </div>
                 <div class="csc-dropdown" id="nrClienteDropdown" style="display:none"></div>
               </div>
               <div id="nrClientePanel" class="cliente-panel">
                 <div class="ff-grid2">
-                  <div class="ff-field"><label>Nombre o razón social</label><input id="nrClienteNombre" class="ff-input" placeholder="Ej: Empresa XYZ S.L."/></div>
+                  <div class="ff-field"><label>Nombre o razón social *</label><input id="nrClienteNombre" class="ff-input" placeholder="Ej: Empresa XYZ S.L."/></div>
+                  <div class="ff-field"><label>Nombre comercial</label><input id="nrClienteNombreComercial" class="ff-input" placeholder="Marca o nombre comercial"/></div>
+                </div>
+                <div class="ff-grid2">
+                  <div class="ff-field">
+                    <label>Tipo de cliente</label>
+                    <select id="nrClienteTipo" class="ff-select">
+                      <option value="empresa">Empresa / Autónomo</option>
+                      <option value="particular">Particular</option>
+                    </select>
+                  </div>
+                  <div class="ff-field">
+                    <label>Tipo de empresa</label>
+                    <select id="nrClienteTipoEmpresa" class="ff-select">
+                      <option value="">— Sin especificar —</option>
+                      <option value="sl">S.L. — Sociedad Limitada</option>
+                      <option value="sa">S.A. — Sociedad Anónima</option>
+                      <option value="autonomo">Autónomo</option>
+                      <option value="cooperativa">Cooperativa</option>
+                      <option value="asociacion">Asociación / ONG</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="ff-grid2">
                   <div class="ff-field"><label>NIF / CIF / VAT <span id="nrNifNote" class="ff-note"></span></label><input id="nrClienteNif" class="ff-input" placeholder="Ej: B12345678"/></div>
+                  <div class="ff-field">
+                    <label>País</label>
+                    <select id="nrClientePais" class="ff-select">
+                      <option value="ES">España</option>
+                      <option value="DE">Alemania</option>
+                      <option value="FR">Francia</option>
+                      <option value="IT">Italia</option>
+                      <option value="PT">Portugal</option>
+                      <option value="NL">Países Bajos</option>
+                      <option value="BE">Bélgica</option>
+                      <option value="US">EE.UU.</option>
+                      <option value="GB">Reino Unido</option>
+                      <option value="MX">México</option>
+                      <option value="OTHER">Otro</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="ff-field"><label>Dirección fiscal</label><input id="nrClienteDireccion" class="ff-input" placeholder="Calle, número, CP, ciudad"/></div>
+                <div class="ff-grid3">
+                  <div class="ff-field"><label>Ciudad</label><input id="nrClienteCiudad" class="ff-input" placeholder="Ej: Madrid"/></div>
+                  <div class="ff-field"><label>Provincia</label><input id="nrClienteProvincia" class="ff-input" placeholder="Ej: Madrid"/></div>
+                  <div class="ff-field"><label>Código postal</label><input id="nrClienteCp" class="ff-input" placeholder="Ej: 28001"/></div>
                 </div>
                 <div class="ff-grid2">
                   <div class="ff-field"><label>Email cliente</label><input type="email" id="nrClienteEmail" class="ff-input" placeholder="cliente@empresa.com"/></div>
                   <div class="ff-field"><label>Teléfono</label><input type="text" id="nrClienteTel" class="ff-input" placeholder="+34 600 000 000"/></div>
+                </div>
+                <div style="margin-top:8px">
+                  <label style="flex-direction:row;align-items:center;gap:6px;cursor:pointer;display:flex">
+                    <input type="checkbox" id="nrGuardarCliente"/>
+                    <span style="font-size:12px;font-weight:500">Guardar este cliente en mi lista</span>
+                  </label>
                 </div>
               </div>
             </div>
