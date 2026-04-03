@@ -1,242 +1,147 @@
 /* ═══════════════════════════════════════════════════════
    TAURIX · modos.js
    
-   Sistema de modos: Empresario / Gestor
+   Plan único — un solo sidebar para todos los usuarios.
+   No hay modo empresario ni modo gestor.
    
-   · Un único codebase, dos experiencias distintas
-   · El modo define qué ve el sidebar, no qué existe
-   · El gestor puede ver la cartera de todos sus clientes
-   · El empresario ve solo su negocio, sin tecnicismos
-   · Toggle en la topbar para cambiar de modo
-   · Onboarding inteligente al primer login
+   esModoGestor() devuelve siempre true para que
+   initMultiEmpresa y el selector de empresa sigan
+   funcionando exactamente igual para todos los usuarios.
    ═══════════════════════════════════════════════════════ */
 
-import { supabase } from "./supabase.js";
-import { SESSION, toast, openModal, closeModal } from "./utils.js";
-import { loadCarteraGestor } from "./gestor-cartera.js";
-import { scoreBadgeHtml, scoreBarra } from "./gestor-score.js";
-
 /* ══════════════════════════════════════════
-   DEFINICIÓN DE MODOS
+   SIDEBAR UNIFICADO
+   Un solo plan. Una sola experiencia.
 ══════════════════════════════════════════ */
-export const MODOS = {
-  empresario: {
-    label:     "Modo empresario",
-    labelCorto:"Empresario",
-    icon:      "🏢",
-    color:     "#1a56db",
-    desc:      "Vista simple y visual. Todo lo que necesitas para gestionar tu negocio.",
-    sidebar: [
-      { sep: true, label: null },
-      { view:"dashboard",         label:"Dashboard",            icon:"grid" },
-      { view:"alertas",           label:"Alertas",              icon:"bell",        badge:"snBadgeAlertas" },
-      { sep: true, label:"Clientes y presupuestos" },
-      { view:"clientes",          label:"Clientes",             icon:"users" },
-      { view:"presupuestos",      label:"Presupuestos",         icon:"file-text",   badge:"snBadgePres" },
-      { view:"albaranes",         label:"Albaranes",            icon:"clipboard" },
-      { sep: true, label:"Facturas" },
-      { view:"facturas",          label:"Facturas",             icon:"file",        badge:"snBadgeBorradores" },
-      { view:"recurrentes",       label:"Facturas recurrentes", icon:"refresh" },
-      { view:"proformas",         label:"Proformas",            icon:"file-text" },
-      { sep: true, label:"Trabajo y agenda" },
-      { view:"trabajos",          label:"Trabajos",             icon:"briefcase" },
-      { view:"agenda",            label:"Agenda",               icon:"calendar" },
-      { view:"pipeline",          label:"Seguimiento comercial",icon:"bar-chart" },
-      { sep: true, label:"Gastos" },
-      { action:"gastoRapido",label:"Gasto rápido",        icon:"zap",    accent:true },
-      { view:"gastos",       label:"Proveedores / Gastos",  icon:"credit-card", badge:"snBadgeVencidos" },
-      { view:"tesoreria",    label:"Tesorería",            icon:"bank" },
-      { sep: true, label:"Catálogo" },
-      { view:"productos",    label:"Productos / Servicios",icon:"package" },
-      { view:"plantillas",   label:"Mis plantillas",        icon:"layout" },
-      { sep: true, label:"Equipo" },
-      { view:"empleados",    label:"Empleados",            icon:"users2" },
-      { view:"nominas",      label:"Nóminas",              icon:"card" },
-      { sep: true, label:"Gestión" },
-      { view:"cobros",       label:"Cobros",               icon:"card2",  badge:"snBadgeCobros" },
-      { view:"documentos",   label:"Documentos",           icon:"folder" },
-      { view:"colaboradores",label:"Colaboradores",        icon:"users3", badge:"colaboradoresBadge" },
-    ]
-  },
-
-  gestor: {
-    label:     "Modo gestor",
-    labelCorto:"Gestor / Asesor",
-    icon:      "💼",
-    color:     "#059669",
-    desc:      "Acceso completo. Contabilidad, fiscal, modelos AEAT y herramientas profesionales.",
-    sidebar: [
-      // Lo que ve un gestor/asesor — completo
-      { sep: true, label: null },
-      { view:"cartera",      label:"Cartera de clientes",  icon:"briefcase", badge:"carteraBadge", gestor:true },
-      { view:"revision-cliente", label:"Revisión fiscal",    icon:"check-square", gestor:true },
-      { view:"dashboard",    label:"Dashboard",            icon:"grid" },
-      { view:"alertas",      label:"Alertas fiscales",     icon:"bell",   badge:"snBadgeAlertas" },
-      { sep: true, label:"Clientes y presupuestos" },
-      { view:"clientes",          label:"Clientes",             icon:"users" },
-      { view:"presupuestos",      label:"Presupuestos",         icon:"file-text",   badge:"snBadgePres" },
-      { view:"albaranes",         label:"Albaranes",            icon:"clipboard" },
-      { sep: true, label:"Facturas" },
-      { view:"facturas",          label:"Facturas",             icon:"file",        badge:"snBadgeBorradores" },
-      { view:"recurrentes",       label:"Facturas recurrentes", icon:"refresh" },
-      { view:"proformas",         label:"Proformas",            icon:"file-text" },
-      { view:"verifactu",         label:"Verifactu",            icon:"shield" },
-      { sep: true, label:"Trabajo y agenda" },
-      { view:"trabajos",          label:"Trabajos",             icon:"briefcase" },
-      { view:"agenda",            label:"Agenda",               icon:"calendar" },
-      { view:"pipeline",          label:"Pipeline CRM",         icon:"bar-chart" },
-      { sep: true, label:"Gastos y tesorería" },
-      { action:"gastoRapido",label:"Gasto rápido",        icon:"zap",    accent:true },
-      { view:"gastos",       label:"Proveedores / Gastos",  icon:"credit-card", badge:"snBadgeVencidos" },
-      { view:"tesoreria",    label:"Tesorería y banco",    icon:"bank" },
-      { sep: true, label:"RRHH y Nóminas" },
-      { view:"empleados",    label:"Empleados",            icon:"users2" },
-      { view:"nominas",      label:"Nóminas",              icon:"card" },
-      { view:"ss",           label:"Seguridad Social",     icon:"shield2" },
-      { sep: true, label:"Fiscal AEAT" },
-      { view:"iva",          label:"IVA · Modelo 303",     icon:"layers" },
-      { view:"irpf",         label:"IRPF · Modelo 130",    icon:"dollar" },
-      { view:"is",           label:"Impuesto Sociedades",  icon:"monitor" },
-      { view:"otros-modelos",label:"Otros modelos",        icon:"check-square" },
-      { view:"libros",       label:"Libros oficiales",     icon:"book" },
-      { view:"amortizaciones",label:"Bienes e Inmovilizado",icon:"bar-chart2" },
-      { sep: true, label:"Contabilidad PGC" },
-      { view:"contabilidad", label:"Plan General Contable",icon:"file-text2" },
-      { sep: true, label:"Análisis e Informes" },
-      { view:"historico",    label:"Análisis anual",       icon:"activity" },
-      { view:"informes",     label:"Informes avanzados",   icon:"bar-chart3" },
-      { view:"cobros",       label:"Cobros y vencimientos",icon:"card2",  badge:"snBadgeCobros" },
-      { sep: true, label:"Administración" },
-      { view:"productos",    label:"Catálogo",             icon:"package" },
-      { view:"plantillas",   label:"Mis plantillas",        icon:"layout" },
-      { view:"documentos",   label:"Documentos",           icon:"folder" },
-      { view:"colaboradores",label:"Colaboradores",        icon:"users3", badge:"colaboradoresBadge" },
-    ]
-  }
-};
+const SIDEBAR_ITEMS = [
+  { sep: true, label: null },
+  { view:"dashboard",     label:"Dashboard",             icon:"grid" },
+  { view:"alertas",       label:"Alertas fiscales",      icon:"bell",   badge:"snBadgeAlertas" },
+  { sep: true, label:"Clientes y presupuestos" },
+  { view:"clientes",      label:"Clientes",              icon:"users" },
+  { view:"presupuestos",  label:"Presupuestos",          icon:"file-text", badge:"snBadgePres" },
+  { view:"albaranes",     label:"Albaranes",             icon:"clipboard" },
+  { sep: true, label:"Facturas" },
+  { view:"facturas",      label:"Facturas",              icon:"file",   badge:"snBadgeBorradores" },
+  { view:"recurrentes",   label:"Facturas recurrentes",  icon:"refresh" },
+  { view:"proformas",     label:"Proformas",             icon:"file-text" },
+  { view:"verifactu",     label:"Verifactu",             icon:"shield" },
+  { sep: true, label:"Trabajo y agenda" },
+  { view:"trabajos",      label:"Trabajos",              icon:"briefcase" },
+  { view:"agenda",        label:"Agenda",                icon:"calendar" },
+  { view:"pipeline",      label:"Pipeline CRM",          icon:"bar-chart" },
+  { sep: true, label:"Gastos y tesorería" },
+  { action:"gastoRapido", label:"Gasto rápido",          icon:"zap",    accent:true },
+  { view:"gastos",        label:"Proveedores / Gastos",  icon:"credit-card", badge:"snBadgeVencidos" },
+  { view:"tesoreria",     label:"Tesorería y banco",     icon:"bank" },
+  { sep: true, label:"RRHH y Nóminas" },
+  { view:"empleados",     label:"Empleados",             icon:"users2" },
+  { view:"nominas",       label:"Nóminas",               icon:"card" },
+  { view:"ss",            label:"Seguridad Social",      icon:"shield2" },
+  { sep: true, label:"Fiscal AEAT" },
+  { view:"iva",           label:"IVA · Modelo 303",      icon:"layers" },
+  { view:"irpf",          label:"IRPF · Modelo 130",     icon:"dollar" },
+  { view:"is",            label:"Impuesto Sociedades",   icon:"monitor" },
+  { view:"otros-modelos", label:"Otros modelos",         icon:"check-square" },
+  { view:"libros",        label:"Libros oficiales",      icon:"book" },
+  { view:"amortizaciones",label:"Bienes e Inmovilizado", icon:"bar-chart2" },
+  { sep: true, label:"Contabilidad PGC" },
+  { view:"contabilidad",  label:"Plan General Contable", icon:"file-text2" },
+  { sep: true, label:"Análisis e Informes" },
+  { view:"historico",     label:"Análisis anual",        icon:"activity" },
+  { view:"informes",      label:"Informes avanzados",    icon:"bar-chart3" },
+  { view:"cobros",        label:"Cobros y vencimientos", icon:"card2",  badge:"snBadgeCobros" },
+  { sep: true, label:"Administración" },
+  { view:"productos",     label:"Catálogo",              icon:"package" },
+  { view:"plantillas",    label:"Mis plantillas",        icon:"layout" },
+  { view:"documentos",    label:"Documentos",            icon:"folder" },
+  { view:"colaboradores", label:"Colaboradores",         icon:"users3", badge:"colaboradoresBadge" },
+];
 
 /* ══════════════════════════════════════════
    SVG ICONS (inline, sin dependencias)
 ══════════════════════════════════════════ */
 const ICONS = {
-  grid:        `<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>`,
-  bell:        `<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>`,
-  users:       `<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.87"/>`,
-  users2:      `<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.74"/>`,
-  users3:      `<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75"/><path d="M21 21v-2a4 4 0 00-3-3.87"/>`,
-  "file-text": `<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="10" y1="17" x2="8" y2="17"/>`,
-  "file-text2":`<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><polyline points="10,9 9,9 8,9"/>`,
-  "bar-chart": `<rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="8" width="6" height="13" rx="1"/><rect x="16" y="13" width="6" height="8" rx="1"/>`,
-  "bar-chart2":`<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>`,
-  "bar-chart3":`<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>`,
-  file:        `<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>`,
-  "plus-circle":`<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>`,
-  zap:         `<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>`,
-  "credit-card":`<path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="2"/>`,
-  bank:        `<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>`,
-  link:        `<path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>`,
-  package:     `<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/>`,
-  card:        `<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>`,
-  card2:       `<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>`,
-  shield:      `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`,
-  shield2:     `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="12" y1="9" x2="12" y2="15"/>`,
-  shield3:     `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`,
-  layers:      `<path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>`,
-  dollar:      `<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>`,
-  monitor:     `<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>`,
-  "check-square":`<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>`,
-  book:        `<path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>`,
-  activity:    `<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`,
-  folder:      `<path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>`,
-  briefcase:   `<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>`,
-  calendar:    `<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>`,
-  refresh:     `<path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>`,
-  layout:      `<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>`,
-  clipboard:   `<path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/>`,
+  grid:           `<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>`,
+  bell:           `<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>`,
+  users:          `<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.87"/>`,
+  users2:         `<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.74"/>`,
+  users3:         `<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75"/><path d="M21 21v-2a4 4 0 00-3-3.87"/>`,
+  "file-text":    `<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="10" y1="17" x2="8" y2="17"/>`,
+  "file-text2":   `<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><polyline points="10,9 9,9 8,9"/>`,
+  "bar-chart":    `<rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="8" width="6" height="13" rx="1"/><rect x="16" y="13" width="6" height="8" rx="1"/>`,
+  "bar-chart2":   `<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>`,
+  "bar-chart3":   `<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>`,
+  file:           `<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>`,
+  "plus-circle":  `<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>`,
+  zap:            `<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>`,
+  "credit-card":  `<path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="2"/>`,
+  bank:           `<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>`,
+  link:           `<path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>`,
+  package:        `<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/>`,
+  card:           `<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>`,
+  card2:          `<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>`,
+  shield:         `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`,
+  shield2:        `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="12" y1="9" x2="12" y2="15"/>`,
+  layers:         `<path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>`,
+  dollar:         `<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>`,
+  monitor:        `<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>`,
+  "check-square": `<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>`,
+  book:           `<path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>`,
+  activity:       `<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`,
+  folder:         `<path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>`,
+  briefcase:      `<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>`,
+  calendar:       `<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>`,
+  refresh:        `<path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>`,
+  layout:         `<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>`,
+  clipboard:      `<path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/>`,
 };
 
-function svgIcon(name, size=16) {
-  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICONS[name]||ICONS.file}</svg>`;
+function svgIcon(name, size = 16) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICONS[name] || ICONS.file}</svg>`;
 }
 
 /* ══════════════════════════════════════════
-   ESTADO GLOBAL
+   API PÚBLICA — compatibilidad total
+   Todos los callers existentes siguen
+   funcionando sin modificaciones.
 ══════════════════════════════════════════ */
-let MODO_ACTUAL = "empresario";
 
-export function getModo()         { return MODO_ACTUAL; }
-export function esModoGestor()    { return MODO_ACTUAL === "gestor"; }
-export function esModoEmpresario(){ return MODO_ACTUAL === "empresario"; }
+/** Siempre "gestor" — plan único */
+export function getModo()          { return "gestor"; }
 
-/* ══════════════════════════════════════════
-   INIT — leer modo guardado y construir sidebar
-══════════════════════════════════════════ */
+/** Siempre true — para que initMultiEmpresa active el selector de empresa */
+export function esModoGestor()     { return true; }
+
+/** Siempre false */
+export function esModoEmpresario() { return false; }
+
+/**
+ * Inicializa el sidebar unificado.
+ * Devuelve siempre true (nunca necesita onboarding).
+ */
 export async function initModos() {
-  // 1. Comprobar localStorage primero (más rápido, no espera a BD)
-  const guardado = localStorage.getItem("taurix_modo");
-  if (guardado === "gestor" || guardado === "empresario") {
-    MODO_ACTUAL = guardado;
-    aplicarModo(MODO_ACTUAL);
-    // Sincronizar con BD en background sin bloquear
-    supabase.from("perfil_fiscal")
-      .upsert({ user_id: SESSION.user.id, modo_usuario: MODO_ACTUAL }, { onConflict:"user_id" })
-      .then(() => {}).catch(() => {});
-    return true;
-  }
-
-  // 2. Intentar leer de la BD
-  try {
-    const { data: pf } = await supabase.from("perfil_fiscal")
-      .select("modo_usuario").eq("user_id", SESSION.user.id).maybeSingle();
-
-    if (pf?.modo_usuario) {
-      MODO_ACTUAL = pf.modo_usuario;
-      localStorage.setItem("taurix_modo", MODO_ACTUAL);
-      aplicarModo(MODO_ACTUAL);
-      return true;
-    }
-  } catch(e) {
-    console.warn("initModos: error leyendo BD, usando default empresario", e.message);
-  }
-
-  // 3. Sin dato en ningún lado — mostrar onboarding UNA SOLA VEZ
-  // Marcar en localStorage que ya se mostró para evitar loops
-  if (localStorage.getItem("taurix_onboard_shown") === "1") {
-    // Ya se mostró pero no se guardó bien — usar empresario por defecto
-    MODO_ACTUAL = "empresario";
-    localStorage.setItem("taurix_modo", "empresario");
-    aplicarModo(MODO_ACTUAL);
-    return true;
-  }
-
-  localStorage.setItem("taurix_onboard_shown", "1");
-  return false; // signal: necesita onboarding
+  aplicarModo();
+  return true;
 }
 
-/* ══════════════════════════════════════════
-   APLICAR MODO — reconstruir sidebar
-══════════════════════════════════════════ */
-export function aplicarModo(modo) {
-  MODO_ACTUAL = modo;
-  localStorage.setItem("taurix_modo", modo);
-
+/**
+ * Construye el sidebar unificado.
+ * Se llama al inicio y al reconectar el DOM (p.ej. después de un context switch).
+ */
+export function aplicarModo() {
   const nav = document.querySelector(".sidebar-nav");
   if (!nav) {
-    // DOM no está listo — reintentar cuando esté
+    // DOM no listo — reintentar
     if (document.readyState !== "complete") {
-      document.addEventListener("DOMContentLoaded", () => aplicarModo(modo), { once: true });
+      document.addEventListener("DOMContentLoaded", () => aplicarModo(), { once: true });
     } else {
-      // DOM listo pero sidebar no encontrado — retry tras un tick
-      setTimeout(() => aplicarModo(modo), 100);
+      setTimeout(() => aplicarModo(), 100);
     }
     return;
   }
 
-  const config = MODOS[modo];
-  if (!config) return;
-
-  // Reconstruir sidebar
-  nav.innerHTML = config.sidebar.map(item => {
+  nav.innerHTML = SIDEBAR_ITEMS.map(item => {
     if (item.sep) {
       return item.label
         ? `<div class="sn-separator"></div><div class="sn-section-label">${item.label}</div>`
@@ -258,22 +163,17 @@ export function aplicarModo(modo) {
       ? `<span class="is-badge" style="font-size:9px;padding:1px 6px">IS</span>`
       : "";
 
-    const gestor_only = item.gestor
-      ? `style="background:linear-gradient(135deg,rgba(5,150,105,.08),rgba(5,150,105,.04));border-left:2px solid #059669"`
-      : "";
-
-    return `<button class="sn-item" data-view="${item.view}" ${gestor_only}>
+    return `<button class="sn-item" data-view="${item.view}">
       ${svgIcon(item.icon)}
       <span>${item.label}</span>
       ${badge}${special}
     </button>`;
   }).join("");
 
-  // Re-registrar listeners del sidebar en main.js
+  // Re-registrar listeners (main.js los define en _rebindNav)
   if (window._rebindNav) {
     window._rebindNav();
   } else {
-    // _rebindNav no está lista aún — esperar hasta 2s
     let attempts = 0;
     const waitRebind = setInterval(() => {
       attempts++;
@@ -282,423 +182,17 @@ export function aplicarModo(modo) {
         window._rebindNav();
       } else if (attempts > 20) {
         clearInterval(waitRebind);
-        console.warn("_rebindNav no disponible tras 2s");
+        console.warn("[modos] _rebindNav no disponible tras 2s");
       }
     }, 100);
   }
-
-  // Toggle button en topbar
-  actualizarToggleBtn(modo);
-
-  // Guardar en BD en background
-  supabase.from("perfil_fiscal").update({ modo_usuario: modo })
-    .eq("user_id", SESSION.user.id).then(() => {});
 }
 
-/* ══════════════════════════════════════════
-   TOGGLE BUTTON EN TOPBAR
-══════════════════════════════════════════ */
-function actualizarToggleBtn(modo) {
-  const btn = document.getElementById("modoToggleBtn");
-  if (!btn) return;
-  const cfg  = MODOS[modo];
-  const otro = MODOS[modo === "empresario" ? "gestor" : "empresario"];
-  // Mostrar modo ACTUAL (no el otro)
-  btn.innerHTML = `<span style="font-size:8.5px;opacity:.65;display:block;line-height:1;text-transform:uppercase;letter-spacing:.04em;font-weight:600">Ahora:</span><span style="font-size:11px;font-weight:800;line-height:1.3">${cfg.icon} ${cfg.labelCorto}</span>`;
-  btn.title         = `Estás en ${cfg.label}. Pulsa para cambiar a ${otro.label}`;
-  btn.style.borderColor = cfg.color + "55";
-  btn.style.color       = cfg.color;
-  btn.style.background  = cfg.color + "0d";
-  btn.style.width       = "auto";
-  btn.style.minWidth    = "110px";
-  btn.style.maxWidth    = "160px";
-  btn.style.height      = "38px";
-  btn.style.padding     = "0 12px";
-  btn.style.display     = "inline-flex";
-  btn.style.flexDirection = "column";
-  btn.style.alignItems  = "flex-start";
-  btn.style.justifyContent = "center";
-  btn.style.whiteSpace  = "nowrap";
-}
+/** No-op — ya no hay modos que alternar. Mantenido por compatibilidad. */
+export function toggleModo() {}
 
-export function toggleModo() {
-  const nuevo = MODO_ACTUAL === "empresario" ? "gestor" : "empresario";
-  aplicarModo(nuevo);
-  toast(`${MODOS[nuevo].icon} ${MODOS[nuevo].label} activado`, "success", 2500);
-  // Refrescar dashboard
-  if (window._refreshDashboard) window._refreshDashboard();
-}
+/** No-op — ya no hay onboarding de selección de modo. */
+export function showOnboardingModo() {}
 
-/* ══════════════════════════════════════════
-   ONBOARDING MODAL — primera vez
-══════════════════════════════════════════ */
-export function showOnboardingModo() {
-  // Crear overlay de onboarding (no un modal normal — es pantalla completa)
-  const el = document.createElement("div");
-  el.id = "onboardingModoOverlay";
-  // Detect dark mode
-  const isDark = document.documentElement.classList.contains("dark");
-  const bgColor = isDark ? "#0f172a" : "#f8fafc";
-  const textColor = isDark ? "#f1f5f9" : "#0f172a";
-
-  el.style.cssText = `
-    position:fixed;inset:0;z-index:9999;
-    background:${bgColor};
-    display:flex;align-items:center;justify-content:center;
-    animation:fadeIn .3s ease;
-  `;
-
-  el.innerHTML = `
-    <div style="max-width:560px;width:90%;text-align:center;padding:20px">
-
-      <!-- Logo -->
-      <img src="Logo_Sin_Texto_transparent.png" style="width:64px;height:64px;object-fit:contain;margin-bottom:20px"/>
-
-      <!-- Bienvenida -->
-      <h1 style="font-size:26px;font-weight:900;letter-spacing:-.5px;color:var(--t1);margin-bottom:8px">
-        Bienvenido a Taurix
-      </h1>
-      <p style="font-size:15px;color:var(--t3);margin-bottom:36px;line-height:1.6">
-        Una pregunta antes de empezar.<br>
-        Así preparamos la app exactamente para ti.
-      </p>
-
-      <!-- Cards de selección -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:36px;text-align:left">
-
-        <!-- Empresario -->
-        <div class="onboard-card" id="onboard_empresario"
-             onclick="window._selectModo('empresario')"
-             style="border:2px solid var(--brd);border-radius:20px;padding:28px 24px;cursor:pointer;transition:all .2s">
-          <div style="font-size:40px;margin-bottom:14px">🏢</div>
-          <div style="font-size:17px;font-weight:800;color:var(--t1);margin-bottom:8px">Soy autónomo<br>o empresario</div>
-          <div style="font-size:13px;color:var(--t3);line-height:1.6;margin-bottom:16px">
-            Gestiono mi propio negocio. Quiero una herramienta clara y sin tecnicismos para facturar, controlar gastos y saber lo que debo a Hacienda.
-          </div>
-          <div style="display:flex;flex-direction:column;gap:5px">
-            ${["Facturas y presupuestos","Control de gastos","Tesorería y cobros","Alertas fiscales simples"].map(f =>
-              `<div style="font-size:12px;color:#059669;display:flex;align-items:center;gap:6px">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-                ${f}
-              </div>`).join("")}
-          </div>
-        </div>
-
-        <!-- Gestor -->
-        <div class="onboard-card" id="onboard_gestor"
-             onclick="window._selectModo('gestor')"
-             style="border:2px solid var(--brd);border-radius:20px;padding:28px 24px;cursor:pointer;transition:all .2s">
-          <div style="font-size:40px;margin-bottom:14px">💼</div>
-          <div style="font-size:17px;font-weight:800;color:var(--t1);margin-bottom:8px">Soy gestor<br>o asesor fiscal</div>
-          <div style="font-size:13px;color:var(--t3);line-height:1.6;margin-bottom:16px">
-            Gestiono la contabilidad y fiscalidad de varios clientes. Necesito acceso a todas las herramientas profesionales y ver varios negocios desde una cuenta.
-          </div>
-          <div style="display:flex;flex-direction:column;gap:5px">
-            ${["Contabilidad PGC completa","Modelos AEAT (303, 130, 347…)","Cartera de clientes","Informes avanzados y exportaciones"].map(f =>
-              `<div style="font-size:12px;color:#059669;display:flex;align-items:center;gap:6px">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-                ${f}
-              </div>`).join("")}
-          </div>
-        </div>
-      </div>
-
-      <!-- Nota -->
-      <p style="font-size:12px;color:var(--t4);line-height:1.6">
-        Puedes cambiar el modo en cualquier momento desde la barra superior.<br>
-        Ambos modos tienen acceso a todas las funciones — solo cambia lo que se muestra por defecto.
-      </p>
-    </div>`;
-
-  document.body.appendChild(el);
-
-  // Highlight al seleccionar
-  window._selectModo = async (modo) => {
-    // Visual feedback
-    document.querySelectorAll(".onboard-card").forEach(c => {
-      c.style.borderColor = "var(--brd)";
-      c.style.background  = "";
-      c.style.transform   = "";
-    });
-    const card = document.getElementById(`onboard_${modo}`);
-    const cfg  = MODOS[modo];
-    card.style.borderColor = cfg.color;
-    card.style.background  = cfg.color + "08";
-    card.style.transform   = "scale(1.02)";
-
-    // Guardar y aplicar
-    await new Promise(r => setTimeout(r, 350)); // pequeña pausa para ver la selección
-
-    // Guardar en BD
-    await supabase.from("perfil_fiscal").upsert({
-      user_id:      SESSION.user.id,
-      modo_usuario: modo,
-    }, { onConflict:"user_id" });
-
-    localStorage.setItem("taurix_modo", modo);
-    localStorage.removeItem("taurix_onboard_shown"); // limpieza
-    aplicarModo(modo);
-
-    // Cerrar con fade
-    el.style.transition = "opacity .4s";
-    el.style.opacity    = "0";
-    await new Promise(r => setTimeout(r, 400));
-    el.remove();
-
-    // Mostrar bienvenida rápida
-    toast(`${cfg.icon} ${cfg.label} configurado. ¡Bienvenido!`, "success", 3000);
-
-    // Si es gestor, ofrecer crear primer cliente en cartera
-    if (modo === "gestor") {
-      setTimeout(() => {
-        if (window._switchView) window._switchView("cartera");
-      }, 500);
-    }
-  };
-}
-
-/* ══════════════════════════════════════════
-   CARTERA DE CLIENTES (solo modo gestor)
-   Vista que muestra todas las empresas
-   que gestiona el asesor
-══════════════════════════════════════════ */
-export async function refreshCartera() {
-  const wrap = document.getElementById("carteraGrid");
-  if (!wrap) return;
-
-  // Mostrar estado de carga
-  wrap.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--t3)">
-    <div style="font-size:13px">Cargando cartera…</div>
-  </div>`;
-
-  const clientes = await loadCarteraGestor(true); // forzar recarga — invalida cache viejo
-
-  // KPIs del encabezado
-  const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  const urgentes   = clientes.filter(c => c.semaforo === "rojo").length;
-  const pendientes = clientes.filter(c => c.semaforo === "amarillo").length;
-  const listos     = clientes.filter(c => c.semaforo === "verde").length;
-  s("carteraTotal",   clientes.length);
-  s("carteraActivos", urgentes + pendientes);
-  s("carteraPropias", listos);
-
-  // Resumen score fiscal
-  const scoreOk      = clientes.filter(c => c.estado_fiscal === "ok").length;
-  const scoreRevisar = clientes.filter(c => c.estado_fiscal === "revisar").length;
-  const scoreRiesgo  = clientes.filter(c => c.estado_fiscal === "riesgo").length;
-  const resumenEl = document.getElementById("carteraScoreResumen");
-  if (resumenEl) {
-    resumenEl.innerHTML = clientes.length ? `
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-                  padding:10px 16px;background:var(--srf);border:1px solid var(--brd);
-                  border-radius:10px;margin-bottom:20px;font-size:12px">
-        <span style="font-weight:700;color:var(--t2)">Salud fiscal:</span>
-        <span style="color:#059669;font-weight:700">
-          ● ${scoreOk} OK
-        </span>
-        <span style="color:var(--t4)">·</span>
-        <span style="color:#d97706;font-weight:700">
-          ● ${scoreRevisar} Revisar
-        </span>
-        <span style="color:var(--t4)">·</span>
-        <span style="color:#dc2626;font-weight:700">
-          ● ${scoreRiesgo} Riesgo
-        </span>
-      </div>` : "";
-  }
-
-  // Badge sidebar
-  const badge = document.getElementById("carteraBadge");
-  if (badge) {
-    badge.textContent = urgentes || "";
-    badge.style.display = urgentes ? "" : "none";
-    badge.style.background = "#dc2626";
-  }
-
-  if (!clientes.length) {
-    wrap.innerHTML = `
-      <div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--t3)">
-        <div style="font-size:48px;margin-bottom:16px">💼</div>
-        <div style="font-size:16px;font-weight:700;margin-bottom:8px">Tu cartera está vacía</div>
-        <div style="font-size:13px;margin-bottom:24px;line-height:1.6;max-width:400px;margin-left:auto;margin-right:auto">
-          Los clientes que te inviten como colaborador aparecerán aquí con sus datos fiscales en tiempo real.
-        </div>
-        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-          <button class="btn-primary" onclick="window._copyInviteInstructions()">
-            📋 Copiar instrucciones para mi cliente
-          </button>
-          <button class="btn-outline" onclick="window._switchView('colaboradores')">
-            Ver colaboradores
-          </button>
-        </div>
-      </div>`;
-    return;
-  }
-
-  const fmt = (n) => new Intl.NumberFormat("es-ES", {
-    style:"currency", currency:"EUR", maximumFractionDigits:0
-  }).format(n || 0);
-
-  const SEMAFORO_COLOR = { rojo:"#dc2626", amarillo:"#d97706", verde:"#059669" };
-  const SEMAFORO_BG    = { rojo:"#fef2f2", amarillo:"#fefce8", verde:"#f0fdf4" };
-  const SEMAFORO_LABEL = { rojo:"Requiere atención", amarillo:"Pendiente revisar", verde:"Al día" };
-
-  wrap.innerHTML = clientes.map(c => {
-    const color = SEMAFORO_COLOR[c.semaforo];
-    const bg    = SEMAFORO_BG[c.semaforo];
-    // Si el gestor marcó como revisado, mostrar "✓ Revisado" en el badge principal
-    const label = c.gestor_revisado ? "✓ Revisado" : SEMAFORO_LABEL[c.semaforo];
-    const inicial = (c.nombre_cliente || "?")[0].toUpperCase();
-
-    // Líneas de alerta (máximo 2 visibles)
-    const alertasHtml = c.alertas.slice(0, 2).map(a =>
-      `<div style="font-size:11px;color:${color};display:flex;align-items:center;gap:4px">
-         <span style="width:5px;height:5px;border-radius:50%;background:${color};flex-shrink:0"></span>
-         ${a}
-       </div>`
-    ).join("");
-
-    // Último acceso del cliente
-    const ultimoAcceso = c.ultimo_acceso
-      ? (() => {
-          const dias = Math.floor((Date.now() - new Date(c.ultimo_acceso)) / 86400000);
-          return dias === 0 ? "hoy" : dias === 1 ? "ayer" : `hace ${dias} días`;
-        })()
-      : "nunca";
-
-    return `
-    <div class="cartera-card" style="cursor:pointer;border-left:3px solid ${color}"
-         onclick="window._entrarEnCuenta_gc('${c.empresa_id}','${c.nombre_cliente.replace(/'/g,"\\'")}')">
-
-      <div class="cartera-card-header">
-        <div class="cartera-card-avatar"
-             style="background:${color};color:#fff;font-weight:700;font-size:15px;
-                    width:36px;height:36px;border-radius:50%;display:flex;
-                    align-items:center;justify-content:center;flex-shrink:0">
-          ${inicial}
-        </div>
-        <div style="flex:1;min-width:0">
-          <div class="cartera-card-nombre">${c.nombre_cliente}</div>
-          <div style="font-size:11px;color:var(--t4)">${c.nif || c.email_cliente || "—"}</div>
-        </div>
-        <span style="background:${bg};color:${color};font-size:10px;font-weight:700;
-                     padding:2px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0">
-          ${label}
-        </span>
-      </div>
-
-      <!-- Métricas fiscales -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 0 6px;
-                  border-top:1px solid var(--brd);border-bottom:1px solid var(--brd);margin:8px 0">
-        <div>
-          <div style="font-size:10px;color:var(--t4);margin-bottom:2px">Facturación trim.</div>
-          <div style="font-size:13px;font-weight:700">${fmt(c.facturacion_trim)}</div>
-        </div>
-        <div>
-          <div style="font-size:10px;color:var(--t4);margin-bottom:2px">IVA estimado</div>
-          <div style="font-size:13px;font-weight:700;color:${c.iva_estimado > 0 ? "#dc2626" : "#059669"}">
-            ${fmt(c.iva_estimado)}
-          </div>
-        </div>
-        <div>
-          <div style="font-size:10px;color:var(--t4);margin-bottom:2px">Gastos</div>
-          <div style="font-size:13px;font-weight:${c.gastos_count === 0 ? "700" : "400"};
-                      color:${c.gastos_count === 0 ? "#d97706" : "inherit"}">
-            ${c.gastos_count === 0 ? "Sin gastos" : fmt(c.gastos_trim)}
-          </div>
-        </div>
-        <div>
-          <div style="font-size:10px;color:var(--t4);margin-bottom:2px">IRPF estimado</div>
-          <div style="font-size:13px">${fmt(c.irpf_estimado)}</div>
-        </div>
-      </div>
-
-      <!-- Score fiscal -->
-      <div style="padding:6px 0 4px">
-        <div style="display:flex;align-items:center;justify-content:space-between;
-                    margin-bottom:5px">
-          <span style="font-size:10px;font-weight:700;text-transform:uppercase;
-                       letter-spacing:.5px;color:var(--t3)">Salud fiscal</span>
-          ${scoreBadgeHtml(c.estado_fiscal, c.score_fiscal)}
-        </div>
-        ${scoreBarra(c.score_fiscal, c.estado_fiscal)}
-        ${c.score_motivos?.length ? `
-          <div style="font-size:11px;color:var(--t3);margin-top:5px;line-height:1.5">
-            ${c.score_motivos[0]}${c.score_motivos.length > 1 ? ` +${c.score_motivos.length - 1} más` : ""}
-          </div>` : ""}
-      </div>
-
-      <!-- Alertas -->
-      ${alertasHtml ? `<div style="display:flex;flex-direction:column;gap:3px;padding:4px 0">${alertasHtml}</div>` : ""}
-
-      <!-- Footer -->
-      <div class="cartera-card-footer" style="margin-top:8px">
-        <span style="font-size:11px;color:var(--t4)">Cliente: ${ultimoAcceso}</span>
-        <div style="display:flex;align-items:center;gap:6px">
-          ${c.solicitudes_pendientes > 0 ? `
-            <span style="background:#fef2f2;color:#dc2626;font-size:10px;font-weight:700;
-                         padding:2px 7px;border-radius:5px">
-              📋 ${c.solicitudes_pendientes} pendiente${c.solicitudes_pendientes > 1 ? "s" : ""}
-            </span>` : ""}
-          <button class="btn-primary" style="font-size:11px;padding:3px 12px;pointer-events:none">
-            ${c.gestor_revisado ? "Ver →" : "Revisar →"}
-          </button>
-        </div>
-      </div>
-    </div>`;
-  }).join("");
-
-  // onclick directo por empresa_id (sin resolver owner_id)
-  window._entrarEnCuenta_gc = (empresa_id, nombre) => {
-    if (window._entrarEnCliente) {
-      window._entrarEnCliente(empresa_id, nombre);
-    } else {
-      toast("Módulo gestor no cargado. Recarga la página.", "error");
-    }
-  };
-}
-
-
-// Copiar instrucciones para el cliente
-window._copyInviteInstructions = () => {
-  const texto = `Hola,
-
-Para que pueda gestionar tu contabilidad desde Taurix, necesito que hagas lo siguiente:
-
-1. Ve a taurix.es y crea una cuenta (o entra si ya tienes una)
-2. En el menú lateral, ve a "Colaboradores"
-3. Haz click en "Invitar colaborador"
-4. Introduce mi email y asígnate el rol "Gestor / Asesor"
-
-Con esto podré acceder a tus datos para llevar tu contabilidad.
-
-Un saludo`;
-  navigator.clipboard.writeText(texto).then(() => {
-    toast("✅ Instrucciones copiadas al portapapeles", "success");
-  });
-};
-
-// Entrar en cuenta de un cliente — context switch real
-// gestor/context.js define window._entrarEnCuenta cuando se importa.
-// Esta línea garantiza que el override de modos.js no sobrescriba el de context.js.
-// Si context.js ya lo definió, lo dejamos; si no, ponemos un fallback informativo.
-if (!window._entrarEnCuenta || window._entrarEnCuenta.toString().includes("Esta función")) {
-  window._entrarEnCuenta = async (ownerId, nombre) => {
-    const { data: empresa } = await supabase
-      .from("empresas")
-      .select("id, nombre")
-      .eq("user_id", ownerId)
-      .limit(1)
-      .maybeSingle();
-    if (!empresa) {
-      toast("Este cliente aún no tiene empresa configurada en Taurix.", "warn");
-      return;
-    }
-    // context.js define window._entrarEnCliente
-    if (window._entrarEnCliente) {
-      window._entrarEnCliente(empresa.id, empresa.nombre || nombre);
-    } else {
-      toast("Módulo de contexto gestor no cargado aún.", "error");
-    }
-  };
-}
+/** No-op — la vista Cartera ya no existe en el sidebar. */
+export async function refreshCartera() {}
