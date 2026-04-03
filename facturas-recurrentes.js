@@ -7,7 +7,7 @@
 import { supabase } from "./supabase.js";
 import {
   SESSION, CLIENTES, fmt, fmtDate, toast,
-  openModal, closeModal
+  openModal, closeModal, switchView
 } from "./utils.js";
 import { PRODUCTOS } from "./productos.js";
 
@@ -306,10 +306,11 @@ function showRecurrenteModal(prefill = {}) {
 /* ══════════════════════════
    GLOBAL HANDLERS
 ══════════════════════════ */
-window._nuevaRecurrente = () => showRecurrenteModal();
+window._nuevaRecurrente = () => switchView("nueva-recurrente");
 window._editRecurrente = (id) => {
-  const r = RECURRENTES.find(x => x.id === id);
-  if (r) showRecurrenteModal(r);
+  if (window._cargarRecurrenteParaEditar) {
+    window._cargarRecurrenteParaEditar(id);
+  }
 };
 window._delRecurrente = (id) => {
   openModal(`
@@ -344,6 +345,6 @@ window._generarAhora = async (id) => {
    INIT
 ══════════════════════════ */
 export function initRecurrentesView() {
-  document.getElementById("nuevaRecurrenteBtn")?.addEventListener("click", () => showRecurrenteModal());
+  document.getElementById("nuevaRecurrenteBtn")?.addEventListener("click", () => switchView("nueva-recurrente"));
   refreshRecurrentes().then(() => autoGenerarRecurrentes());
 }
