@@ -251,14 +251,24 @@ function _initClienteSearch() {
     if (q.length < 2) { dd.style.display="none"; return; }
     const hits = CLIENTES.filter(c => (c.nombre||"").toLowerCase().includes(q) || (c.nif||"").toLowerCase().includes(q)).slice(0,8);
     dd.innerHTML = hits.length
-      ? hits.map(c=>`<div class="csd-item" data-id="${c.id}"><div class="csd-name">${c.nombre}</div><div class="csd-meta">${c.nif||""}</div></div>`).join("")
-      : `<div class="csd-empty">Sin resultados</div>`;
+      ? hits.map(c=>`<div class="csd-item" data-id="${c.id}"><div class="csd-name">${c.nombre}</div><div class="csd-meta">${c.nif||""}${c.email?" · "+c.email:""}</div></div>`).join("")
+      : `<div class="csd-empty">Sin resultados · Se creará como cliente nuevo</div>`;
     dd.querySelectorAll(".csd-item").forEach(item => item.addEventListener("mousedown", e => {
       e.preventDefault();
       const c = CLIENTES.find(x => x.id === item.dataset.id); if (!c) return;
       clienteSelId = c.id; inp.value = c.nombre; if (lmp) lmp.style.display = "";
       const f = (id, v) => { const el=document.getElementById(id); if(el) el.value=v||""; };
-      f("nrClienteNombre", c.nombre); f("nrClienteNif", c.nif); f("nrClienteEmail", c.email); f("nrClienteTel", c.telefono);
+      f("nrClienteNombre",          c.nombre);
+      f("nrClienteNombreComercial", c.nombre_comercial);
+      f("nrClienteNif",             c.nif);
+      f("nrClienteEmail",           c.email);
+      f("nrClienteTel",             c.telefono);
+      f("nrClienteDireccion",       c.direccion);
+      f("nrClienteCiudad",          c.ciudad);
+      f("nrClienteProvincia",       c.provincia);
+      f("nrClienteCp",              c.codigo_postal);
+      if (c.pais) { const el=document.getElementById("nrClientePais"); if(el) el.value=c.pais; }
+      if (c.tipo) { const el=document.getElementById("nrClienteTipo"); if(el) el.value=c.tipo; }
       document.getElementById("nrClientePanel")?.classList.add("cliente-panel--filled");
       dd.style.display = "none";
     }));
@@ -267,7 +277,12 @@ function _initClienteSearch() {
   inp.addEventListener("blur", () => setTimeout(() => { dd.style.display="none"; }, 200));
   lmp?.addEventListener("click", () => {
     clienteSelId=null; inp.value=""; lmp.style.display="none";
-    ["nrClienteNombre","nrClienteNif","nrClienteEmail","nrClienteTel"].forEach(id => { const el=document.getElementById(id); if(el) el.value=""; });
+    ["nrClienteNombre","nrClienteNombreComercial","nrClienteNif","nrClienteEmail",
+     "nrClienteTel","nrClienteDireccion","nrClienteCiudad","nrClienteProvincia","nrClienteCp"].forEach(id => {
+      const el=document.getElementById(id); if(el) el.value="";
+    });
+    const pais=document.getElementById("nrClientePais"); if(pais) pais.value="ES";
+    const tipo=document.getElementById("nrClienteTipo"); if(tipo) tipo.value="empresa";
     document.getElementById("nrClientePanel")?.classList.remove("cliente-panel--filled");
   });
 }
@@ -309,8 +324,45 @@ async function _save() {
   const ivaEntry = Object.entries(ivaMap).sort(([,a],[,b]) => b-a)[0];
   const ivaMain  = ivaEntry ? parseInt(ivaEntry[0]) : 0;
 
-  const clienteId = clienteSelId;
-  const cliente   = clienteId ? CLIENTES.find(c => c.id === clienteId) : null;
+  const clienteId    = clienteSelId;
+  const clienteNombre = document.getElementById("nrClienteNombre")?.value.trim() || null;
+  const clienteNif    = document.getElementById("nrClienteNif")?.value.trim()    || null;
+  const clienteEmail  = document.getElementById("nrClienteEmail")?.value.trim()  || null;
+  const clienteTel    = document.getElementById("nrClienteTel")?.value.trim()    || null;
+  const clienteDir    = document.getElementById("nrClienteDireccion")?.value.trim() || null;
+  const clienteCiudad = document.getElementById("nrClienteCiudad")?.value.trim()  || null;
+  const clienteProv   = document.getElementById("nrClienteProvincia")?.value.trim()|| null;
+  const clienteCp     = document.getElementById("nrClienteCp")?.value.trim()      || null;
+  const clientePais   = document.getElementById("nrClientePais")?.value            || "ES";
+  const clienteTipo   = document.getElementById("nrClienteTipo")?.value            || "empresa";
+  const clienteNomCom = document.getElementById("nrClienteNombreComercial")?.value.trim() || null;
+  const guardarCliente= document.getElementById("nrGuardarCliente")?.checked;
+
+  // Crear cliente nuevo si procede
+  let cId = clienteId;
+  if (!cId && guardarCliente && clienteNombre) {
+    const { data: nc, error: ce } = await supabase.from("clientes").insert({
+      user_id:          SESSION.user.id,
+      nombre:           clienteNombre,
+      nif:              clienteNif,
+      email:            clienteEmail,
+      telefono:         clienteTel,
+      direccion:        clienteDir,
+      ciudad:           clienteCiudad,
+      provincia:        clienteProv,
+      codigo_postal:    clienteCp,
+      pais:             clientePais,
+      tipo:             clienteTipo,
+      nombre_comercial: clienteNomCom,
+      emails:           clienteEmail ? [clienteEmail] : null,
+      telefonos:        clienteTel   ? [clienteTel]   : null,
+    }).select().single();
+    if (ce) { toast("Error creando cliente: " + ce.message, "warn"); }
+    else    { cId = nc.id; }
+  }
+
+  const resolvedNombre = cId ? (CLIENTES.find(c=>c.id===cId)?.nombre || clienteNombre) : clienteNombre;
+  const resolvedNif    = cId ? (CLIENTES.find(c=>c.id===cId)?.nif    || clienteNif)    : clienteNif;
 
   const motivoExencion = document.getElementById("nrMotivoExencion")?.value.trim();
   const notasBase      = document.getElementById("nrNotas")?.value.trim() || null;
@@ -329,9 +381,9 @@ async function _save() {
     frecuencia:          document.getElementById("nrFrecuencia")?.value || "mensual",
     proxima_generacion:  proxima,
     fecha_fin:           document.getElementById("nrFin")?.value || null,
-    cliente_id:          clienteId || null,
-    cliente_nombre:      cliente?.nombre || document.getElementById("nrClienteNombre")?.value.trim() || null,
-    cliente_nif:         cliente?.nif    || document.getElementById("nrClienteNif")?.value.trim()    || null,
+    cliente_id:          cId || null,
+    cliente_nombre:      resolvedNombre,
+    cliente_nif:         resolvedNif,
     activa:              true,
     notas,
     lineas: JSON.stringify(LINEAS.map(l => ({
@@ -383,7 +435,21 @@ export async function cargarRecurrenteParaEditar(id) {
   if (clienteSelId) {
     const ci = document.getElementById("nrClienteSearch");
     const cl = CLIENTES.find(c => c.id === clienteSelId);
-    if (ci && cl) { ci.value = cl.nombre; document.getElementById("nrClienteLimpiar").style.display=""; }
+    if (ci && cl) {
+      ci.value = cl.nombre;
+      document.getElementById("nrClienteLimpiar").style.display="";
+      // Populate all fields from saved client
+      const f2 = (id, v) => { const el=document.getElementById(id); if(el) el.value=v||""; };
+      f2("nrClienteNombreComercial", cl.nombre_comercial);
+      f2("nrClienteEmail",   cl.email);
+      f2("nrClienteTel",     cl.telefono);
+      f2("nrClienteDireccion",cl.direccion);
+      f2("nrClienteCiudad",  cl.ciudad);
+      f2("nrClienteProvincia",cl.provincia);
+      f2("nrClienteCp",      cl.codigo_postal);
+      if (cl.pais) { const el=document.getElementById("nrClientePais"); if(el) el.value=cl.pais; }
+      if (cl.tipo) { const el=document.getElementById("nrClienteTipo"); if(el) el.value=cl.tipo; }
+    }
   }
   const freqEl = document.getElementById("nrFrecuencia"); if (freqEl && r.frecuencia) freqEl.value = r.frecuencia;
   const tipoEl = document.getElementById("nrTipo");       if (tipoEl && r.tipo)       tipoEl.value = r.tipo;
@@ -423,9 +489,13 @@ function _resetForm(clearEditing = true) {
   clienteSelId = null; LINEAS = []; lineaIdCnt = 0;
   const cont = document.getElementById("nrLineasContainer"); if (cont) cont.innerHTML = "";
   ["nrConcepto","nrProxima","nrFin","nrNotas","nrMotivoExencion",
-   "nrClienteNombre","nrClienteNif","nrClienteEmail","nrClienteTel"].forEach(id => {
+   "nrClienteNombre","nrClienteNombreComercial","nrClienteNif","nrClienteEmail",
+   "nrClienteTel","nrClienteDireccion","nrClienteCiudad","nrClienteProvincia","nrClienteCp"].forEach(id => {
     const el=document.getElementById(id); if(el) el.value="";
   });
+  const pais=document.getElementById("nrClientePais"); if(pais) pais.value="ES";
+  const tipo=document.getElementById("nrClienteTipo"); if(tipo) tipo.value="empresa";
+  const gc=document.getElementById("nrGuardarCliente"); if(gc) gc.checked=false;
   const ci = document.getElementById("nrClienteSearch"); if (ci) ci.value="";
   const lm = document.getElementById("nrClienteLimpiar"); if (lm) lm.style.display="none";
   document.getElementById("nrClientePanel")?.classList.remove("cliente-panel--filled");
