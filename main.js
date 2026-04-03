@@ -62,6 +62,7 @@ import { initAmortizacionesView } from "./amortizaciones.js";
 import { initValidacionesModal, validarIdentificadorFiscal, validarIBAN } from "./validaciones.js";
 import { exportarDatos303, exportarDatos130, GASTOS_DEDUCIBLES } from "./fiscal.js";
 import { initRecurrentesView, refreshRecurrentes } from "./facturas-recurrentes.js";
+import { initNuevaRecurrente } from "./nueva-recurrente.js";
 import { initPlantillasView, refreshPlantillas } from "./plantillas-usuario.js";
 import { initAlbaranesView, refreshAlbaranes } from "./albaranes.js";
 import { initProformaView, refreshProforma } from "./proforma.js";
@@ -388,6 +389,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Facturas recurrentes ── */
   initRecurrentesView();
+  initNuevaRecurrente();
 
   /* ── Plantillas de usuario ── */
   initPlantillasView();
@@ -585,6 +587,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (view === "proformas")        await refreshProforma();
         if (view === "nueva-proforma")   initNuevaProforma();
         if (view === "recurrentes")     await refreshRecurrentes();
+        if (view === "nueva-recurrente") initNuevaRecurrente();
         if (view === "plantillas")      await refreshPlantillas();
         if (view === "editar-plantilla") window._epInit?.();
       });
