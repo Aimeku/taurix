@@ -514,8 +514,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ── Colaboradores view ── */
   initColaboradoresView();
 
-  /* ── Nuevo presupuesto ── */
-  initNuevoPresupuesto();
+  /* ── Nuevo presupuesto ── (listeners se adjuntan la primera vez que se navega a la vista) */
 
   /* ── Trabajos ── */
   initTrabajosView();
