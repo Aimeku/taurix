@@ -281,69 +281,35 @@ export async function loadEmpresas() {
 }
 
 export async function initMultiEmpresa() {
-  // Plan único: la lógica del topbar depende de si el usuario tiene
-  // empresas registradas, no de un "modo". Así funciona igual para
-  // autónomos (sin empresas) y para usuarios con múltiples empresas.
-  const sel       = document.getElementById("empresaSelect");
-  const btnNueva  = document.getElementById("nuevaEmpresaTopBtn");
+  // Una sola empresa por cuenta — siempre mostrar nombre + botón editar.
+  const sel        = document.getElementById("empresaSelect");
+  const btnNueva   = document.getElementById("nuevaEmpresaTopBtn");
   const spanNombre = document.getElementById("empresaNombreTop");
-  const btnEditar = document.getElementById("editarEmpresaBtn");
+  const btnEditar  = document.getElementById("editarEmpresaBtn");
 
-  const empresas = await loadEmpresas();
-  const tieneEmpresas = empresas.length > 0;
+  // Ocultar selector múltiple y botón +, mostrar nombre y botón editar
+  if (sel)       sel.style.display       = "none";
+  if (btnNueva)  btnNueva.style.display  = "none";
+  if (spanNombre) spanNombre.style.display = "";
+  if (btnEditar)  btnEditar.style.display  = "";
 
-  if (tieneEmpresas) {
-    // ── Usuario con empresas: mostrar selector múltiple ───────
-    if (sel)       sel.style.display       = "";
-    if (btnNueva)  btnNueva.style.display  = "";
-    if (spanNombre) spanNombre.style.display = "none";
-    if (btnEditar)  btnEditar.style.display  = "none";
+  // Limpiar cualquier empresa_id residual en localStorage
+  localStorage.removeItem("tg_empresa_id");
+  setEmpresaActiva(null);
 
-    if (!sel) return;
-    sel.innerHTML = `<option value="">— Empresa personal —</option>`;
-    empresas.forEach(e => {
-      const opt = document.createElement("option");
-      opt.value = e.id; opt.textContent = `${e.nombre} · ${e.nif || ""}`;
-      sel.appendChild(opt);
+  // Mostrar nombre de empresa desde perfil_fiscal
+  const { data: pf } = await supabase.from("perfil_fiscal")
+    .select("nombre_razon_social").eq("user_id", SESSION.user.id).maybeSingle();
+  if (spanNombre) {
+    spanNombre.textContent = pf?.nombre_razon_social || "Mi empresa";
+  }
+
+  // Botón editar abre el modal de perfil fiscal
+  if (btnEditar && !btnEditar._editarInit) {
+    btnEditar._editarInit = true;
+    btnEditar.addEventListener("click", () => {
+      if (window.showPerfilModal) window.showPerfilModal();
     });
-    const lastId = localStorage.getItem("tg_empresa_id");
-    if (lastId && empresas.find(e => e.id === lastId)) {
-      sel.value = lastId;
-    } else if (lastId) {
-      localStorage.removeItem("tg_empresa_id");
-      setEmpresaActiva(null);
-    }
-    if (!sel._multiEmpresaInit) {
-      sel._multiEmpresaInit = true;
-      sel.addEventListener("change", async () => {
-        setEmpresaActiva(empresas.find(e => e.id === sel.value) || null);
-        if (window._refresh) await window._refresh();
-      });
-    }
-  } else {
-    // ── Usuario sin empresas: mostrar nombre propio + botón editar ──
-    if (sel)       sel.style.display       = "none";
-    if (btnNueva)  btnNueva.style.display  = "";   // siempre visible: cualquiera puede añadir empresa
-    if (spanNombre) spanNombre.style.display = "";
-    if (btnEditar)  btnEditar.style.display  = "";
-
-    // Limpiar empresa_id residual
-    localStorage.removeItem("tg_empresa_id");
-    setEmpresaActiva(null);
-
-    // Mostrar nombre desde perfil_fiscal
-    const { data: pf } = await supabase.from("perfil_fiscal")
-      .select("nombre_razon_social").eq("user_id", SESSION.user.id).maybeSingle();
-    if (spanNombre) {
-      spanNombre.textContent = pf?.nombre_razon_social || "Mi empresa";
-    }
-
-    if (btnEditar && !btnEditar._editarInit) {
-      btnEditar._editarInit = true;
-      btnEditar.addEventListener("click", () => {
-        if (window.showPerfilModal) window.showPerfilModal();
-      });
-    }
   }
 }
 
