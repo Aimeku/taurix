@@ -580,6 +580,11 @@ export async function showPerfilModal() {
     const sfr = document.getElementById("sfRegimeTxt");
     const labels = { autonomo_ed: "Autónomo · Est. Directa", autonomo_es: "Autónomo · Est. Simplificada", sociedad: "Sociedad", autonomo_mod: "Autónomo · Módulos" };
     if (sfr) sfr.textContent = labels[regime] || "Autónomo";
+    // ── Actualizar nombre empresa en topbar sin recargar ──
+    const spanNombreTop = document.getElementById("empresaNombreTop");
+    if (spanNombreTop && spanNombreTop.style.display !== "none") {
+      spanNombreTop.textContent = n;
+    }
     closeModal();
     toast("Perfil fiscal guardado ✅", "success");
     localStorage.setItem("tg_onboard_done", "1");
