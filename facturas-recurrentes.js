@@ -106,7 +106,7 @@ async function generarFacturaDesdeRecurrente(recurrenteId) {
     base: r.base,
     iva: r.iva || 21,
     irpf_retencion: r.irpf_retencion || 0,
-    tipo: "emitida",
+    tipo: r.tipo || "emitida",
     tipo_operacion: r.tipo_operacion || "nacional",
     estado: "borrador",
     fecha: new Date().toISOString().slice(0, 10),
