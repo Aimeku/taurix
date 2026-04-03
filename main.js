@@ -96,10 +96,6 @@ window._switchView = async (view) => {
   if (view === "nuevo-presupuesto") {
     initNuevoPresupuesto();
   }
-  if (view === "revision-cliente") {
-    const { renderRevisionCliente } = await import("./gestor-revision-cliente.js");
-    await renderRevisionCliente(document.getElementById("view-revision-cliente"));
-  }
 };
 
 /* ══════════════════════════
@@ -507,9 +503,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ── Alertas fiscales ── */
   initAlertasView();
 
-  /* ── Modo empresario/gestor ── */
-  const modoOk = await initModos();
-  if (!modoOk) showOnboardingModo();
+  /* ── Sidebar unificado — plan único ── */
+  await initModos();
 
   /* ── Colaboradores view ── */
   initColaboradoresView();
@@ -574,11 +569,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (view === "nominas")         { const { refreshNominas } = await import("./nominas.js"); await refreshNominas(); }
         if (view === "empleados")       { const { refreshEmpleados } = await import("./nominas.js"); if(refreshEmpleados) await refreshEmpleados(); }
         if (view === "colaboradores")   await refreshColaboradoresView();
-        if (view === "cartera")         await refreshCartera();
-        if (view === "revision-cliente") {
-          const { renderRevisionCliente } = await import("./gestor-revision-cliente.js");
-          await renderRevisionCliente(document.getElementById("view-revision-cliente"));
-        }
+        // view "cartera" eliminada — plan único
+        // view "revision-cliente" eliminada — plan único
         if (view === "trabajos")        await refreshTrabajos();
         if (view === "agenda")          await refreshAgenda();
         if (view === "informes")        initInformesView();
@@ -616,9 +608,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   window._rebindNav();
 
   // Toggle modo global
-  window._toggleModo       = () => toggleModo();
+  // window._toggleModo eliminado — plan único sin modos
   window._refreshDashboard = () => refreshDashboard();
-  window._refreshCartera   = () => refreshCartera();
+  // window._refreshCartera eliminado — vista cartera removida
 
   // Navegación gestionada por _rebindNav() ↑
 
