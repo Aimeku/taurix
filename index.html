@@ -1533,6 +1533,159 @@
         </div>
       </div>
 
+      <!-- ═══ VIEW: NUEVA FACTURA RECURRENTE ═══ -->
+      <div class="view" id="view-nueva-recurrente">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title" id="nrTitulo">Nueva factura recurrente</h1>
+            <p class="view-sub">Se generará como borrador automáticamente en la fecha programada</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-outline" id="nrCancelarBtn">Cancelar</button>
+          </div>
+        </div>
+
+        <div class="nf-layout" style="grid-template-columns:1fr">
+          <div class="nf-form-col">
+
+            <!-- TIPO OPERACIÓN -->
+            <div class="form-block">
+              <div class="fb-title">Tipo de operación</div>
+              <div class="op-type-grid" id="nrOpTypeGrid">
+                <button class="op-type-btn nr-op-btn active" data-op="nacional"><span class="op-flag">🇪🇸</span><span class="op-lbl">Nacional</span></button>
+                <button class="op-type-btn nr-op-btn" data-op="intracomunitaria"><span class="op-flag">🇪🇺</span><span class="op-lbl">Intracomunitaria</span></button>
+                <button class="op-type-btn nr-op-btn" data-op="exportacion"><span class="op-flag">🌍</span><span class="op-lbl">Exportación</span></button>
+                <button class="op-type-btn nr-op-btn" data-op="importacion"><span class="op-flag">📦</span><span class="op-lbl">Importación</span></button>
+                <button class="op-type-btn nr-op-btn" data-op="inversion_sujeto_pasivo"><span class="op-flag">🔄</span><span class="op-lbl">Inv. S. Pasivo</span></button>
+                <button class="op-type-btn nr-op-btn" data-op="exento"><span class="op-flag">🚫</span><span class="op-lbl">Exento</span></button>
+              </div>
+              <div class="op-info-banner" id="nrOpBanner"></div>
+              <div id="nrExencionWrap" style="display:none;margin-top:8px">
+                <div class="ff-field">
+                  <label>Motivo de exención <span style="font-weight:400;color:var(--t3)">(opcional)</span></label>
+                  <input type="text" id="nrMotivoExencion" class="ff-input" placeholder="Ej: Art. 20 LIVA — exención educativa"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- PERIODICIDAD -->
+            <div class="form-block">
+              <div class="fb-title">Periodicidad</div>
+              <div class="ff-grid3">
+                <div class="ff-field">
+                  <label>Frecuencia *</label>
+                  <select id="nrFrecuencia" class="ff-select">
+                    <option value="mensual">Mensual</option>
+                    <option value="bimestral">Bimestral</option>
+                    <option value="trimestral">Trimestral</option>
+                    <option value="semestral">Semestral</option>
+                    <option value="anual">Anual</option>
+                  </select>
+                </div>
+                <div class="ff-field">
+                  <label>Primera generación *</label>
+                  <input type="date" id="nrProxima" class="ff-input"/>
+                </div>
+                <div class="ff-field">
+                  <label>Fecha fin <span style="font-weight:400;color:var(--t3)">(vacío = indefinida)</span></label>
+                  <input type="date" id="nrFin" class="ff-input"/>
+                </div>
+              </div>
+              <div class="ff-field" style="margin-top:0">
+                <label>Concepto *</label>
+                <input id="nrConcepto" class="ff-input" placeholder="Ej: Cuota mensual mantenimiento web"/>
+              </div>
+            </div>
+
+            <!-- DATOS FISCALES -->
+            <div class="form-block">
+              <div class="fb-title">Datos fiscales</div>
+              <div class="ff-grid3">
+                <div class="ff-field">
+                  <label>Tipo de factura</label>
+                  <select id="nrTipo" class="ff-select">
+                    <option value="emitida">Emitida (ingreso)</option>
+                    <option value="recibida">Recibida (gasto)</option>
+                  </select>
+                </div>
+                <div class="ff-field" id="nrIrpfFieldWrap" style="display:none">
+                  <label>Retención IRPF</label>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <label class="irpf-toggle">
+                      <input type="checkbox" id="nrIrpfToggle"/>
+                      <span class="irpf-toggle-slider"></span>
+                    </label>
+                    <select id="nrIrpf" class="ff-select" style="display:none;min-width:160px">
+                      <option value="7">7% — Inicio actividad</option>
+                      <option value="15" selected>15% — General</option>
+                      <option value="19">19% — Profesionales</option>
+                    </select>
+                    <span id="nrIrpfHint" style="font-size:11.5px;color:var(--t3)">No aplicar</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CLIENTE -->
+            <div class="form-block">
+              <div class="fb-title">Cliente</div>
+              <div class="cliente-search-wrap">
+                <div class="csc-input-wrap">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input type="text" id="nrClienteSearch" class="csc-input" placeholder="Buscar cliente guardado…" autocomplete="off"/>
+                  <button id="nrClienteLimpiar" class="csc-clear" style="display:none">×</button>
+                </div>
+                <div class="csc-dropdown" id="nrClienteDropdown" style="display:none"></div>
+              </div>
+              <div id="nrClientePanel" class="cliente-panel">
+                <div class="ff-grid2">
+                  <div class="ff-field"><label>Nombre o razón social</label><input id="nrClienteNombre" class="ff-input" placeholder="Ej: Empresa XYZ S.L."/></div>
+                  <div class="ff-field"><label>NIF / CIF / VAT <span id="nrNifNote" class="ff-note"></span></label><input id="nrClienteNif" class="ff-input" placeholder="Ej: B12345678"/></div>
+                </div>
+                <div class="ff-grid2">
+                  <div class="ff-field"><label>Email cliente</label><input type="email" id="nrClienteEmail" class="ff-input" placeholder="cliente@empresa.com"/></div>
+                  <div class="ff-field"><label>Teléfono</label><input type="text" id="nrClienteTel" class="ff-input" placeholder="+34 600 000 000"/></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- LÍNEAS -->
+            <div class="form-block">
+              <div class="fb-title-row">
+                <div class="fb-title">Líneas de la factura</div>
+                <button id="nrAddLineaBtn" class="btn-add-linea">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Añadir línea
+                </button>
+              </div>
+              <div id="nrLineasHeader" style="display:grid;gap:4px;padding:4px 0;border-bottom:2px solid var(--brd)"></div>
+              <div id="nrLineasContainer"></div>
+              <div class="lineas-totales">
+                <div class="lt-row"><span>Base imponible</span><strong id="nrBase">0,00 €</strong></div>
+                <div class="lt-row" id="nrIvaRow"><span>IVA</span><strong id="nrIva">0,00 €</strong></div>
+                <div class="lt-row lt-irpf" id="nrIrpfRow" style="display:none"><span id="nrIrpfLbl">IRPF (−15%)</span><strong id="nrIrpfAmt" style="color:#dc2626">0,00 €</strong></div>
+                <div class="lt-row lt-total"><span>TOTAL EST.</span><strong id="nrTotal">0,00 €</strong></div>
+                <div class="lt-row" style="font-size:11px;color:var(--t3);padding-top:2px"><span id="nrAnualEstim"></span></div>
+              </div>
+            </div>
+
+            <!-- NOTAS -->
+            <div class="form-block">
+              <div class="fb-title">Notas internas</div>
+              <textarea id="nrNotas" class="ff-input ff-textarea" placeholder="Notas que se incluirán en cada factura generada…"></textarea>
+            </div>
+
+            <!-- GUARDAR -->
+            <div class="nf-actions-col">
+              <button class="btn-primary btn-lg-block" id="nrGuardarBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg>
+                Crear factura recurrente
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ═══ VIEW: MIS PLANTILLAS ═══ -->
       <!-- ═══ VIEW: PLANTILLAS (editor integrado) ═══ -->
       <div class="view" id="view-plantillas">
