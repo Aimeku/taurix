@@ -281,23 +281,24 @@ export async function loadEmpresas() {
 }
 
 export async function initMultiEmpresa() {
-  // Importar esModoGestor dinámicamente para evitar dependencia circular
-  const { esModoGestor } = await import("./modos.js");
-  const gestor = esModoGestor();
+  // Plan único: la lógica del topbar depende de si el usuario tiene
+  // empresas registradas, no de un "modo". Así funciona igual para
+  // autónomos (sin empresas) y para usuarios con múltiples empresas.
+  const sel       = document.getElementById("empresaSelect");
+  const btnNueva  = document.getElementById("nuevaEmpresaTopBtn");
+  const spanNombre = document.getElementById("empresaNombreTop");
+  const btnEditar = document.getElementById("editarEmpresaBtn");
 
-  const sel         = document.getElementById("empresaSelect");
-  const btnNueva    = document.getElementById("nuevaEmpresaTopBtn");
-  const spanNombre  = document.getElementById("empresaNombreTop");
-  const btnEditar   = document.getElementById("editarEmpresaBtn");
+  const empresas = await loadEmpresas();
+  const tieneEmpresas = empresas.length > 0;
 
-  if (gestor) {
-    // ── MODO GESTOR: mostrar selector múltiple ────────────────
-    if (sel)      sel.style.display      = "";
-    if (btnNueva) btnNueva.style.display = "";
+  if (tieneEmpresas) {
+    // ── Usuario con empresas: mostrar selector múltiple ───────
+    if (sel)       sel.style.display       = "";
+    if (btnNueva)  btnNueva.style.display  = "";
     if (spanNombre) spanNombre.style.display = "none";
     if (btnEditar)  btnEditar.style.display  = "none";
 
-    const empresas = await loadEmpresas();
     if (!sel) return;
     sel.innerHTML = `<option value="">— Empresa personal —</option>`;
     empresas.forEach(e => {
@@ -320,25 +321,23 @@ export async function initMultiEmpresa() {
       });
     }
   } else {
-    // ── MODO NORMAL: una sola empresa, solo botón editar ──────
-    // Ocultar selector y botón +, mostrar nombre y botón editar
-    if (sel)      sel.style.display      = "none";
-    if (btnNueva) btnNueva.style.display = "none";
+    // ── Usuario sin empresas: mostrar nombre propio + botón editar ──
+    if (sel)       sel.style.display       = "none";
+    if (btnNueva)  btnNueva.style.display  = "";   // siempre visible: cualquiera puede añadir empresa
     if (spanNombre) spanNombre.style.display = "";
     if (btnEditar)  btnEditar.style.display  = "";
 
-    // Limpiar cualquier empresa_id residual en localStorage — usuario normal siempre usa user_id
+    // Limpiar empresa_id residual
     localStorage.removeItem("tg_empresa_id");
     setEmpresaActiva(null);
 
-    // Mostrar nombre de empresa desde perfil_fiscal
+    // Mostrar nombre desde perfil_fiscal
     const { data: pf } = await supabase.from("perfil_fiscal")
       .select("nombre_razon_social").eq("user_id", SESSION.user.id).maybeSingle();
     if (spanNombre) {
       spanNombre.textContent = pf?.nombre_razon_social || "Mi empresa";
     }
 
-    // Botón editar abre el modal de perfil fiscal
     if (btnEditar && !btnEditar._editarInit) {
       btnEditar._editarInit = true;
       btnEditar.addEventListener("click", () => {
