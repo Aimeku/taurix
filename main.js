@@ -563,9 +563,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (view === "documentos")      { const { refreshDocumentos } = await import("./documentos.js"); await refreshDocumentos(); }
         if (view === "tesoreria")       await refreshTesoreria();
 
+        if (view === "iva")             await refreshIVA();
+        if (view === "irpf")            await refreshIRPF();
+        if (view === "is")              { try { await refreshIS(); } catch(e) { console.warn("IS:",e.message); } }
+        if (view === "historico")       await refreshHistorico();
         if (view === "otros-modelos")   await initOtrosModelosView();
+        // view "libros" — estática, listeners registrados en init, no necesita refresh
         if (view === "contabilidad")    await refreshLibroDiario();
         if (view === "amortizaciones")  { const { refreshBienesInversion } = await import("./amortizaciones.js"); await refreshBienesInversion(); }
+        if (view === "cobros")          await refreshCobros();
         if (view === "nominas")         { const { refreshNominas } = await import("./nominas.js"); await refreshNominas(); }
         if (view === "empleados")       { const { refreshEmpleados } = await import("./nominas.js"); if(refreshEmpleados) await refreshEmpleados(); }
         if (view === "colaboradores")   await refreshColaboradoresView();
