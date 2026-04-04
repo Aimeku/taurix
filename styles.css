@@ -260,7 +260,7 @@ html.dark .topbar-empresa-wrap{background:var(--srf2);border-color:var(--brd)}
 .kpi-sub{font-size:11px;color:var(--t4)}
 
 /* ══ QUICK ACTIONS ══ */
-.quick-actions-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.quick-actions-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
 .qa-card{background:var(--srf);border:1px solid var(--brd);border-radius:var(--r-lg);padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .15s}
 .qa-card:hover{box-shadow:var(--sh);transform:translateY(-2px);border-color:var(--ox-mid)}
 .qa-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
