@@ -327,25 +327,6 @@ function renderAlertasIVA(r303, trim) {
 export async function refreshIRPF() {
   const year = getYear(), trim = getTrim();
 
-  // Adaptar título y textos de la vista según el régimen activo
-  const _regime = window.__TAURIX_REGIME__ ?? "autonomo_ed";
-  const _esModulos = _regime === "autonomo_mod";
-  const _titleEl = document.getElementById("irpfViewTitle");
-  const _exportLbl = document.getElementById("exportIrpfBtnLabel");
-  if (_titleEl) _titleEl.textContent = _esModulos ? "Módulos · Modelo 131" : "IRPF · Modelo 130";
-  if (_exportLbl) _exportLbl.textContent = _esModulos ? "Exportar 131" : "Exportar 130";
-
-  // Nota informativa para módulos
-  const _alertasEl = document.getElementById("irpfAlertasEl");
-  if (_esModulos && _alertasEl) {
-    _alertasEl.innerHTML = `<div class="alerta-fiscal alerta-fiscal--aviso" style="margin-bottom:12px">
-      <div class="af-body">
-        <div class="af-title">Estimación Objetiva — Módulos (Mod. 131)</div>
-        <div class="af-desc">Estás en módulos. El Modelo 131 se calcula sobre parámetros objetivos de tu actividad (personal, local, potencia…), no sobre ingresos y gastos reales. Los valores mostrados son orientativos. Consulta con tu asesor los módulos aplicables a tu epígrafe IAE (art. 31 LIRPF · RD 439/2007).</div>
-      </div>
-    </div>`;
-  }
-
   const facturasTrim = await getFacturasTrim(year, trim);
   const periodo = calcIRPF(facturasTrim);
 
@@ -401,11 +382,10 @@ export async function refreshIRPF() {
   const stEl   = document.getElementById("irpfEstado130");
   if (resEl) resEl.textContent = fmt(resultado);
   if (stEl) {
-    const _modelo130lbl = (window.__TAURIX_REGIME__ === "autonomo_mod") ? "131" : "130";
     if (exento130_estimado && resultado === 0) {
-      stEl.innerHTML = `<span class="badge b-compen">Sin pago · Retenciones cubren el ${_modelo130lbl}</span>`;
+      stEl.innerHTML = `<span class="badge b-compen">Sin pago · Retenciones cubren el 130</span>`;
     } else if (resultado > 0) {
-      stEl.innerHTML = `<span class="badge b-pagar">A ingresar · Modelo ${_modelo130lbl}</span>`;
+      stEl.innerHTML = `<span class="badge b-pagar">A ingresar · Modelo 130</span>`;
     } else {
       stEl.innerHTML = `<span class="badge b-compen">Sin pago · Resultado ≤ 0</span>`;
     }
