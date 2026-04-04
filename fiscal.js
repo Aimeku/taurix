@@ -34,6 +34,9 @@ const MINIMO_PERSONAL = 5550;
 export async function refreshIVA() {
   const year = getYear(), trim = getTrim();
   const facturas = await getFacturasTrim(year, trim);
+  // DEBUG TEMPORAL — eliminar tras confirmar funcionamiento
+  console.log("[IVA] SESSION:", !!SESSION, "year:", year, "trim:", trim);
+  console.log("[IVA] facturas recibidas:", facturas.length, facturas.slice(0,3).map(f=>({id:f.id,fecha:f.fecha,tipo:f.tipo,estado:f.estado,base:f.base,iva:f.iva})));
   const r303 = calcModelo303Completo(facturas);
 
   const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = fmt(v); };
