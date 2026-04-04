@@ -268,11 +268,11 @@ export function calcIVA(facturas) {
         }
       } else {
         // Nacional — deducible si tiene factura completa (no TIQ-) O si
-        // deducible_iva === true (IVA registrado explícitamente en el ticket)
-        // Los tickets TIQ sin ese flag no dan derecho a deducir IVA (art. 97 LIVA)
+        // el ticket tiene IVA registrado (iva > 0)
+        // Los tickets TIQ sin IVA no dan derecho a deducir (art. 97 LIVA)
         const esTicket = (f.numero_factura || "").startsWith("TIQ-");
-        const ivaDeducibleExplicito = f.deducible_iva === true;
-        if (!esTicket || ivaDeducibleExplicito) {
+        const tieneIvaRegistrado = (f.iva ?? f.iva_pct ?? 0) > 0;
+        if (!esTicket || tieneIvaRegistrado) {
           const pctDed = (f.pct_deduccion_iva ?? 100) / 100;
           sop.int += cuota * pctDed;
         }
