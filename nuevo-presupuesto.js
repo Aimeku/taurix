@@ -395,7 +395,8 @@ async function savePresupuesto() {
   const ivaEntry = Object.entries(ivaMap).sort(([, a], [, b]) => b - a)[0];
   const ivaMain = ivaEntry ? parseInt(ivaEntry[0]) : 21;
 
-  const clienteNombre = document.getElementById("npClienteNombre")?.value.trim();
+  const clienteNombre          = document.getElementById("npClienteNombre")?.value.trim();
+  const clienteNombreComercial = document.getElementById("npClienteNombreComercial")?.value.trim();
   const clienteNif    = document.getElementById("npClienteNif")?.value.trim();
   const clienteDir    = document.getElementById("npClienteDir")?.value.trim();
   const clienteEmail  = document.getElementById("npClienteEmail")?.value.trim();
@@ -437,9 +438,15 @@ async function savePresupuesto() {
     concepto, fecha,
     fecha_validez: document.getElementById("npValidez")?.value || null,
     cliente_id: cId || null,
-    cliente_nombre: clienteNombre || clienteObj?.nombre || "",
-    cliente_nif: clienteNif || clienteObj?.nif || "",
-    cliente_direccion: clienteDir || clienteObj?.direccion || "",
+    cliente_nombre:           clienteNombre           || clienteObj?.nombre           || "",
+    cliente_nombre_comercial: clienteNombreComercial  || clienteObj?.nombre_comercial || null,
+    cliente_nif:              clienteNif              || clienteObj?.nif              || "",
+    cliente_direccion:        clienteDir              || clienteObj?.direccion        || "",
+    cliente_email:            clienteEmail            || clienteObj?.email            || null,
+    cliente_tel:              clienteTel              || clienteObj?.telefono         || null,
+    cliente_ciudad:           clienteCiudad           || clienteObj?.ciudad          || null,
+    cliente_provincia:        clienteProv             || clienteObj?.provincia        || null,
+    cliente_cp:               clienteCp               || clienteObj?.codigo_postal    || null,
     base: baseTotal,
     iva: ivaMain,
     lineas: lineasJson,
@@ -504,7 +511,7 @@ function resetForm() {
   LINEAS = []; lineaIdCounter = 0; clienteSeleccionadoId = null;
   const container = document.getElementById("npLineasContainer");
   if (container) container.innerHTML = "";
-  ["npClienteNombre", "npClienteNif", "npClienteDir", "npClienteEmail", "npClienteTel",
+  ["npClienteNombre", "npClienteNombreComercial", "npClienteNif", "npClienteDir", "npClienteEmail", "npClienteTel",
    "npClienteCiudad", "npClienteProvincia", "npClienteCp", "npConcepto", "npNotas"].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = "";
   });
@@ -550,6 +557,7 @@ function initClienteSearch() {
         clienteSeleccionadoId = c.id;
         input.value = c.nombre;
         document.getElementById("npClienteNombre").value    = c.nombre;
+        document.getElementById("npClienteNombreComercial").value = c.nombre_comercial || "";
         document.getElementById("npClienteNif").value       = c.nif || "";
         document.getElementById("npClienteDir").value       = c.direccion || "";
         document.getElementById("npClienteEmail").value     = c.email || "";
@@ -575,7 +583,7 @@ function initClienteSearch() {
   clearBtn?.addEventListener("click", () => {
     clienteSeleccionadoId = null;
     input.value = "";
-    ["npClienteNombre", "npClienteNif", "npClienteDir", "npClienteEmail", "npClienteTel",
+    ["npClienteNombre", "npClienteNombreComercial", "npClienteNif", "npClienteDir", "npClienteEmail", "npClienteTel",
      "npClienteCiudad", "npClienteProvincia", "npClienteCp"].forEach(id => {
       const el = document.getElementById(id); if (el) el.value = "";
     });
@@ -774,13 +782,19 @@ export function initNuevoPresupuesto() {
 
     // Campos de texto
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ""; };
-    set("npConcepto",      editData.concepto);
-    set("npFecha",         editData.fecha);
-    set("npValidez",       editData.fecha_validez);
-    set("npClienteNombre", editData.cliente_nombre);
-    set("npClienteNif",    editData.cliente_nif);
-    set("npClienteDir",    editData.cliente_direccion);
-    set("npNotas",         editData.notas);
+    set("npConcepto",                editData.concepto);
+    set("npFecha",                   editData.fecha);
+    set("npValidez",                 editData.fecha_validez);
+    set("npClienteNombre",           editData.cliente_nombre);
+    set("npClienteNombreComercial",  editData.cliente_nombre_comercial);
+    set("npClienteNif",              editData.cliente_nif);
+    set("npClienteDir",              editData.cliente_direccion);
+    set("npClienteEmail",            editData.cliente_email);
+    set("npClienteTel",              editData.cliente_tel);
+    set("npClienteCiudad",           editData.cliente_ciudad);
+    set("npClienteProvincia",        editData.cliente_provincia);
+    set("npClienteCp",               editData.cliente_cp);
+    set("npNotas",                   editData.notas);
 
     // Cliente seleccionado
     clienteSeleccionadoId = editData.cliente_id || null;
