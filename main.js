@@ -532,16 +532,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("exportHistExcelBtn")?.addEventListener("click", exportHistoricoExcel);
   document.getElementById("dashExportBtn")?.addEventListener("click", exportFacturasExcel);
 
-  /* ── Nóminas (stubs hasta módulo completo) ── */
-  document.getElementById("generarNominaBtn")?.addEventListener("click", () => {
-    toast("El módulo de nóminas está disponible en el plan Business", "info");
-  });
-  document.getElementById("exportNominasBtn")?.addEventListener("click", () => toast("Exportar nóminas próximamente", "info"));
+  /* ── Nóminas ── */
+  document.getElementById("exportNominasBtn")?.addEventListener("click", () => toast("Exportar nóminas en desarrollo", "info"));
   ["exportTC1Btn", "exportTC2Btn", "exportSEPANominasBtn"].forEach(id => {
-    document.getElementById(id)?.addEventListener("click", () => toast("Disponible en plan Business", "info"));
-  });
-  document.getElementById("nuevoEmpleadoBtn")?.addEventListener("click", () => {
-    toast("Módulo RRHH disponible en plan Business", "info");
+    document.getElementById(id)?.addEventListener("click", () => toast("Exportación SEPA / TC en desarrollo", "info"));
   });
 
   /* ── Pipeline ── */
