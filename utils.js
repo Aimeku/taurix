@@ -626,6 +626,10 @@ export async function showPerfilModal() {
     localStorage.setItem("tg_onboard_done", "1");
     const banner = document.getElementById("onboardingBanner");
     if (banner) banner.style.display = "none";
+    // Invalidar caché tax engine — el régimen puede haber cambiado
+    try { const { invalidarCache } = await import("./tax-connector.js"); invalidarCache(); } catch(_) {}
+    // Resetear asistente fiscal IA para que recargue con el nuevo régimen
+    if (window.__taxAsistenteReset) window.__taxAsistenteReset();
   };
 }
 window.showPerfilModal = showPerfilModal;
