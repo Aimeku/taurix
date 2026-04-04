@@ -73,7 +73,9 @@ export async function buildTaxContext(year, trim, opts = {}) {
   if (esSociedad) {
     // SOCIEDAD: Impuesto sobre Sociedades (LIS 27/2014)
     // No presenta 130 — presenta Modelo 200 (anual) y 202 (pagos fraccionados)
-    rIS = await _calcIS(year);
+    // Pasar el mismo ctx que usa tax-data para que las queries sean consistentes
+    const _ctx = _getQueryCtx();
+    rIS = await _calcIS(year, _ctx);
   } else {
     // AUTÓNOMO: IRPF fraccionado Modelo 130 (art. 110 LIRPF)
     r130       = calcModelo130(docsAcum, pagosPrevios130, trim, year);
@@ -155,9 +157,11 @@ export async function buildTaxContext(year, trim, opts = {}) {
    Misma lógica que dashboard.js::refreshIS() pero sin DOM
 ══════════════════════════════════════════════════════════════════ */
 
-async function _calcIS(year) {
+async function _calcIS(year, ctx) {
+  // ctx viene de buildTaxContext — mismo que usa tax-data para 303/130
+  // Si no se pasa, calcularlo (por compatibilidad)
+  ctx = ctx ?? _getQueryCtx();
   try {
-    const ctx = _getQueryCtx();
 
     const [fR, nR, bR] = await Promise.all([
       supabase.from("facturas")
