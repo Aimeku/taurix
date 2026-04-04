@@ -1352,7 +1352,7 @@ html.dark #onboardingModoOverlay {
   font-family: var(--font-hd);
   font-size: 28px;
   font-weight: 700;
-  color: var(--t4);
+  color: #ef4444;
   text-decoration: line-through;
   letter-spacing: -1px;
   margin-right: 2px;
