@@ -636,6 +636,8 @@ export async function showPerfilModal() {
     try { const { aplicarModo } = await import("./modos.js"); aplicarModo(); } catch(_) {}
     // Adaptar qa-cards, alertas y calendario del dashboard
     if (window._adaptarUIRegimen) window._adaptarUIRegimen();
+    // Refrescar el dashboard para que los KPIs (IRPF/IS) cambien inmediatamente
+    if (window._refresh) window._refresh();
     // Invalidar caché tax engine
     try { const { invalidarCache } = await import("./tax-connector.js"); invalidarCache(); } catch(_) {}
     // Resetear asistente fiscal IA
