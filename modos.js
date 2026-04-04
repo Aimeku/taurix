@@ -60,14 +60,7 @@ const SIDEBAR_FISCAL_SOCIEDAD = [
   { view:"amortizaciones",label:"Bienes e Inmovilizado", icon:"bar-chart2" },
 ];
 
-const SIDEBAR_FISCAL_MODULOS = [
-  { sep: true, label:"Fiscal AEAT" },
-  { view:"iva",           label:"IVA · Modelo 303",      icon:"layers" },
-  { view:"irpf",          label:"IRPF · Módulos (131)",  icon:"dollar" },
-  { view:"otros-modelos", label:"Otros modelos",         icon:"check-square" },
-  { view:"libros",        label:"Libros oficiales",      icon:"book" },
-  { view:"amortizaciones",label:"Bienes e Inmovilizado", icon:"bar-chart2" },
-];
+/* SIDEBAR_FISCAL_MODULOS eliminado — pendiente tax-modulos.js */
 
 // Items finales — siempre visibles
 const SIDEBAR_TAIL = [
@@ -87,20 +80,13 @@ const SIDEBAR_TAIL = [
 /** Devuelve los SIDEBAR_ITEMS correctos según el régimen del perfil */
 function getSidebarItems() {
   const regime = window.__TAURIX_REGIME__ ?? "autonomo_ed";
-  // Grupos: sociedad → IS, autonomo_mod → 131, resto → 130
+  // autonomo_mod desactivado → cae en AUTONOMO (tax-regime.js lo mapea)
   const esSociedad = regime === "sociedad";
-  const esModulos  = regime === "autonomo_mod";
-
-  let fiscalItems;
-  if (esSociedad) {
-    fiscalItems = SIDEBAR_FISCAL_SOCIEDAD;
-  } else if (esModulos) {
-    fiscalItems = SIDEBAR_FISCAL_MODULOS;
-  } else {
-    fiscalItems = SIDEBAR_FISCAL_AUTONOMO;
-  }
-
-  return [...SIDEBAR_BASE, ...fiscalItems, ...SIDEBAR_TAIL];
+  return [
+    ...SIDEBAR_BASE,
+    ...(esSociedad ? SIDEBAR_FISCAL_SOCIEDAD : SIDEBAR_FISCAL_AUTONOMO),
+    ...SIDEBAR_TAIL,
+  ];
 }
 
 // Alias para compatibilidad con código existente
