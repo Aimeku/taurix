@@ -35,6 +35,11 @@ import {
   serializarAlertasParaClaude,
 } from "./tax-alerts.js";
 import { TRIM_ORDEN } from "./tax-rules.js";
+import {
+  getTipoContribuyente, GRUPOS,
+  esSociedad, esAutonomo, esModulos,
+  aplicaGastoEDS, getTipoIS, getModelosObligatorios, labelRegimen,
+} from "./tax-regime.js";
 
 /* ══════════════════════════════════════════════════════════════════
    FUNCIÓN PRINCIPAL
@@ -57,8 +62,13 @@ export async function buildTaxContext(year, trim, opts = {}) {
   const { ini: iniTrim, fin: finTrim } = _rangoTrim(year, trim);
   const docsTrim = docsAcum.filter(d => d.fecha >= iniTrim && d.fecha <= finTrim);
 
-  // ── 2. Detectar régimen ────────────────────────────────────────
-  const esSociedad = perfil?.regime === "sociedad";
+  // ── 2. Detectar régimen — via tax-regime.js (única fuente de verdad) ──
+  const regime   = perfil?.regime ?? "autonomo_ed";
+  const tipoContrib = getTipoContribuyente(regime);
+  const _esSociedad = tipoContrib === GRUPOS.SOCIEDAD;
+  const _esModulos  = tipoContrib === GRUPOS.AUTONOMO_MODULOS;
+  // autonomo_es aplica 5% adicional de gastos de difícil justificación
+  const _eds5pct    = aplicaGastoEDS(regime);
 
   // ── 3. IVA — igual para todos los regímenes ───────────────────
   const r303 = calcModelo303(docsTrim, compensacionAnterior303);
@@ -70,14 +80,19 @@ export async function buildTaxContext(year, trim, opts = {}) {
   let proyeccion = null;
   let rIS        = null;
 
-  if (esSociedad) {
-    // SOCIEDAD: Impuesto sobre Sociedades (LIS 27/2014)
-    // No presenta 130 — presenta Modelo 200 (anual) y 202 (pagos fraccionados)
-    // Pasar el mismo ctx que usa tax-data para que las queries sean consistentes
+  if (_esSociedad) {
+    // SOCIEDAD (SL/SA): IS (LIS 27/2014) — no presenta 130
     const _ctx = _getQueryCtx();
     rIS = await _calcIS(year, _ctx);
+  } else if (_esModulos) {
+    // AUTÓNOMO MÓDULOS: tributa IRPF por parámetros objetivos (Modelo 131)
+    // TODO: implementar calcModelo131() cuando se añadan parámetros de actividad.
+    // Mientras tanto, 130 como aproximación (misma base de cálculo orientativa).
+    r130       = calcModelo130(docsAcum, pagosPrevios130, trim, year);
+    proyeccion = calcProyeccionAnual(r130, trim, pagosPrevios130 + r130.resultado);
   } else {
-    // AUTÓNOMO: IRPF fraccionado Modelo 130 (art. 110 LIRPF)
+    // AUTÓNOMO (ED / ES): Modelo 130 — 20% rendimiento neto acumulado (art. 110 LIRPF)
+    // autonomo_es: 5% gastos EDS se aplica en simulador Renta, no en el 130
     r130       = calcModelo130(docsAcum, pagosPrevios130, trim, year);
     proyeccion = calcProyeccionAnual(r130, trim, pagosPrevios130 + r130.resultado);
   }
@@ -107,13 +122,26 @@ export async function buildTaxContext(year, trim, opts = {}) {
     year,
   });
 
-  if (esSociedad && rIS) {
+  if (_esSociedad && rIS) {
     _alertasIS(rIS, trim, year, alertas);
+  }
+  if (_esModulos) {
+    alertas.push({
+      tipo: "modulos_info", severidad: "media",
+      titulo: "Régimen de módulos — Modelo 131",
+      mensaje: "Estás en Estimación Objetiva (módulos). El cálculo del Modelo 131 se basa en parámetros objetivos de tu actividad, no en ingresos/gastos reales. Los valores mostrados son orientativos. Consulta con tu asesor los módulos aplicables a tu epígrafe IAE.",
+      norma: "Art. 31 LIRPF · RD 439/2007",
+    });
   }
 
   // ── 8. Contexto para Claude ───────────────────────────────────
+  const modelos = getModelosObligatorios(regime);
   const contextoParaClaude = _buildClaudeContext({
-    perfil, trim, year, esSociedad,
+    perfil, trim, year,
+    esSociedad: _esSociedad,
+    esModulos:  _esModulos,
+    eds5pct:    _eds5pct,
+    modelos,
     r303,
     r130:       r130 ?? _r130Vacio(),
     proyeccion: proyeccion ?? _proyeccionVacia(),
@@ -132,7 +160,10 @@ export async function buildTaxContext(year, trim, opts = {}) {
     r130:       r130 ?? _r130Vacio(),
     proyeccion: proyeccion ?? _proyeccionVacia(),
     rIS,
-    esSociedad,
+    esSociedad:  _esSociedad,
+    esModulos:   _esModulos,
+    tipoContrib,
+    regime,
     retencion,
     perfil,
     gastosClasificados,
@@ -262,7 +293,7 @@ function _alertasIS(rIS, trim, year, alertas) {
 
 function _buildClaudeContext(params) {
   const {
-    perfil, trim, year, esSociedad,
+    perfil, trim, year, esSociedad, esModulos, eds5pct, modelos,
     r303, r130, proyeccion, rIS,
     retencion, prorrata, alertas,
     resumenGastos, totalesGastos,
@@ -278,7 +309,18 @@ function _buildClaudeContext(params) {
   lines.push(`NIF: ${perfil?.nif ?? "—"}`);
   lines.push(`Actividad: ${perfil?.actividad ?? "—"}`);
   lines.push(`Régimen: ${_labelRegimen(perfil?.regime)}`);
-  lines.push(`Tipo contribuyente: ${esSociedad ? "PERSONA JURÍDICA — tributa IS, NO presenta Modelo 130" : "PERSONA FÍSICA — tributa IRPF, NO presenta Modelo 202 ni IS"}`);
+  const _tipoLabel = esSociedad
+    ? "PERSONA JURÍDICA (SL/SA) — tributa IS, NO presenta Mod.130 ni Mod.131"
+    : esModulos
+      ? "PERSONA FÍSICA — Autónomo Módulos, tributa IRPF por Mod.131 (parámetros objetivos)"
+      : eds5pct
+        ? "PERSONA FÍSICA — Autónomo Est. Simplificada, tributa IRPF Mod.130 (+5% gastos difícil just.)"
+        : "PERSONA FÍSICA — Autónomo Est. Directa, tributa IRPF Mod.130";
+  lines.push(`Tipo contribuyente: ${_tipoLabel}`);
+  if (modelos) {
+    lines.push(`Modelos obligatorios trimestrales: ${modelos.trimestrales.join(", ")}`);
+    lines.push(`Modelos obligatorios anuales: ${modelos.anuales.join(", ")}`);
+  }
   if (!esSociedad && perfil?.fecha_alta) lines.push(`Alta actividad: ${perfil.fecha_alta}`);
   if (!esSociedad) lines.push(`Retención aplicable: ${pct(retencion.pct * 100)}${retencion.reducida ? " (reducida)" : ""}`);
   lines.push("");
