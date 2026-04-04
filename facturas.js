@@ -25,7 +25,12 @@ export async function emitirFacturaDB(facturaId) {
   if (fe || !f) throw new Error(fe?.message || "Factura no encontrada");
 
   const { data: pfRaw } = await supabase.from("perfil_fiscal").select("serie_formato").eq("user_id", SESSION.user.id).single();
-  const formatoSerie = pfRaw?.serie_formato || "F-{YEAR}-{NUM4}";
+  // Sanear: si el formato empieza directamente por {YEAR} o por un dígito (sin prefijo letra),
+  // forzar el prefijo "F-" para evitar números del tipo "2025-0001" sin identificador.
+  let formatoSerie = pfRaw?.serie_formato || "F-{YEAR}-{NUM4}";
+  if (/^\{YEAR\}/.test(formatoSerie) || /^\d/.test(formatoSerie)) {
+    formatoSerie = "F-" + formatoSerie;
+  }
 
   const serie = new Date(f.fecha).getFullYear().toString();
 
@@ -573,7 +578,7 @@ export async function showSerieConfigModal() {
         <div style="margin-top:16px">
           <p style="font-size:12px;color:var(--t3);margin-bottom:8px">Formatos habituales:</p>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            ${["{YEAR}-{NUM4}","F-{YEAR}-{NUM4}","{YEAR}/{NUM3}","F{NUM4}/{YEAR}"].map(f=>`
+            ${["F-{YEAR}-{NUM4}","F-{YEAR}/{NUM4}","{YEAR}/{NUM3}","F{NUM4}/{YEAR}"].map(f=>`
               <button class="btn-outline" style="font-family:var(--font-mono);font-size:12px" onclick="
                 document.getElementById('serie_formato').value='${f}';
                 document.getElementById('serie_preview').textContent='${previewNum(f)}';
