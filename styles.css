@@ -238,7 +238,7 @@ html.dark .topbar-empresa-wrap{background:var(--srf2);border-color:var(--brd)}
 /* ══ KPI ══ */
 .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:24px}
 .kpi-row.kpi-row--small{grid-template-columns:repeat(4,1fr)}
-.kpi-card{background:var(--srf);border:1px solid var(--brd);border-radius:var(--r-lg);padding:18px 20px;position:relative;overflow:hidden;transition:box-shadow .15s,transform .15s;display:flex;flex-direction:column}
+.kpi-card{background:var(--srf);border:1px solid var(--brd);border-radius:var(--r-lg);padding:18px 20px;position:relative;overflow:hidden;transition:box-shadow .15s,transform .15s;display:grid;grid-template-rows:36px 1fr auto;align-content:start}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r-lg) var(--r-lg) 0 0}
 .kpi-card:hover{box-shadow:var(--sh);transform:translateY(-2px)}
 .kpi-blue::before{background:linear-gradient(90deg,var(--ox),#FBBF24)}
@@ -247,7 +247,7 @@ html.dark .topbar-empresa-wrap{background:var(--srf2);border-color:var(--brd)}
 .kpi-amber::before{background:var(--amber)}
 .kpi-indigo::before{background:var(--indigo)}
 .kpi-rose::before{background:#e11d48}
-.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;align-self:start;padding-bottom:8px}
 .kpi-lbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--t3)}
 .kpi-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center}
 .kpi-icon--blue{background:var(--ox-lt);color:var(--ox)}
@@ -256,7 +256,7 @@ html.dark .topbar-empresa-wrap{background:var(--srf2);border-color:var(--brd)}
 .kpi-icon--amber{background:var(--amber-lt);color:var(--amber)}
 .kpi-icon--indigo{background:var(--indigo-lt);color:var(--indigo)}
 .kpi-icon--rose{background:#fff1f2;color:#e11d48}
-.kpi-val{font-family:var(--font-hd);font-size:24px;font-weight:900;letter-spacing:-.5px;color:var(--t1);margin-bottom:4px;line-height:1.2;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";min-height:30px;display:flex;align-items:baseline;gap:2px}
+.kpi-val{font-family:var(--font-hd);font-size:24px;font-weight:900;letter-spacing:-.5px;color:var(--t1);margin-bottom:4px;line-height:1.2;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";align-self:end}
 .kpi-sub{font-size:11px;color:var(--t4)}
 
 /* ══ QUICK ACTIONS ══ */
