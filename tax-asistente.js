@@ -48,6 +48,17 @@ export function initTaxAsistente() {
   _css();
   _html();
   _events();
+  // Exponer reset global — utils.js lo llama al guardar perfil fiscal
+  window.__taxAsistenteReset = () => {
+    _s.systemCtx = null;
+    _s.taxResult = null;
+    _s.messages  = [];
+    // Si el panel está abierto, recargar contexto inmediatamente
+    if (_s.open) {
+      _renderWelcome();
+      _loadCtx();
+    }
+  };
 }
 
 /* ══════════════════════════════════════════════════════════════════
