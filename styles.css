@@ -1817,6 +1817,15 @@ html.dark .lp-plan--gestor {
   gap: 3px;
 }
 
+#presTable .ta-btn {
+  padding: 3px 6px;
+  font-size: 10px;
+}
+
+#presTable .tbl-act {
+  gap: 3px;
+}
+
 /* Dark mode — hereda los overrides anteriores automáticamente */
 html.dark #facturasTable tbody tr:hover td {
   background: rgba(249,115,22,.04);
