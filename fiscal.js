@@ -186,11 +186,16 @@ function calcModelo303Completo(facturas, prorrataPct = null) {
         sop.int   += cuota;
         byOp.isp_recibida += f.base;
       } else {
-        // Nacional: IVA soportado deducible solo si hay factura completa
-        // Los tickets TIQ no dan derecho a deducir IVA (art. 97 LIVA)
+        // Nacional: IVA soportado deducible si:
+        //   a) tiene factura completa (no TIQ-), O
+        //   b) es ticket pero con deducible_iva === true (IVA registrado explícitamente)
+        // Art. 97 LIVA: los tickets sin NIF del receptor no dan derecho a deducción
+        // salvo que el registro indique explícitamente que el IVA es deducible.
         const esTicket = (f.numero_factura || "").startsWith("TIQ-");
-        if (!esTicket) {
-          sop.int += cuota;
+        const ivaDeducibleExplicito = f.deducible_iva === true;
+        if (!esTicket || ivaDeducibleExplicito) {
+          const pctDed = (f.pct_deduccion_iva ?? 100) / 100;
+          sop.int += cuota * pctDed;
         }
       }
       sop.total = sop.int + sop.imp;
