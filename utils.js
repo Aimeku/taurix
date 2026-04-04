@@ -7,6 +7,7 @@ import { logout } from "./auth.js";
 
 /* ─── Contexto de query (gestor/empresa activa/usuario) ─── */
 function _getCtx() {
+  // 1. Gestor está viendo un cliente — usar empresa_id del cliente
   try {
     const raw = sessionStorage.getItem('tg_gestor_ctx');
     if (raw) {
@@ -14,8 +15,8 @@ function _getCtx() {
       if (ctx?.empresa_id) return { field: 'empresa_id', value: ctx.empresa_id };
     }
   } catch (_) {}
-  const empresaId = localStorage.getItem('tg_empresa_id');
-  if (empresaId) return { field: 'empresa_id', value: empresaId };
+  // 2. Siempre user_id — las facturas se guardan con user_id,
+  //    no con empresa_id. tg_empresa_id era para multi-empresa (eliminado).
   return { field: 'user_id', value: SESSION?.user?.id ?? null };
 }
 
