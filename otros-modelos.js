@@ -17,19 +17,19 @@ export async function calcModelo111() {
 
   // Retenciones de facturas emitidas (rendimientos profesionales)
   // Usar getQueryContext para respetar contexto gestor
-  const { getQueryContext } = await import("./query-context.js");
-  const ctx = getQueryContext();
+  // Siempre user_id — las facturas se guardan con user_id (igual que utils.js/_getCtx)
+  const uid = SESSION?.user?.id;
   const { data: facturas } = await supabase.from("facturas")
     .select("base, irpf_retencion, cliente_nombre")
-    .eq(ctx.field, ctx.value)
+    .eq("user_id", uid)
     .eq("tipo", "emitida").eq("estado", "emitida")
     .gte("fecha", ini).lte("fecha", fin)
-    .not("irpf_retencion", "is", null);
+    .not("irpf_retencion", "is", null)
+    .gt("irpf_retencion", 0);
 
-  // Retenciones de nóminas (siempre del usuario propietario)
   const { data: nominas } = await supabase.from("nominas")
     .select("irpf, nombre_empleado")
-    .eq("user_id", SESSION.user.id)
+    .eq("user_id", uid)
     .gte("fecha", ini).lte("fecha", fin);
 
   const retProf = (facturas || []).reduce((a, f) => a + f.base * (f.irpf_retencion || 0) / 100, 0);
@@ -40,6 +40,13 @@ export async function calcModelo111() {
   const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
   s("m111Nominas", fmt(retNom));
   s("m111Prof",    fmt(retProf));
+  s("m111Total",   fmt(total));
+
+  // Estado visual
+  const stEl = document.getElementById("m111Estado");
+  if (stEl) stEl.innerHTML = total > 0
+    ? `<span class="badge b-pagar">A ingresar: ${fmt(total)}</span>`
+    : `<span class="badge b-compen">Sin retenciones este trimestre</span>`;
 
   return { retProf, retNom, total, facturas: facturas || [], nominas: nominas || [], year, trim };
 }
@@ -69,19 +76,27 @@ export async function calcModelo115() {
   const year = getYear(), trim = getTrim();
   const { ini, fin } = getFechaRango(year, trim);
 
-  const { getQueryContext: getCtx115 } = await import("./query-context.js");
-  const ctx115 = getCtx115();
+  // user_id — consistente con el resto del sistema
+  const uid115 = SESSION?.user?.id;
+  // Buscar alquileres: facturas recibidas con concepto de alquiler O categoría alquiler
   const { data: alquileres } = await supabase.from("facturas")
-    .select("base, iva, concepto")
-    .eq(ctx115.field, ctx115.value).eq("tipo", "recibida")
+    .select("base, iva, concepto, categoria")
+    .eq("user_id", uid115).eq("tipo", "recibida")
     .gte("fecha", ini).lte("fecha", fin)
-    .or("concepto.ilike.%alquiler%,concepto.ilike.%arrendamiento%,concepto.ilike.%renta%");
+    .or("concepto.ilike.%alquiler%,concepto.ilike.%arrendamiento%,concepto.ilike.%renta%,categoria.ilike.%alquiler%,categoria.ilike.%arrendamiento%");
 
   const baseAlquiler = (alquileres || []).reduce((a, f) => a + f.base, 0);
-  const retencion    = baseAlquiler * 0.19; // 19% sobre base
+  // Tipo retención arrendamiento: 19% general (art. 75.2.a RIRPF)
+  const retencion    = baseAlquiler * 0.19;
 
-  const el = document.getElementById("m115Base");
-  if (el) el.textContent = fmt(baseAlquiler);
+  const s115 = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  s115("m115Base",      fmt(baseAlquiler));
+  s115("m115Retencion", fmt(retencion));
+
+  const stEl115 = document.getElementById("m115Estado");
+  if (stEl115) stEl115.innerHTML = retencion > 0
+    ? `<span class="badge b-pagar">A ingresar: ${fmt(retencion)}</span>`
+    : `<span class="badge b-compen">Sin alquileres declarables</span>`;
 
   return { baseAlquiler, retencion, year, trim };
 }
@@ -188,18 +203,20 @@ export async function calcModelo349() {
   const year = getYear(), trim = getTrim();
   const { ini, fin } = getFechaRango(year, trim);
 
-  const { getQueryContext: getCtx349 } = await import("./query-context.js");
-  const ctx349 = getCtx349();
+  // user_id — consistente con el resto del sistema
+  const uid349 = SESSION?.user?.id;
   const { data: ops } = await supabase.from("facturas")
     .select("cliente_nombre, cliente_nif, base, iva, tipo, estado")
-    .eq(ctx349.field, ctx349.value)
+    .eq("user_id", uid349)
     .eq("tipo_operacion", "intracomunitaria")
     .gte("fecha", ini).lte("fecha", fin);
 
-  const el = document.getElementById("m349Count");
-  if (el) el.textContent = (ops || []).length;
+  const totalBase349 = (ops || []).reduce((a, f) => a + (f.base || 0), 0);
+  const s349 = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  s349("m349Count", (ops || []).length);
+  s349("m349Base",  fmt(totalBase349));
 
-  return { ops: ops || [], year, trim };
+  return { ops: ops || [], totalBase: totalBase349, year, trim };
 }
 
 export async function exportModelo349PDF() {
@@ -233,13 +250,22 @@ export async function calcModelo390(year) {
     const facs = await getFacturasTrim(y, trim);
     (facs || []).forEach(f => {
       const cuota = f.base * (f.iva || 0) / 100;
-      if (f.tipo === "emitida" && f.estado === "emitida") repTotal += cuota;
-      else if (f.tipo === "recibida" && !(f.numero_factura || "").startsWith("TIQ-")) {
-        // Tickets TIQ: IVA no deducible en el 390 (coherente con 303)
-        sopTotal += cuota;
+      if (cuota <= 0) return; // sin IVA no aplica al 390
+      if (f.tipo === "emitida" && f.estado === "emitida") {
+        repTotal += cuota;
+      } else if (f.tipo === "recibida" && f.estado !== "anulada") {
+        // Tickets TIQ no deducibles (coherente con 303)
+        if (!(f.numero_factura || "").startsWith("TIQ-")) {
+          sopTotal += cuota;
+        }
       }
     });
   }
+
+  const s390 = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  s390("m390Rep", fmt(repTotal));
+  s390("m390Sop", fmt(sopTotal));
+  s390("m390Res", fmt(repTotal - sopTotal));
 
   return { repTotal, sopTotal, resultado: repTotal - sopTotal, year: y };
 }
@@ -389,15 +415,33 @@ async function _cargarJsPDF() {
 /* ══════════════════════════
    INIT VIEW
 ══════════════════════════ */
+let _omListenersRegistered = false;
+
 export async function initOtrosModelosView() {
-  await Promise.all([calcModelo111(), calcModelo115(), calcModelo349()]);
+  // Actualizar plazos dinámicamente según el trimestre activo
+  const trim = (typeof getTrim === "function") ? getTrim() : "T1";
+  const plazos = { T1:"20 de abril", T2:"20 de julio", T3:"20 de octubre", T4:"30 de enero" };
+  const plazoActual = plazos[trim] ?? "20 de julio";
+  document.querySelectorAll(".me-plazo-trim").forEach(el => {
+    el.textContent = `Plazo ${trim}: ${plazoActual}`;
+  });
+
+  // Calcular todos los modelos en paralelo
+  await Promise.all([
+    calcModelo111(),
+    calcModelo115(),
+    calcModelo349(),
+    calcModelo390(),
+  ]);
   await calcModelo347();
+
+  // Registrar listeners solo una vez — evitar duplicados al navegar
+  if (_omListenersRegistered) return;
+  _omListenersRegistered = true;
 
   document.getElementById("export111Btn")?.addEventListener("click", exportModelo111PDF);
   document.getElementById("export115Btn")?.addEventListener("click", exportModelo115PDF);
   document.getElementById("export347Btn")?.addEventListener("click", exportModelo347PDF);
-
-  // Exportaciones para software contable y ficheros oficiales AEAT
   document.getElementById("exportA3Btn")?.addEventListener("click", exportarParaA3);
   document.getElementById("exportContaPlusBtn")?.addEventListener("click", exportarParaContaPlus);
   document.getElementById("exportFichero347Btn")?.addEventListener("click", exportarFichero347);
