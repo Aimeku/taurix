@@ -15,7 +15,11 @@ import { supabase } from "../supabase.js";
 import { SESSION } from "../utils.js";
 import { getFechaRangoTrim, getFechaRangoAnual } from "./tax-rules.js";
 
-/* ── Reutiliza el mismo _getCtx() que utils.js para modo gestor ── */
+/* ── Contexto de query — SIEMPRE user_id ──────────────────────────
+   Las facturas se guardan con user_id, igual que utils.js/_getCtx().
+   tg_empresa_id era para multi-empresa (eliminado de la app).
+   Excepción: modo gestor viendo un cliente específico (tg_gestor_ctx).
+─────────────────────────────────────────────────────────────────── */
 function _getCtx() {
   try {
     const raw = sessionStorage.getItem("tg_gestor_ctx");
@@ -24,8 +28,7 @@ function _getCtx() {
       if (ctx?.empresa_id) return { field: "empresa_id", value: ctx.empresa_id };
     }
   } catch (_) {}
-  const empresaId = localStorage.getItem("tg_empresa_id");
-  if (empresaId) return { field: "empresa_id", value: empresaId };
+  // SIEMPRE user_id — no usar tg_empresa_id (las facturas no se guardan por empresa)
   return { field: "user_id", value: SESSION?.user?.id ?? null };
 }
 
