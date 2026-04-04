@@ -198,16 +198,11 @@ export async function refreshFacturas() {
       // Emitida — INMUTABLE: solo PDF, cobro, duplicar, nota de crédito
       acciones = `<div class="tbl-act">
         <button class="ta-btn" onclick="window._pdfFact('${f.id}')" title="Descargar PDF">📄 PDF</button>
-        ${f.tipo==="emitida"?`<button class="ta-btn ${f.cobrada?"ta-cobrada":"ta-pendiente"}" onclick="window._toggleCobro('${f.id}',${!f.cobrada})" title="${f.cobrada?"Marcar pendiente":"Marcar cobrada"}">${f.cobrada?`<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="4.5"/><polyline points="6,3.5 6,6 7.5,7.5"/></svg>`:`<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>`}</button>`:""}
         <button class="ta-btn" onclick="window._duplicarFact('${f.id}')" title="Duplicar factura">📋</button>
         ${f.tipo==="emitida"?`<button class="ta-btn" onclick="window._notaCredito('${f.id}')" title="Nota de crédito / Rectificativa" style="color:#dc2626">🔄</button>`:""}
       </div>`;
     }
 
-    /* ── Columna cobro (badge) ── */
-    const cobroBadge = f.cobrada
-      ? `<span class="badge b-cobrada">Cobrada</span>`
-      : `<span class="badge b-pendiente">Pendiente</span>`;
 
     return `
       <tr>
@@ -221,7 +216,6 @@ export async function refreshFacturas() {
         <td class="mono fw7">${fmt(total)}</td>
         <td><span class="badge ${f.tipo==="emitida"?"b-income":"b-expense"}">${f.tipo==="emitida"?"Expedida":"Recibida"}</span></td>
         <td style="font-size:11px;text-align:center;color:var(--t3)">${f.factura_rectif_de ? 'S&iacute;' : 'No'}</td>
-        <td>${cobroBadge}</td>
         <td>${acciones}</td>
       </tr>`;
   }).join("");
