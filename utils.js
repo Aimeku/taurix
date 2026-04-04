@@ -221,55 +221,122 @@ export function isCerrado(year, trim) {
 }
 
 export function calcIVA(facturas) {
+  // Función de cálculo IVA coherente con calcModelo303Completo:
+  // - Entregas IC y exportaciones: exentas, base va a byOp, no generan rep.total
+  // - Adquisiciones IC e ISP recibidas: autoliquidación (rep + sop, efecto neutro)
+  // - Tickets TIQ (numero_factura starts with "TIQ-"): IVA soportado NO deducible (art. 97 LIVA)
   const rep = { 21: 0, 10: 0, 4: 0, 0: 0, total: 0 };
   const sop = { int: 0, imp: 0, total: 0 };
-  const byOp = { nacional: 0, intracomunitaria: 0, exportacion: 0, inversion_sujeto_pasivo: 0 };
+  const byOp = {
+    nacional: 0, intracomunitaria_entrega: 0, intracomunitaria_adquisicion: 0,
+    exportacion: 0, inversion_sujeto_pasivo: 0
+  };
+  let baseExenta = 0;
+
   facturas.forEach(f => {
     const cuota = f.base * (f.iva || 0) / 100;
     const op = f.tipo_operacion || "nacional";
+
     if (f.tipo === "emitida" && f.estado === "emitida") {
-      const k = [21, 10, 4, 0].includes(f.iva) ? f.iva : 21;
-      rep[k] = (rep[k] || 0) + cuota;
-      rep.total += cuota;
-      byOp[op] = (byOp[op] || 0) + f.base;
+      if (op === "exportacion") {
+        // Exenta art. 21 LIVA — base va a exenta, no genera rep
+        baseExenta += f.base;
+        byOp.exportacion = (byOp.exportacion || 0) + f.base;
+      } else if (op === "intracomunitaria") {
+        // Entrega IC exenta art. 25 LIVA
+        baseExenta += f.base;
+        byOp.intracomunitaria_entrega = (byOp.intracomunitaria_entrega || 0) + f.base;
+      } else if (op === "inversion_sujeto_pasivo") {
+        // ISP emitida: el receptor liquida, no genera cuota propia
+        byOp.inversion_sujeto_pasivo = (byOp.inversion_sujeto_pasivo || 0) + f.base;
+      } else {
+        // Nacional con IVA
+        const k = [21, 10, 4, 0].includes(Number(f.iva)) ? Number(f.iva) : 21;
+        rep[k] = (rep[k] || 0) + cuota;
+        rep.total += cuota;
+        byOp.nacional = (byOp.nacional || 0) + f.base;
+      }
     } else if (f.tipo === "recibida") {
-      if (op === "importacion") sop.imp += cuota;
-      else sop.int += cuota;
-      sop.total += cuota;
+      if (op === "importacion") {
+        sop.imp += cuota;
+      } else if (op === "intracomunitaria" || op === "inversion_sujeto_pasivo") {
+        // Autoliquidación: devengado Y deducible — efecto neutro (art. 84 y 85 LIVA)
+        rep.total += cuota;
+        sop.int   += cuota;
+        if (op === "intracomunitaria") {
+          byOp.intracomunitaria_adquisicion = (byOp.intracomunitaria_adquisicion || 0) + f.base;
+        }
+      } else {
+        // Nacional — solo deducible si tiene factura completa
+        // Los tickets TIQ no dan derecho a deducir IVA (art. 97 LIVA)
+        const esTicket = (f.numero_factura || "").startsWith("TIQ-");
+        if (!esTicket) {
+          sop.int += cuota;
+        }
+        // El gasto (base) siempre computa para IRPF aunque sea ticket
+      }
+      sop.total = sop.int + sop.imp;
     }
   });
-  return { rep, sop, resultado: rep.total - sop.total, byOp };
+
+  return { rep, sop, resultado: rep.total - sop.total, byOp, baseExenta };
 }
 
 export function calcIRPF(facturas) {
+  // Usa irpf_retencion como campo primario (campo real de la BD desde nueva-factura.js)
+  // con fallback a irpf para compatibilidad con registros legacy
   let ingresos = 0, gastos = 0, retenciones = 0;
+  let ingresosConRetencion = 0; // para detectar excepción 70% art. 109.1 RIRPF
+
   facturas.forEach(f => {
     if (f.tipo === "emitida" && f.estado === "emitida") {
       ingresos += f.base;
-      if (f.irpf) retenciones += f.base * f.irpf / 100;
+      // irpf_retencion es el campo canónico; irpf es legacy
+      const pctRet = f.irpf_retencion ?? f.irpf ?? 0;
+      if (pctRet > 0) {
+        retenciones += f.base * pctRet / 100;
+        ingresosConRetencion += f.base;
+      }
     } else if (f.tipo === "recibida") {
       gastos += f.base;
     }
   });
+
   const rendimiento = ingresos - gastos;
-  const pagoFrac = Math.max(0, rendimiento * 0.20);
-  return { ingresos, gastos, rendimiento, retenciones, pagoFrac, resultado: Math.max(0, pagoFrac - retenciones) };
+  const pagoFrac    = Math.max(0, rendimiento * 0.20);
+  // Excepción presentación 130: si ≥70% ingresos tienen retención (art. 109.1 RIRPF)
+  const pctConRetencion = ingresos > 0 ? ingresosConRetencion / ingresos : 0;
+  const exentoModelo130 = pctConRetencion >= 0.70;
+
+  return {
+    ingresos, gastos, rendimiento, retenciones, pagoFrac,
+    resultado: Math.max(0, pagoFrac - retenciones),
+    ingresosConRetencion, pctConRetencion, exentoModelo130,
+  };
 }
 
 
 
 export async function calcModelo347(year) {
   if (!SESSION) return [];
+  const ctx = _getCtx();
   const { data: facturas } = await supabase.from("facturas")
-    .select("cliente_nombre, cliente_nif, tipo, base, iva, estado")
-    .eq("user_id", SESSION.user.id)
+    .select("cliente_nombre, cliente_nif, tipo, base, iva, estado, numero_factura")
+    .eq(ctx.field, ctx.value)
     .gte("fecha", `${year}-01-01`).lte("fecha", `${year}-12-31`);
   const UMBRAL = 3005.06;
   const acumulados = {};
   (facturas || []).forEach(f => {
-    const key = f.cliente_nif || f.cliente_nombre || "SIN_NIF";
-    if (!acumulados[key]) acumulados[key] = { nombre: f.cliente_nombre, nif: f.cliente_nif, total: 0, tipo: f.tipo };
+    // Excluir tickets TIQ del 347 (no tienen NIF cliente, no son facturas completas)
+    if ((f.numero_factura || "").startsWith("TIQ-")) return;
+    // Solo facturas emitidas en estado emitida, o recibidas
+    if (f.tipo === "emitida" && f.estado !== "emitida") return;
+    const key = (f.cliente_nif || f.cliente_nombre || "SIN_NIF") + "_" + f.tipo;
+    if (!acumulados[key]) acumulados[key] = {
+      nombre: f.cliente_nombre, nif: f.cliente_nif, total: 0, tipo: f.tipo, ops: 0
+    };
     acumulados[key].total += f.base + f.base * (f.iva || 0) / 100;
+    acumulados[key].ops++;
   });
   return Object.values(acumulados).filter(a => a.total >= UMBRAL);
 }
