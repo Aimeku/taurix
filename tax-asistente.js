@@ -271,6 +271,12 @@ async function _loadCtx() {
   overlay.classList.remove('hidden');
 
   try {
+    // Invalidar caché antes de cargar — garantiza datos frescos del trimestre activo
+    try {
+      const { invalidarCache } = await import('./index.js');
+      invalidarCache();
+    } catch(_) {}
+
     const [ctxStr, ctxObj] = await Promise.all([
       getContextoParaClaude(),
       getTaxContextResult(),
