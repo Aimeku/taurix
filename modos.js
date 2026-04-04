@@ -13,7 +13,8 @@
    SIDEBAR UNIFICADO
    Un solo plan. Una sola experiencia.
 ══════════════════════════════════════════ */
-const SIDEBAR_ITEMS = [
+// Items base — siempre visibles independientemente del régimen
+const SIDEBAR_BASE = [
   { sep: true, label: null },
   { view:"dashboard",     label:"Dashboard",             icon:"grid" },
   { view:"alertas",       label:"Alertas fiscales",      icon:"bell",   badge:"snBadgeAlertas" },
@@ -38,13 +39,29 @@ const SIDEBAR_ITEMS = [
   { view:"empleados",     label:"Empleados",             icon:"users2" },
   { view:"nominas",       label:"Nóminas",               icon:"card" },
   { view:"ss",            label:"Seguridad Social",      icon:"shield2" },
+];
+
+// Items fiscales según régimen
+const SIDEBAR_FISCAL_AUTONOMO = [
   { sep: true, label:"Fiscal AEAT" },
   { view:"iva",           label:"IVA · Modelo 303",      icon:"layers" },
   { view:"irpf",          label:"IRPF · Modelo 130",     icon:"dollar" },
-  { view:"is",            label:"Impuesto Sociedades",   icon:"monitor" },
   { view:"otros-modelos", label:"Otros modelos",         icon:"check-square" },
   { view:"libros",        label:"Libros oficiales",      icon:"book" },
   { view:"amortizaciones",label:"Bienes e Inmovilizado", icon:"bar-chart2" },
+];
+
+const SIDEBAR_FISCAL_SOCIEDAD = [
+  { sep: true, label:"Fiscal AEAT" },
+  { view:"iva",           label:"IVA · Modelo 303",      icon:"layers" },
+  { view:"is",            label:"IS · Mod. 200 / 202",   icon:"monitor" },
+  { view:"otros-modelos", label:"Otros modelos",         icon:"check-square" },
+  { view:"libros",        label:"Libros oficiales",      icon:"book" },
+  { view:"amortizaciones",label:"Bienes e Inmovilizado", icon:"bar-chart2" },
+];
+
+// Items finales — siempre visibles
+const SIDEBAR_TAIL = [
   { sep: true, label:"Contabilidad PGC" },
   { view:"contabilidad",  label:"Plan General Contable", icon:"file-text2" },
   { sep: true, label:"Análisis e Informes" },
@@ -57,6 +74,20 @@ const SIDEBAR_ITEMS = [
   { view:"documentos",    label:"Documentos",            icon:"folder" },
   { view:"colaboradores", label:"Colaboradores",         icon:"users3", badge:"colaboradoresBadge" },
 ];
+
+/** Devuelve los SIDEBAR_ITEMS correctos según el régimen del perfil */
+function getSidebarItems() {
+  const regime = window.__TAURIX_REGIME__ ?? "autonomo_ed";
+  const esSociedad = regime === "sociedad";
+  return [
+    ...SIDEBAR_BASE,
+    ...(esSociedad ? SIDEBAR_FISCAL_SOCIEDAD : SIDEBAR_FISCAL_AUTONOMO),
+    ...SIDEBAR_TAIL,
+  ];
+}
+
+// Alias para compatibilidad con código existente
+const SIDEBAR_ITEMS = getSidebarItems();
 
 /* ══════════════════════════════════════════
    SVG ICONS (inline, sin dependencias)
@@ -141,7 +172,8 @@ export function aplicarModo() {
     return;
   }
 
-  nav.innerHTML = SIDEBAR_ITEMS.map(item => {
+  const items = getSidebarItems();
+  nav.innerHTML = items.map(item => {
     if (item.sep) {
       return item.label
         ? `<div class="sn-separator"></div><div class="sn-section-label">${item.label}</div>`
