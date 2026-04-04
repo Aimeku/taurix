@@ -12,15 +12,14 @@ import {
   calcIVA, calcIRPF, TRIM_LABELS
 } from "./utils.js";
 import { getQueryContext } from "./query-context.js";
+import { SESSION } from "./utils.js";
 
 let _chartAnual = null;
 
 export async function refreshDashboard() {
   const year = getYear(), trim = getTrim();
-  const _ctx = getQueryContext();
-
-  // DEBUG — eliminar tras confirmar funcionamiento
-  console.log("[Dashboard] ctx:", _ctx, "year:", year, "trim:", trim);
+  // SIEMPRE user_id — las facturas se guardan con user_id, igual que getFacturasTrim/utils.js
+  const uid = SESSION?.user?.id ?? null;
 
   const [
     facturasTrim, facturasAnio, facturasAnioPrev,
@@ -30,20 +29,16 @@ export async function refreshDashboard() {
     getFacturasYear(year),
     getFacturasYear(year - 1),
     supabase.from("facturas").select("base,iva,fecha,fecha_vencimiento,cliente_nombre,concepto")
-      .eq(_ctx.field,_ctx.value).eq("tipo","emitida").eq("estado","emitida").eq("cobrada",false),
+      .eq("user_id", uid).eq("tipo","emitida").eq("estado","emitida").eq("cobrada",false),
     supabase.from("gastos_recurrentes").select("importe,proxima_fecha,nombre")
-      .eq(_ctx.field,_ctx.value).eq("activo",true),
+      .eq("user_id", uid).eq("activo",true),
     supabase.from("nominas").select("salario_bruto,ss_empresa")
-      .eq(_ctx.field,_ctx.value).gte("fecha",`${year}-01-01`),
+      .eq("user_id", uid).gte("fecha",`${year}-01-01`),
     supabase.from("pipeline_oportunidades").select("etapa,valor")
-      .eq(_ctx.field,_ctx.value).neq("etapa","perdida"),
+      .eq("user_id", uid).neq("etapa","perdida"),
     supabase.from("bienes_inversion").select("valor_adquisicion,coeficiente,tipo_bien")
-      .eq(_ctx.field,_ctx.value),
+      .eq("user_id", uid),
   ]);
-
-  // DEBUG — muestra qué facturas llegan y sus estados
-  console.log("[Dashboard] facturasTrim count:", facturasTrim.length, facturasTrim.map(f=>({id:f.id,fecha:f.fecha,tipo:f.tipo,estado:f.estado,base:f.base})));
-  console.log("[Dashboard] facturasAnio count:", facturasAnio.length);
 
   const { ingresos, gastos, rendimiento } = calcIRPF(facturasTrim);
   const { resultado: ivaRes } = calcIVA(facturasTrim);
@@ -62,7 +57,25 @@ export async function refreshDashboard() {
   s("kpiGastos", gastos);
   s("kpiBeneficio", rendimiento);
   s("kpiIVA", ivaRes);
-  s("kpiIRPF", Math.max(0, rendimiento * 0.20));
+
+  // KPI impuesto directo — cambia según régimen
+  const _regimeKpi = window.__TAURIX_REGIME__ ?? "autonomo_ed";
+  const _kpiLbl    = document.getElementById("kpiImpuestoLbl");
+  const _kpiSub    = document.getElementById("kpiImpuestoSub");
+  if (_regimeKpi === "sociedad") {
+    // IS: tipo 23% PYME si CN < 1M€, 25% general — sobre beneficio anual acumulado
+    const _benefAnio = calcIRPF(facturasAnio).rendimiento;
+    const _tipoIS    = ingAnio < 1_000_000 ? 0.23 : 0.25;
+    const _cuotaIS   = Math.max(0, _benefAnio * _tipoIS);
+    s("kpiIRPF", _cuotaIS);
+    if (_kpiLbl) _kpiLbl.textContent = "IS estimado";
+    if (_kpiSub) _kpiSub.textContent = `Cuota IS ${_tipoIS === 0.23 ? "23% PYME" : "25% general"} anual`;
+  } else {
+    // IRPF: 20% rendimiento neto del trimestre (Modelo 130)
+    s("kpiIRPF", Math.max(0, rendimiento * 0.20));
+    if (_kpiLbl) _kpiLbl.textContent = "IRPF a ingresar";
+    if (_kpiSub) _kpiSub.textContent = "Estimación Modelo 130";
+  }
 
   st("dashPeriodoLabel", `${TRIM_LABELS[trim]} · ${year}`);
 
