@@ -37,7 +37,7 @@ import {
 import { TRIM_ORDEN } from "./tax-rules.js";
 import {
   getTipoContribuyente, GRUPOS,
-  esSociedad, esAutonomo, esModulos,
+  esSociedad, esAutonomo,
   aplicaGastoEDS, getTipoIS, getModelosObligatorios, labelRegimen,
 } from "./tax-regime.js";
 
@@ -66,7 +66,8 @@ export async function buildTaxContext(year, trim, opts = {}) {
   const regime   = perfil?.regime ?? "autonomo_ed";
   const tipoContrib = getTipoContribuyente(regime);
   const _esSociedad = tipoContrib === GRUPOS.SOCIEDAD;
-  const _esModulos  = tipoContrib === GRUPOS.AUTONOMO_MODULOS;
+  // _esModulos siempre false — autonomo_mod desactivado (tax-regime.js lo mapea a AUTONOMO)
+  const _esModulos  = false;
   // autonomo_es aplica 5% adicional de gastos de difícil justificación
   const _eds5pct    = aplicaGastoEDS(regime);
 
@@ -84,14 +85,9 @@ export async function buildTaxContext(year, trim, opts = {}) {
     // SOCIEDAD (SL/SA): IS (LIS 27/2014) — no presenta 130
     const _ctx = _getQueryCtx();
     rIS = await _calcIS(year, _ctx);
-  } else if (_esModulos) {
-    // AUTÓNOMO MÓDULOS: tributa IRPF por parámetros objetivos (Modelo 131)
-    // TODO: implementar calcModelo131() cuando se añadan parámetros de actividad.
-    // Mientras tanto, 130 como aproximación (misma base de cálculo orientativa).
-    r130       = calcModelo130(docsAcum, pagosPrevios130, trim, year);
-    proyeccion = calcProyeccionAnual(r130, trim, pagosPrevios130 + r130.resultado);
   } else {
     // AUTÓNOMO (ED / ES): Modelo 130 — 20% rendimiento neto acumulado (art. 110 LIRPF)
+    // autonomo_mod desactivado → cae aquí también (tax-regime.js lo mapea a AUTONOMO)
     // autonomo_es: 5% gastos EDS se aplica en simulador Renta, no en el 130
     r130       = calcModelo130(docsAcum, pagosPrevios130, trim, year);
     proyeccion = calcProyeccionAnual(r130, trim, pagosPrevios130 + r130.resultado);
@@ -125,15 +121,6 @@ export async function buildTaxContext(year, trim, opts = {}) {
   if (_esSociedad && rIS) {
     _alertasIS(rIS, trim, year, alertas);
   }
-  if (_esModulos) {
-    alertas.push({
-      tipo: "modulos_info", severidad: "media",
-      titulo: "Régimen de módulos — Modelo 131",
-      mensaje: "Estás en Estimación Objetiva (módulos). El cálculo del Modelo 131 se basa en parámetros objetivos de tu actividad, no en ingresos/gastos reales. Los valores mostrados son orientativos. Consulta con tu asesor los módulos aplicables a tu epígrafe IAE.",
-      norma: "Art. 31 LIRPF · RD 439/2007",
-    });
-  }
-
   // ── 8. Contexto para Claude ───────────────────────────────────
   const modelos = getModelosObligatorios(regime);
   const contextoParaClaude = _buildClaudeContext({
@@ -311,8 +298,6 @@ function _buildClaudeContext(params) {
   lines.push(`Régimen: ${_labelRegimen(perfil?.regime)}`);
   const _tipoLabel = esSociedad
     ? "PERSONA JURÍDICA (SL/SA) — tributa IS, NO presenta Mod.130 ni Mod.131"
-    : esModulos
-      ? "PERSONA FÍSICA — Autónomo Módulos, tributa IRPF por Mod.131 (parámetros objetivos)"
       : eds5pct
         ? "PERSONA FÍSICA — Autónomo Est. Simplificada, tributa IRPF Mod.130 (+5% gastos difícil just.)"
         : "PERSONA FÍSICA — Autónomo Est. Directa, tributa IRPF Mod.130";
