@@ -68,6 +68,7 @@ import { initAlbaranesView, refreshAlbaranes } from "./albaranes.js";
 import { initProformaView, refreshProforma } from "./proforma.js";
 import { initNuevaProforma } from "./nueva-proforma.js";
 import { restaurarContextoSiExiste } from "./gestor-context.js";
+import { initTaxAsistente } from './tax-asistente.js';
 
 
 
@@ -310,6 +311,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Restaurar contexto gestor si estaba activo (sessionStorage persiste la sesión)
   restaurarContextoSiExiste();
 
+  initTaxAsistente();
   document.getElementById("landingPage")?.classList.add("hidden");
   document.getElementById("appShell")?.classList.remove("hidden");
 
