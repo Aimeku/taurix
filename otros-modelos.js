@@ -5,7 +5,7 @@
    ═══════════════════════════════════════════════════════ */
 
 import { supabase } from "./supabase.js";
-import { SESSION, fmt, fmtDate, toast, getYear, getTrim, getFechaRango, TRIM_LABELS, TRIM_PLAZOS } from "./utils.js";
+import { SESSION, fmt, fmtDate, toast, getYear, getTrim, getFechaRango, getFacturasTrim, TRIM_LABELS, TRIM_PLAZOS } from "./utils.js";
 
 /* ══════════════════════════
    MODELO 111 — Retenciones IRPF
@@ -16,14 +16,17 @@ export async function calcModelo111() {
   const { ini, fin } = getFechaRango(year, trim);
 
   // Retenciones de facturas emitidas (rendimientos profesionales)
+  // Usar getQueryContext para respetar contexto gestor
+  const { getQueryContext } = await import("./query-context.js");
+  const ctx = getQueryContext();
   const { data: facturas } = await supabase.from("facturas")
     .select("base, irpf_retencion, cliente_nombre")
-    .eq("user_id", SESSION.user.id)
+    .eq(ctx.field, ctx.value)
     .eq("tipo", "emitida").eq("estado", "emitida")
     .gte("fecha", ini).lte("fecha", fin)
     .not("irpf_retencion", "is", null);
 
-  // Retenciones de nóminas
+  // Retenciones de nóminas (siempre del usuario propietario)
   const { data: nominas } = await supabase.from("nominas")
     .select("irpf, nombre_empleado")
     .eq("user_id", SESSION.user.id)
@@ -66,9 +69,11 @@ export async function calcModelo115() {
   const year = getYear(), trim = getTrim();
   const { ini, fin } = getFechaRango(year, trim);
 
+  const { getQueryContext: getCtx115 } = await import("./query-context.js");
+  const ctx115 = getCtx115();
   const { data: alquileres } = await supabase.from("facturas")
     .select("base, iva, concepto")
-    .eq("user_id", SESSION.user.id).eq("tipo", "recibida")
+    .eq(ctx115.field, ctx115.value).eq("tipo", "recibida")
     .gte("fecha", ini).lte("fecha", fin)
     .or("concepto.ilike.%alquiler%,concepto.ilike.%arrendamiento%,concepto.ilike.%renta%");
 
@@ -183,9 +188,11 @@ export async function calcModelo349() {
   const year = getYear(), trim = getTrim();
   const { ini, fin } = getFechaRango(year, trim);
 
+  const { getQueryContext: getCtx349 } = await import("./query-context.js");
+  const ctx349 = getCtx349();
   const { data: ops } = await supabase.from("facturas")
     .select("cliente_nombre, cliente_nif, base, iva, tipo, estado")
-    .eq("user_id", SESSION.user.id)
+    .eq(ctx349.field, ctx349.value)
     .eq("tipo_operacion", "intracomunitaria")
     .gte("fecha", ini).lte("fecha", fin);
 
@@ -218,20 +225,19 @@ export async function exportModelo349PDF() {
    MODELO 390 — Resumen anual IVA
 ══════════════════════════ */
 export async function calcModelo390(year) {
+  // Usa getFacturasTrim (context-aware) para respetar contexto gestor
   const y = year || getYear();
   let repTotal = 0, sopTotal = 0;
 
   for (const trim of ["T1", "T2", "T3", "T4"]) {
-    const { data: facs } = await supabase.from("facturas")
-      .select("base, iva, tipo, estado")
-      .eq("user_id", SESSION.user.id)
-      .gte("fecha", `${y}-${trim === "T1" ? "01-01" : trim === "T2" ? "04-01" : trim === "T3" ? "07-01" : "10-01"}`)
-      .lte("fecha", `${y}-${trim === "T1" ? "03-31" : trim === "T2" ? "06-30" : trim === "T3" ? "09-30" : "12-31"}`);
-
+    const facs = await getFacturasTrim(y, trim);
     (facs || []).forEach(f => {
       const cuota = f.base * (f.iva || 0) / 100;
       if (f.tipo === "emitida" && f.estado === "emitida") repTotal += cuota;
-      else if (f.tipo === "recibida") sopTotal += cuota;
+      else if (f.tipo === "recibida" && !(f.numero_factura || "").startsWith("TIQ-")) {
+        // Tickets TIQ: IVA no deducible en el 390 (coherente con 303)
+        sopTotal += cuota;
+      }
     });
   }
 
