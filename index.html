@@ -847,9 +847,9 @@
             <div class="qa-icon qa-icon--purple"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
             <div class="qa-text"><div class="qa-label">IVA</div><div class="qa-sub">Modelo 303</div></div>
           </div>
-          <div class="qa-card" onclick="window._switchView('irpf')">
+          <div class="qa-card" id="qaTaxDirecto" onclick="window._goTaxDirecto()">
             <div class="qa-icon" style="background:var(--indigo-lt);color:var(--indigo)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
-            <div class="qa-text"><div class="qa-label">IRPF</div><div class="qa-sub">Modelo 130</div></div>
+            <div class="qa-text"><div class="qa-label" id="qaTaxDirectoLabel">IRPF</div><div class="qa-sub" id="qaTaxDirectoSub">Modelo 130</div></div>
           </div>
         </div>
 
@@ -972,13 +972,13 @@
           </div>
         </div>
 
-        <div class="alerta-fiscal alerta-fiscal--aviso">
+        <div class="alerta-fiscal alerta-fiscal--aviso" id="alertaTaxDirectoCard">
           <div class="af-icon">⚠️</div>
           <div class="af-body">
-            <div class="af-title">IRPF T2 — Modelo 130 pendiente</div>
-            <div class="af-desc">El plazo de presentación del Modelo 130 también es el 20 de julio. Pago fraccionado estimado: <strong id="alertaIRPFVal">—</strong>.</div>
+            <div class="af-title" id="alertaTaxDirectoTitle">IRPF T2 — Modelo 130 pendiente</div>
+            <div class="af-desc" id="alertaTaxDirectoDesc">El plazo de presentación del Modelo 130 también es el 20 de julio. Pago fraccionado estimado: <strong id="alertaIRPFVal">—</strong>.</div>
             <div class="af-actions">
-              <button class="af-btn" onclick="window._switchView('irpf')">Ver Modelo 130</button>
+              <button class="af-btn" id="alertaTaxDirectoBtn" onclick="window._goTaxDirecto()">Ver Modelo 130</button>
             </div>
           </div>
         </div>
@@ -1009,24 +1009,24 @@
           <div class="sc-header"><span class="sc-title">📅 Calendario fiscal completo</span></div>
           <div class="is-calendar" style="margin-top:16px">
             <div class="is-cal-item done">
-              <div class="is-cal-modelo">303 / 130</div>
+              <div class="is-cal-modelo" id="calT1modelo">303 / 130</div>
               <div class="is-cal-date">20 ABR</div>
               <div class="is-cal-desc">T1 · Ene–Mar</div>
               <span class="is-cal-badge" style="background:#dcfce7;color:#166534">✓ Hecho</span>
             </div>
             <div class="is-cal-item due">
-              <div class="is-cal-modelo">303 / 130 / 111</div>
+              <div class="is-cal-modelo" id="calT2modelo">303 / 130 / 111</div>
               <div class="is-cal-date">20 JUL</div>
               <div class="is-cal-desc">T2 · Abr–Jun</div>
               <span class="is-cal-badge" style="background:#fee2e2;color:#991b1b">⚡ Urgente</span>
             </div>
             <div class="is-cal-item">
-              <div class="is-cal-modelo">303 / 130 / 111</div>
+              <div class="is-cal-modelo" id="calT3modelo">303 / 130 / 111</div>
               <div class="is-cal-date">20 OCT</div>
               <div class="is-cal-desc">T3 · Jul–Sep</div>
             </div>
             <div class="is-cal-item">
-              <div class="is-cal-modelo">303 / 130 / 347</div>
+              <div class="is-cal-modelo" id="calT4modelo">303 / 130 / 347</div>
               <div class="is-cal-date">30 ENE</div>
               <div class="is-cal-desc">T4 · Oct–Dic</div>
             </div>
