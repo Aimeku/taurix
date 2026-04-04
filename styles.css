@@ -236,7 +236,7 @@ html.dark .topbar-empresa-wrap{background:var(--srf2);border-color:var(--brd)}
 .btn-lg-block{width:100%;justify-content:center;padding:14px;font-size:15px}
 
 /* ══ KPI ══ */
-.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:24px}
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
 .kpi-row.kpi-row--small{grid-template-columns:repeat(4,1fr)}
 .kpi-card{background:var(--srf);border:1px solid var(--brd);border-radius:var(--r-lg);padding:18px 20px;position:relative;overflow:hidden;transition:box-shadow .15s,transform .15s;display:grid;grid-template-rows:36px 1fr auto;align-content:start}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r-lg) var(--r-lg) 0 0}
