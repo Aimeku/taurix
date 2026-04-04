@@ -901,7 +901,7 @@
         </div>
 
         <!-- Accesos rápidos — AMPLIADO -->
-        <div class="quick-actions-row" style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px">
+        <div class="quick-actions-row">
           <div class="qa-card" onclick="window._switchView('facturas')">
             <div class="qa-icon qa-icon--blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg></div>
             <div class="qa-text"><div class="qa-label">Facturas</div><div class="qa-sub">Emitir o registrar</div></div>
@@ -914,15 +914,14 @@
             <div class="qa-icon qa-icon--amber"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
             <div class="qa-text"><div class="qa-label">Gasto rápido</div><div class="qa-sub">Registrar en segundos</div></div>
           </div>
-          <div class="qa-card" onclick="window._switchView('cobros')">
-            <div class="qa-icon qa-icon--purple"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
-            <div class="qa-text"><div class="qa-label">Cobros pendientes</div><div class="qa-sub">Ver y gestionar</div></div>
+          <div class="qa-card" onclick="window._switchView('iva')">
+            <div class="qa-icon qa-icon--purple"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+            <div class="qa-text"><div class="qa-label">IVA</div><div class="qa-sub">Modelo 303</div></div>
           </div>
-          <div class="qa-card" onclick="window._switchView('nominas')">
-            <div class="qa-icon" style="background:rgba(16,185,129,.1);color:#059669"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
-            <div class="qa-text"><div class="qa-label">Generar nómina</div><div class="qa-sub">Mes actual</div></div>
+          <div class="qa-card" onclick="window._switchView('irpf')">
+            <div class="qa-icon" style="background:var(--indigo-lt);color:var(--indigo)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+            <div class="qa-text"><div class="qa-label">IRPF</div><div class="qa-sub">Modelo 130</div></div>
           </div>
-
         </div>
 
         <!-- Charts row -->
