@@ -256,7 +256,7 @@ html.dark .topbar-empresa-wrap{background:var(--srf2);border-color:var(--brd)}
 .kpi-icon--amber{background:var(--amber-lt);color:var(--amber)}
 .kpi-icon--indigo{background:var(--indigo-lt);color:var(--indigo)}
 .kpi-icon--rose{background:#fff1f2;color:#e11d48}
-.kpi-val{font-family:var(--font-hd);font-size:24px;font-weight:900;letter-spacing:-.5px;color:var(--t1);margin-bottom:4px;line-height:1.2}
+.kpi-val{font-family:var(--font-hd);font-size:24px;font-weight:900;letter-spacing:-.5px;color:var(--t1);margin-bottom:4px;line-height:1.2;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";min-height:30px;display:flex;align-items:baseline;gap:2px}
 .kpi-sub{font-size:11px;color:var(--t4)}
 
 /* ══ QUICK ACTIONS ══ */
