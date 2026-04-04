@@ -402,9 +402,9 @@ function _html() {
     <div id="ta-chips">
       <button class="ta-chip" data-q="¿Qué modelos tengo que presentar este trimestre y cuándo es el plazo?">📋 ¿Qué presento?</button>
       <button class="ta-chip" data-q="Dame el resumen completo del Modelo 303 de IVA: bases, cuotas y resultado a ingresar.">IVA · 303</button>
-      <button class="ta-chip" data-q="¿Cuánto sale el Modelo 130 de IRPF este trimestre? ¿Tengo que pagarlo?">IRPF · 130</button>
+      <button class="ta-chip" id="ta-chip-impuesto" data-q="¿Cuánto sale el Modelo 130 de IRPF este trimestre? ¿Tengo que pagarlo?">IRPF · 130</button>
       <button class="ta-chip" data-q="¿Cuáles son mis alertas fiscales activas y qué debo hacer con cada una?">⚠ Alertas</button>
-      <button class="ta-chip" data-q="¿Cuánto debería reservar cada mes para la declaración de la Renta? ¿Cuál es mi tipo efectivo estimado?">Proyección</button>
+      <button class="ta-chip" id="ta-chip-proyeccion" data-q="¿Cuánto debería reservar cada mes para la declaración de la Renta? ¿Cuál es mi tipo efectivo estimado?">Proyección</button>
     </div>
 
     <div id="ta-msgs">
@@ -511,6 +511,9 @@ async function _loadCtx() {
     // Badge verde en el FAB
     document.getElementById('tax-asistente-fab-badge').classList.add('on');
 
+    // Adaptar chips según régimen
+    _adaptarChips(ctxObj.esSociedad);
+
     // Mostrar resumen automático
     if (_s.messages.length === 0) _msgBienvenida(ctxObj);
 
@@ -528,6 +531,25 @@ async function _loadCtx() {
    MENSAJE DE BIENVENIDA CON DATOS REALES
 ══════════════════════════════════════════════════════════════════ */
 
+/* Adapta los chips de acceso rápido según si es sociedad o autónomo */
+function _adaptarChips(esSociedad) {
+  const chipImpuesto  = document.getElementById('ta-chip-impuesto');
+  const chipProyeccion = document.getElementById('ta-chip-proyeccion');
+  if (!chipImpuesto) return;
+
+  if (esSociedad) {
+    chipImpuesto.dataset.q  = '¿Cuánto sale el Impuesto de Sociedades este año? Dame la cuota íntegra y la cuota diferencial estimada.';
+    chipImpuesto.textContent = 'IS · Mod.200';
+    chipProyeccion.dataset.q = '¿Cuánto tengo que pagar en el Modelo 202 (pago fraccionado IS) este trimestre? ¿Cuál es el plazo?';
+    chipProyeccion.textContent = 'Mod.202 frac.';
+  } else {
+    chipImpuesto.dataset.q  = '¿Cuánto sale el Modelo 130 de IRPF este trimestre? ¿Tengo que pagarlo?';
+    chipImpuesto.textContent = 'IRPF · 130';
+    chipProyeccion.dataset.q = '¿Cuánto debería reservar cada mes para la declaración de la Renta? ¿Cuál es mi tipo efectivo estimado?';
+    chipProyeccion.textContent = 'Proyección';
+  }
+}
+
 function _msgBienvenida(ctx) {
   const fmt = n => new Intl.NumberFormat('es-ES', {
     style: 'currency', currency: 'EUR', minimumFractionDigits: 2,
@@ -536,14 +558,46 @@ function _msgBienvenida(ctx) {
   const tl   = { T1:'1T', T2:'2T', T3:'3T', T4:'4T' };
   const trim = tl[ctx.trim] ?? ctx.trim;
   const r303 = ctx.r303;
-  const r130 = ctx.r130;
+  const esSociedad = ctx.esSociedad ?? false;
   const alertasUrgentes = (ctx.alertas ?? []).filter(a =>
     a.severidad === 'critica' || a.severidad === 'alta'
   );
 
+  // Fila de impuesto directo: IS o IRPF según régimen
+  let filaImpuesto = '';
+  if (esSociedad) {
+    const rIS = ctx.rIS;
+    const cuota = rIS?.cuota_diferencial ?? 0;
+    const tipo  = rIS?.tipo_is_pct ?? 25;
+    filaImpuesto = `
+      <div class="ta-card-row">
+        <span class="l">IS · Mod.200 (${tipo}%)</span>
+        <span class="v ${cuota > 0 ? 'pay' : 'save'}">
+          ${cuota > 0 ? fmt(cuota) + ' estimado' : 'Sin cuota estimada'}
+        </span>
+      </div>
+      <div class="ta-card-row">
+        <span class="l">Mod.202 pago frac. estimado</span>
+        <span class="v warn">${fmt(rIS?.pago_fraccionado_202 ?? 0)}</span>
+      </div>`;
+  } else {
+    const r130 = ctx.r130;
+    filaImpuesto = `
+      <div class="ta-card-row">
+        <span class="l">Modelo 130 · IRPF</span>
+        <span class="v ${r130.resultado > 0 ? 'pay' : 'save'}">
+          ${r130.resultado > 0 ? fmt(r130.resultado) + ' a ingresar' : 'Sin pago'}
+        </span>
+      </div>`;
+  }
+
+  const regimenBadge = esSociedad
+    ? '<span style="font-size:10px;background:#EEF2FF;color:#4F46E5;padding:2px 7px;border-radius:100px;font-weight:600;margin-left:6px">SL · IS</span>'
+    : '<span style="font-size:10px;background:var(--ox-lt);color:var(--ox-dd);padding:2px 7px;border-radius:100px;font-weight:600;margin-left:6px">Autónomo · IRPF</span>';
+
   const cardHTML = `
     <div class="ta-card">
-      <div class="ta-card-hd">Resumen fiscal · ${trim} ${ctx.year}</div>
+      <div class="ta-card-hd">Resumen fiscal · ${trim} ${ctx.year} ${regimenBadge}</div>
       <div class="ta-card-row">
         <span class="l">Modelo 303 · IVA</span>
         <span class="v ${r303.resultado_final > 0 ? 'pay' : 'save'}">
@@ -551,12 +605,7 @@ function _msgBienvenida(ctx) {
           ${r303.resultado_final > 0 ? '↑ a ingresar' : '↓ a compensar'}
         </span>
       </div>
-      <div class="ta-card-row">
-        <span class="l">Modelo 130 · IRPF</span>
-        <span class="v ${r130.resultado > 0 ? 'pay' : 'save'}">
-          ${r130.resultado > 0 ? fmt(r130.resultado) + ' a ingresar' : 'Sin pago'}
-        </span>
-      </div>
+      ${filaImpuesto}
       ${alertasUrgentes.length ? `
       <div class="ta-card-row">
         <span class="l">Alertas urgentes</span>
@@ -564,7 +613,7 @@ function _msgBienvenida(ctx) {
       </div>` : ''}
     </div>`;
 
-  _addMsg('ai', `Ya tengo tu contexto fiscal del <strong>${trim} ${ctx.year}</strong> cargado desde el tax engine. Este es tu resumen:` + cardHTML);
+  _addMsg('ai', `Ya tengo tu contexto del <strong>${trim} ${ctx.year}</strong> cargado. Este es tu resumen:` + cardHTML);
 }
 
 /* ══════════════════════════════════════════════════════════════════
