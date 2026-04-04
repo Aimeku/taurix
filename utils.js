@@ -627,8 +627,18 @@ export async function showPerfilModal() {
     const banner = document.getElementById("onboardingBanner");
     if (banner) banner.style.display = "none";
     // Invalidar caché tax engine — el régimen puede haber cambiado
+    // Actualizar regime global y reconstruir sidebar con la lógica correcta
+    window.__TAURIX_REGIME__ = regime;
+    const _labelsR = { autonomo_ed:"Autónomo · Est. Directa", autonomo_es:"Autónomo · Est. Simplificada", sociedad:"Sociedad Limitada", autonomo_mod:"Autónomo · Módulos" };
+    const _sfrEl = document.getElementById("sfRegimeTxt");
+    if (_sfrEl) _sfrEl.textContent = _labelsR[regime] || "Autónomo · IRPF";
+    // Reconstruir sidebar con los items correctos para el nuevo régimen
+    try { const { aplicarModo } = await import("./modos.js"); aplicarModo(); } catch(_) {}
+    // Adaptar qa-cards, alertas y calendario del dashboard
+    if (window._adaptarUIRegimen) window._adaptarUIRegimen();
+    // Invalidar caché tax engine
     try { const { invalidarCache } = await import("./tax-connector.js"); invalidarCache(); } catch(_) {}
-    // Resetear asistente fiscal IA para que recargue con el nuevo régimen
+    // Resetear asistente fiscal IA
     if (window.__taxAsistenteReset) window.__taxAsistenteReset();
   };
 }
