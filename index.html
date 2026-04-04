@@ -2852,11 +2852,12 @@
               <div class="me-info"><h4>Retenciones IRPF trabajadores</h4><p>Trimestral · Rendimientos trabajo y profesionales</p></div>
             </div>
             <div class="me-body"><p>Retenciones e ingresos a cuenta del IRPF sobre rendimientos del trabajo (nóminas) y actividades económicas (facturas con retención). Incluye resumen anual Modelo 190.</p></div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-              <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px">Retenciones nóminas: <strong id="m111Nominas">—</strong></div>
-              <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px">Retenciones profesionales: <strong id="m111Prof">—</strong></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+              <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px">Nóminas: <strong id="m111Nominas">—</strong></div>
+              <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px">Profesionales: <strong id="m111Prof">—</strong></div>
             </div>
-            <div class="me-deadline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Plazo T2: 20 de julio</div>
+            <div id="m111Estado" style="margin-bottom:8px"></div>
+            <div class="me-deadline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span class="me-plazo-trim">Plazo: —</span></div>
             <button class="btn-outline" style="margin-top:12px;font-size:12px;padding:7px 14px" id="export111Btn">Exportar Modelo 111</button>
           </div>
 
@@ -2867,8 +2868,12 @@
               <div class="me-info"><h4>Retenciones arrendamientos</h4><p>Trimestral · Alquiler de inmuebles</p></div>
             </div>
             <div class="me-body"><p>Retenciones e ingresos a cuenta del IRPF correspondientes a arrendamientos de inmuebles urbanos. Aplica si pagas alquiler de local u oficina. Tipo general: 19%.</p></div>
-            <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px;margin-bottom:12px">Base arrendamientos: <strong id="m115Base">—</strong></div>
-            <div class="me-deadline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Plazo T2: 20 de julio</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+              <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px">Base: <strong id="m115Base">—</strong></div>
+              <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px">Retención 19%: <strong id="m115Retencion">—</strong></div>
+            </div>
+            <div id="m115Estado" style="margin-bottom:8px"></div>
+            <div class="me-deadline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span class="me-plazo-trim">Plazo: —</span></div>
             <button class="btn-outline" style="margin-top:12px;font-size:12px;padding:7px 14px" id="export115Btn">Exportar Modelo 115</button>
           </div>
 
@@ -2893,8 +2898,11 @@
               <div class="me-info"><h4>Operaciones intracomunitarias</h4><p>Mensual / Trimestral / Anual</p></div>
             </div>
             <div class="me-body"><p>Declaración recapitulativa de operaciones intracomunitarias. Obligatorio si realizas entregas o adquisiciones de bienes o servicios con empresas de la UE. Solo se presenta si hay operaciones.</p></div>
-            <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px;margin-bottom:12px">Operaciones IC en periodo: <strong id="m349Count">—</strong></div>
-            <div class="me-deadline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Plazo T2: 20 de julio</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+              <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px">Operaciones: <strong id="m349Count">—</strong></div>
+              <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px">Base total: <strong id="m349Base">—</strong></div>
+            </div>
+            <div class="me-deadline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span class="me-plazo-trim">Plazo: —</span></div>
             <button class="btn-outline" style="margin-top:12px;font-size:12px;padding:7px 14px" id="export349Btn">Exportar Modelo 349</button>
           </div>
 
@@ -2916,7 +2924,12 @@
               <div class="me-info"><h4>Resumen anual IVA</h4><p>Anual · Resumen del Modelo 303</p></div>
             </div>
             <div class="me-body"><p>Declaración informativa que resume las operaciones del ejercicio relativas al IVA. Complementa al Modelo 303 y está exento de presentación si usas SII (Suministro Inmediato de Información).</p></div>
-            <div class="me-deadline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Plazo: Enero año siguiente</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+              <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px">IVA repercutido: <strong id="m390Rep">—</strong></div>
+              <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px">IVA soportado: <strong id="m390Sop">—</strong></div>
+              <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px">Resultado: <strong id="m390Res">—</strong></div>
+            </div>
+            <div class="me-deadline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Plazo: 31 de enero año siguiente</div>
             <button class="btn-outline" style="margin-top:12px;font-size:12px;padding:7px 14px" id="export390Btn">Exportar Modelo 390</button>
           </div>
         </div>
