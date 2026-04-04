@@ -69,18 +69,13 @@ export async function refreshDashboard() {
   // Tendencia vs mismo trimestre año anterior
   renderTendencia("kpiIngTendencia", ingresos, ingPrevTrim);
 
-  // Cobro pendiente
+  // Cobro pendiente — calculado para health score y cashflow (card eliminada del dashboard)
   const pendienteCobro = pendientes.reduce((a,f)=>a+f.base+f.base*(f.iva||0)/100, 0);
   const hoy = new Date();
   const vencidas = pendientes.filter(f=>{
     const d = f.fecha_vencimiento || f.fecha;
     return d && Math.floor((hoy-new Date(d+"T12:00:00"))/86400000) > 30;
   });
-  s("kpiCobroPendiente", pendienteCobro);
-  st("kpiCobroPendienteN", `${pendientes.length} factura${pendientes.length!==1?"s":""}`);
-
-  const badgeCobros = document.getElementById("snBadgeCobros");
-  if (badgeCobros) { badgeCobros.textContent=vencidas.length; badgeCobros.style.display=vencidas.length?"":"none"; }
 
   // Pipeline
   const pipelineValor = pipeline.reduce((a,o)=>a+(o.valor||0), 0);
@@ -328,10 +323,10 @@ async function drawChartAnual(year) {
     .select("tipo,base,iva,fecha,cobrada,estado")
     .eq(_ctx.field,_ctx.value)
     .gte("fecha",`${year}-01-01`).lte("fecha",`${year}-12-31`);
-  const byMes = Array(12).fill(null).map(()=>({ing:0,gst:0,cob:0}));
+  const byMes = Array(12).fill(null).map(()=>({ing:0,gst:0}));
   (allFacts||[]).forEach(f=>{
     const m=new Date(f.fecha+"T12:00:00").getMonth();
-    if(f.tipo==="emitida"){if(f.estado==="emitida")byMes[m].ing+=f.base;if(f.cobrada)byMes[m].cob+=f.base+f.base*(f.iva||0)/100;}
+    if(f.tipo==="emitida"&&f.estado==="emitida")byMes[m].ing+=f.base;
     else byMes[m].gst+=f.base;
   });
   let acum=0; const acumData=byMes.map(m=>{acum+=m.ing;return acum;});
@@ -355,7 +350,6 @@ async function drawChartAnual(year) {
         {type:"bar",label:"Ingresos",data:byMes.map(m=>m.ing),backgroundColor:"rgba(26,86,219,0.78)",borderRadius:5,borderSkipped:false,barPercentage:0.42,categoryPercentage:0.72,order:2},
         {type:"bar",label:"Gastos",data:byMes.map(m=>m.gst),backgroundColor:"rgba(220,38,38,0.65)",borderRadius:5,borderSkipped:false,barPercentage:0.42,categoryPercentage:0.72,order:2},
         {type:"line",label:"Acumulado",data:acumData,borderColor:"#059669",backgroundColor:"rgba(5,150,105,0.07)",borderWidth:2,pointRadius:2.5,pointBackgroundColor:"#059669",fill:true,tension:0.4,order:1,yAxisID:"y2"},
-        {type:"line",label:"Cobrado",data:byMes.map(m=>m.cob),borderColor:"#f59e0b",borderWidth:1.5,borderDash:[4,3],pointRadius:2,fill:false,tension:0.3,order:1},
       ]
     },
     options:{
@@ -391,7 +385,6 @@ async function renderActividadReciente(facturasTrim) {
       <td style="font-size:12px;color:var(--t3)">${f.cliente_nombre||"—"}</td>
       <td class="mono fw7">${fmt(total)}</td>
       <td><span class="badge ${f.tipo==="emitida"?"b-income":"b-expense"}" style="font-size:10px">${f.tipo==="emitida"?"Emitida":"Recibida"}</span></td>
-      <td>${f.tipo==="emitida"&&f.estado==="emitida"?`<span class="badge ${f.cobrada?"b-cobrada":"b-pendiente"}">${f.cobrada?"Cobrada":"Pendiente"}</span>`:"<span style='color:var(--t4);font-size:11px'>—</span>"}</td>
     </tr>`;
   }).join("");
 }
