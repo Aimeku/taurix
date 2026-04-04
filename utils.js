@@ -480,7 +480,7 @@ export async function showPerfilModal() {
             <option value="autonomo_ed"  ${(p?.regime === "autonomo_ed"  || !p?.regime) ? "selected" : ""}>Autónomo · Estimación Directa</option>
             <option value="autonomo_es"  ${p?.regime === "autonomo_es"  ? "selected" : ""}>Autónomo · Estimación Simplificada</option>
             <option value="sociedad"     ${p?.regime === "sociedad"     ? "selected" : ""}>Sociedad Limitada / SA</option>
-            <option value="autonomo_mod" ${p?.regime === "autonomo_mod" ? "selected" : ""}>Autónomo · Módulos (Estimación Objetiva)</option>
+            <!-- autonomo_mod desactivado temporalmente — pendiente tax-modulos.js -->
           </select>
         </div>
         <div class="modal-grid2">
@@ -614,7 +614,7 @@ export async function showPerfilModal() {
       }
     }
     const sfr = document.getElementById("sfRegimeTxt");
-    const labels = { autonomo_ed: "Autónomo · Est. Directa", autonomo_es: "Autónomo · Est. Simplificada", sociedad: "Sociedad", autonomo_mod: "Autónomo · Módulos" };
+    const labels = { autonomo_ed: "Autónomo · Est. Directa", autonomo_es: "Autónomo · Est. Simplificada", sociedad: "Sociedad" };
     if (sfr) sfr.textContent = labels[regime] || "Autónomo";
     // ── Actualizar nombre empresa en topbar sin recargar ──
     const spanNombreTop = document.getElementById("empresaNombreTop");
@@ -629,7 +629,7 @@ export async function showPerfilModal() {
     // Invalidar caché tax engine — el régimen puede haber cambiado
     // Actualizar regime global y reconstruir sidebar con la lógica correcta
     window.__TAURIX_REGIME__ = regime;
-    const _labelsR = { autonomo_ed:"Autónomo · Est. Directa", autonomo_es:"Autónomo · Est. Simplificada", sociedad:"Sociedad Limitada", autonomo_mod:"Autónomo · Módulos" };
+    const _labelsR = { autonomo_ed:"Autónomo · Est. Directa", autonomo_es:"Autónomo · Est. Simplificada", sociedad:"Sociedad Limitada" };
     const _sfrEl = document.getElementById("sfRegimeTxt");
     if (_sfrEl) _sfrEl.textContent = _labelsR[regime] || "Autónomo · IRPF";
     // Reconstruir sidebar con los items correctos para el nuevo régimen
