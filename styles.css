@@ -1337,6 +1337,28 @@ html.dark #onboardingModoOverlay {
   .lp-planes--3 { grid-template-columns: 1fr; max-width: 420px; }
 }
 
+.lp-planes--1 {
+  display: grid;
+  grid-template-columns: 1fr;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.lp-plan--único {
+  padding: 40px 44px;
+}
+
+.lp-plan-eur-tachado {
+  font-family: var(--font-hd);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--t4);
+  text-decoration: line-through;
+  letter-spacing: -1px;
+  margin-right: 2px;
+  align-self: baseline;
+}
+
 /* Icono grande en plan */
 .lp-plan-icon {
   font-size: 32px;
