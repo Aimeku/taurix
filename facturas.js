@@ -503,7 +503,7 @@ export function showGastoRapidoModal() {
       cliente_nombre: proveedor || "Tique / Sin proveedor",
       numero_factura: await _nextTiqueNum(fecha),
       fecha_emision:  fecha,
-      notas:          "Gasto rápido registrado desde tique"
+      notas:          "Gasto rápido · Ticket simplificado. IVA incluido en el importe. El IVA de tickets sin NIF no es deducible en el Modelo 303 (art. 97 LIVA), pero el importe total computa como gasto en IRPF."
     }).select().single();
 
     if (error) {
