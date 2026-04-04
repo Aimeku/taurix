@@ -422,7 +422,10 @@ export async function refreshHistorico() {
 export async function refreshIS() {
   const year=getYear();
   const ejEl=document.getElementById("isEjercicio"); if(ejEl) ejEl.textContent=year;
-  const _ctx=getQueryContext();
+  // FIX: usar el mismo ctx que getFacturasTrim — las facturas se guardan con user_id,
+  // no con empresa_id. getQueryContext() devuelve empresa_id cuando hay empresa activa
+  // en la topbar, lo que causa que las queries devuelvan 0 resultados.
+  const _ctx = { field: 'user_id', value: SESSION?.user?.id ?? null };
   const [fR,nR,bR]=await Promise.all([
     supabase.from("facturas").select("tipo,base,iva,estado,irpf,irpf_retencion").eq(_ctx.field,_ctx.value).gte("fecha",`${year}-01-01`).lte("fecha",`${year}-12-31`),
     supabase.from("nominas").select("salario_bruto,ss_empresa").eq(_ctx.field,_ctx.value).gte("fecha",`${year}-01-01`),
