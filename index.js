@@ -101,5 +101,14 @@ export {
   invalidarCache,
 } from "./tax-connector.js";
 
+// ── Régimen fiscal — grupos y helpers ────────────────────────────────
+export {
+  GRUPOS,
+  getTipoContribuyente,
+  esAutonomo, esModulos, esSociedad,
+  esPersonaFisica, aplicaGastoEDS,
+  getTipoIS, getModelosObligatorios, labelRegimen,
+} from "./tax-regime.js";
+
 // ── Versión del engine ────────────────────────────────────────────
-export const TAX_ENGINE_VERSION = "1.2.0";
+export const TAX_ENGINE_VERSION = "1.3.0";
