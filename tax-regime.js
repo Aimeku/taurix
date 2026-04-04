@@ -49,8 +49,12 @@ const REGIME_MAP = {
   autonomo_es:                      GRUPOS.AUTONOMO,   // +5% gastos EDS en cálculo
   estimacion_directa_simplificada:  GRUPOS.AUTONOMO,   // alias legacy
 
-  // Grupo AUTONOMO_MODULOS — tributan IRPF por módulos, usan 131 + 303
-  autonomo_mod:                     GRUPOS.AUTONOMO_MODULOS,
+  // Grupo AUTONOMO_MODULOS — DESACTIVADO TEMPORALMENTE
+  // El Modelo 131 requiere tablas AEAT por epígrafe IAE, no ingresos/gastos reales.
+  // Pendiente: implementar tax-modulos.js con cálculo por parámetros objetivos.
+  // Mientras tanto, autonomo_mod cae al grupo AUTONOMO para no romper nada.
+  // TODO: cuando tax-modulos.js esté listo, restaurar → GRUPOS.AUTONOMO_MODULOS
+  autonomo_mod:                     GRUPOS.AUTONOMO,
 
   // Grupo SOCIEDAD — tributan IS, usan 200/202 + 303
   sociedad:                         GRUPOS.SOCIEDAD,   // SL y SA, misma lógica IS
