@@ -397,6 +397,34 @@ window._delFact = id => {
 };
 
 /* ══════════════════════════════════════════
+   NUMERACIÓN TIQ — TIQ-(año)-0001
+   Busca el último número del año en curso
+   y devuelve el siguiente.
+══════════════════════════════════════════ */
+async function _nextTiqueNum(fecha) {
+  const year = (fecha || new Date().toISOString().slice(0,10)).slice(0, 4);
+  const prefix = `TIQ-${year}-`;
+
+  // Buscar todos los tiques del año con ese prefijo
+  const { data } = await supabase
+    .from("facturas")
+    .select("numero_factura")
+    .eq("user_id", SESSION.user.id)
+    .like("numero_factura", `${prefix}%`)
+    .order("numero_factura", { ascending: false })
+    .limit(1);
+
+  let next = 1;
+  if (data && data.length > 0) {
+    const last = data[0].numero_factura; // e.g. "TIQ-2025-0042"
+    const num  = parseInt(last.replace(prefix, ""), 10);
+    if (!isNaN(num)) next = num + 1;
+  }
+
+  return `${prefix}${String(next).padStart(4, "0")}`;
+}
+
+/* ══════════════════════════════════════════
    GASTO RÁPIDO (con "Deshacer")
    El insert se hace, pero si el usuario
    pulsa "Deshacer" en el toast se elimina
@@ -479,7 +507,7 @@ export function showGastoRapidoModal() {
       estado:         "emitida",
       fecha,
       cliente_nombre: proveedor || "Tique / Sin proveedor",
-      numero_factura: `TIQUE-${Date.now()}`,
+      numero_factura: await _nextTiqueNum(fecha),
       fecha_emision:  fecha,
       notas:          "Gasto rápido registrado desde tique"
     }).select().single();
