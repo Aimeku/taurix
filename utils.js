@@ -267,11 +267,14 @@ export function calcIVA(facturas) {
           byOp.intracomunitaria_adquisicion = (byOp.intracomunitaria_adquisicion || 0) + f.base;
         }
       } else {
-        // Nacional — solo deducible si tiene factura completa
-        // Los tickets TIQ no dan derecho a deducir IVA (art. 97 LIVA)
+        // Nacional — deducible si tiene factura completa (no TIQ-) O si
+        // deducible_iva === true (IVA registrado explícitamente en el ticket)
+        // Los tickets TIQ sin ese flag no dan derecho a deducir IVA (art. 97 LIVA)
         const esTicket = (f.numero_factura || "").startsWith("TIQ-");
-        if (!esTicket) {
-          sop.int += cuota;
+        const ivaDeducibleExplicito = f.deducible_iva === true;
+        if (!esTicket || ivaDeducibleExplicito) {
+          const pctDed = (f.pct_deduccion_iva ?? 100) / 100;
+          sop.int += cuota * pctDed;
         }
         // El gasto (base) siempre computa para IRPF aunque sea ticket
       }
