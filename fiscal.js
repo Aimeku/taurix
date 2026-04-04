@@ -188,12 +188,13 @@ function calcModelo303Completo(facturas, prorrataPct = null) {
       } else {
         // Nacional: IVA soportado deducible si:
         //   a) tiene factura completa (no TIQ-), O
-        //   b) es ticket pero con deducible_iva === true (IVA registrado explícitamente)
-        // Art. 97 LIVA: los tickets sin NIF del receptor no dan derecho a deducción
-        // salvo que el registro indique explícitamente que el IVA es deducible.
+        //   b) es ticket pero tiene IVA registrado (iva > 0)
+        // Art. 97 LIVA: los tickets sin NIF no dan derecho a deducción en general,
+        // pero si el usuario registra explícitamente un tipo de IVA > 0 en el ticket,
+        // se toma como intención de deducir (coherente con el comportamiento del 130).
         const esTicket = (f.numero_factura || "").startsWith("TIQ-");
-        const ivaDeducibleExplicito = f.deducible_iva === true;
-        if (!esTicket || ivaDeducibleExplicito) {
+        const tieneIvaRegistrado = (f.iva ?? f.iva_pct ?? 0) > 0;
+        if (!esTicket || tieneIvaRegistrado) {
           const pctDed = (f.pct_deduccion_iva ?? 100) / 100;
           sop.int += cuota * pctDed;
         }
