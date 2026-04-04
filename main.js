@@ -83,8 +83,11 @@ async function fullRefresh() {
   // Ramificar por régimen: autónomo → IRPF 130, sociedad → IS
   const _regime = window.__TAURIX_REGIME__ ?? "autonomo_ed";
   if (_regime === "sociedad") {
+    // Sociedad (SL/SA): Impuesto de Sociedades
     try { await refreshIS(); } catch (e) { console.warn("IS refresh:", e.message); }
   } else {
+    // Autónomo (ED, ES, Módulos): IRPF
+    // módulos: la vista IRPF muestra orientativo hasta implementar Mod.131 completo
     await refreshIRPF();
   }
   await refreshHistorico();
@@ -118,27 +121,36 @@ window._goTaxDirecto = function() {
 window._adaptarUIRegimen = function() {
   const regime = window.__TAURIX_REGIME__ ?? "autonomo_ed";
   const esSociedad = regime === "sociedad";
+  const esModulos  = regime === "autonomo_mod";
 
   // qa-card impuesto directo
   const lbl = document.getElementById("qaTaxDirectoLabel");
   const sub = document.getElementById("qaTaxDirectoSub");
-  if (lbl) lbl.textContent = esSociedad ? "IS" : "IRPF";
-  if (sub) sub.textContent = esSociedad ? "Modelos 200/202" : "Modelo 130";
+  if (lbl) lbl.textContent = esSociedad ? "IS" : esModulos ? "IRPF Módulos" : "IRPF";
+  if (sub) sub.textContent = esSociedad ? "Modelos 200/202" : esModulos ? "Modelo 131" : "Modelo 130";
 
   // Alerta del dashboard
   const title = document.getElementById("alertaTaxDirectoTitle");
   const desc  = document.getElementById("alertaTaxDirectoDesc");
   const btn   = document.getElementById("alertaTaxDirectoBtn");
-  if (title) title.textContent = esSociedad ? "IS — Pago fraccionado Mod.202 pendiente" : "IRPF T2 — Modelo 130 pendiente";
+  if (title) title.textContent = esSociedad
+    ? "IS — Pago fraccionado Mod.202 pendiente"
+    : esModulos
+      ? "IRPF Módulos — Modelo 131 pendiente"
+      : "IRPF T2 — Modelo 130 pendiente";
   if (desc) desc.innerHTML = esSociedad
     ? "El Modelo 202 (pago fraccionado IS) vence el 20 de julio. Cuota estimada: <strong id='alertaIRPFVal'>—</strong>."
-    : "El plazo de presentación del Modelo 130 también es el 20 de julio. Pago fraccionado estimado: <strong id='alertaIRPFVal'>—</strong>.";
-  if (btn) btn.textContent = esSociedad ? "Ver Mod. 202 / IS" : "Ver Modelo 130";
+    : esModulos
+      ? "El Modelo 131 (módulos) vence el 20 de julio. El cálculo se basa en parámetros objetivos de tu actividad."
+      : "El plazo de presentación del Modelo 130 también es el 20 de julio. Pago fraccionado estimado: <strong id='alertaIRPFVal'>—</strong>.";
+  if (btn) btn.textContent = esSociedad ? "Ver Mod. 202 / IS" : esModulos ? "Ver Módulos 131" : "Ver Modelo 130";
 
   // Calendario fiscal — modelos según régimen
   const modelos = esSociedad
     ? { T1: "303 / 202", T2: "303 / 202", T3: "303 / 202", T4: "303 / 200 / 347" }
-    : { T1: "303 / 130", T2: "303 / 130 / 111", T3: "303 / 130 / 111", T4: "303 / 130 / 347" };
+    : esModulos
+      ? { T1: "303 / 131", T2: "303 / 131", T3: "303 / 131", T4: "303 / 131 / 347" }
+      : { T1: "303 / 130", T2: "303 / 130 / 111", T3: "303 / 130 / 111", T4: "303 / 130 / 347" };
   const calT1 = document.getElementById("calT1modelo");
   const calT2 = document.getElementById("calT2modelo");
   const calT3 = document.getElementById("calT3modelo");
@@ -628,8 +640,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (view === "tesoreria")       await refreshTesoreria();
 
         if (view === "iva")  await refreshIVA();
-        if (view === "irpf" && (window.__TAURIX_REGIME__ ?? "autonomo_ed") !== "sociedad") await refreshIRPF();
-        if (view === "is"   && (window.__TAURIX_REGIME__ ?? "autonomo_ed") === "sociedad") { try { await refreshIS(); } catch(e) { console.warn("IS:",e.message); } }
+        // Impuesto directo: solo refrescar lo que corresponde al régimen
+        const _vRegime = window.__TAURIX_REGIME__ ?? "autonomo_ed";
+        if (view === "irpf" && _vRegime !== "sociedad") await refreshIRPF();
+        if (view === "is"   && _vRegime === "sociedad") { try { await refreshIS(); } catch(e) { console.warn("IS:",e.message); } }
         if (view === "historico")       await refreshHistorico();
         if (view === "otros-modelos")   await initOtrosModelosView();
         // view "libros" — estática, listeners registrados en init, no necesita refresh
