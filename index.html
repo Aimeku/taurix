@@ -3958,13 +3958,10 @@
 </div>
 <div id="modalEl"></div>
 <div id="toastEl" class="toast-container"></div>
-<!-- Banners de actualización PWA -->
+<!-- Banner de actualización -->
 <div id="updateBanner" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a56db;color:#fff;padding:12px 24px;border-radius:100px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);cursor:pointer" onclick="navigator.serviceWorker.controller?.postMessage('skipWaiting');location.reload()">
   🔄 Nueva versión disponible — pulsa para actualizar
 </div>
-<button id="installPwaBtn" style="display:none;position:fixed;bottom:20px;right:20px;background:#1a56db;color:#fff;border:none;border-radius:100px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;z-index:9999;box-shadow:0 4px 16px rgba(26,86,219,.3)" onclick="window._installPWA()">
-  📲 Instalar app
-</button>
 
 <script>
     // Stubs — _epPreview siempre redirige a _epRunPreview (se define en _epInit)
@@ -3991,23 +3988,7 @@
         }).catch(e => console.warn('SW:', e));
       });
     }
-    let _pwaPrompt = null;
-    window.addEventListener('beforeinstallprompt', e => {
-      e.preventDefault(); _pwaPrompt = e;
-      const btn = document.getElementById('installPwaBtn');
-      if (btn) btn.style.display = '';
-    });
-    window._installPWA = async () => {
-      if (!_pwaPrompt) return;
-      _pwaPrompt.prompt();
-      const { outcome } = await _pwaPrompt.userChoice;
-      if (outcome === 'accepted') { const b = document.getElementById('installPwaBtn'); if(b) b.style.display='none'; }
-      _pwaPrompt = null;
-    };
-    window.addEventListener('appinstalled', () => {
-      const b = document.getElementById('installPwaBtn'); if(b) b.style.display='none';
-    });
-    // Deep link: ?view=xxx al abrir desde icono PWA
+    // Deep link: ?view=xxx al abrir desde marcador o enlace directo
     const _pv = new URLSearchParams(location.search).get('view');
     if (_pv) window.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => window._switchView && window._switchView(_pv), 800);
