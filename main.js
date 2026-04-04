@@ -68,7 +68,6 @@ import { initAlbaranesView, refreshAlbaranes } from "./albaranes.js";
 import { initProformaView, refreshProforma } from "./proforma.js";
 import { initNuevaProforma } from "./nueva-proforma.js";
 import { restaurarContextoSiExiste } from "./gestor-context.js";
-import { initTaxAsistente } from './tax-asistente.js';
 
 
 
@@ -81,14 +80,74 @@ async function fullRefresh() {
   await refreshFacturas();
   await refreshPresupuestos();
   await refreshIVA();
-  await refreshIRPF();
+  // Ramificar por régimen: autónomo → IRPF 130, sociedad → IS
+  const _regime = window.__TAURIX_REGIME__ ?? "autonomo_ed";
+  if (_regime === "sociedad") {
+    try { await refreshIS(); } catch (e) { console.warn("IS refresh:", e.message); }
+  } else {
+    await refreshIRPF();
+  }
   await refreshHistorico();
   await refreshCobros();
-  // IS solo si es sociedad
-  try { await refreshIS(); } catch (e) { console.warn("IS refresh:", e.message); }
 
 }
 window._refresh = fullRefresh;
+
+/* ═══════════════════════════════════════════════════════
+   LÓGICA DE RÉGIMEN — adapta la UI según autónomo/sociedad
+   Se llama al cargar y cada vez que se guarda el perfil.
+═══════════════════════════════════════════════════════ */
+
+/**
+ * Navega a la vista de impuesto directo correcta según el régimen.
+ * Autónomo → IRPF (Modelo 130)
+ * Sociedad  → IS  (Modelos 200/202)
+ */
+window._goTaxDirecto = function() {
+  const regime = window.__TAURIX_REGIME__ ?? "autonomo_ed";
+  window._switchView(regime === "sociedad" ? "is" : "irpf");
+};
+
+/**
+ * Adapta todos los elementos de la UI que dependen del régimen:
+ * - qa-card de impuesto directo
+ * - Alerta del dashboard
+ * - Calendario fiscal
+ * Se llama al inicio y al cambiar el régimen.
+ */
+window._adaptarUIRegimen = function() {
+  const regime = window.__TAURIX_REGIME__ ?? "autonomo_ed";
+  const esSociedad = regime === "sociedad";
+
+  // qa-card impuesto directo
+  const lbl = document.getElementById("qaTaxDirectoLabel");
+  const sub = document.getElementById("qaTaxDirectoSub");
+  if (lbl) lbl.textContent = esSociedad ? "IS" : "IRPF";
+  if (sub) sub.textContent = esSociedad ? "Modelos 200/202" : "Modelo 130";
+
+  // Alerta del dashboard
+  const title = document.getElementById("alertaTaxDirectoTitle");
+  const desc  = document.getElementById("alertaTaxDirectoDesc");
+  const btn   = document.getElementById("alertaTaxDirectoBtn");
+  if (title) title.textContent = esSociedad ? "IS — Pago fraccionado Mod.202 pendiente" : "IRPF T2 — Modelo 130 pendiente";
+  if (desc) desc.innerHTML = esSociedad
+    ? "El Modelo 202 (pago fraccionado IS) vence el 20 de julio. Cuota estimada: <strong id='alertaIRPFVal'>—</strong>."
+    : "El plazo de presentación del Modelo 130 también es el 20 de julio. Pago fraccionado estimado: <strong id='alertaIRPFVal'>—</strong>.";
+  if (btn) btn.textContent = esSociedad ? "Ver Mod. 202 / IS" : "Ver Modelo 130";
+
+  // Calendario fiscal — modelos según régimen
+  const modelos = esSociedad
+    ? { T1: "303 / 202", T2: "303 / 202", T3: "303 / 202", T4: "303 / 200 / 347" }
+    : { T1: "303 / 130", T2: "303 / 130 / 111", T3: "303 / 130 / 111", T4: "303 / 130 / 347" };
+  const calT1 = document.getElementById("calT1modelo");
+  const calT2 = document.getElementById("calT2modelo");
+  const calT3 = document.getElementById("calT3modelo");
+  const calT4 = document.getElementById("calT4modelo");
+  if (calT1) calT1.textContent = modelos.T1;
+  if (calT2) calT2.textContent = modelos.T2;
+  if (calT3) calT3.textContent = modelos.T3;
+  if (calT4) calT4.textContent = modelos.T4;
+};
 
 // switchView con renderizado lazy para vistas que lo necesitan
 const _switchViewBase = switchView;
@@ -311,7 +370,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Restaurar contexto gestor si estaba activo (sessionStorage persiste la sesión)
   restaurarContextoSiExiste();
 
-  initTaxAsistente();
   document.getElementById("landingPage")?.classList.add("hidden");
   document.getElementById("appShell")?.classList.remove("hidden");
 
@@ -324,10 +382,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Perfil fiscal ── */
   const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", session.user.id).maybeSingle();
+  // Guardar regime globalmente — modos.js lo lee para construir el sidebar correcto
+  window.__TAURIX_REGIME__ = pf?.regime ?? "autonomo_ed";
   const sfr = document.getElementById("sfRegimeTxt");
-  if (sfr && pf?.regime) {
-    const labels = { autonomo_ed: "Autónomo · Est. Directa", autonomo_es: "Autónomo · Est. Simplificada", sociedad: "Sociedad", autonomo_mod: "Autónomo · Módulos" };
-    sfr.textContent = labels[pf.regime] || "Autónomo · IRPF";
+  if (sfr) {
+    const labels = { autonomo_ed: "Autónomo · Est. Directa", autonomo_es: "Autónomo · Est. Simplificada", sociedad: "Sociedad Limitada", autonomo_mod: "Autónomo · Módulos" };
+    sfr.textContent = labels[window.__TAURIX_REGIME__] || "Autónomo · IRPF";
   }
 
   /* ── Banner perfil incompleto ── eliminado ── */
@@ -350,6 +410,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ── Navegación ── */
   initNav();
   initNuevaFactura();
+  // Adaptar UI al régimen del perfil (sidebar ya construido por aplicarModo en modos.js)
+  if (window._adaptarUIRegimen) window._adaptarUIRegimen();
 
   /* ── Cambio de periodo ── */
   yearSel?.addEventListener("change", fullRefresh);
@@ -565,9 +627,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (view === "documentos")      { const { refreshDocumentos } = await import("./documentos.js"); await refreshDocumentos(); }
         if (view === "tesoreria")       await refreshTesoreria();
 
-        if (view === "iva")             await refreshIVA();
-        if (view === "irpf")            await refreshIRPF();
-        if (view === "is")              { try { await refreshIS(); } catch(e) { console.warn("IS:",e.message); } }
+        if (view === "iva")  await refreshIVA();
+        if (view === "irpf" && (window.__TAURIX_REGIME__ ?? "autonomo_ed") !== "sociedad") await refreshIRPF();
+        if (view === "is"   && (window.__TAURIX_REGIME__ ?? "autonomo_ed") === "sociedad") { try { await refreshIS(); } catch(e) { console.warn("IS:",e.message); } }
         if (view === "historico")       await refreshHistorico();
         if (view === "otros-modelos")   await initOtrosModelosView();
         // view "libros" — estática, listeners registrados en init, no necesita refresh
