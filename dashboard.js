@@ -12,7 +12,6 @@ import {
   calcIVA, calcIRPF, TRIM_LABELS
 } from "./utils.js";
 import { getQueryContext } from "./query-context.js";
-import { SESSION } from "./utils.js";
 
 let _chartAnual = null;
 
