@@ -172,39 +172,48 @@ export async function getPerfilFiscal() {
   if (!SESSION?.user?.id) return null;
   const ctx = _getCtx();
 
-  // Si estamos en modo gestor, buscar el perfil de la empresa
-  if (ctx.field === "empresa_id") {
-    const { data, error } = await supabase
-      .from("empresas")
-      .select("id, nombre, nif, actividad, domicilio_fiscal, regime, fecha_alta, reta_mensual")
-      .eq("id", ctx.value)
-      .maybeSingle();
-    if (error || !data) return null;
-    return {
-      user_id:             null,
-      empresa_id:          data.id,
-      nombre_razon_social: data.nombre,
-      nif:                 data.nif,
-      actividad:           data.actividad,
-      regime:              data.regime ?? "estimacion_directa_simplificada",
-      fecha_alta:          data.fecha_alta,
-      reta_mensual:        data.reta_mensual,
-    };
-  }
-
-  // Perfil propio del autónomo
-  const { data, error } = await supabase
+  // Perfil propio del usuario (siempre se lee — tiene el regime real)
+  const { data: perfilPropio } = await supabase
     .from("perfil_fiscal")
     .select("*")
     .eq("user_id", SESSION.user.id)
     .maybeSingle();
 
-  if (error) {
-    console.error("[tax-data] getPerfilFiscal:", error.message);
+  // Si estamos en modo gestor, intentar leer datos de la tabla empresas
+  // Solo pedimos columnas que sabemos que existen (nombre, nif, regime)
+  if (ctx.field === "empresa_id") {
+    const { data: emp } = await supabase
+      .from("empresas")
+      .select("id, nombre, nif, regime")
+      .eq("id", ctx.value)
+      .maybeSingle();
+
+    if (emp) {
+      // Mezclar: datos de empresa + regime del perfil propio como fallback
+      // El regime de la empresa tiene prioridad; si no tiene, usar el del perfil
+      return {
+        user_id:             SESSION.user.id,
+        empresa_id:          emp.id,
+        nombre_razon_social: emp.nombre ?? perfilPropio?.nombre_razon_social,
+        nif:                 emp.nif    ?? perfilPropio?.nif,
+        actividad:           perfilPropio?.actividad ?? null,
+        domicilio_fiscal:    perfilPropio?.domicilio_fiscal ?? null,
+        regime:              emp.regime ?? perfilPropio?.regime ?? "autonomo_ed",
+        fecha_alta:          perfilPropio?.fecha_alta ?? null,
+        reta_mensual:        perfilPropio?.reta_mensual ?? null,
+      };
+    }
+
+    // La empresa no existe o falló — usar perfil propio completo
+    if (perfilPropio) return perfilPropio;
     return null;
   }
 
-  return data ?? null;
+  // Modo usuario normal — devolver perfil propio directamente
+  if (perfilPropio) return perfilPropio;
+
+  console.warn("[tax-data] getPerfilFiscal: sin perfil");
+  return null;
 }
 
 /* ══════════════════════════════════════════════════════════════════
