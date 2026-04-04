@@ -1012,29 +1012,8 @@ window._epInit = function() {
     // 1. Recargar el array PLANTILLAS desde Supabase
     await refreshPlantillas();
 
-    // 2. Actualizar el estado del editor con los datos recién guardados del server
-    if (savedData) {
-      _epCurrentPrefill = savedData;
-    }
-
-    // 3. Asegurarse de que el editor sigue visible (no volver al empty-state)
-    const es = _g("plt-empty-state");
-    if (es) es.style.display = "none";
-    const ed = _g("plt-editor");
-    if (ed) ed.style.display = "";
-
-    // 4. Resaltar la chip de esta plantilla en la lista
-    if (savedData?.id) {
-      _highlightSidebarCard(savedData.id);
-    } else if (isEdit && prefill.id) {
-      _highlightSidebarCard(prefill.id);
-    }
-
-    // 5. Si era nueva plantilla, re-inicializar el editor con el id real
-    //    para que los botones "Guardar" y "Eliminar" funcionen correctamente
-    if (!isEdit && savedData) {
-      window._epInit();
-    }
+    // 2. Cerrar el editor y volver a la lista
+    _hideEditor();
   }
 
   _g("epGuardarBtnBottom")?.addEventListener("click",  _save,             {signal:sig});
