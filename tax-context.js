@@ -431,9 +431,16 @@ function _coefAmortIS(tipo, coef) {
 }
 
 function _getQueryCtx() {
-  try { const r = sessionStorage.getItem("tg_gestor_ctx"); if (r) { const c = JSON.parse(r); if (c?.empresa_id) return { field:"empresa_id", value:c.empresa_id }; } } catch(_){}
-  const e = localStorage.getItem("tg_empresa_id");
-  if (e) return { field:"empresa_id", value:e };
+  // Las facturas se guardan con user_id — alineado con utils.js/_getCtx()
+  // tg_empresa_id era para multi-empresa (eliminado). Siempre user_id.
+  // Excepción: modo gestor viendo un cliente (tg_gestor_ctx con empresa_id propio de la tabla empresas)
+  try {
+    const raw = sessionStorage.getItem("tg_gestor_ctx");
+    if (raw) {
+      const ctx = JSON.parse(raw);
+      if (ctx?.empresa_id) return { field:"empresa_id", value:ctx.empresa_id };
+    }
+  } catch(_) {}
   return { field:"user_id", value: window.__TAURIX_SESSION__?.user?.id ?? null };
 }
 
