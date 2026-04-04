@@ -88,7 +88,6 @@ async function fullRefresh() {
     try { await refreshIS(); } catch (e) { console.warn("IS refresh:", e.message); }
   } else {
     // Autónomo (ED, ES, Módulos): IRPF
-    // módulos: la vista IRPF muestra orientativo hasta implementar Mod.131 completo
     await refreshIRPF();
   }
   await refreshHistorico();
@@ -122,13 +121,13 @@ window._goTaxDirecto = function() {
 window._adaptarUIRegimen = function() {
   const regime = window.__TAURIX_REGIME__ ?? "autonomo_ed";
   const esSociedad = regime === "sociedad";
-  const esModulos  = regime === "autonomo_mod";
+  // autonomo_mod desactivado — se trata igual que autónomo estándar
 
   // qa-card impuesto directo
   const lbl = document.getElementById("qaTaxDirectoLabel");
   const sub = document.getElementById("qaTaxDirectoSub");
-  if (lbl) lbl.textContent = esSociedad ? "IS" : esModulos ? "IRPF Módulos" : "IRPF";
-  if (sub) sub.textContent = esSociedad ? "Modelos 200/202" : esModulos ? "Modelo 131" : "Modelo 130";
+  if (lbl) lbl.textContent = esSociedad ? "IS" : "IRPF";
+  if (sub) sub.textContent = esSociedad ? "Modelos 200/202" : "Modelo 130";
 
   // Alerta del dashboard
   const title = document.getElementById("alertaTaxDirectoTitle");
@@ -136,22 +135,16 @@ window._adaptarUIRegimen = function() {
   const btn   = document.getElementById("alertaTaxDirectoBtn");
   if (title) title.textContent = esSociedad
     ? "IS — Pago fraccionado Mod.202 pendiente"
-    : esModulos
-      ? "IRPF Módulos — Modelo 131 pendiente"
-      : "IRPF T2 — Modelo 130 pendiente";
+    : "IRPF — Modelo 130 pendiente";
   if (desc) desc.innerHTML = esSociedad
     ? "El Modelo 202 (pago fraccionado IS) vence el 20 de julio. Cuota estimada: <strong id='alertaIRPFVal'>—</strong>."
-    : esModulos
-      ? "El Modelo 131 (módulos) vence el 20 de julio. El cálculo se basa en parámetros objetivos de tu actividad."
-      : "El plazo de presentación del Modelo 130 también es el 20 de julio. Pago fraccionado estimado: <strong id='alertaIRPFVal'>—</strong>.";
-  if (btn) btn.textContent = esSociedad ? "Ver Mod. 202 / IS" : esModulos ? "Ver Módulos 131" : "Ver Modelo 130";
+    : "El plazo de presentación del Modelo 130 también es el 20 de julio. Pago fraccionado estimado: <strong id='alertaIRPFVal'>—</strong>.";
+  if (btn) btn.textContent = esSociedad ? "Ver Mod. 202 / IS" : "Ver Modelo 130";
 
   // Calendario fiscal — modelos según régimen
   const modelos = esSociedad
     ? { T1: "303 / 202", T2: "303 / 202", T3: "303 / 202", T4: "303 / 200 / 347" }
-    : esModulos
-      ? { T1: "303 / 131", T2: "303 / 131", T3: "303 / 131", T4: "303 / 131 / 347" }
-      : { T1: "303 / 130", T2: "303 / 130 / 111", T3: "303 / 130 / 111", T4: "303 / 130 / 347" };
+    : { T1: "303 / 130", T2: "303 / 130 / 111", T3: "303 / 130 / 111", T4: "303 / 130 / 347" };
   const calT1 = document.getElementById("calT1modelo");
   const calT2 = document.getElementById("calT2modelo");
   const calT3 = document.getElementById("calT3modelo");
