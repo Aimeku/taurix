@@ -87,10 +87,29 @@ const IA_TOOLS = [
     name: "abrir_perfil",
     description: "Abre el modal de configuración del perfil fiscal.",
     input_schema: { type: "object", properties: {}, required: [] }
+  },
+  {
+    name: "registrar_factura_recibida",
+    description: "Registra una factura recibida (de proveedor) en Supabase con todos sus datos. Úsalo después de analizar un PDF para registrar la factura automáticamente.",
+    input_schema: {
+      type: "object",
+      properties: {
+        concepto:       { type: "string",  description: "Descripción del servicio o producto" },
+        proveedor:      { type: "string",  description: "Nombre o razón social del proveedor" },
+        nif_proveedor:  { type: "string",  description: "NIF/CIF del proveedor (si aparece)" },
+        base_imponible: { type: "number",  description: "Base imponible en €" },
+        iva_pct:        { type: "number",  enum: [0,4,10,21], description: "% de IVA" },
+        irpf_pct:       { type: "number",  description: "% retención IRPF (0 si no aplica)" },
+        fecha:          { type: "string",  description: "Fecha de la factura YYYY-MM-DD" },
+        numero_factura: { type: "string",  description: "Número de factura del proveedor (si aparece)" },
+        categoria:      { type: "string",  enum: ["dietas","transporte","parking","material","servicios","alquiler","suministros","marketing","software","otros"], description: "Categoría del gasto" }
+      },
+      required: ["concepto","proveedor","base_imponible","iva_pct","irpf_pct","fecha","categoria"]
+    }
   }
 ];
 
-const _s = { open: false, messages: [], loading: false, systemCtx: null, taxResult: null };
+const _s = { open: false, messages: [], loading: false, systemCtx: null, taxResult: null, pdfAdjunto: null }; // pdfAdjunto: { base64, name, size }
 
 export function initTaxAsistente() {
   _css();
@@ -193,6 +212,15 @@ function _css() {
 .ta-cursor{display:inline-block;width:2px;height:14px;background:var(--ox,#F97316);margin-left:1px;vertical-align:text-bottom;animation:ta-blink .7s step-end infinite}
 @keyframes ta-blink{0%,100%{opacity:1}50%{opacity:0}}
 .ta-streaming{min-height:20px}
+#ta-pdf-btn{width:32px;height:32px;flex-shrink:0;border:none;border-radius:8px;background:var(--bg2,#E8EAF0);color:var(--t3,#6B7394);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
+#ta-pdf-btn:hover{background:var(--ox-lt,#FFF7ED);color:var(--ox,#F97316)}
+#ta-pdf-btn svg{width:15px;height:15px}
+#ta-pdf-preview{display:none;align-items:center;gap:8px;padding:7px 12px;background:var(--ox-lt,#FFF7ED);border:1px solid var(--ox-mid,#FED7AA);border-radius:8px;margin-bottom:6px}
+#ta-pdf-preview.visible{display:flex}
+.ta-pdf-name{flex:1;font-size:12px;color:var(--ox-dd,#C25500);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ta-pdf-size{font-size:11px;color:var(--t4,#9BA3BC);flex-shrink:0}
+#ta-pdf-remove{background:none;border:none;cursor:pointer;color:var(--t4,#9BA3BC);padding:2px;line-height:1;font-size:14px;flex-shrink:0}
+#ta-pdf-remove:hover{color:var(--red,#DC2626)}
 `;
   document.head.appendChild(el);
 }
@@ -230,11 +258,21 @@ function _html() {
       </div>
     </div>
     <div id="ta-footer">
+      <div id="ta-pdf-preview">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ox,#F97316)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span class="ta-pdf-name" id="ta-pdf-name">—</span>
+        <span class="ta-pdf-size" id="ta-pdf-size"></span>
+        <button id="ta-pdf-remove" title="Quitar PDF">×</button>
+      </div>
       <div id="ta-form">
-        <textarea id="ta-input" rows="1" placeholder="Ej: «muéstrame el 303» · «añade un gasto de gasolina 45€» · «busca mis facturas de este mes»" maxlength="1200"></textarea>
+        <button id="ta-pdf-btn" title="Adjuntar factura PDF">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+        </button>
+        <input type="file" id="ta-pdf-input" accept="application/pdf,image/jpeg,image/png,image/webp" style="display:none"/>
+        <textarea id="ta-input" rows="1" placeholder="Ej: «analiza esta factura» · «muéstrame el 303» · «añade un gasto de gasolina 45€»" maxlength="1200"></textarea>
         <button id="ta-send" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
       </div>
-      <div class="ta-foot-note">Puede navegar, registrar gastos y mostrar modelos · Consulta siempre a tu asesor</div>
+      <div class="ta-foot-note">Adjunta facturas PDF · Navega, registra gastos y muestra modelos · Consulta siempre a tu asesor</div>
     </div>`;
   document.body.appendChild(fab);
   document.body.appendChild(panel);
@@ -257,6 +295,74 @@ function _events() {
   send.addEventListener('click', _send);
   document.getElementById('ta-clear').addEventListener('click', () => { _s.messages=[]; _renderWelcome(); });
   document.getElementById('ta-chips').addEventListener('click', e => { const c=e.target.closest('.ta-chip'); if (c?.dataset?.q) _ask(c.dataset.q); });
+
+  // PDF: botón clip abre el selector de archivo
+  document.getElementById('ta-pdf-btn').addEventListener('click', () => {
+    document.getElementById('ta-pdf-input').click();
+  });
+
+  // PDF: archivo seleccionado
+  document.getElementById('ta-pdf-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    await _adjuntarPDF(file);
+    e.target.value = ''; // reset para poder subir el mismo archivo dos veces
+  });
+
+  // PDF: quitar adjunto
+  document.getElementById('ta-pdf-remove').addEventListener('click', () => {
+    _s.pdfAdjunto = null;
+    document.getElementById('ta-pdf-preview').classList.remove('visible');
+  });
+
+  // Drag & drop sobre el panel
+  const panel = document.getElementById('ta-panel');
+  panel.addEventListener('dragover', e => { e.preventDefault(); panel.style.outline = '2px dashed var(--ox)'; });
+  panel.addEventListener('dragleave', () => { panel.style.outline = ''; });
+  panel.addEventListener('drop', async e => {
+    e.preventDefault(); panel.style.outline = '';
+    const file = [...e.dataTransfer.files].find(f => f.type === 'application/pdf' || f.type.startsWith('image/'));
+    if (file) await _adjuntarPDF(file);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   PDF — leer archivo y guardarlo como base64 en estado
+══════════════════════════════════════════════════════════════════ */
+async function _adjuntarPDF(file) {
+  const MAX_MB = 5;
+  if (file.size > MAX_MB * 1024 * 1024) {
+    _addMsg('ai', `El archivo pesa más de ${MAX_MB}MB. Intenta con uno más pequeño.`);
+    return;
+  }
+
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const mediaType = file.type || 'application/pdf';
+  _s.pdfAdjunto = { base64, name: file.name, size: file.size, mediaType };
+
+  // Mostrar preview
+  const preview = document.getElementById('ta-pdf-preview');
+  const nameEl  = document.getElementById('ta-pdf-name');
+  const sizeEl  = document.getElementById('ta-pdf-size');
+  if (nameEl) nameEl.textContent = file.name;
+  if (sizeEl) sizeEl.textContent = (file.size / 1024).toFixed(0) + ' KB';
+  preview.classList.add('visible');
+
+  // Enfocar el input y sugerir texto
+  const input = document.getElementById('ta-input');
+  if (input && !input.value.trim()) {
+    input.value = 'Analiza esta factura y regístrala';
+    input.style.height = 'auto';
+    input.style.height = input.scrollHeight + 'px';
+    document.getElementById('ta-send').disabled = false;
+  }
+  input?.focus();
 }
 
 async function _loadCtx() {
@@ -316,19 +422,33 @@ function _send() {
   if (!text||_s.loading) return;
   input.value=''; input.style.height='auto';
   document.getElementById('ta-send').disabled=true;
-  _ask(text);
+  const pdf = _s.pdfAdjunto;
+  // Limpiar preview inmediatamente
+  if (pdf) {
+    _s.pdfAdjunto = null;
+    document.getElementById('ta-pdf-preview').classList.remove('visible');
+  }
+  _ask(text, pdf);
 }
 
-async function _ask(text) {
+async function _ask(text, pdf=null) {
   if (_s.loading) return;
   if (!_s.systemCtx) await _loadCtx();
   document.getElementById('ta-welcome')?.remove();
-  _s.messages.push({role:'user',content:text});
-  _addMsg('user',_esc(text));
+  // Construir mensaje usuario — texto + documento si hay PDF
+  if (pdf) {
+    // Guardar en historial como texto (los PDFs no se guardan en historial)
+    _s.messages.push({ role: 'user', content: text });
+    // Mostrar en el chat con icono de documento
+    _addMsg('user', `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11.5px;opacity:.8"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> ${_esc(pdf.name)}</div>${_esc(text)}`);
+  } else {
+    _s.messages.push({ role: 'user', content: text });
+    _addMsg('user', _esc(text));
+  }
   const typId=_showTyping(); _s.loading=true;
   document.getElementById('ta-send').disabled=true;
   try {
-    const res=await _callAPI();
+    const res=await _callAPI(pdf);
     _removeTyping(typId);  // quitar typing en cuanto llega el stream
     await _procesarStream(res);
   } catch(e) {
@@ -342,7 +462,7 @@ async function _ask(text) {
   }
 }
 
-async function _callAPI() {
+async function _callAPI(pdf=null) {
   const ctx=_s.taxResult, esSociedad=ctx?.esSociedad??false;
   const regimeInstr=esSociedad
     ?'SOCIEDAD (SL/SA): IS. Modelos: 303,202,200. Nunca menciones 130.'
@@ -359,14 +479,29 @@ INSTRUCCIONES:
 5. Para buscar facturas, usa buscar_facturas.
 6. Después de una acción, confirma con una frase corta.
 7. Usa cifras REALES del contexto. Importes: 1.234,56 €
-8. Usa **negrita** para importes y conceptos clave.`;
+8. Usa **negrita** para importes y conceptos clave.
+9. Si el usuario adjunta una factura PDF o imagen, extrae TODOS los datos (proveedor, NIF, base, IVA, IRPF, fecha, número) y usa registrar_factura_recibida para guardarla. Si algún dato no está claro, indícalo pero registra con lo que tengas.`;
   const res=await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
       model:IA_MODEL, max_tokens:IA_TOKENS, system, tools:IA_TOOLS,
       stream: true,  // ← streaming activado
-      messages:_s.messages.slice(-IA_HIST_MAX).map(m=>({role:m.role,content:m.content}))
+      messages: (() => {
+        const hist = _s.messages.slice(-IA_HIST_MAX);
+        if (!pdf || !hist.length) return hist.map(m => ({ role: m.role, content: m.content }));
+        // Añadir el PDF al último mensaje del usuario como content block
+        const mensajes = hist.map((m, i) => {
+          if (i === hist.length - 1 && m.role === 'user') {
+            const docBlock = pdf.mediaType === 'application/pdf'
+              ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdf.base64 } }
+              : { type: 'image',    source: { type: 'base64', media_type: pdf.mediaType,       data: pdf.base64 } };
+            return { role: 'user', content: [docBlock, { type: 'text', text: m.content }] };
+          }
+          return { role: m.role, content: m.content };
+        });
+        return mensajes;
+      })()
     })
   });
   if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e.error?.message??`HTTP ${res.status}`); }
@@ -564,6 +699,53 @@ async function _ejecutarHerramienta(nombre, input) {
       case 'abrir_perfil': {
         if (window.showPerfilModal) window.showPerfilModal();
         _addAccion('✓ Perfil fiscal abierto','Cambia tu régimen y datos fiscales',null);
+        break;
+      }
+      case 'registrar_factura_recibida': {
+        const { concepto, proveedor, nif_proveedor, base_imponible, iva_pct, irpf_pct, fecha, numero_factura, categoria } = input;
+        const uid = SESSION?.user?.id;
+        if (!uid) throw new Error('Sin sesión');
+        const ivaPct   = Number(iva_pct)   || 0;
+        const irpfPct  = Number(irpf_pct)  || 0;
+        const base     = Number(base_imponible);
+        const total    = base * (1 + ivaPct/100) - base * irpfPct/100;
+
+        // Generar número de factura interno si el proveedor no lo tiene
+        const numInterno = numero_factura || (() => {
+          const yyyy = (fecha || new Date().toISOString().slice(0,4)).slice(0,4);
+          return `REC-${yyyy}-${Date.now().toString().slice(-4)}`;
+        })();
+
+        const { error } = await supabase.from('facturas').insert({
+          user_id:        uid,
+          concepto:       `[${categoria}] ${concepto}`,
+          base,
+          iva:            ivaPct,
+          irpf_retencion: irpfPct,
+          tipo:           'recibida',
+          tipo_operacion: 'nacional',
+          estado:         'emitida',
+          fecha:          fecha || new Date().toISOString().slice(0,10),
+          cliente_nombre: proveedor,
+          cliente_nif:    nif_proveedor || null,
+          numero_factura: numInterno,
+          fecha_emision:  fecha || new Date().toISOString().slice(0,10),
+          notas:          `Registrada desde PDF por Asesor IA · ${new Date().toLocaleDateString('es-ES')}`,
+        });
+        if (error) throw new Error(error.message);
+
+        try {
+          const { refreshDashboard } = await import('./dashboard.js');
+          const { refreshFacturas }  = await import('./facturas.js');
+          await Promise.all([refreshDashboard(), refreshFacturas()]);
+        } catch(_) {}
+
+        const totalFmt = fmt(base + base * ivaPct / 100);
+        _addAccion(
+          '✓ Factura registrada',
+          `${proveedor} · Base ${fmt(base)} + IVA ${ivaPct}% = ${totalFmt} · ${numInterno}`,
+          () => window._switchView?.('facturas')
+        );
         break;
       }
     }
