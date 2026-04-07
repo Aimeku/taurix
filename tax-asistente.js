@@ -190,6 +190,9 @@ function _css() {
 #ta-send:disabled{background:var(--brd2,#C8CBD8);cursor:not-allowed}
 #ta-send svg{width:14px;height:14px}
 .ta-foot-note{font-size:10px;color:var(--t4,#9BA3BC);text-align:center;margin-top:6px}
+.ta-cursor{display:inline-block;width:2px;height:14px;background:var(--ox,#F97316);margin-left:1px;vertical-align:text-bottom;animation:ta-blink .7s step-end infinite}
+@keyframes ta-blink{0%,100%{opacity:1}50%{opacity:0}}
+.ta-streaming{min-height:20px}
 `;
   document.head.appendChild(el);
 }
@@ -325,9 +328,9 @@ async function _ask(text) {
   const typId=_showTyping(); _s.loading=true;
   document.getElementById('ta-send').disabled=true;
   try {
-    const result=await _callAPI();
-    _removeTyping(typId);
-    await _procesarRespuesta(result);
+    const res=await _callAPI();
+    _removeTyping(typId);  // quitar typing en cuanto llega el stream
+    await _procesarStream(res);
   } catch(e) {
     _removeTyping(typId);
     _addMsg('ai',`<span style="color:var(--red,#DC2626)">Error al contactar con la IA.</span>`);
@@ -358,28 +361,142 @@ INSTRUCCIONES:
 7. Usa cifras REALES del contexto. Importes: 1.234,56 €
 8. Usa **negrita** para importes y conceptos clave.`;
   const res=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:IA_MODEL,max_tokens:IA_TOKENS,system,tools:IA_TOOLS,
-      messages:_s.messages.slice(-IA_HIST_MAX).map(m=>({role:m.role,content:m.content}))})
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:IA_MODEL, max_tokens:IA_TOKENS, system, tools:IA_TOOLS,
+      stream: true,  // ← streaming activado
+      messages:_s.messages.slice(-IA_HIST_MAX).map(m=>({role:m.role,content:m.content}))
+    })
   });
   if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e.error?.message??`HTTP ${res.status}`); }
-  return await res.json();
+  return res; // devolvemos el Response, no el JSON
 }
 
-async function _procesarRespuesta(data) {
-  const bloques=data.content??[];
-  let textoAcum='';
-  for (const b of bloques) {
-    if (b.type==='text') {
-      textoAcum+=b.text;
-    } else if (b.type==='tool_use') {
-      if (textoAcum.trim()) { _addMsg('ai',_fmt(textoAcum)); textoAcum=''; }
-      await _ejecutarHerramienta(b.name, b.input);
+/* ══════════════════════════════════════════════════════════════════
+   STREAMING — procesa Server-Sent Events de la API de Anthropic
+   Eventos SSE relevantes:
+     content_block_start  → inicio de bloque (text o tool_use)
+     content_block_delta  → fragmento de texto o JSON de herramienta
+     content_block_stop   → fin de bloque (ejecutar herramienta si aplica)
+     message_stop         → fin de mensaje completo
+══════════════════════════════════════════════════════════════════ */
+async function _procesarStream(res) {
+  const reader  = res.body.getReader();
+  const decoder = new TextDecoder();
+
+  // Estado del bloque activo
+  let bloqueActual = null;  // { type, index, name?, jsonAcum? }
+  let nodoStream   = null;  // elemento <div class="ta-bubble"> en el DOM donde escribimos
+  let textoAcum    = '';    // texto acumulado del bloque actual (para historial)
+  let historialIA  = '';    // texto completo para _s.messages al final
+
+  // Crear el contenedor de mensaje AI vacío donde irá apareciendo el texto
+  const _crearNodoStream = () => {
+    const msgs = document.getElementById('ta-msgs');
+    document.getElementById('ta-welcome')?.remove();
+    const d = document.createElement('div');
+    d.className = 'ta-msg ai';
+    d.innerHTML = '<div class="ta-bubble ta-streaming"></div>';
+    msgs.appendChild(d);
+    requestAnimationFrame(() => { msgs.scrollTop = msgs.scrollHeight; });
+    return d.querySelector('.ta-bubble');
+  };
+
+  // Actualizar el nodo con el texto acumulado formateado
+  const _actualizarNodo = () => {
+    if (!nodoStream) return;
+    const msgs = document.getElementById('ta-msgs');
+    nodoStream.innerHTML = _fmt(textoAcum) + '<span class="ta-cursor">▋</span>';
+    msgs.scrollTop = msgs.scrollHeight;
+  };
+
+  // Finalizar el nodo — quitar cursor y formatear definitivamente
+  const _finalizarNodo = () => {
+    if (!nodoStream) return;
+    nodoStream.innerHTML = _fmt(textoAcum);
+    nodoStream.classList.remove('ta-streaming');
+    nodoStream = null;
+  };
+
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // la última línea puede estar incompleta
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (raw === '[DONE]' || !raw) continue;
+
+        let evt;
+        try { evt = JSON.parse(raw); } catch(_) { continue; }
+
+        switch (evt.type) {
+
+          case 'content_block_start':
+            bloqueActual = { type: evt.content_block.type, index: evt.index };
+            if (evt.content_block.type === 'tool_use') {
+              // Si había texto previo, finalizarlo antes de la herramienta
+              if (textoAcum.trim()) { _finalizarNodo(); historialIA += textoAcum; textoAcum = ''; }
+              bloqueActual.name     = evt.content_block.name;
+              bloqueActual.jsonAcum = '';
+            } else if (evt.content_block.type === 'text') {
+              textoAcum = '';
+              // El nodo se crea al primer delta para no mostrar burbuja vacía
+            }
+            break;
+
+          case 'content_block_delta':
+            if (!bloqueActual) break;
+            if (bloqueActual.type === 'text' && evt.delta.type === 'text_delta') {
+              if (!nodoStream) nodoStream = _crearNodoStream();
+              textoAcum += evt.delta.text;
+              _actualizarNodo();
+            } else if (bloqueActual.type === 'tool_use' && evt.delta.type === 'input_json_delta') {
+              bloqueActual.jsonAcum += evt.delta.partial_json;
+            }
+            break;
+
+          case 'content_block_stop':
+            if (!bloqueActual) break;
+            if (bloqueActual.type === 'text') {
+              _finalizarNodo();
+              historialIA += textoAcum;
+              textoAcum = '';
+            } else if (bloqueActual.type === 'tool_use') {
+              // Parsear el JSON acumulado y ejecutar la herramienta
+              let input = {};
+              try { input = JSON.parse(bloqueActual.jsonAcum || '{}'); } catch(_) {}
+              historialIA += `[${bloqueActual.name}]`;
+              await _ejecutarHerramienta(bloqueActual.name, input);
+            }
+            bloqueActual = null;
+            break;
+
+          case 'message_stop':
+            // Fin del mensaje — guardar en historial
+            if (historialIA.trim()) {
+              _s.messages.push({ role: 'assistant', content: historialIA });
+            }
+            break;
+
+          case 'error':
+            throw new Error(evt.error?.message ?? 'Stream error');
+        }
+      }
     }
+  } finally {
+    // Garantizar que el cursor desaparece aunque haya error
+    if (nodoStream) _finalizarNodo();
+    reader.releaseLock();
   }
-  if (textoAcum.trim()) _addMsg('ai',_fmt(textoAcum));
-  const resumen=bloques.map(b=>b.type==='text'?b.text:`[${b.name}]`).join('');
-  if (resumen.trim()) _s.messages.push({role:'assistant',content:resumen});
 }
 
 async function _ejecutarHerramienta(nombre, input) {
