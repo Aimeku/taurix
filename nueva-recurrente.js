@@ -391,14 +391,22 @@ async function _save() {
       iva: l.iva, descuento: l.descuento ?? "",
       subtotal: Math.max(0, l.cantidad*l.precio - _parseDto(l.descuento, l.cantidad*l.precio)),
     }))),
-    plantilla_id: document.getElementById("nrPlantillaSel")?.value || null,
   };
+  const _nrPlantillaId = document.getElementById("nrPlantillaSel")?.value || null;
 
   let err;
   if (editandoId) {
-    ({ error: err } = await supabase.from("facturas_recurrentes").update(payload).eq("id", editandoId));
+    ({ error: err } = await supabase.from("facturas_recurrentes")
+      .update({ ...payload, plantilla_id: _nrPlantillaId }).eq("id", editandoId));
+    if (err && (err.message?.includes("plantilla_id") || err.message?.includes("schema cache"))) {
+      ({ error: err } = await supabase.from("facturas_recurrentes").update(payload).eq("id", editandoId));
+    }
   } else {
-    ({ error: err } = await supabase.from("facturas_recurrentes").insert(payload));
+    ({ error: err } = await supabase.from("facturas_recurrentes")
+      .insert({ ...payload, plantilla_id: _nrPlantillaId }));
+    if (err && (err.message?.includes("plantilla_id") || err.message?.includes("schema cache"))) {
+      ({ error: err } = await supabase.from("facturas_recurrentes").insert(payload));
+    }
   }
 
   if (err) {
