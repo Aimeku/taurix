@@ -684,8 +684,16 @@ async function saveFactura() {
       subtotal: Math.max(0, l.cantidad*l.precio - _parseDescuento(l.descuento, l.cantidad*l.precio)),
       tipo: l.tipo || "servicio"
     }))),
-    plantilla_id: document.getElementById("nfPlantillaSel")?.value || null,
   }).select().single();
+  // Intentar guardar plantilla_id; si la columna no existe, ignorar silenciosamente
+  const _nfPlantillaId = document.getElementById("nfPlantillaSel")?.value || null;
+  if (!error && fData?.id && _nfPlantillaId) {
+    const { error: pe } = await supabase.from("facturas")
+      .update({ plantilla_id: _nfPlantillaId }).eq("id", fData.id);
+    if (pe && !pe.message?.includes("plantilla_id") && !pe.message?.includes("schema cache")) {
+      console.warn("plantilla_id factura:", pe.message);
+    }
+  }
 
   if (error) {
     if (btn) { btn.disabled=false; btn.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Emitir factura`; }
