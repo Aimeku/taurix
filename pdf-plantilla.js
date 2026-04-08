@@ -184,7 +184,9 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   const { jsPDF } = window.jspdf;
 
   const perfil   = await _loadPerfil();
-  const plantilla = await _loadPlantilla(plantillaId);
+  // Cascada: plantillaId explícito → plantilla_id guardada en el doc → es_default → sin plantilla
+  const resolvedPlantillaId = plantillaId || docData?.plantilla_id || null;
+  const plantilla = await _loadPlantilla(resolvedPlantillaId);
   const cols      = _parseCols(plantilla);
   const colores   = _plantillaColors(plantilla);
   const font      = _fontName(plantilla);
@@ -407,43 +409,35 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
    * Clamp final: emisorX ∈ [ML+PAD, PW/2-PAD], clienteX ∈ [PW/2+PAD, PW-MR-PAD]
    */
 
-  // ── Sistema de coordenadas EMISOR / CLIENTE (coordenadas nativas PDF en mm) ──
-  //
-  // El área útil (entre márgenes) = W = PW - ML - MR = 174mm.
-  // Cada cuadrante = W/2 = 87mm.
-  // Bloque de texto = cuadrante - 8mm de gaps = 79mm.
-  // Centro de cuadrante:
-  //   emisor  → ML + qW/2   = 18 + 43.5 = 61.5mm
-  //   cliente → ML + qW*3/2 = 18 + 130.5 = 148.5mm
-  //
-  // Offset del slider: sX ∈ [-120, 120] → offset_mm = sX * (W/240)
-  //   → a slider máximo (120) el bloque se desplaza W/2 = 87mm
-  //   → clamp: borde izq/der del bloque no sale del cuadrante
-  //
-  // Offset Y: sY ∈ [-120, 120] → offset_mm = sY * (W/240), clamp ±10mm
+  // ── Sistema de coordenadas EMISOR / CLIENTE ──
+  // Área útil W = 174mm, cuadrante = 87mm.
+  // Bloque = 48mm (~55% cuadrante) → rango de movimiento ≈ 39mm por lado.
+  // Slider sX ∈ [-120,120] → offset = sX * (W/240) mm (~0.725mm/unit)
+  // Clamp: borde izq nunca sale del cuadrante propio.
+  // sY ∈ [-120,120] → offset vertical, clamp ±12mm
   const _qW_mm  = W / 2;               // 87mm — ancho de cuadrante
-  const cW      = _qW_mm - 8;          // 79mm — ancho del bloque de texto
-  const _cEmMm  = ML + _qW_mm / 2;     // 61.5mm — centro cuadrante emisor
-  const _cClMm  = ML + _qW_mm * 3/2;   // 148.5mm — centro cuadrante cliente
-  const _XSCALE = W / 240;             // mm por unidad de slider (~0.725 mm/unit)
-  const _YCLAMP = 10;                  // mm — clamp vertical
+  const cW      = 48;                  // mm — ancho del bloque (fijo, rango amplio)
+  const _XSCALE = W / 240;             // ~0.725 mm/unit
+  const _YCLAMP = 12;                  // mm — clamp vertical
 
   const _sEmX = plantilla?.emisor_x  ?? 0;
   const _sEmY = plantilla?.emisor_y  ?? 0;
   const _sClX = plantilla?.cliente_x ?? 0;
   const _sClY = plantilla?.cliente_y ?? 0;
 
-  // Borde izquierdo base de cada bloque (cuando slider = 0)
-  const _emBase = _cEmMm - cW / 2;   // 61.5 - 39.5 = 22mm
-  const _clBase = _cClMm - cW / 2;   // 148.5 - 39.5 = 109mm
+  // Posición base centrada en cada cuadrante (slider=0)
+  const _cEmMm = ML + _qW_mm / 2;     // 61.5mm
+  const _cClMm = ML + _qW_mm * 3/2;  // 148.5mm
+  const _emBase = _cEmMm - cW / 2;   // 37.5mm
+  const _clBase = _cClMm - cW / 2;   // 124.5mm
 
-  // Clamp: el borde izquierdo del bloque nunca sale del cuadrante
-  //   emisor:  borde izq ∈ [ML,  ML + _qW_mm - cW]  → X ∈ [ML, ML + _qW_mm - cW]
-  //   cliente: borde izq ∈ [ML + _qW_mm, PW-MR - cW] → X ∈ [ML+_qW_mm, PW-MR-cW]
+  // Borde izq del bloque tras aplicar slider
   const _emRaw = _emBase + _sEmX * _XSCALE;
   const _clRaw = _clBase + _sClX * _XSCALE;
-  const emisorX  = Math.max(ML,          Math.min(ML + _qW_mm - cW, _emRaw));
-  const clienteX = Math.max(ML + _qW_mm, Math.min(PW - MR - cW,     _clRaw));
+
+  // Clamp: emisor queda dentro de [ML, ML+qW-cW], cliente dentro de [ML+qW, PW-MR-cW]
+  const emisorX  = Math.max(ML,           Math.min(ML + _qW_mm - cW, _emRaw));
+  const clienteX = Math.max(ML + _qW_mm,  Math.min(PW - MR - cW,    _clRaw));
   const emisorY  = y + Math.max(-_YCLAMP, Math.min(_YCLAMP, _sEmY * _XSCALE));
   const clienteY = y + Math.max(-_YCLAMP, Math.min(_YCLAMP, _sClY * _XSCALE));
 
@@ -904,7 +898,8 @@ export async function exportFacturaPDFConPlantilla(facturaId, plantillaId = null
     .single();
   if (error || !f) { toast("Factura no encontrada", "error"); return null; }
 
-  // Si el caller no pasa plantillaId, leer del selector del formulario activo
+  // Cascada resuelta en generarPDFConPlantilla:
+  // plantillaId explícito → selector activo del form → doc.plantilla_id → es_default
   const selId = plantillaId
     || document.getElementById("nfPlantillaSel")?.value
     || null;
