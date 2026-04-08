@@ -409,6 +409,7 @@ async function _save(){
       }
       return notasVal;
     })(),
+    plantilla_id: document.getElementById("npfPlantillaSel")?.value || null,
   };
 
   let err;
@@ -444,7 +445,15 @@ export async function cargarProformaParaEditar(id){
     b.classList.toggle("active", b.dataset.op === opTipo);
   });
   _updateOpUI();
-  const sel=document.getElementById("npfPlantillaSel"); if(sel)sel.value="";
+  // Restaurar plantilla_id guardada
+  const sel=document.getElementById("npfPlantillaSel");
+  if(sel){
+    if(p.plantilla_id){
+      const opt=sel.querySelector(`option[value="${p.plantilla_id}"]`);
+      if(opt){ sel.value=p.plantilla_id; sel.dispatchEvent(new Event("change")); }
+      else { setTimeout(()=>{ const o=sel.querySelector(`option[value="${p.plantilla_id}"]`); if(o){sel.value=p.plantilla_id;sel.dispatchEvent(new Event("change"));} },400); }
+    } else { sel.value=""; }
+  }
   const lineas=p.lineas?(typeof p.lineas==="string"?JSON.parse(p.lineas):p.lineas):[];
   lineas.forEach(l=>_addLinea(l)); _calcTotales();
   switchView("nueva-proforma");
