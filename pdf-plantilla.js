@@ -335,18 +335,36 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   const textRightX = logoOk ? Math.max(ML + 20, logoLeft - 3) : PW - MR - 4;
   const textW      = textRightX - ML - 4;
 
+  // Layout de cabecera — espejo exacto del preview HTML:
+  //   línea 1: TIPO (pequeño, opaco)
+  //   línea 2: Número (grande, bold)
+  //   línea 3: Fecha (pequeño, normal)
+  //   línea 4: Válido hasta (si existe)
+  // Todo alineado a la izquierda, pegado al margen izquierdo.
   doc.setFont(font, "bold");
   doc.setFontSize(7.5);
   doc.setTextColor(...cabTxtColor);
+  // Línea 1: tipo (opacidad simulada mezclando con fondo)
+  const _tipoColor = cabConFondo
+    ? colores.txtCab.map((c, i) => Math.round(c * 0.75 + colores.cab[i] * 0.25))
+    : MUTED;
+  doc.setTextColor(..._tipoColor);
   doc.text(tipoLabel, ML + 4, CAB_TOP + 5.5);
+  // Línea 2: número
   doc.setFontSize(Math.min(tamF + 3, 13));
+  doc.setTextColor(...cabTxtColor);
   const numLine = doc.splitTextToSize(numero.substring(0, 30), textW);
   doc.text(numLine[0], ML + 4, CAB_TOP + 11);
+  // Línea 3: fecha (debajo del número, misma columna izquierda)
   doc.setFont(font, "normal");
   doc.setFontSize(7);
-  doc.text(fmtFecha(fecha), PW - MR - 2, CAB_TOP + 6, { align: "right" });
+  const _fechaColor = cabConFondo
+    ? colores.txtCab.map((c, i) => Math.round(c * 0.6 + colores.cab[i] * 0.4))
+    : MUTED;
+  doc.setTextColor(..._fechaColor);
+  doc.text(fmtFecha(fecha), ML + 4, CAB_TOP + 16.5);
   if (docData.fecha_validez) {
-    doc.text((_en ? "Valid until: " : "Válido hasta: ") + fmtFecha(docData.fecha_validez), PW - MR - 2, CAB_TOP + 11, { align: "right" });
+    doc.text((_en ? "Valid until: " : "Válido hasta: ") + fmtFecha(docData.fecha_validez), ML + 4, CAB_TOP + 21, );
   }
 
   // Logo ENCIMA de la cabecera (último dibujado = encima, igual que z-index en CSS)
@@ -389,58 +407,45 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
    * Clamp final: emisorX ∈ [ML+PAD, PW/2-PAD], clienteX ∈ [PW/2+PAD, PW-MR-PAD]
    */
 
-  // ── Constantes del sistema de coordenadas (sincronizadas con el preview) ──
+  // ── Sistema de coordenadas EMISOR / CLIENTE (coordenadas nativas PDF en mm) ──
   //
-  // El preview (ep_pv_doc) tiene pvW=420px que corresponde a 210mm (A4 completo).
-  // Padding visual del preview = 18px = 18mm (= ML).
-  // Cuadrante útil = (420 - 2×18) / 2 = 192px = 96mm.
+  // El área útil (entre márgenes) = W = PW - ML - MR = 174mm.
+  // Cada cuadrante = W/2 = 87mm.
+  // Bloque de texto = cuadrante - 8mm de gaps = 79mm.
+  // Centro de cuadrante:
+  //   emisor  → ML + qW/2   = 18 + 43.5 = 61.5mm
+  //   cliente → ML + qW*3/2 = 18 + 130.5 = 148.5mm
   //
-  // Centros de cuadrante (mismo cálculo en px×0.5 que en el preview):
-  //   emisor  → 18 + 96     = 114px → 57mm desde borde izq de página
-  //   cliente → 18 + 96×3  = 306px → 153mm desde borde izq de página
+  // Offset del slider: sX ∈ [-120, 120] → offset_mm = sX * (W/240)
+  //   → a slider máximo (120) el bloque se desplaza W/2 = 87mm
+  //   → clamp: borde izq/der del bloque no sale del cuadrante
   //
-  // Ancho de bloque: 192 - 8 = 184px → 92mm
-  //
-  // Offset de slider: sX × (pvW/240), clamp ±(pvW/2 - pad) — igual que el logo.
-  const _EC_PVW    = 420;                          // px — ancho preview doc
-  const _EC_PAD    = 18;                           // px — padding visual preview (= ML en mm)
-  const _EC_PX2MM  = PW / _EC_PVW;                // 0.5 mm/px
-  const _EC_QW     = (_EC_PVW - 2 * _EC_PAD) / 2; // 192px — ancho cuadrante preview
-  const _EC_MAXOFF = _EC_PVW / 2 - _EC_PAD;       // 192px — clamp máx offset
-
-  // Centros de cuadrante en mm (sincronizados con preview)
-  const _cEmMm = (_EC_PAD + _EC_QW / 2)   * _EC_PX2MM;  // 57mm
-  const _cClMm = (_EC_PAD + _EC_QW * 3/2) * _EC_PX2MM;  // 153mm
-  const cW     = (_EC_QW - 8)             * _EC_PX2MM;   // 92mm — ancho de bloque
-
-  // Bordes izquierdos base: centro del cuadrante − la mitad del bloque
-  const _emBaseX = _cEmMm - cW / 2;   // 57 - 46 = 11mm
-  const _clBaseX = _cClMm - cW / 2;   // 153 - 46 = 107mm
-
-  // Offsets del slider — fórmula sincronizada con _runPreview en plantillas-usuario.js:
-  //   X: offsetPx = clamp(sX × (pvW/240), ±_EC_MAXOFF)   → igual que el logo
-  //   Y: offsetPx = clamp(sY × SCALE,     ±_tyClamp)     → usa SCALE como el preview
-  //      (el preview usa emisorY * SCALE, NO emisorY * (pvW/240))
-  const _EC_SCALE  = _EC_PVW / 595;   // 0.7059 — mismo SCALE que el preview JS
-  const _EC_TYCLAMP = 20;             // px — clamp vertical del preview (_tyClamp)
+  // Offset Y: sY ∈ [-120, 120] → offset_mm = sY * (W/240), clamp ±10mm
+  const _qW_mm  = W / 2;               // 87mm — ancho de cuadrante
+  const cW      = _qW_mm - 8;          // 79mm — ancho del bloque de texto
+  const _cEmMm  = ML + _qW_mm / 2;     // 61.5mm — centro cuadrante emisor
+  const _cClMm  = ML + _qW_mm * 3/2;   // 148.5mm — centro cuadrante cliente
+  const _XSCALE = W / 240;             // mm por unidad de slider (~0.725 mm/unit)
+  const _YCLAMP = 10;                  // mm — clamp vertical
 
   const _sEmX = plantilla?.emisor_x  ?? 0;
   const _sEmY = plantilla?.emisor_y  ?? 0;
   const _sClX = plantilla?.cliente_x ?? 0;
   const _sClY = plantilla?.cliente_y ?? 0;
 
-  const _offEmX = Math.max(-_EC_MAXOFF, Math.min(_EC_MAXOFF, _sEmX * (_EC_PVW / 240))) * _EC_PX2MM;
-  const _offEmY = Math.max(-_EC_TYCLAMP, Math.min(_EC_TYCLAMP, _sEmY * _EC_SCALE))     * _EC_PX2MM;
-  const _offClX = Math.max(-_EC_MAXOFF, Math.min(_EC_MAXOFF, _sClX * (_EC_PVW / 240))) * _EC_PX2MM;
-  const _offClY = Math.max(-_EC_TYCLAMP, Math.min(_EC_TYCLAMP, _sClY * _EC_SCALE))     * _EC_PX2MM;
+  // Borde izquierdo base de cada bloque (cuando slider = 0)
+  const _emBase = _cEmMm - cW / 2;   // 61.5 - 39.5 = 22mm
+  const _clBase = _cClMm - cW / 2;   // 148.5 - 39.5 = 109mm
 
-  // Posición final con clamp: ningún bloque sale del área [ML+PAD, PW-MR-PAD]
-  // El clamp asegura que aunque el bloque base esté en 11mm (< ML+PAD=22mm),
-  // el texto siempre quede dentro del área imprimible.
-  const emisorX  = Math.max(ML + PAD,     Math.min(PW / 2 - PAD,     _emBaseX + _offEmX));
-  const emisorY  = y + _offEmY;
-  const clienteX = Math.max(PW / 2 + PAD, Math.min(PW - MR - PAD,   _clBaseX + _offClX));
-  const clienteY = y + _offClY;
+  // Clamp: el borde izquierdo del bloque nunca sale del cuadrante
+  //   emisor:  borde izq ∈ [ML,  ML + _qW_mm - cW]  → X ∈ [ML, ML + _qW_mm - cW]
+  //   cliente: borde izq ∈ [ML + _qW_mm, PW-MR - cW] → X ∈ [ML+_qW_mm, PW-MR-cW]
+  const _emRaw = _emBase + _sEmX * _XSCALE;
+  const _clRaw = _clBase + _sClX * _XSCALE;
+  const emisorX  = Math.max(ML,          Math.min(ML + _qW_mm - cW, _emRaw));
+  const clienteX = Math.max(ML + _qW_mm, Math.min(PW - MR - cW,     _clRaw));
+  const emisorY  = y + Math.max(-_YCLAMP, Math.min(_YCLAMP, _sEmY * _XSCALE));
+  const clienteY = y + Math.max(-_YCLAMP, Math.min(_YCLAMP, _sClY * _XSCALE));
 
   const mostrarEmisor = plantilla ? (plantilla.mostrar_emisor !== false) : true;
 
