@@ -2003,17 +2003,26 @@
                   <!-- Documento simulado: la cabecera tiene position:relative para que el logo se posicione sobre ella -->
                   <div id="ep_pv_doc" style="background:#fff;font-size:11px;min-height:480px;overflow:hidden">
 
-                    <!-- BLOQUE CABECERA: posición relative para anclar el logo encima -->
-                    <div id="ep_pv_cab_wrap" style="position:relative">
-                      <!-- Logo: position:absolute centrado por defecto. JS aplica transform para desplazar X/Y -->
-                      <div id="ep_pv_logo_row" style="display:none;position:absolute;top:0;left:50%;z-index:2;pointer-events:none;transform:translateX(-50%)">
+                    <!-- BLOQUE CABECERA: position:relative para anclar logo.
+                         ep_pv_cab_wrap siempre tiene altura real (min-height) para
+                         que el logo position:absolute se posicione correctamente
+                         aunque la banda de color esté oculta. -->
+                    <div id="ep_pv_cab_wrap" style="position:relative;min-height:0">
+                      <!-- Logo: position:absolute sobre el wrap. JS calcula top/transform -->
+                      <div id="ep_pv_logo_row" style="display:none;position:absolute;top:0;left:50%;z-index:10;pointer-events:none;transform:translateX(-50%)">
                         <img id="ep_pv_logo_img" src="" alt="" style="display:block;object-fit:contain"/>
                       </div>
-                      <!-- Cabecera coloreada -->
+                      <!-- Cabecera coloreada (se oculta con "Sin cabecera") -->
                       <div id="ep_pv_cab" style="padding:14px 18px 12px;background:#1a56db;position:relative;z-index:1">
                         <div id="ep_pv_tipo" style="font-size:9px;font-weight:800;letter-spacing:.12em;opacity:.75;color:#fff;text-transform:uppercase">FACTURA</div>
                         <div id="ep_pv_concepto" style="font-size:15px;font-weight:700;color:#fff;margin-top:2px;line-height:1.2">Concepto del documento</div>
                         <div style="font-size:9px;opacity:.6;color:#fff;margin-top:3px" id="ep_pv_fecha"></div>
+                      </div>
+                      <!-- Fallback sin-cabecera: tipo + número visibles cuando cab oculta -->
+                      <div id="ep_pv_sincab" style="display:none;padding:14px 18px 10px">
+                        <div id="ep_pv_tipo2" style="font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#6b7280">FACTURA</div>
+                        <div id="ep_pv_concepto2" style="font-size:15px;font-weight:700;margin-top:2px;line-height:1.2;color:#111">Concepto del documento</div>
+                        <div id="ep_pv_fecha2" style="font-size:9px;color:#9ca3af;margin-top:3px"></div>
                       </div>
                     </div>
 
