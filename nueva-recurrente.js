@@ -391,6 +391,7 @@ async function _save() {
       iva: l.iva, descuento: l.descuento ?? "",
       subtotal: Math.max(0, l.cantidad*l.precio - _parseDto(l.descuento, l.cantidad*l.precio)),
     }))),
+    plantilla_id: document.getElementById("nrPlantillaSel")?.value || null,
   };
 
   let err;
@@ -478,6 +479,19 @@ export async function cargarRecurrenteParaEditar(id) {
     _addLinea({ descripcion: r.concepto, cantidad: 1, precio: r.base, iva: r.iva || 21 });
   }
   _calcTotales();
+
+  // Restaurar plantilla_id guardada
+  const nrSel = document.getElementById("nrPlantillaSel");
+  if (nrSel && r.plantilla_id) {
+    // Esperar a que el selector esté poblado antes de restaurar
+    const _restoreSel = () => {
+      const opt = nrSel.querySelector(`option[value="${r.plantilla_id}"]`);
+      if (opt) { nrSel.value = r.plantilla_id; nrSel.dispatchEvent(new Event("change")); }
+    };
+    if (nrSel.options.length > 1) _restoreSel();
+    else setTimeout(_restoreSel, 500);
+  }
+
   switchView("nueva-recurrente");
 }
 
@@ -487,6 +501,8 @@ export async function cargarRecurrenteParaEditar(id) {
 function _resetForm(clearEditing = true) {
   if (clearEditing) editandoId = null;
   clienteSelId = null; LINEAS = []; lineaIdCnt = 0;
+  const nrSel = document.getElementById("nrPlantillaSel");
+  if (nrSel) nrSel.value = "";
   const cont = document.getElementById("nrLineasContainer"); if (cont) cont.innerHTML = "";
   ["nrConcepto","nrProxima","nrFin","nrNotas","nrMotivoExencion",
    "nrClienteNombre","nrClienteNombreComercial","nrClienteNif","nrClienteEmail",
@@ -520,6 +536,40 @@ function _resetForm(clearEditing = true) {
 /* ══════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   SELECTOR DE PLANTILLA PDF
+══════════════════════════════════════════════════════ */
+async function _nrInitPlantillaSel() {
+  const sel   = document.getElementById("nrPlantillaSel");
+  const badge = document.getElementById("nrPlantillaDefaultBadge");
+  if (!sel) return;
+  sel.innerHTML = `<option value="">Cargando...</option>`; sel.disabled = true;
+  let plantillas = [];
+  try {
+    const { data } = await supabase.from("plantillas_usuario")
+      .select("id,nombre,es_default")
+      .eq("user_id", SESSION.user.id).order("nombre");
+    plantillas = data || [];
+  } catch(e) { console.warn("plantillas recurrente:", e.message); }
+  sel.disabled = false;
+  if (!plantillas.length) {
+    sel.innerHTML = `<option value="">— Sin plantillas —</option>`; return;
+  }
+  const defP = plantillas.find(p => p.es_default) || null;
+  sel.innerHTML = [
+    `<option value="">— Sin plantilla —</option>`,
+    ...plantillas.map(p =>
+      `<option value="${p.id}" ${defP?.id === p.id ? "selected" : ""}>${p.nombre}${p.es_default ? " ⭐" : ""}</option>`)
+  ].join("");
+  if (badge) badge.style.display = defP ? "inline" : "none";
+  sel.addEventListener("change", () => {
+    if (badge) {
+      const p = plantillas.find(x => x.id === sel.value);
+      badge.style.display = p?.es_default ? "inline" : "none";
+    }
+  });
+}
+
 export function initNuevaRecurrente() {
   const fe = document.getElementById("nrProxima");
   if (fe && !fe.value) fe.value = new Date().toISOString().slice(0,10);
@@ -531,6 +581,7 @@ export function initNuevaRecurrente() {
     _initDone = true;
     _initClienteSearch();
     _initIrpfToggle();
+    _nrInitPlantillaSel();
 
     document.getElementById("nrAddLineaBtn")?.addEventListener("click", () => _addLinea());
     document.getElementById("nrGuardarBtn")?.addEventListener("click",  () => _save());
