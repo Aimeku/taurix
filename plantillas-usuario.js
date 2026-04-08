@@ -428,35 +428,36 @@ function _runPreview() {
   ── */
   const er = _g("ep_pv_emisor_row");
   if (er) {
-    er.style.display = mostEmisor ? "block" : "none";
-    er.style.position  = "relative";
-    er.style.overflow  = "hidden";
+    er.style.display  = mostEmisor ? "block" : "none";
+    er.style.position = "relative";
+    er.style.overflow = "visible";  // visible: el texto no se recorta al moverse
   }
 
-  // ── Sistema de coordenadas EMISOR/CLIENTE — idéntico al PDF ──
-  // pvW = ancho real del preview en px. Área útil = pvW - 2*pad (pad=18px visual ≈ ML).
-  // El sistema espeja el PDF: qW = W/2, blkW = qW-8, centros proporcionales.
-  // Slider sX ∈ [-120,120] → offset_px = sX * (pvW-2*pad)/240
-  // Clamp: el borde izq/der del bloque no sale del cuadrante.
-  const _pad_pv = 18;                            // px — padding visual (≈ ML en mm)
-  const _pvUsable = pvW - 2 * _pad_pv;          // px — área útil (≡ W en mm)
-  const _qW_px  = _pvUsable / 2;                // px — ancho de cuadrante
-  const _blkW   = Math.round(_qW_px - 8);       // px — ancho del bloque
-  const _cEmPx  = _pad_pv + _qW_px / 2;        // px — centro cuadrante emisor
-  const _cClPx  = _pad_pv + _qW_px * 3 / 2;   // px — centro cuadrante cliente
-  const _XSCALE_PX = _pvUsable / 240;           // px/unit slider (≡ W/240 en mm)
-  const _YCLAMP_PX = _pvUsable / 240 * 10 / (174/240); // ~10mm equivalente en px
+  // ── Sistema de coordenadas EMISOR/CLIENTE — espejo exacto del PDF ──
+  // PDF: bloque=48mm, qW=87mm, escala=W/240. Preview: misma proporción en px.
+  // pvW real → área útil = pvW - 2*18px. blkW_px = 48 * (pvUsable/174).
+  // Slider sX ∈ [-120,120] → offset_px = sX * pvUsable/240
+  // Clamp: borde izq no sale del cuadrante propio.
+  const _pad_pv    = 18;                         // px — padding visual
+  const _pvUsable  = pvW - 2 * _pad_pv;         // px — área útil
+  const _qW_px     = _pvUsable / 2;             // px — cuadrante
+  const _blkW      = Math.round(48 * _pvUsable / 174); // px — bloque (48mm escalado)
+  const _cEmPx     = _pad_pv + _qW_px / 2;     // centro cuadrante emisor
+  const _cClPx     = _pad_pv + _qW_px * 3 / 2; // centro cuadrante cliente
+  const _XSCALE_PX = _pvUsable / 240;           // px/unit
+  const _YCLAMP_PX = 12 * _pvUsable / 174;      // 12mm en px
 
-  // Borde izquierdo base (slider=0): centro - blkW/2
+  // Base centrada (slider=0)
   const _emBasePx = _cEmPx - _blkW / 2;
   const _clBasePx = _cClPx - _blkW / 2;
 
-  // Clamp: borde izq ∈ [pad, pad+qW-blkW] para emisor
-  //        borde izq ∈ [pad+qW, pvW-pad-blkW] para cliente
-  const _emRawPx = _emBasePx + emisorX  * _XSCALE_PX;
-  const _clRawPx = _clBasePx + clienteX * _XSCALE_PX;
-  const _emLeftPx = Math.max(_pad_pv,          Math.min(_pad_pv + _qW_px - _blkW, _emRawPx));
-  const _clLeftPx = Math.max(_pad_pv + _qW_px, Math.min(pvW - _pad_pv - _blkW,   _clRawPx));
+  // Borde izq tras slider
+  const _emRawPx  = _emBasePx + emisorX  * _XSCALE_PX;
+  const _clRawPx  = _clBasePx + clienteX * _XSCALE_PX;
+
+  // Clamp por cuadrante
+  const _emLeftPx = Math.max(_pad_pv,           Math.min(_pad_pv + _qW_px - _blkW, _emRawPx));
+  const _clLeftPx = Math.max(_pad_pv + _qW_px,  Math.min(pvW - _pad_pv - _blkW,   _clRawPx));
   const _offEmY   = Math.max(-_YCLAMP_PX, Math.min(_YCLAMP_PX, emisorY  * _XSCALE_PX));
   const _offClY   = Math.max(-_YCLAMP_PX, Math.min(_YCLAMP_PX, clienteY * _XSCALE_PX));
 
@@ -477,15 +478,11 @@ function _runPreview() {
     cb2.style.transform = "none";
   }
 
-  // Ajustar min-height del contenedor para que los bloques absolutos sean visibles
-  // (los bloques absolutos no contribuyen al flujo normal → el contenedor colapsaría)
+  // min-height fija: suficiente para label + nombre + 3 líneas de datos
+  // Los bloques son position:absolute → no aportan al flujo → necesitamos reservar espacio
   if (er && mostEmisor) {
-    const emTop   = 10 + _offEmY;
-    const clTop   = 10 + _offClY;
-    // Altura estimada de cada bloque: label (12px) + nombre (14px) + 2 líneas datos (11px*2) = ~48px
-    const estBlkH = 50;
-    const neededH = Math.max(emTop + estBlkH, clTop + estBlkH, 58);
-    er.style.minHeight = neededH + "px";
+    const topMax  = Math.max(10 + _offEmY, 10 + _offClY);
+    er.style.minHeight = (topMax + 72) + "px";  // 72px ≈ 4 líneas de texto
   }
 
   const st = (id,v) => { const e=_g(id); if(e) e.textContent=v; };
@@ -618,6 +615,9 @@ window._epTab = function(tab) {
     s.style.display = s.id === "ep-tab-"+tab ? "" : "none";
   });
   if (tab === "columnas") _renderColsPanel();
+  // Refrescar preview siempre que se cambia de pestaña
+  // (necesario para que desc/notas del tab contenido se reflejen al volver a diseño)
+  if (typeof _runPreview === "function") _runPreview();
 };
 
 window._epSetAlin = function(v) {
