@@ -89,6 +89,46 @@ const IA_TOOLS = [
     input_schema: { type: "object", properties: {}, required: [] }
   },
   {
+    name: "preparar_documentos",
+    description: "Genera y empaqueta documentos fiscales descargables (PDFs de modelos, libros, Excel). Úsala cuando el usuario pida preparar documentos, quiera descargar modelos o su gestor/asesor le haya pedido documentación fiscal.",
+    input_schema: {
+      type: "object",
+      properties: {
+        documentos: {
+          type: "array",
+          description: "Lista de documentos a generar",
+          items: {
+            type: "string",
+            enum: [
+              "modelo_303",
+              "modelo_130",
+              "modelo_200_IS",
+              "modelo_111",
+              "modelo_115",
+              "modelo_347",
+              "modelo_349",
+              "modelo_390",
+              "modelo_190",
+              "libro_ingresos_pdf",
+              "libro_gastos_pdf",
+              "facturas_excel"
+            ]
+          }
+        },
+        formato: {
+          type: "string",
+          enum: ["zip", "individual"],
+          description: "zip = todos en un ZIP descargable, individual = botones separados por documento"
+        },
+        motivo: {
+          type: "string",
+          description: "Para qué son los documentos (ej: 'presentación trimestral T2', 'envío al gestor')"
+        }
+      },
+      required: ["documentos", "formato", "motivo"]
+    }
+  },
+  {
     name: "registrar_factura_recibida",
     description: "Registra una factura recibida (de proveedor) en Supabase con todos sus datos. Úsalo después de analizar un PDF para registrar la factura automáticamente.",
     input_schema: {
@@ -212,6 +252,16 @@ function _css() {
 .ta-cursor{display:inline-block;width:2px;height:14px;background:var(--ox,#F97316);margin-left:1px;vertical-align:text-bottom;animation:ta-blink .7s step-end infinite}
 @keyframes ta-blink{0%,100%{opacity:1}50%{opacity:0}}
 .ta-streaming{min-height:20px}
+.ta-descarga{display:flex;flex-direction:column;gap:8px;padding:12px 14px;background:var(--srf,#fff);border:1px solid var(--brd,#E0E3EE);border-radius:14px 14px 14px 3px;align-self:flex-start;max-width:90%;animation:ta-in .18s ease;margin-top:2px}
+.ta-descarga-title{font-size:11px;font-weight:700;color:var(--t2,#343A4F);text-transform:uppercase;letter-spacing:.02em}
+.ta-descarga-items{display:flex;flex-direction:column;gap:5px}
+.ta-descarga-btn{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--ox);border:none;border-radius:8px;color:#fff;font-size:12.5px;font-weight:600;font-family:var(--font,system-ui);cursor:pointer;transition:background .12s,transform .1s;text-align:left}
+.ta-descarga-btn:hover{background:var(--ox-d,#EA6700);transform:translateY(-1px)}
+.ta-descarga-btn:active{transform:scale(.98)}
+.ta-descarga-btn svg{width:14px;height:14px;flex-shrink:0}
+.ta-descarga-btn.secondary{background:var(--srf2,#F7F8FC);color:var(--t1,#0D0F16);border:1px solid var(--brd,#E0E3EE)}
+.ta-descarga-btn.secondary:hover{background:var(--bg2,#E8EAF0)}
+.ta-descarga-nota{font-size:10.5px;color:var(--t4,#9BA3BC)}
 #ta-pdf-btn{width:32px;height:32px;flex-shrink:0;border:none;border-radius:8px;background:var(--bg2,#E8EAF0);color:var(--t3,#6B7394);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
 #ta-pdf-btn:hover{background:var(--ox-lt,#FFF7ED);color:var(--ox,#F97316)}
 #ta-pdf-btn svg{width:15px;height:15px}
@@ -479,7 +529,8 @@ INSTRUCCIONES:
 6. Después de una acción, confirma con una frase corta.
 7. Usa cifras REALES del contexto. Importes: 1.234,56 €
 8. Usa **negrita** para importes y conceptos clave.
-9. Si el usuario adjunta una factura PDF o imagen, extrae TODOS los datos (proveedor, NIF, base, IVA, IRPF, fecha, número) y usa registrar_factura_recibida para guardarla. Si algún dato no está claro, indícalo pero registra con lo que tengas.`;
+9. Si el usuario adjunta una factura PDF o imagen, extrae TODOS los datos (proveedor, NIF, base, IVA, IRPF, fecha, número) y usa registrar_factura_recibida para guardarla. Si algún dato no está claro, indícalo pero registra con lo que tengas.
+10. Cuando el usuario quiera descargar modelos fiscales, que su gestor le pida documentación, o que quiera enviar algo a su asesor — usa preparar_documentos. Pregunta el formato (zip o individual) si no está claro. Para el trimestre activo sugiere siempre los modelos que correspondan al régimen.`;
   const res=await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -700,6 +751,11 @@ async function _ejecutarHerramienta(nombre, input) {
         _addAccion('✓ Perfil fiscal abierto','Cambia tu régimen y datos fiscales',null);
         break;
       }
+      case 'preparar_documentos': {
+        const { documentos, formato, motivo } = input;
+        await _generarPaqueteDocumentos(documentos, formato, motivo);
+        break;
+      }
       case 'registrar_factura_recibida': {
         const { concepto, proveedor, nif_proveedor, base_imponible, iva_pct, irpf_pct, fecha, numero_factura, categoria } = input;
         const uid = SESSION?.user?.id;
@@ -752,6 +808,203 @@ async function _ejecutarHerramienta(nombre, input) {
     console.error('[tax-asistente] herramienta error:',nombre,err);
     _addAccionError('No pude completar la acción',err.message);
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   GENERADOR DE PAQUETE DE DOCUMENTOS
+   Llama a las funciones de exportación ya existentes en la app,
+   captura los blobs y los empaqueta en un ZIP descargable.
+══════════════════════════════════════════════════════════════════ */
+async function _generarPaqueteDocumentos(documentos, formato, motivo) {
+  // Mapa: clave → { label, fn, ext }
+  const MAPA = {
+    modelo_303:        { label: 'Modelo 303 · IVA',             ext: 'pdf', fn: async () => { const {exportarDatos303}   = await import('./fiscal.js');         return _capturarPDF(() => exportarDatos303()); } },
+    modelo_130:        { label: 'Modelo 130 · IRPF',            ext: 'pdf', fn: async () => { const {exportarDatos130}   = await import('./fiscal.js');         return _capturarPDF(() => exportarDatos130()); } },
+    modelo_200_IS:     { label: 'Modelo 200 · IS',              ext: 'pdf', fn: async () => { const {refreshIS}          = await import('./dashboard.js');      return _capturarPDF(async () => { await refreshIS(); if (window._switchView) window._switchView('is'); }); } },
+    modelo_111:        { label: 'Modelo 111 · Retenciones',     ext: 'pdf', fn: async () => { const {exportModelo111PDF} = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo111PDF()); } },
+    modelo_115:        { label: 'Modelo 115 · Alquiler',        ext: 'pdf', fn: async () => { const {exportModelo115PDF} = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo115PDF()); } },
+    modelo_347:        { label: 'Modelo 347 · Terceros',        ext: 'pdf', fn: async () => { const {exportModelo347PDF} = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo347PDF()); } },
+    modelo_349:        { label: 'Modelo 349 · Intracom.',       ext: 'pdf', fn: async () => { const {exportModelo349PDF} = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo349PDF()); } },
+    modelo_390:        { label: 'Modelo 390 · Resumen IVA',     ext: 'pdf', fn: async () => { const {exportModelo390PDF} = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo390PDF()); } },
+    modelo_190:        { label: 'Modelo 190 · Retenciones',     ext: 'pdf', fn: async () => { const {exportModelo190PDF} = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo190PDF()); } },
+    libro_ingresos_pdf:{ label: 'Libro de Ingresos',            ext: 'pdf', fn: async () => { const {exportLibroIngPDF}  = await import('./exports.js');        return _capturarPDF(() => exportLibroIngPDF()); } },
+    libro_gastos_pdf:  { label: 'Libro de Gastos',              ext: 'pdf', fn: async () => { const {exportLibroGstPDF}  = await import('./exports.js');        return _capturarPDF(() => exportLibroGstPDF()); } },
+    facturas_excel:    { label: 'Facturas (Excel)',              ext: 'xlsx',fn: async () => { const {exportFacturasExcel}= await import('./exports.js');        return _capturarXLSX(() => exportFacturasExcel()); } },
+  };
+
+  const ctx = _s.taxResult;
+  const trimLabel = { T1:'T1', T2:'T2', T3:'T3', T4:'T4' }[ctx?.trim] ?? '';
+  const year = ctx?.year ?? new Date().getFullYear();
+
+  // Mostrar mensaje de preparando
+  _addAccion('⏳ Preparando documentos…', `${documentos.length} archivo${documentos.length>1?'s':''} · ${motivo}`, null);
+
+  if (formato === 'individual') {
+    // Modo individual: botones separados que descargan al pulsar
+    const items = documentos.map(key => {
+      const def = MAPA[key];
+      if (!def) return null;
+      return { label: def.label, ext: def.ext, fn: def.fn };
+    }).filter(Boolean);
+    _addDescarga(motivo, items, trimLabel, year);
+    return;
+  }
+
+  // Modo ZIP: generar todos y empaquetar
+  await _cargarJSZip();
+  if (!window.JSZip) {
+    // Fallback a individual si JSZip no carga
+    const items = documentos.map(key => MAPA[key]).filter(Boolean);
+    _addDescarga(motivo, items, trimLabel, year);
+    return;
+  }
+
+  const zip = new window.JSZip();
+  const carpeta = zip.folder(`Taurix_${trimLabel}_${year}`);
+  const errores = [];
+
+  for (const key of documentos) {
+    const def = MAPA[key];
+    if (!def) continue;
+    try {
+      const blob = await def.fn();
+      if (blob) {
+        carpeta.file(`${key}_${trimLabel}_${year}.${def.ext}`, blob);
+      }
+    } catch (e) {
+      errores.push(def.label);
+      console.warn('[tax-asistente] Error generando', key, e);
+    }
+  }
+
+  const zipBlob = await zip.generateAsync({ type: 'blob' });
+  const nombre  = `Taurix_Documentos_${trimLabel}_${year}.zip`;
+  _descargarBlob(zipBlob, nombre);
+
+  // Mostrar resultado
+  if (errores.length) {
+    _addAccionError('Algunos documentos fallaron', errores.join(', ') + ' · El resto se descargó correctamente');
+  } else {
+    _addAccion(
+      `✓ ${documentos.length} documento${documentos.length>1?'s':''} descargado${documentos.length>1?'s':''}`,
+      `${nombre} · ${motivo}`,
+      null
+    );
+  }
+}
+
+/* Muestra botones de descarga individuales en el chat */
+function _addDescarga(motivo, items, trimLabel, year) {
+  const msgs = document.getElementById('ta-msgs');
+  const d = document.createElement('div');
+  d.className = 'ta-descarga';
+
+  const btnsSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+
+  d.innerHTML = `
+    <div class="ta-descarga-title">📁 ${motivo}</div>
+    <div class="ta-descarga-items" id="ta-dl-items-${Date.now()}"></div>
+    <div class="ta-descarga-nota">Los archivos se generan con tus datos reales del ${trimLabel} ${year}</div>`;
+
+  msgs.appendChild(d);
+  requestAnimationFrame(() => { msgs.scrollTop = msgs.scrollHeight; });
+
+  const container = d.querySelector('.ta-descarga-items');
+  items.forEach(item => {
+    const btn = document.createElement('button');
+    btn.className = 'ta-descarga-btn';
+    btn.innerHTML = `${btnsSVG} ${item.label}`;
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Generando…`;
+      try {
+        const blob = await item.fn();
+        if (blob) {
+          _descargarBlob(blob, `${item.label.replace(/[^a-zA-Z0-9]/g,'_')}_${trimLabel}_${year}.${item.ext}`);
+          btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> ✓ Descargado`;
+          btn.style.background = 'var(--green,#059669)';
+        } else {
+          // la función ya disparó la descarga directamente (jsPDF.save)
+          btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> ✓ Listo`;
+          btn.style.background = 'var(--green,#059669)';
+        }
+      } catch(e) {
+        btn.innerHTML = `❌ Error: ${e.message}`;
+        btn.style.background = 'var(--red,#DC2626)';
+        btn.disabled = false;
+      }
+    });
+    container.appendChild(btn);
+  });
+}
+
+/* Captura el blob de una función que usa jsPDF.save() */
+async function _capturarPDF(fn) {
+  // La mayoría de funciones llaman a doc.save() directamente.
+  // Las interceptamos temporalmente para capturar el blob en lugar de descargar.
+  let blobCapturado = null;
+  const saveOriginal = window.jspdf?.jsPDF?.prototype?.save;
+
+  if (window.jspdf?.jsPDF) {
+    window.jspdf.jsPDF.prototype.save = function(nombre) {
+      blobCapturado = this.output('blob');
+      // No descargar — solo capturar
+    };
+  }
+
+  try {
+    await fn();
+  } finally {
+    if (saveOriginal && window.jspdf?.jsPDF) {
+      window.jspdf.jsPDF.prototype.save = saveOriginal;
+    }
+  }
+
+  return blobCapturado; // null si la función no usa jsPDF
+}
+
+/* Captura el blob de una función que usa XLSX.writeFile() */
+async function _capturarXLSX(fn) {
+  let blobCapturado = null;
+  const writeFileOriginal = window.XLSX?.writeFile;
+
+  if (window.XLSX) {
+    window.XLSX.writeFile = function(wb, nombre) {
+      const buffer = window.XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      blobCapturado = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    };
+  }
+
+  try {
+    await fn();
+  } finally {
+    if (writeFileOriginal && window.XLSX) {
+      window.XLSX.writeFile = writeFileOriginal;
+    }
+  }
+
+  return blobCapturado;
+}
+
+/* Descarga un blob como archivo */
+function _descargarBlob(blob, nombre) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href = url; a.download = nombre;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+/* Cargar JSZip dinámicamente */
+async function _cargarJSZip() {
+  if (window.JSZip) return;
+  await new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
 }
 
 function _addMsg(role,html) {
