@@ -296,7 +296,10 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   // ── CABECERA ──
   // En el preview: logo es position:absolute encima de ep_pv_cab_wrap.
   // En el PDF: dibujamos cabecera → texto → logo (z-order = orden de dibujo).
-  const tipoLabel = tipo === "factura" ? "FACTURA" : tipo === "albaran" ? "ALBARÁN / DELIVERY NOTE" : tipo === "proforma" ? "FACTURA PROFORMA" : "PRESUPUESTO";
+  const _en = (plantilla?.idioma === "en");
+  const tipoLabel = _en
+    ? (tipo === "factura" ? "INVOICE" : tipo === "albaran" ? "DELIVERY NOTE" : tipo === "proforma" ? "PROFORMA INVOICE" : "QUOTE")
+    : (tipo === "factura" ? "FACTURA" : tipo === "albaran" ? "ALBARÁN" : tipo === "proforma" ? "FACTURA PROFORMA" : "PRESUPUESTO");
   const numero    = docData.numero_factura || docData.numero || "—";
   const fecha     = docData.fecha;
   const fmtFecha  = d => { if(!d)return"—"; const [yr,mo,dy]=d.split("-"); return `${dy}/${mo}/${yr}`; };
@@ -329,7 +332,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.setFontSize(7);
     doc.text(fmtFecha(fecha), PW - MR - 2, CAB_TOP + 6, { align: "right" });
     if (docData.fecha_validez) {
-      doc.text("Válido hasta: " + fmtFecha(docData.fecha_validez), PW - MR - 2, CAB_TOP + 11, { align: "right" });
+      doc.text((_en ? "Valid until: " : "Válido hasta: ") + fmtFecha(docData.fecha_validez), PW - MR - 2, CAB_TOP + 11, { align: "right" });
     }
   } else {
     doc.setFont(font, "bold");
@@ -436,10 +439,10 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   const mostrarEmisor = plantilla ? (plantilla.mostrar_emisor !== false) : true;
 
   if (mostrarEmisor) {
-    const lblDe   = (plantilla?.idioma === "en") ? "FROM"    : "DE / FROM";
+    const lblDe   = (plantilla?.idioma === "en") ? "FROM" : "DE";
     const lblPara = (plantilla?.idioma === "en")
       ? (tipo === "factura" ? "BILL TO" : "TO")
-      : (tipo === "factura" ? "FACTURAR A / BILL TO" : "PARA / TO");
+      : (tipo === "factura" ? "FACTURAR A" : "PARA");
 
     doc.setFont(font, "bold");
     doc.setFontSize(7);
@@ -455,7 +458,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.setFont(font, "normal");
     doc.setFontSize(tamF);
     doc.setTextColor(...MUTED);
-    if (perfil.nif)             { doc.text("NIF: " + perfil.nif, emisorX, ey); ey += 4.5; }
+    if (perfil.nif)             { doc.text((_en ? "Tax ID: " : "NIF: ") + perfil.nif, emisorX, ey); ey += 4.5; }
     if (perfil.domicilio_fiscal){ const ls = doc.splitTextToSize(perfil.domicilio_fiscal, cW); doc.text(ls, emisorX, ey); ey += ls.length * 4.5; }
 
     let cy = clienteY + 5;
@@ -466,9 +469,9 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.setFont(font, "normal");
     doc.setFontSize(tamF);
     doc.setTextColor(...MUTED);
-    if (docData.cliente_nif)       { doc.text("NIF: " + docData.cliente_nif, clienteX, cy); cy += 4.5; }
+    if (docData.cliente_nif)       { doc.text((_en ? "Tax ID: " : "NIF: ") + docData.cliente_nif, clienteX, cy); cy += 4.5; }
     if (docData.cliente_direccion) { const ls = doc.splitTextToSize(docData.cliente_direccion, cW); doc.text(ls, clienteX, cy); cy += ls.length * 4.5; }
-    if (docData.forma_pago)        { doc.text("Forma pago: " + docData.forma_pago, clienteX, cy); cy += 4.5; }
+    if (docData.forma_pago)        { doc.text((_en ? "Payment: " : "Forma pago: ") + docData.forma_pago, clienteX, cy); cy += 4.5; }
 
     y = Math.max(ey, cy) + 8;
   }
@@ -709,25 +712,25 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     y += 6.5;
   };
 
-  _totRow("Base imponible", baseTotal.toFixed(2) + " €");
+  _totRow(_en ? "Subtotal" : "Base imponible", baseTotal.toFixed(2) + " €");
 
   if (descuentoTotalDoc > 0) {
-    _totRow("Descuentos", "- " + descuentoTotalDoc.toFixed(2) + " €", [200, 50, 50]);
+    _totRow(_en ? "Discounts" : "Descuentos", "- " + descuentoTotalDoc.toFixed(2) + " €", [200, 50, 50]);
   }
 
   if (!_opSinIvaFila && !_opIvaNoRepercutido) {
     Object.entries(ivaMap).filter(([, v]) => v > 0).sort(([a], [b]) => Number(b) - Number(a)).forEach(([pct, amt]) => {
-      _totRow("IVA " + pct + "%", amt.toFixed(2) + " €");
+      _totRow((_en ? "VAT " : "IVA ") + pct + "%", amt.toFixed(2) + " €");
     });
   } else if (_opIvaNoRepercutido) {
     // Mostrar IVA indicando que no se repercute
     Object.entries(ivaMap).filter(([, v]) => v > 0).sort(([a], [b]) => Number(b) - Number(a)).forEach(([pct, amt]) => {
-      _totRow("IVA " + pct + "% (no repercutido)", amt.toFixed(2) + " €", MUTED);
+      _totRow((_en ? "VAT " : "IVA ") + pct + "% (" + (_en ? "not charged" : "no repercutido") + ")", amt.toFixed(2) + " €", MUTED);
     });
   }
 
   if (docData.irpf_retencion > 0) {
-    _totRow("IRPF " + docData.irpf_retencion + "%", "- " + irpfAmt.toFixed(2) + " €", [185, 28, 28]);
+    _totRow((_en ? "WHT " : "IRPF ") + docData.irpf_retencion + "%", "- " + irpfAmt.toFixed(2) + " €", [185, 28, 28]);
   }
 
   doc.setDrawColor(...BORDER);
@@ -761,7 +764,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.setFont(font, "bold");
     doc.setFontSize(7.5);
     doc.setTextColor(...MUTED);
-    doc.text("NOTAS / NOTES", ML + PAD, y + 6);
+    doc.text(_en ? "NOTES" : "NOTAS", ML + PAD, y + 6);
     doc.setFont(font, "normal");
     doc.setFontSize(tamF);
     doc.setTextColor(...colores.letra);
@@ -786,7 +789,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.setFont(font, "normal");
     doc.setFontSize(8);
     doc.setTextColor(...colores.letra);
-    doc.text("Datos bancarios: " + iban, ML + PAD, y);
+    doc.text((_en ? "Bank details: " : "Datos bancarios: ") + iban, ML + PAD, y);
     y += 6;
   }
 
@@ -806,9 +809,9 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     const pieIzq = (tipo === "factura" || tipo === "presupuesto")
       ? notaOperacion
       : tipo === "albaran"
-      ? "Albarán de entrega · Este documento no tiene validez fiscal · No sustituye a la factura."
+      ? (_en ? "Delivery note · This document has no fiscal validity · Does not replace an invoice." : "Albarán de entrega · Este documento no tiene validez fiscal · No sustituye a la factura.")
       : tipo === "proforma"
-      ? "FACTURA PROFORMA · Documento sin validez fiscal · No sustituye a la factura original · Art. 11 RD 1619/2012"
+      ? (_en ? "PROFORMA INVOICE · Not a valid fiscal document · Does not replace the original invoice." : "FACTURA PROFORMA · Documento sin validez fiscal · No sustituye a la factura original · Art. 11 RD 1619/2012")
       : (docData.fecha_validez ? "Válido hasta: " + fmtFecha(docData.fecha_validez) : "");
 
     doc.text(pieIzq, ML + PAD, PH - 10);
