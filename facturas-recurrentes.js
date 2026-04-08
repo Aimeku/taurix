@@ -115,6 +115,7 @@ async function generarFacturaDesdeRecurrente(recurrenteId) {
     cliente_nif: r.cliente_nif,
     notas: `Factura recurrente (${r.frecuencia}) — generada automáticamente`,
     lineas: JSON.stringify(lineas),
+    plantilla_id: r.plantilla_id || null,  // heredar plantilla de la recurrente
   }).select().single();
 
   if (error) { toast("Error generando factura: " + error.message, "error"); return null; }
