@@ -683,7 +683,8 @@ async function saveFactura() {
       descuento: l.descuento ?? "",
       subtotal: Math.max(0, l.cantidad*l.precio - _parseDescuento(l.descuento, l.cantidad*l.precio)),
       tipo: l.tipo || "servicio"
-    })))
+    }))),
+    plantilla_id: document.getElementById("nfPlantillaSel")?.value || null,
   }).select().single();
 
   if (error) {
