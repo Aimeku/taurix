@@ -409,12 +409,21 @@ async function _save(){
       }
       return notasVal;
     })(),
-    plantilla_id: document.getElementById("npfPlantillaSel")?.value || null,
   };
+  const _npfPlantillaId = document.getElementById("npfPlantillaSel")?.value || null;
 
   let err;
-  if(editandoId){({error:err}=await supabase.from("proformas").update(payload).eq("id",editandoId));}
-  else{({error:err}=await supabase.from("proformas").insert(payload));}
+  if(editandoId){
+    ({error:err}=await supabase.from("proformas").update({...payload, plantilla_id:_npfPlantillaId}).eq("id",editandoId));
+    if(err&&(err.message?.includes("plantilla_id")||err.message?.includes("schema cache"))){
+      ({error:err}=await supabase.from("proformas").update(payload).eq("id",editandoId));
+    }
+  } else {
+    ({error:err}=await supabase.from("proformas").insert({...payload, plantilla_id:_npfPlantillaId}));
+    if(err&&(err.message?.includes("plantilla_id")||err.message?.includes("schema cache"))){
+      ({error:err}=await supabase.from("proformas").insert(payload));
+    }
+  }
 
   if(err){toast("Error: "+err.message,"error");if(btn){btn.disabled=false;btn.textContent=editandoId?"Actualizar proforma":"Guardar proforma";}return;}
 
