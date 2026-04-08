@@ -459,14 +459,19 @@ async function savePresupuesto() {
       return notasVal;
     })(),
     tipo_operacion: npOpTipoActual,
-    plantilla_id: document.getElementById("npPlantillaSel")?.value || null,
   };
+  const _npPlantillaId = document.getElementById("npPlantillaSel")?.value || null;
 
   // ── MODO EDICIÓN: UPDATE manteniendo el mismo número ──────
   const editingId = window._npEditingId || null;
   if (editingId) {
     const numero = window._npEditingNumero;
-    const { error } = await supabase.from("presupuestos").update(payload).eq("id", editingId);
+    // Intentar con plantilla_id; si la columna no existe en BD, reintentar sin ella
+    let { error } = await supabase.from("presupuestos")
+      .update({ ...payload, plantilla_id: _npPlantillaId }).eq("id", editingId);
+    if (error && (error.message?.includes("plantilla_id") || error.message?.includes("schema cache"))) {
+      ({ error } = await supabase.from("presupuestos").update(payload).eq("id", editingId));
+    }
     if (error) {
       if (btn) { btn.disabled = false; btn.textContent = "Actualizar presupuesto"; }
       toast("Error: " + error.message, "error"); return;
@@ -489,12 +494,16 @@ async function savePresupuesto() {
   const lastNum = last?.[0]?.numero ? parseInt((last[0].numero.match(/-(\d+)$/) || [])[1]) || 0 : 0;
   const numero = `P-${year}-${String(lastNum + 1).padStart(4, "0")}`;
 
-  const { error } = await supabase.from("presupuestos").insert({
-    user_id: SESSION.user.id,
-    numero,
-    estado: "borrador",
-    ...payload,
+  // Intentar con plantilla_id; si la columna no existe en BD, reintentar sin ella
+  let { error: _npErr } = await supabase.from("presupuestos").insert({
+    user_id: SESSION.user.id, numero, estado: "borrador", ...payload, plantilla_id: _npPlantillaId,
   });
+  if (_npErr && (_npErr.message?.includes("plantilla_id") || _npErr.message?.includes("schema cache"))) {
+    ({ error: _npErr } = await supabase.from("presupuestos").insert({
+      user_id: SESSION.user.id, numero, estado: "borrador", ...payload,
+    }));
+  }
+  const error = _npErr;
 
   if (error) {
     if (btn) { btn.disabled = false; btn.textContent = "Guardar presupuesto"; }
