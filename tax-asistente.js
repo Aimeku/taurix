@@ -315,8 +315,7 @@ function _events() {
     document.getElementById('ta-pdf-preview').classList.remove('visible');
   });
 
-  // Drag & drop sobre el panel
-  const panel = document.getElementById('ta-panel');
+  // Drag & drop sobre el panel (panel ya declarado arriba)
   panel.addEventListener('dragover', e => { e.preventDefault(); panel.style.outline = '2px dashed var(--ox)'; });
   panel.addEventListener('dragleave', () => { panel.style.outline = ''; });
   panel.addEventListener('drop', async e => {
