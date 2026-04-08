@@ -459,6 +459,7 @@ async function savePresupuesto() {
       return notasVal;
     })(),
     tipo_operacion: npOpTipoActual,
+    plantilla_id: document.getElementById("npPlantillaSel")?.value || null,
   };
 
   // ── MODO EDICIÓN: UPDATE manteniendo el mismo número ──────
