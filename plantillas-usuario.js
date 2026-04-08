@@ -433,35 +433,48 @@ function _runPreview() {
     er.style.overflow  = "hidden";
   }
 
-  const _pad_pv  = 18;
-  const _qW      = (pvW - 2 * _pad_pv) / 2;
-  const _cEmPx   = _pad_pv + _qW / 2;
-  const _cClPx   = _pad_pv + _qW + _qW / 2;
-  const _maxOff  = pvW / 2 - _pad_pv;
-  const _tyClamp = 20;
+  // ── Sistema de coordenadas EMISOR/CLIENTE — idéntico al PDF ──
+  // pvW = ancho real del preview en px. Área útil = pvW - 2*pad (pad=18px visual ≈ ML).
+  // El sistema espeja el PDF: qW = W/2, blkW = qW-8, centros proporcionales.
+  // Slider sX ∈ [-120,120] → offset_px = sX * (pvW-2*pad)/240
+  // Clamp: el borde izq/der del bloque no sale del cuadrante.
+  const _pad_pv = 18;                            // px — padding visual (≈ ML en mm)
+  const _pvUsable = pvW - 2 * _pad_pv;          // px — área útil (≡ W en mm)
+  const _qW_px  = _pvUsable / 2;                // px — ancho de cuadrante
+  const _blkW   = Math.round(_qW_px - 8);       // px — ancho del bloque
+  const _cEmPx  = _pad_pv + _qW_px / 2;        // px — centro cuadrante emisor
+  const _cClPx  = _pad_pv + _qW_px * 3 / 2;   // px — centro cuadrante cliente
+  const _XSCALE_PX = _pvUsable / 240;           // px/unit slider (≡ W/240 en mm)
+  const _YCLAMP_PX = _pvUsable / 240 * 10 / (174/240); // ~10mm equivalente en px
 
-  const _offEmX = Math.max(-_maxOff, Math.min(_maxOff, emisorX * (pvW / 240)));
-  const _offEmY = Math.max(-_tyClamp, Math.min(_tyClamp, emisorY * SCALE));
-  const _offClX = Math.max(-_maxOff, Math.min(_maxOff, clienteX * (pvW / 240)));
-  const _offClY = Math.max(-_tyClamp, Math.min(_tyClamp, clienteY * SCALE));
+  // Borde izquierdo base (slider=0): centro - blkW/2
+  const _emBasePx = _cEmPx - _blkW / 2;
+  const _clBasePx = _cClPx - _blkW / 2;
 
-  const _blkW = Math.round(_qW - 8);
+  // Clamp: borde izq ∈ [pad, pad+qW-blkW] para emisor
+  //        borde izq ∈ [pad+qW, pvW-pad-blkW] para cliente
+  const _emRawPx = _emBasePx + emisorX  * _XSCALE_PX;
+  const _clRawPx = _clBasePx + clienteX * _XSCALE_PX;
+  const _emLeftPx = Math.max(_pad_pv,          Math.min(_pad_pv + _qW_px - _blkW, _emRawPx));
+  const _clLeftPx = Math.max(_pad_pv + _qW_px, Math.min(pvW - _pad_pv - _blkW,   _clRawPx));
+  const _offEmY   = Math.max(-_YCLAMP_PX, Math.min(_YCLAMP_PX, emisorY  * _XSCALE_PX));
+  const _offClY   = Math.max(-_YCLAMP_PX, Math.min(_YCLAMP_PX, clienteY * _XSCALE_PX));
 
   const eb = _g("ep_pv_emisor_bloque");
   if (eb) {
     eb.style.position  = "absolute";
-    eb.style.left      = _cEmPx + "px";
+    eb.style.left      = _emLeftPx + "px";
     eb.style.top       = (10 + _offEmY) + "px";
     eb.style.width     = _blkW + "px";
-    eb.style.transform = `translateX(calc(-50% + ${_offEmX}px))`;
+    eb.style.transform = "none";
   }
   const cb2 = _g("ep_pv_cliente_bloque");
   if (cb2) {
     cb2.style.position  = "absolute";
-    cb2.style.left      = _cClPx + "px";
+    cb2.style.left      = _clLeftPx + "px";
     cb2.style.top       = (10 + _offClY) + "px";
     cb2.style.width     = _blkW + "px";
-    cb2.style.transform = `translateX(calc(-50% + ${_offClX}px))`;
+    cb2.style.transform = "none";
   }
 
   // Ajustar min-height del contenedor para que los bloques absolutos sean visibles
