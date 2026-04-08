@@ -306,6 +306,7 @@ function _runPreview() {
   const emisorY  = _gi("ep_emisor_y",  0);
   const clienteX = _gi("ep_cliente_x", 0);
   const clienteY = _gi("ep_cliente_y", 0);
+  const cabOculta = !mostCab || estCab === "sin";
 
   /* ── Documento ── */
   const doc = _g("ep_pv_doc");
@@ -317,43 +318,35 @@ function _runPreview() {
     doc.style.textAlign  = alinCSS;
   }
 
+  /* ── pvW: ancho real del doc preview (con fallback) ── */
+  const pvW   = _g("ep_pv_doc")?.getBoundingClientRect().width || 420;
+  const SCALE = pvW / 595; // A4 pts → preview px
+
   /* ── Logo ──
-     Sistema de coordenadas centrado:
-     - X=0  → logo centrado horizontalmente en el documento
-     - X<0  → logo se mueve a la izquierda
-     - X>0  → logo se mueve a la derecha
-     - Y=0  → logo en la parte superior de la cabecera
-     - Y>0  → baja dentro de la cabecera
-
-     Implementación:
-     El contenedor del logo (logoRow) tiene position:absolute con left:50%
-     y el logo se desplaza con transform: translateX(-50% + offsetX).
-     Así X=0 siempre centra el logo, independientemente de su tamaño.
-
-     El offset en px = logoX * (pvW / 240)  → mapea [-120..120] a [-pvW/2..pvW/2]
-     Clampeamos para que no salga de los márgenes (8px por lado).
+     El logo se ancla SIEMPRE al ep_pv_cab_wrap (position:relative).
+     Cuando la cabecera está oculta, el cab_wrap mantiene min-height = logoH
+     para que el logo tenga espacio donde posicionarse.
+     La fórmula X/Y es idéntica a la del PDF.
   ── */
-  const hasLogo  = mostLogo && !!_epLogo;
-  const logoRow  = _g("ep_pv_logo_row");
-  const logoImg  = _g("ep_pv_logo_img");
-  const pvW      = _g("ep_pv_doc")?.offsetWidth || 420;
-  const SCALE    = pvW / 595; // A4 pts → preview px
+  const hasLogo = mostLogo && !!_epLogo;
+  const logoRow = _g("ep_pv_logo_row");
+  const logoImg = _g("ep_pv_logo_img");
+  const cabWrap = _g("ep_pv_cab_wrap");
+
+  // Calcular tamaño y posición del logo (mismas fórmulas que el PDF)
+  const maxOffset  = pvW / 2 - 8;
+  const logoOffPx  = Math.max(-maxOffset, Math.min(maxOffset, logoX * (pvW / 240)));
+  const logoTopPx  = Math.max(0, Math.min(55, logoY * SCALE));
+  const logoMaxH   = Math.round(logoSize * SCALE);
+  const logoMaxW   = Math.round(logoSize * SCALE * 3);
 
   if (logoRow) {
     if (hasLogo) {
-      logoRow.style.display = "block";
-      // Posición base: centrada horizontalmente
+      logoRow.style.display   = "block";
       logoRow.style.left      = "50%";
       logoRow.style.right     = "auto";
-      // Y: top desde borde superior de la cabecera
-      const topPx = Math.max(0, Math.min(55, logoY * SCALE));
-      logoRow.style.top       = topPx + "px";
-      // X: desplazamiento desde el centro.
-      // logoX ∈ [-120, 120] → offset ∈ [-pvW/2+margen, pvW/2-margen]
-      const maxOffset = pvW / 2 - 8;
-      const offsetPx  = Math.max(-maxOffset, Math.min(maxOffset, logoX * (pvW / 240)));
-      // translate(-50%) centra el elemento; añadimos offsetPx para el desplazamiento
-      logoRow.style.transform = `translateX(calc(-50% + ${offsetPx}px))`;
+      logoRow.style.top       = logoTopPx + "px";
+      logoRow.style.transform = `translateX(calc(-50% + ${logoOffPx}px))`;
     } else {
       logoRow.style.display = "none";
     }
@@ -361,94 +354,106 @@ function _runPreview() {
   if (logoImg) {
     if (hasLogo) {
       logoImg.src             = _epLogo;
-      logoImg.style.maxHeight = Math.round(logoSize * SCALE) + "px";
-      logoImg.style.maxWidth  = Math.round(logoSize * SCALE * 3) + "px";
+      logoImg.style.maxHeight = logoMaxH + "px";
+      logoImg.style.maxWidth  = logoMaxW + "px";
       logoImg.style.display   = "block";
     } else {
       logoImg.style.display = "none";
     }
   }
 
-  /* ── Cabecera ── */
-  const cab = _g("ep_pv_cab");
+  /* ── Cabecera coloreada / fallback sin-cabecera ──
+     Siempre mostramos tipo + concepto en el preview.
+     · Con cabecera → dentro de ep_pv_cab (fondo de color)
+     · Sin cabecera → dentro de ep_pv_sincab (fondo blanco)
+     El cab_wrap mantiene min-height suficiente para el logo aunque la banda esté oculta.
+  ── */
+  const cab      = _g("ep_pv_cab");
+  const sincab   = _g("ep_pv_sincab");
+  const pvTipo   = _g("ep_pv_tipo");
+  const pvConc   = _g("ep_pv_concepto");
+  const pvFecha  = _g("ep_pv_fecha");
+  const pvTipo2  = _g("ep_pv_tipo2");
+  const pvConc2  = _g("ep_pv_concepto2");
+  const pvFecha2 = _g("ep_pv_fecha2");
+  const hoyStr   = new Date().toLocaleDateString("es-ES");
+
   if (cab) {
-    if (!mostCab || estCab === "sin") {
+    if (cabOculta) {
       cab.style.display = "none";
     } else {
       cab.style.display      = "";
+      // Reservar padding derecho para el logo cuando está en cabecera
       cab.style.paddingRight = hasLogo
-        ? Math.max(Math.round(logoSize * SCALE * 1.2) + 12, 48) + "px"
+        ? Math.max(Math.round(logoMaxW * 1.1) + 16, 56) + "px"
         : "18px";
-      if (estCab === "solido")    { cab.style.background = colorCab; cab.style.borderBottom = "none"; }
+      if (estCab === "solido")    { cab.style.background = colorCab;  cab.style.borderBottom = "none"; }
       if (estCab === "gradiente") { cab.style.background = `linear-gradient(135deg,${colorCab},${colorAcc})`; cab.style.borderBottom = "none"; }
       if (estCab === "linea")     { cab.style.background = colorFdo;  cab.style.borderBottom = `3px solid ${colorCab}`; }
     }
   }
-  const pvC = _g("ep_pv_concepto"), pvT = _g("ep_pv_tipo");
-  const txtColor = estCab === "linea" ? colorLetra : colorTxtC;
-  if (pvC) { pvC.textContent = concepto; pvC.style.color = txtColor; }
-  if (pvT) { pvT.textContent = L.tipo;   pvT.style.color = txtColor; }
-  const feEl = _g("ep_pv_fecha");
-  if (feEl) { feEl.style.color = txtColor; if (!feEl.textContent) feEl.textContent = new Date().toLocaleDateString("es-ES"); }
+  // Fallback sin-cabecera
+  if (sincab) sincab.style.display = cabOculta ? "" : "none";
+
+  const txtColor = cabOculta ? colorLetra : (estCab === "linea" ? colorLetra : colorTxtC);
+
+  // Sincronizar texto en AMBAS versiones (cab y sincab)
+  if (pvTipo)  { pvTipo.textContent  = L.tipo;    pvTipo.style.color  = txtColor; }
+  if (pvConc)  { pvConc.textContent  = concepto;  pvConc.style.color  = txtColor; }
+  if (pvFecha) { pvFecha.style.color = txtColor;  if (!pvFecha.textContent) pvFecha.textContent = hoyStr; }
+  if (pvTipo2)  pvTipo2.textContent  = L.tipo;
+  if (pvConc2)  pvConc2.textContent  = concepto;
+  if (pvFecha2) { if (!pvFecha2.textContent) pvFecha2.textContent = hoyStr; }
+
+  // cab_wrap: si logo existe Y cabecera oculta → dar min-height para que el logo tenga sitio
+  if (cabWrap) {
+    if (hasLogo && cabOculta) {
+      cabWrap.style.minHeight = (logoTopPx + logoMaxH + 8) + "px";
+    } else {
+      cabWrap.style.minHeight = "0";
+    }
+  }
 
   /* ── Emisor / Cliente ──
-     Sistema de coordenadas CENTRADO por cuadrante — idéntico al del logo.
-     ─────────────────────────────────────────────────────────────────────
-     X=0  → bloque centrado en su cuadrante (izq=emisor, der=cliente)
-     X<0  → se desplaza hacia la izquierda del cuadrante
-     X>0  → se desplaza hacia la derecha del cuadrante
-     Y=0  → posición vertical base; Y<0 sube, Y>0 baja
+     Los bloques son position:absolute dentro de ep_pv_emisor_row.
+     La altura del contenedor se calcula en JS para que siempre contenga
+     los bloques aunque sean de altura variable.
 
-     Implementación — espejo exacto del logo:
-       left = center_del_cuadrante_px
-       transform = translateX(calc(-50% + offsetPx)) translateY(tyPx)
-     Donde offsetPx = clamp(sX * (pvW/240), ±(pvW/2 - 8))
-
-     El contenedor ep_pv_emisor_row es position:relative + overflow:hidden.
-     Los bloques son position:absolute.
-     Límite de bloque = [8px, pvW-8px] en coordenadas del doc.
+     Fórmulas de posición IDÉNTICAS al PDF y sincronizadas:
+       offsetX_px = clamp(sX * (pvW/240),  ±(pvW/2 - pad))
+       offsetY_px = clamp(sY * SCALE,       ±tyClamp)
+     Centro de cuadrante:
+       emisor  → pad + qW/2
+       cliente → pad + qW*3/2
   ── */
   const er = _g("ep_pv_emisor_row");
   if (er) {
     er.style.display = mostEmisor ? "block" : "none";
-    // Altura dinámica: fijar suficiente para contener texto de empresa + datos
-    er.style.minHeight = "68px";
     er.style.position  = "relative";
     er.style.overflow  = "hidden";
   }
 
-  // Centro de cada cuadrante en coordenadas del preview (en px)
-  // El área útil del doc = pvW - 2*18px (padding visual de 18px a cada lado)
-  // Cuadrante izq: [18, pvW/2], centro = 18 + (pvW/2-18)/2 = 9 + pvW/4
-  // Cuadrante der: [pvW/2, pvW-18], centro = pvW/2 + (pvW/2-18)/2 = pvW - 9 - pvW/4
-  const _pad_pv   = 18;                           // px — padding visual del doc preview
-  const _qW       = (pvW - 2 * _pad_pv) / 2;     // ancho de cada cuadrante útil (px)
-  const _cEmPx    = _pad_pv + _qW / 2;            // centro cuadrante izq (px)
-  const _cClPx    = _pad_pv + _qW + _qW / 2;      // centro cuadrante der (px)
-  const _maxOff   = pvW / 2 - _pad_pv;            // clamp máximo offset (px)
-  const _tyClamp  = 20;                            // clamp vertical (px)
+  const _pad_pv  = 18;
+  const _qW      = (pvW - 2 * _pad_pv) / 2;
+  const _cEmPx   = _pad_pv + _qW / 2;
+  const _cClPx   = _pad_pv + _qW + _qW / 2;
+  const _maxOff  = pvW / 2 - _pad_pv;
+  const _tyClamp = 20;
 
-  // Escala: misma fórmula que el logo → sX * (pvW/240)
-  const _offEmX = Math.max(-_maxOff, Math.min(_maxOff, emisorX  * (pvW / 240)));
+  const _offEmX = Math.max(-_maxOff, Math.min(_maxOff, emisorX * (pvW / 240)));
   const _offEmY = Math.max(-_tyClamp, Math.min(_tyClamp, emisorY * SCALE));
   const _offClX = Math.max(-_maxOff, Math.min(_maxOff, clienteX * (pvW / 240)));
   const _offClY = Math.max(-_tyClamp, Math.min(_tyClamp, clienteY * SCALE));
 
-  // Ancho de cada bloque = cuadrante útil - un pequeño gap interno
-  const _blkW = Math.round(_qW - 8);              // px, con gap de 4px a cada lado
+  const _blkW = Math.round(_qW - 8);
 
   const eb = _g("ep_pv_emisor_bloque");
   if (eb) {
     eb.style.position  = "absolute";
     eb.style.left      = _cEmPx + "px";
-    eb.style.top       = (10 + _offEmY) + "px";   // 10px de padding top base
+    eb.style.top       = (10 + _offEmY) + "px";
     eb.style.width     = _blkW + "px";
     eb.style.transform = `translateX(calc(-50% + ${_offEmX}px))`;
-    // Clamp: nunca salir del área visible del doc
-    // Con left=_cEmPx y translate=-50%: borde izq = _cEmPx - _blkW/2 + offsetX
-    // Mínimo: borde izq >= _pad_pv → offsetX >= _pad_pv - (_cEmPx - _blkW/2)
-    // Máximo: borde der <= pvW/2 → offsetX <= pvW/2 - (_cEmPx + _blkW/2)
-    // El clamp _maxOff ya es conservador, y el parent overflow:hidden hace de red de seguridad.
   }
   const cb2 = _g("ep_pv_cliente_bloque");
   if (cb2) {
@@ -459,43 +464,42 @@ function _runPreview() {
     cb2.style.transform = `translateX(calc(-50% + ${_offClX}px))`;
   }
 
+  // Ajustar min-height del contenedor para que los bloques absolutos sean visibles
+  // (los bloques absolutos no contribuyen al flujo normal → el contenedor colapsaría)
+  if (er && mostEmisor) {
+    const emTop   = 10 + _offEmY;
+    const clTop   = 10 + _offClY;
+    // Altura estimada de cada bloque: label (12px) + nombre (14px) + 2 líneas datos (11px*2) = ~48px
+    const estBlkH = 50;
+    const neededH = Math.max(emTop + estBlkH, clTop + estBlkH, 58);
+    er.style.minHeight = neededH + "px";
+  }
+
   const st = (id,v) => { const e=_g(id); if(e) e.textContent=v; };
   st("ep_pv_lbl_de", L.de); st("ep_pv_lbl_para", L.para);
 
-  /* ── Tabla con table-layout:fixed ──
-     Usamos un <table> real con <colgroup> para definir los anchos.
-     Esto garantiza alineación PERFECTA entre <thead> y <tbody>
-     independientemente del contenido de las celdas.
-
-     Cada columna recibe su % de la suma total o un reparto proporcional.
-     Si el usuario define % personalizados, se normalizan a 100%.
-  ── */
+  /* ── Tabla con table-layout:fixed ── */
   const colgroup = _g("ep_pv_colgroup");
   const thead    = _g("ep_pv_tabla_head");
   const tbody    = _g("ep_pv_lineas");
 
-  // Calcular anchuras normalizadas
   const rawWeights = _colsActivas.map(id => {
     const pct = _colsPct[id] ? parseInt(_colsPct[id]) : 0;
     if (pct > 0) return pct;
-    return id === "descripcion" ? 35 : 13; // reparto por defecto
+    return id === "descripcion" ? 35 : 13;
   });
-  const totalW = rawWeights.reduce((a,b)=>a+b, 0);
+  const totalW   = rawWeights.reduce((a,b)=>a+b, 0);
   const colWidths = rawWeights.map(w => ((w / totalW) * 100).toFixed(2) + "%");
 
-  // Colgroup: define los anchos una sola vez para toda la tabla
   if (colgroup) {
-    colgroup.innerHTML = colWidths.map(w =>
-      `<col style="width:${w}"/>`
-    ).join("");
+    colgroup.innerHTML = colWidths.map(w => `<col style="width:${w}"/>`).join("");
   }
 
-  // Thead
   if (thead) {
     thead.style.background = colorAcc;
-    thead.innerHTML = _colsActivas.map((id, i) => {
-      const col   = COLUMNAS_CATALOGO.find(c=>c.id===id) || {label:id};
-      const lbl   = _epIdioma==="en" ? (col.labelEn||col.label) : col.label;
+    thead.innerHTML = _colsActivas.map((id) => {
+      const col  = COLUMNAS_CATALOGO.find(c=>c.id===id) || {label:id};
+      const lbl  = _epIdioma==="en" ? (col.labelEn||col.label) : col.label;
       const right = id !== "descripcion";
       return `<th style="padding:6px 5px;text-align:${right?"right":"left"};font-size:9px;
         font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#fff;
@@ -504,7 +508,7 @@ function _runPreview() {
     }).join("");
   }
 
-  // Tbody - filas de datos
+  // Leer líneas predefinidas del editor
   const rows = document.querySelectorAll("#ep_lineasContainer .linea-row");
   const larr = [...rows].map(r => ({
     d: r.querySelector("[data-field='descripcion']")?.value || "",
@@ -520,7 +524,7 @@ function _runPreview() {
         Sin líneas definidas</td></tr>`;
     } else {
       tbody.innerHTML = larr.map((l, ri) => {
-        const bg  = ri % 2 === 0 ? colorFdoT : "#fff";
+        const bg  = ri % 2 === 0 ? colorFdoT : colorFdo;
         const tot = l.c * l.p;
         return `<tr style="background:${bg}">
           ${_colsActivas.map(id => {
@@ -553,7 +557,7 @@ function _runPreview() {
     <table style="border-collapse:collapse;font-size:10px;min-width:160px">
       <tr><td style="color:#6b7280;padding:2px 12px 2px 0">${L.base}</td>
           <td style="text-align:right;font-family:monospace">${base.toFixed(2)} €</td></tr>
-      <tr><td style="color:#6b7280;padding:2px 12px 2px 0">IVA</td>
+      <tr><td style="color:#6b7280;padding:2px 12px 2px 0">${_epIdioma==="en"?"VAT":"IVA"}</td>
           <td style="text-align:right;font-family:monospace">${iva.toFixed(2)} €</td></tr>
       <tr style="border-top:2px solid ${colorAcc}">
           <td style="font-weight:800;color:#111;padding:4px 12px 2px 0">${L.totalDoc}</td>
@@ -561,17 +565,28 @@ function _runPreview() {
       </tr>
     </table>`;
 
+  /* ── Descripción / Alcance ── */
   const dw=_g("ep_pv_desc_wrap"), dd=_g("ep_pv_desc");
-  if(dw&&dd){ dw.style.display=desc?"":"none"; dd.innerHTML=desc.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\r?\n/g,"<br>"); }
+  if(dw&&dd){
+    dw.style.display = desc ? "" : "none";
+    dd.innerHTML = desc.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\r?\n/g,"<br>");
+  }
+
+  /* ── Notas ── */
   const pvN=_g("ep_pv_notas");
-  if(pvN){ pvN.innerHTML=notas.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\r?\n/g,"<br>"); pvN.style.display=notas?"":"none"; }
+  if(pvN){
+    pvN.innerHTML = notas.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\r?\n/g,"<br>");
+    pvN.style.display = notas ? "" : "none";
+  }
+
+  /* ── Pie ── */
   const pvP=_g("ep_pv_pie"), pvPT=_g("ep_pv_pie_txt");
-  if(pvP)  pvP.style.display  = mostPie?"flex":"none";
+  if(pvP)  pvP.style.display  = mostPie ? "flex" : "none";
   if(pvPT) pvPT.textContent   = pie || "Texto legal del pie";
+
   const fp=_g("ep_font_preview");
   if(fp){ fp.style.fontFamily=FONT_MAP[fuente]||FONT_MAP["Helvetica"]; fp.style.fontSize=(tamF+3)+"px"; }
 }
-
 window._epRunPreview = _runPreview;
 window._epPreview    = _runPreview;
 
