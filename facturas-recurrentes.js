@@ -115,8 +115,15 @@ async function generarFacturaDesdeRecurrente(recurrenteId) {
     cliente_nif: r.cliente_nif,
     notas: `Factura recurrente (${r.frecuencia}) — generada automáticamente`,
     lineas: JSON.stringify(lineas),
-    plantilla_id: r.plantilla_id || null,  // heredar plantilla de la recurrente
   }).select().single();
+  // Intentar guardar plantilla_id heredada; ignorar si la columna no existe aún
+  if (!error && factura?.id && r.plantilla_id) {
+    const { error: pe } = await supabase.from("facturas")
+      .update({ plantilla_id: r.plantilla_id }).eq("id", factura.id);
+    if (pe && !pe.message?.includes("plantilla_id") && !pe.message?.includes("schema cache")) {
+      console.warn("plantilla_id recurrente:", pe.message);
+    }
+  }
 
   if (error) { toast("Error generando factura: " + error.message, "error"); return null; }
 
