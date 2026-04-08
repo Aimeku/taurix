@@ -305,42 +305,48 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   const fmtFecha  = d => { if(!d)return"—"; const [yr,mo,dy]=d.split("-"); return `${dy}/${mo}/${yr}`; };
 
   const CAB_TOP = 5;   // cabecera empieza a 5mm del borde superior de la página
-  const cabH    = logoOk
-    ? Math.max(18, logoTop + logoH_mm + 3)  // crece para contener el logo
+
+  // cabH: altura de la zona de cabecera (espacio para logo + texto).
+  // Se calcula SIEMPRE, incluso cuando estiloCab="sin", para que el logo
+  // tenga espacio reservado y el resto del documento empiece en el sitio correcto.
+  // ─ Con logo: max(18mm, logoTop + logoH + 3mm)
+  // ─ Sin logo: 18mm fijos
+  const cabH = logoOk
+    ? Math.max(18, logoTop + logoH_mm + 3)
     : 18;
 
-  if (estiloCab !== "sin") {
-    if (estiloCab === "solido" || estiloCab === "gradiente") {
-      doc.setFillColor(...colores.cab);
-      doc.rect(ML, CAB_TOP, W, cabH, "F");
-    } else if (estiloCab === "linea") {
-      doc.setDrawColor(...colores.cab);
-      doc.setLineWidth(0.8);
-      doc.line(ML, CAB_TOP + cabH, PW - MR, CAB_TOP + cabH);
-    }
-    const txtColor   = estiloCab === "linea" ? colores.letra : colores.txtCab;
-    const textRightX = logoOk ? Math.max(ML + 20, logoLeft - 3) : PW - MR - 4;
-    const textW      = textRightX - ML - 4;
-    doc.setFont(font, "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(...txtColor);
-    doc.text(tipoLabel, ML + 4, CAB_TOP + 5.5);
-    doc.setFontSize(Math.min(tamF + 3, 13));
-    const numLine = doc.splitTextToSize(numero.substring(0, 30), textW);
-    doc.text(numLine[0], ML + 4, CAB_TOP + 11);
-    doc.setFont(font, "normal");
-    doc.setFontSize(7);
-    doc.text(fmtFecha(fecha), PW - MR - 2, CAB_TOP + 6, { align: "right" });
-    if (docData.fecha_validez) {
-      doc.text((_en ? "Valid until: " : "Válido hasta: ") + fmtFecha(docData.fecha_validez), PW - MR - 2, CAB_TOP + 11, { align: "right" });
-    }
-  } else {
-    doc.setFont(font, "bold");
-    doc.setFontSize(20);
-    doc.setTextColor(...colores.letra);
-    doc.text(tipoLabel, ML, CAB_TOP + 10);
-    doc.setFontSize(11);
-    doc.text(numero, ML, CAB_TOP + 17);
+  // Dibujar fondo / línea de cabecera según estilo
+  if (estiloCab === "solido" || estiloCab === "gradiente") {
+    doc.setFillColor(...colores.cab);
+    doc.rect(ML, CAB_TOP, W, cabH, "F");
+  } else if (estiloCab === "linea") {
+    doc.setDrawColor(...colores.cab);
+    doc.setLineWidth(0.8);
+    doc.line(ML, CAB_TOP + cabH, PW - MR, CAB_TOP + cabH);
+  }
+  // estiloCab === "sin" → no se dibuja nada (pero el espacio cabH sigue reservado para el logo)
+
+  // Colores de texto: con fondo de color → blanco; sin cabecera o línea → color de letra
+  const cabConFondo = (estiloCab === "solido" || estiloCab === "gradiente");
+  const cabTxtColor = cabConFondo ? colores.txtCab : colores.letra;
+
+  // Texto tipo + número: se muestra SIEMPRE (en todos los estilos de cabecera)
+  // Si hay logo, el texto se limita al espacio libre a la izquierda del logo
+  const textRightX = logoOk ? Math.max(ML + 20, logoLeft - 3) : PW - MR - 4;
+  const textW      = textRightX - ML - 4;
+
+  doc.setFont(font, "bold");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...cabTxtColor);
+  doc.text(tipoLabel, ML + 4, CAB_TOP + 5.5);
+  doc.setFontSize(Math.min(tamF + 3, 13));
+  const numLine = doc.splitTextToSize(numero.substring(0, 30), textW);
+  doc.text(numLine[0], ML + 4, CAB_TOP + 11);
+  doc.setFont(font, "normal");
+  doc.setFontSize(7);
+  doc.text(fmtFecha(fecha), PW - MR - 2, CAB_TOP + 6, { align: "right" });
+  if (docData.fecha_validez) {
+    doc.text((_en ? "Valid until: " : "Válido hasta: ") + fmtFecha(docData.fecha_validez), PW - MR - 2, CAB_TOP + 11, { align: "right" });
   }
 
   // Logo ENCIMA de la cabecera (último dibujado = encima, igual que z-index en CSS)
