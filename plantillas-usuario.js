@@ -15,7 +15,7 @@ export let PLANTILLAS = [];
    CONSTANTES
 ══════════════════════════════════════════════════════ */
 const LABELS_ES = {
-  tipo:"FACTURA", de:"EMISOR", para:"CLIENTE",
+  tipo:"FACTURA", de:"DE", para:"PARA",
   cant:"Cant", precio:"Precio", iva:"IVA", total:"Total",
   base:"Base imponible", totalDoc:"TOTAL"
 };
