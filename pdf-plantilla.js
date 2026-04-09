@@ -898,13 +898,9 @@ export async function exportFacturaPDFConPlantilla(facturaId, plantillaId = null
     .single();
   if (error || !f) { toast("Factura no encontrada", "error"); return null; }
 
-  // Cascada resuelta en generarPDFConPlantilla:
-  // plantillaId explícito → selector activo del form → doc.plantilla_id → es_default
-  const selId = plantillaId
-    || document.getElementById("nfPlantillaSel")?.value
-    || null;
-
-  return generarPDFConPlantilla({ doc: f, tipo: "factura", plantillaId: selId, descargar });
+  // Cascada: plantillaId explícito → doc.plantilla_id (en docData) → es_default → sin plantilla
+  // NO leer selector del formulario: cada doc usa su propia plantilla guardada en BD.
+  return generarPDFConPlantilla({ doc: f, tipo: "factura", plantillaId: plantillaId || null, descargar });
 }
 
 /** Genera PDF de presupuesto con la plantilla seleccionada o la predeterminada */
@@ -916,11 +912,8 @@ export async function exportPresupuestoPDFConPlantilla(presId, plantillaId = nul
     .single();
   if (error || !p) { toast("Presupuesto no encontrado", "error"); return null; }
 
-  const selId = plantillaId
-    || document.getElementById("npPlantillaSel")?.value
-    || null;
-
-  return generarPDFConPlantilla({ doc: p, tipo: "presupuesto", plantillaId: selId, descargar });
+  // NO leer selector del formulario: cada doc usa su propia plantilla guardada en BD.
+  return generarPDFConPlantilla({ doc: p, tipo: "presupuesto", plantillaId: plantillaId || null, descargar });
 }
 
 /** Genera PDF de albarán usando el motor de plantillas.
@@ -957,12 +950,11 @@ export async function exportProformaPDFConPlantilla(proformaId, plantillaId = nu
     .single();
   if (error || !p) { toast("Proforma no encontrada", "error"); return null; }
 
-  const selId = plantillaId || p.plantilla_id || null;
-
+  // p.plantilla_id se usa automáticamente via docData?.plantilla_id en generarPDFConPlantilla
   return generarPDFConPlantilla({
     doc:         p,
     tipo:        "proforma",
-    plantillaId: selId,
+    plantillaId: plantillaId || null,
     descargar,
   });
 }
