@@ -563,6 +563,11 @@ function resetForm() {
   const tipoEl = document.getElementById("npClienteTipo"); if (tipoEl) tipoEl.value = "empresa";
   const tEmpEl = document.getElementById("npClienteTipoEmpresa"); if (tEmpEl) tEmpEl.value = "";
   document.getElementById("npGuardarCliente").checked = false;
+  // Limpiar descuento global
+  const _dv = document.getElementById("npDtoValor"); if (_dv) _dv.value = "";
+  const _df = document.getElementById("npDtoFields"); if (_df) _df.style.display = "none";
+  const _dt = document.getElementById("npDtoToggle"); if (_dt) _dt.textContent = "+ Añadir descuento";
+  const _dp = document.getElementById("npDtoPreview"); if (_dp) _dp.style.display = "none";
   addLinea();
   updatePreview();
 }
@@ -762,9 +767,6 @@ function _npRebuildAllRows() {
 const _npListenersAttached = { main: false, _opBtns: false };
 
 export function initNuevoPresupuesto() {
-  // Descuento global
-  document.getElementById("npDtoValor")?.addEventListener("input",  updateTotalesUI);
-  document.getElementById("npDtoTipo")?.addEventListener("change",  updateTotalesUI);
   const editData = window._npEditData || null;
   window._npEditData = null; // consumir el dato — solo se usa una vez
 
@@ -779,6 +781,10 @@ export function initNuevoPresupuesto() {
   // ── Adjuntar listeners SOLO la primera vez (evita multiplicación de importes) ──
   if (!_npListenersAttached.main) {
     _npListenersAttached.main = true;
+
+    // Descuento global — solo registrar UNA vez
+    document.getElementById("npDtoValor")?.addEventListener("input",  updateTotalesUI);
+    document.getElementById("npDtoTipo")?.addEventListener("change",  updateTotalesUI);
 
     ["npClienteNombre", "npClienteNif", "npFecha", "npConcepto", "npNotas", "npValidez"].forEach(id => {
       document.getElementById(id)?.addEventListener("input", updatePreview);
