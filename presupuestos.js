@@ -1590,7 +1590,6 @@ window._pdfAlbaran = (id) => {
 };
 window._presPDF = (id) => {
   // Cascada resuelta en pdf-plantilla.js: doc.plantilla_id → es_default → sin plantilla
-  // NO leer selector: cada presupuesto usa su propia plantilla guardada en BD.
   exportPresupuestoPDFConPlantilla(id, null, true);
 };
 
