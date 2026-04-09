@@ -47,22 +47,37 @@ function updateNpOpUI() {
   if (exencionWrap) exencionWrap.style.display = npOpTipoActual === "exento" ? "" : "none";
 }
 
+function _getNpDescuentoGlobal() {
+  const tipo  = document.getElementById("npDtoTipo")?.value  || "pct";
+  const valor = document.getElementById("npDtoValor")?.value || "";
+  if (!valor) return "";
+  return tipo === "pct" ? valor + "%" : valor;
+}
+
 function getLineasTotales() {
-  let baseTotal = 0;
-  const ivaMap = {};
+  let subtotalLineas = 0;
+  const ivaRaw = {};
   LINEAS.forEach(l => {
-    const subtotalBruto = l.cantidad * l.precio;
-    const descAmt       = _parseDescuento(l.descuento, subtotalBruto);
-    const subtotal      = Math.max(0, subtotalBruto - descAmt);
-    baseTotal += subtotal;
-    const ivaAmt = subtotal * l.iva / 100;
-    ivaMap[l.iva] = (ivaMap[l.iva] || 0) + ivaAmt;
+    const bruto   = l.cantidad * l.precio;
+    const descAmt = _parseDescuento(l.descuento, bruto);
+    const sub     = Math.max(0, bruto - descAmt);
+    subtotalLineas += sub;
+    ivaRaw[l.iva] = (ivaRaw[l.iva] || 0) + sub;
+  });
+  // Descuento global — aplicado ANTES del IVA
+  const rawDto = _getNpDescuentoGlobal();
+  const { importe: dtoGlobal } = parseDescuentoGlobal(rawDto, subtotalLineas);
+  const baseTotal = Math.max(0, subtotalLineas - dtoGlobal);
+  const scale = subtotalLineas > 0 ? baseTotal / subtotalLineas : 1;
+  const ivaMap = {};
+  Object.entries(ivaRaw).forEach(([p, s]) => {
+    const a = s * scale * (parseFloat(p) || 0) / 100;
+    if (a > 0) ivaMap[p] = (ivaMap[p] || 0) + a;
   });
   const ivaTotal = Object.values(ivaMap).reduce((a, b) => a + b, 0);
-  // Para inversión del sujeto pasivo: el IVA no se repercute en el total
   const ivaEnTotal = OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual) ? 0 : ivaTotal;
   const total = baseTotal + ivaEnTotal;
-  return { baseTotal, ivaMap, ivaTotal, total };
+  return { subtotalLineas, dtoGlobal, rawDto, baseTotal, ivaMap, ivaTotal, total };
 }
 
 /* ══════════════════════════
@@ -320,12 +335,29 @@ window._npDelLinea = (id) => {
 };
 
 function updateTotalesUI() {
-  const { baseTotal, ivaTotal, total } = getLineasTotales();
-  const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const { subtotalLineas, dtoGlobal, rawDto, baseTotal, ivaTotal, total } = getLineasTotales();
+  const s    = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const show = (id, v) => { const el = document.getElementById(id); if (el) el.style.display = v ? "" : "none"; };
+  // Subtotal de líneas (solo visible cuando hay descuento global)
+  show("npSubtotalRow", dtoGlobal > 0);
+  s("npSubtotal", fmt(subtotalLineas));
+  // Fila de descuento global
+  show("npDtoRow", dtoGlobal > 0);
+  if (dtoGlobal > 0) {
+    const { label } = parseDescuentoGlobal(rawDto, subtotalLineas);
+    s("npDtoLbl", label || "Descuento");
+    s("npDtoAmt", "−" + fmt(dtoGlobal));
+  }
   s("npBase", fmt(baseTotal));
   s("npIva", fmt(ivaTotal));
   s("npTotal", fmt(total));
-  // Ocultar fila IVA cuando la operación no repercute IVA al total
+  // Preview de ahorro
+  const prev = document.getElementById("npDtoPreview");
+  if (prev) {
+    if (dtoGlobal > 0) { prev.textContent = `Ahorro: −${fmt(dtoGlobal)}`; prev.style.display = ""; }
+    else prev.style.display = "none";
+  }
+  // IVA row visibility
   const ivaRow = document.getElementById("npIvaRow");
   if (ivaRow) {
     const mostrarIva = !OP_SIN_IVA.includes(npOpTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual);
@@ -730,6 +762,9 @@ function _npRebuildAllRows() {
 const _npListenersAttached = { main: false, _opBtns: false };
 
 export function initNuevoPresupuesto() {
+  // Descuento global
+  document.getElementById("npDtoValor")?.addEventListener("input",  updateTotalesUI);
+  document.getElementById("npDtoTipo")?.addEventListener("change",  updateTotalesUI);
   const editData = window._npEditData || null;
   window._npEditData = null; // consumir el dato — solo se usa una vez
 
@@ -891,8 +926,6 @@ window._npClearDto = function() {
   updateTotalesUI();
 };
 // Wire up inputs
-document.getElementById("npDtoValor")?.addEventListener("input", updateTotalesUI);
-document.getElementById("npDtoTipo")?.addEventListener("change", updateTotalesUI);
 
 // Exponer para que main.js o switchView puedan refrescar el selector al abrir la vista
 window._npRefreshPlantillaSel = () => _npInitPlantillaSelector();
