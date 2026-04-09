@@ -4,11 +4,11 @@
    ═══════════════════════════════════════════════════════ */
 
 import { supabase } from "./supabase.js";
-import { parseDescuentoGlobal } from "./utils.js";
 import {
   SESSION, CLIENTES, fmt, fmtDate, toast,
   openModal, closeModal, isCerrado, switchView,
-  getYear, getTrim, OP_INFO, OP_SIN_IVA, OP_IVA_NO_REPERCUTIDO
+  getYear, getTrim, OP_INFO, OP_SIN_IVA, OP_IVA_NO_REPERCUTIDO,
+  parseDescuentoGlobal
 } from "./utils.js";
 import { emitirFacturaDB } from "./facturas.js";
 import { refreshClientes, populateClienteSelect } from "./clientes.js";
@@ -897,12 +897,14 @@ window._nfClearDto=function(){
   const t=document.getElementById("nfDtoToggle");if(t)t.textContent="+ Añadir descuento";
   updateTotalesUI();
 };
-document.getElementById("nfDtoValor")?.addEventListener("input",updateTotalesUI);
-document.getElementById("nfDtoTipo")?.addEventListener("change",updateTotalesUI);
 export function initNuevaFactura() {
   const fechaEl = document.getElementById("nfFecha");
   if (fechaEl && !fechaEl.value) fechaEl.value=new Date().toISOString().slice(0,10);
   loadPerfilForPreview();
+
+  // Descuento global — listeners registrados aquí (DOM garantizado)
+  document.getElementById("nfDtoValor")?.addEventListener("input",  updateTotalesUI);
+  document.getElementById("nfDtoTipo")?.addEventListener("change",  updateTotalesUI);
 
   document.querySelectorAll(".op-type-btn").forEach(btn => {
     btn.addEventListener("click", () => {
