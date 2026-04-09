@@ -334,9 +334,9 @@ window._notaCredito = async (id) => {
 };
 
 window._pdfFact = (id, plantillaId = null) => {
-  // Lee el selector del formulario si no se pasa un plantillaId explícito
-  const pid = plantillaId || document.getElementById("nfPlantillaSel")?.value || null;
-  import("./exports.js").then(m => m.exportFacturaPDF(id, pid));
+  // Cascada resuelta en pdf-plantilla.js: plantilla_id del doc → es_default → sin plantilla
+  // NO leer el selector activo del formulario: cada factura usa su propia plantilla guardada.
+  import("./exports.js").then(m => m.exportFacturaPDF(id, plantillaId || null));
 };
 
 
