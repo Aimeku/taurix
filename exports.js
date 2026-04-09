@@ -23,8 +23,7 @@ import { exportFacturaPDFConPlantilla } from "./pdf-plantilla.js";
    PDF FACTURA INDIVIDUAL
 ══════════════════════════════════════════ */
 export async function exportFacturaPDF(facturaId, plantillaId = null) {
-  // Delega al motor PDF. Cascada en pdf-plantilla.js:
-  // plantillaId explícito → doc.plantilla_id en BD → plantilla predeterminada → sin plantilla
+  // Cascada en pdf-plantilla.js: plantillaId explícito → doc.plantilla_id → es_default → sin plantilla
   await exportFacturaPDFConPlantilla(facturaId, plantillaId || null, true);
 }
 
