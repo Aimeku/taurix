@@ -1067,11 +1067,9 @@ async function logoToBase64(url) {
    GENERAR PDF PROFESIONAL
 ══════════════════════════════════════════════════ */
 export async function generarPDFPresupuesto(presId, descargar = true) {
-  /* Delega al motor PDF con plantillas — mismo sistema que facturas.
-     Lee el selector npPlantillaSel si está activo en el formulario.
-     Cascada: selector → plantilla predeterminada → diseño base. */
-  const selId = document.getElementById("npPlantillaSel")?.value || null;
-  const result = await exportPresupuestoPDFConPlantilla(presId, selId, descargar);
+  // NO leer selector del formulario. Cascada en pdf-plantilla.js:
+  // doc.plantilla_id → plantilla predeterminada → sin plantilla
+  const result = await exportPresupuestoPDFConPlantilla(presId, null, descargar);
   return result;
 }
 
@@ -1591,10 +1589,9 @@ window._pdfAlbaran = (id) => {
   });
 };
 window._presPDF = (id) => {
-  /* Lee el selector de plantilla si el usuario está en la vista de presupuestos.
-     Si no hay selector activo, la cascada de pdf-plantilla.js usará la predeterminada. */
-  const selId = document.getElementById("npPlantillaSel")?.value || null;
-  exportPresupuestoPDFConPlantilla(id, selId, true);
+  // Cascada resuelta en pdf-plantilla.js: doc.plantilla_id → es_default → sin plantilla
+  // NO leer selector: cada presupuesto usa su propia plantilla guardada en BD.
+  exportPresupuestoPDFConPlantilla(id, null, true);
 };
 
 /* ══════════════════════════════════════════════════════
