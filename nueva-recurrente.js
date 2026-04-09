@@ -7,7 +7,7 @@
 import { supabase } from "./supabase.js";
 import {
   SESSION, CLIENTES, fmt, toast, switchView,
-  OP_INFO, OP_SIN_IVA, OP_IVA_NO_REPERCUTIDO, parseDescuentoGlobal
+  OP_INFO, OP_SIN_IVA, OP_IVA_NO_REPERCUTIDO
 } from "./utils.js";
 import { PRODUCTOS } from "./productos.js";
 import { refreshRecurrentes } from "./facturas-recurrentes.js";
@@ -64,41 +64,37 @@ function _parseDto(raw, sub) {
   return parseFloat(s) || 0;
 }
 
-function _nrGetDescuentoGlobal(){
-  const t=document.getElementById("nrDtoTipo")?.value||"pct",v=document.getElementById("nrDtoValor")?.value||"";
-  if(!v)return"";return t==="pct"?v+"%":v;
-}
 function _calcTotales() {
-  const toggle=document.getElementById("nrIrpfToggle");
-  const irpfPct=toggle?.checked?(parseInt(document.getElementById("nrIrpf")?.value)||0):0;
-  let subtotal=0; const ivaRaw={};
-  LINEAS.forEach(l=>{
-    const sub=Math.max(0,(l.cantidad||0)*(l.precio||0)-_parseDto(l.descuento,(l.cantidad||0)*(l.precio||0)));
-    subtotal+=sub; ivaRaw[l.iva]=(ivaRaw[l.iva]||0)+sub;
+  const toggle  = document.getElementById("nrIrpfToggle");
+  const irpfPct = toggle?.checked ? (parseInt(document.getElementById("nrIrpf")?.value) || 0) : 0;
+  let base = 0; const ivaMap = {};
+  LINEAS.forEach(l => {
+    const bruto = (l.cantidad||0) * (l.precio||0);
+    const sub   = Math.max(0, bruto - _parseDto(l.descuento, bruto));
+    base += sub;
+    ivaMap[l.iva] = (ivaMap[l.iva] || 0) + sub * (l.iva||0) / 100;
   });
-  const rawDto=_nrGetDescuentoGlobal();
-  const{importe:dto}=parseDescuentoGlobal(rawDto,subtotal);
-  const base=Math.max(0,subtotal-dto);
-  const scale=subtotal>0?base/subtotal:1;
-  const ivaMap={};
-  Object.entries(ivaRaw).forEach(([p,s])=>{const a=s*scale*(parseFloat(p)||0)/100;if(a>0)ivaMap[p]=(ivaMap[p]||0)+a;});
-  const ivaTot=Object.values(ivaMap).reduce((a,b)=>a+b,0);
-  const ivaEnTot=OP_IVA_NO_REPERCUTIDO.includes(opTipo)?0:ivaTot;
-  const irpfAmt=base*irpfPct/100;
-  const total=base+ivaEnTot-irpfAmt;
-  const s=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
-  const show=(id,v)=>{const e=document.getElementById(id);if(e)e.style.display=v?"":"none";};
-  show("nrSubtotalRow",dto>0);s("nrSubtotal",fmt(subtotal));
-  show("nrDtoRow",dto>0);
-  if(dto>0){const{label}=parseDescuentoGlobal(rawDto,subtotal);s("nrDtoLbl",label||"Descuento");s("nrDtoAmt","−"+fmt(dto));}
-  s("nrBase",fmt(base));s("nrIva",fmt(ivaTot));s("nrIrpfAmt",fmt(irpfAmt));
-  s("nrIrpfLbl",`IRPF (−${irpfPct}%)`);s("nrTotal",fmt(total));
-  const prev=document.getElementById("nrDtoPreview");
-  if(prev){if(dto>0){prev.textContent=`Ahorro: −${fmt(dto)}`;prev.style.display="";}else prev.style.display="none";}
-  const ivaRow=document.getElementById("nrIvaRow");
-  if(ivaRow){const m=!OP_SIN_IVA.includes(opTipo)||OP_IVA_NO_REPERCUTIDO.includes(opTipo);ivaRow.style.display=m?"":"none";}
-  const irpfRow=document.getElementById("nrIrpfRow");
-  if(irpfRow)irpfRow.style.display=irpfPct>0?"":"none";
+  const ivaTot    = Object.values(ivaMap).reduce((a,b) => a+b, 0);
+  const ivaEnTot  = OP_IVA_NO_REPERCUTIDO.includes(opTipo) ? 0 : ivaTot;
+  const irpfAmt   = base * irpfPct / 100;
+  const total     = base + ivaEnTot - irpfAmt;
+
+  const s = (id, v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  s("nrBase",    fmt(base));
+  s("nrIva",     fmt(ivaTot));
+  s("nrIrpfAmt", fmt(irpfAmt));
+  s("nrIrpfLbl", `IRPF (−${irpfPct}%)`);
+  s("nrTotal",   fmt(total));
+
+  // IVA row visibility
+  const ivaRow = document.getElementById("nrIvaRow");
+  if (ivaRow) {
+    const mostrar = !OP_SIN_IVA.includes(opTipo) || OP_IVA_NO_REPERCUTIDO.includes(opTipo);
+    ivaRow.style.display = mostrar ? "" : "none";
+  }
+  // IRPF row visibility
+  const irpfRow = document.getElementById("nrIrpfRow");
+  if (irpfRow) irpfRow.style.display = irpfPct > 0 ? "" : "none";
 
   // Estimación anual
   const freq  = document.getElementById("nrFrecuencia")?.value || "mensual";
@@ -442,7 +438,6 @@ export async function cargarRecurrenteParaEditar(id) {
   f("nrProxima",    r.proxima_generacion);
   f("nrFin",        r.fecha_fin||"");
   f("nrNotas",      r.notas||"");
-  _nrRestoreDto(r.descuento_global||"");
   f("nrClienteNombre", r.cliente_nombre||"");
   f("nrClienteNif",    r.cliente_nif||"");
   clienteSelId = r.cliente_id || null;
@@ -496,7 +491,6 @@ export async function cargarRecurrenteParaEditar(id) {
   // Restaurar plantilla_id guardada
   const nrSel = document.getElementById("nrPlantillaSel");
   if (nrSel && r.plantilla_id) {
-    // Esperar a que el selector esté poblado antes de restaurar
     const _restoreSel = () => {
       const opt = nrSel.querySelector(`option[value="${r.plantilla_id}"]`);
       if (opt) { nrSel.value = r.plantilla_id; nrSel.dispatchEvent(new Event("change")); }
@@ -543,40 +537,12 @@ function _resetForm(clearEditing = true) {
   const titEl = document.getElementById("nrTitulo"); if (titEl) titEl.textContent = "Nueva factura recurrente";
   const btnEl = document.getElementById("nrGuardarBtn");
   if (btnEl) { btnEl.disabled=false; btnEl.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg> Crear factura recurrente`; }
-  _cols = [..._DEFAULT_COLS]; _applyHeader();
-  // Limpiar descuento global
-  const _dv=document.getElementById("nrDtoValor"); if(_dv)_dv.value="";
-  const _df=document.getElementById("nrDtoFields"); if(_df)_df.style.display="none";
-  const _dt=document.getElementById("nrDtoToggle"); if(_dt)_dt.textContent="+ Añadir descuento";
-  const _dpv=document.getElementById("nrDtoPreview"); if(_dpv)_dpv.style.display="none";
-  _addLinea(); _calcTotales();
+  _cols = [..._DEFAULT_COLS]; _applyHeader(); _addLinea(); _calcTotales();
 }
 
 /* ══════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════ */
-// ── Descuento global recurrente ──
-function _nrRestoreDto(raw){
-  const f=document.getElementById("nrDtoFields"),t=document.getElementById("nrDtoToggle"),
-        tp=document.getElementById("nrDtoTipo"),v=document.getElementById("nrDtoValor");
-  if(!raw){if(f)f.style.display="none";if(t)t.textContent="+ Añadir descuento";if(v)v.value="";return;}
-  const isPct=raw.endsWith("%");if(tp)tp.value=isPct?"pct":"eur";if(v)v.value=isPct?raw.slice(0,-1):raw;
-  if(f)f.style.display="";if(t)t.textContent="− Quitar descuento";_calcTotales();
-}
-window._nrToggleDto=function(){
-  const f=document.getElementById("nrDtoFields"),t=document.getElementById("nrDtoToggle");
-  if(!f)return;const open=f.style.display!=="none";
-  f.style.display=open?"none":"";t.textContent=open?"+ Añadir descuento":"− Quitar descuento";
-  if(open){const v=document.getElementById("nrDtoValor");if(v)v.value="";_calcTotales();}
-  else setTimeout(()=>document.getElementById("nrDtoValor")?.focus(),50);
-};
-window._nrClearDto=function(){
-  const v=document.getElementById("nrDtoValor");if(v)v.value="";
-  const f=document.getElementById("nrDtoFields");if(f)f.style.display="none";
-  const t=document.getElementById("nrDtoToggle");if(t)t.textContent="+ Añadir descuento";
-  _calcTotales();
-};
-
 /* ══════════════════════════════════════════════════════
    SELECTOR DE PLANTILLA PDF
 ══════════════════════════════════════════════════════ */
@@ -604,10 +570,7 @@ async function _nrInitPlantillaSel() {
   ].join("");
   if (badge) badge.style.display = defP ? "inline" : "none";
   sel.addEventListener("change", () => {
-    if (badge) {
-      const p = plantillas.find(x => x.id === sel.value);
-      badge.style.display = p?.es_default ? "inline" : "none";
-    }
+    if (badge) { const p = plantillas.find(x => x.id === sel.value); badge.style.display = p?.es_default ? "inline" : "none"; }
   });
 }
 
@@ -620,14 +583,9 @@ export function initNuevaRecurrente() {
 
   if (!_initDone) {
     _initDone = true;
-    // Descuento global — solo una vez
-    const _nrDV=document.getElementById("nrDtoValor");
-    const _nrDT=document.getElementById("nrDtoTipo");
-    if(_nrDV){_nrDV.removeEventListener("input",_calcTotales);_nrDV.addEventListener("input",_calcTotales);}
-    if(_nrDT){_nrDT.removeEventListener("change",_calcTotales);_nrDT.addEventListener("change",_calcTotales);}
+    _nrInitPlantillaSel();
     _initClienteSearch();
     _initIrpfToggle();
-    _nrInitPlantillaSel();
 
     document.getElementById("nrAddLineaBtn")?.addEventListener("click", () => _addLinea());
     document.getElementById("nrGuardarBtn")?.addEventListener("click",  () => _save());
