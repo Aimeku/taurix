@@ -23,9 +23,9 @@ import { exportFacturaPDFConPlantilla } from "./pdf-plantilla.js";
    PDF FACTURA INDIVIDUAL
 ══════════════════════════════════════════ */
 export async function exportFacturaPDF(facturaId, plantillaId = null) {
-  // Delega al motor PDF con soporte de plantillas.
-  // plantillaId puede venir como parámetro explícito o se lee del selector del formulario.
-  await exportFacturaPDFConPlantilla(facturaId, plantillaId, true);
+  // Delega al motor PDF. Cascada en pdf-plantilla.js:
+  // plantillaId explícito → doc.plantilla_id en BD → plantilla predeterminada → sin plantilla
+  await exportFacturaPDFConPlantilla(facturaId, plantillaId || null, true);
 }
 
 /* ══════════════════════════════════════════
