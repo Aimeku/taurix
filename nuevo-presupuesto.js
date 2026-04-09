@@ -831,6 +831,9 @@ export function initNuevoPresupuesto() {
     });
     updateNpOpUI();
 
+    // Restaurar descuento global si lo tenía
+    _npRestoreDto(editData.descuento_global || "");
+
     // Guardar id de edición para que savePresupuesto haga UPDATE
     window._npEditingId     = editData.id;
     window._npEditingNumero = editData.numero;
@@ -851,6 +854,45 @@ export function initNuevoPresupuesto() {
     if (LINEAS.length === 0) addLinea();
   }
 }
+
+// ── Descuento global helpers ──
+function _npRestoreDto(raw) {
+  const fields = document.getElementById("npDtoFields");
+  const toggle = document.getElementById("npDtoToggle");
+  const tipo   = document.getElementById("npDtoTipo");
+  const valor  = document.getElementById("npDtoValor");
+  if (!raw) {
+    if (fields) fields.style.display = "none";
+    if (toggle) toggle.textContent = "+ Añadir descuento";
+    if (valor)  valor.value = "";
+    return;
+  }
+  const isPct = raw.endsWith("%");
+  if (tipo)  tipo.value  = isPct ? "pct" : "eur";
+  if (valor) valor.value = isPct ? raw.slice(0, -1) : raw;
+  if (fields) fields.style.display = "";
+  if (toggle) toggle.textContent = "− Quitar descuento";
+  updateTotalesUI();
+}
+window._npToggleDto = function() {
+  const fields = document.getElementById("npDtoFields");
+  const toggle = document.getElementById("npDtoToggle");
+  if (!fields) return;
+  const open = fields.style.display !== "none";
+  fields.style.display = open ? "none" : "";
+  toggle.textContent = open ? "+ Añadir descuento" : "− Quitar descuento";
+  if (open) { const v = document.getElementById("npDtoValor"); if (v) v.value = ""; updateTotalesUI(); }
+  else { setTimeout(() => document.getElementById("npDtoValor")?.focus(), 50); }
+};
+window._npClearDto = function() {
+  const v = document.getElementById("npDtoValor"); if (v) v.value = "";
+  const f = document.getElementById("npDtoFields"); if (f) f.style.display = "none";
+  const t = document.getElementById("npDtoToggle"); if (t) t.textContent = "+ Añadir descuento";
+  updateTotalesUI();
+};
+// Wire up inputs
+document.getElementById("npDtoValor")?.addEventListener("input", updateTotalesUI);
+document.getElementById("npDtoTipo")?.addEventListener("change", updateTotalesUI);
 
 // Exponer para que main.js o switchView puedan refrescar el selector al abrir la vista
 window._npRefreshPlantillaSel = () => _npInitPlantillaSelector();
