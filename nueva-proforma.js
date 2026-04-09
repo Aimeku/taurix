@@ -8,8 +8,7 @@
    ═══════════════════════════════════════════════════════ */
 
 import { supabase } from "./supabase.js";
-import { parseDescuentoGlobal } from "./utils.js";
-import { SESSION, CLIENTES, fmt, toast, switchView, OP_INFO, OP_SIN_IVA, OP_IVA_NO_REPERCUTIDO } from "./utils.js";
+import { SESSION, CLIENTES, fmt, toast, switchView, OP_INFO, OP_SIN_IVA, OP_IVA_NO_REPERCUTIDO, parseDescuentoGlobal } from "./utils.js";
 import { PRODUCTOS } from "./productos.js";
 import { refreshProforma } from "./proforma.js";
 
@@ -532,9 +531,10 @@ window._npfClearDto=function(){
   const t=document.getElementById("npfDtoToggle");if(t)t.textContent="+ Añadir descuento";
   _calcTotales();
 };
-document.getElementById("npfDtoValor")?.addEventListener("input",_calcTotales);
-document.getElementById("npfDtoTipo")?.addEventListener("change",_calcTotales);
 export function initNuevaProforma(){
+  // Descuento global
+  document.getElementById("npfDtoValor")?.addEventListener("input",  _calcTotales);
+  document.getElementById("npfDtoTipo")?.addEventListener("change",  _calcTotales);
   const fe=document.getElementById("npfFecha");
   if(fe&&!fe.value)fe.value=new Date().toISOString().slice(0,10);
 
