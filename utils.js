@@ -645,3 +645,21 @@ export async function showPerfilModal() {
   };
 }
 window.showPerfilModal = showPerfilModal;
+
+/* ── Parsea un descuento global de documento.
+   raw: string "10%" → porcentaje; "50" → importe fijo en €
+   subtotal: base antes del descuento
+   Devuelve { importe, label } donde label es "Descuento (10%)" o "Descuento (50,00 €)"
+── */
+export function parseDescuentoGlobal(raw, subtotal) {
+  if (!raw && raw !== 0) return { importe: 0, label: "" };
+  const s = String(raw).trim();
+  if (!s) return { importe: 0, label: "" };
+  if (s.endsWith("%")) {
+    const pct = parseFloat(s) || 0;
+    const imp = subtotal * pct / 100;
+    return { importe: Math.max(0, imp), label: `Descuento (${pct}%)`, pct };
+  }
+  const imp = parseFloat(s) || 0;
+  return { importe: Math.max(0, imp), label: `Descuento`, fijo: imp };
+}
