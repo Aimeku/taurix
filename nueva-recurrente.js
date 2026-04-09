@@ -543,7 +543,13 @@ function _resetForm(clearEditing = true) {
   const titEl = document.getElementById("nrTitulo"); if (titEl) titEl.textContent = "Nueva factura recurrente";
   const btnEl = document.getElementById("nrGuardarBtn");
   if (btnEl) { btnEl.disabled=false; btnEl.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg> Crear factura recurrente`; }
-  _cols = [..._DEFAULT_COLS]; _applyHeader(); _addLinea(); _calcTotales();
+  _cols = [..._DEFAULT_COLS]; _applyHeader();
+  // Limpiar descuento global
+  const _dv=document.getElementById("nrDtoValor"); if(_dv)_dv.value="";
+  const _df=document.getElementById("nrDtoFields"); if(_df)_df.style.display="none";
+  const _dt=document.getElementById("nrDtoToggle"); if(_dt)_dt.textContent="+ Añadir descuento";
+  const _dpv=document.getElementById("nrDtoPreview"); if(_dpv)_dpv.style.display="none";
+  _addLinea(); _calcTotales();
 }
 
 /* ══════════════════════════════════════════════════════
@@ -606,9 +612,6 @@ async function _nrInitPlantillaSel() {
 }
 
 export function initNuevaRecurrente() {
-  // Descuento global
-  document.getElementById("nrDtoValor")?.addEventListener("input",  _calcTotales);
-  document.getElementById("nrDtoTipo")?.addEventListener("change",  _calcTotales);
   const fe = document.getElementById("nrProxima");
   if (fe && !fe.value) fe.value = new Date().toISOString().slice(0,10);
 
@@ -617,6 +620,11 @@ export function initNuevaRecurrente() {
 
   if (!_initDone) {
     _initDone = true;
+    // Descuento global — solo una vez
+    const _nrDV=document.getElementById("nrDtoValor");
+    const _nrDT=document.getElementById("nrDtoTipo");
+    if(_nrDV){_nrDV.removeEventListener("input",_calcTotales);_nrDV.addEventListener("input",_calcTotales);}
+    if(_nrDT){_nrDT.removeEventListener("change",_calcTotales);_nrDT.addEventListener("change",_calcTotales);}
     _initClienteSearch();
     _initIrpfToggle();
     _nrInitPlantillaSel();
