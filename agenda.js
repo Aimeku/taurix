@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════
    TAURIX · agenda.js
-   
+
    Agenda / Calendario estilo Google Calendar:
    · Vista mensual con eventos
    · Vista semanal (columnas por día)
