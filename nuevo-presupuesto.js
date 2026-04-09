@@ -47,37 +47,22 @@ function updateNpOpUI() {
   if (exencionWrap) exencionWrap.style.display = npOpTipoActual === "exento" ? "" : "none";
 }
 
-function _getNpDescuentoGlobal() {
-  const tipo  = document.getElementById("npDtoTipo")?.value  || "pct";
-  const valor = document.getElementById("npDtoValor")?.value || "";
-  if (!valor) return "";
-  return tipo === "pct" ? valor + "%" : valor;
-}
-
 function getLineasTotales() {
-  let subtotalLineas = 0;
-  const ivaRaw = {};
-  LINEAS.forEach(l => {
-    const bruto   = l.cantidad * l.precio;
-    const descAmt = _parseDescuento(l.descuento, bruto);
-    const sub     = Math.max(0, bruto - descAmt);
-    subtotalLineas += sub;
-    ivaRaw[l.iva] = (ivaRaw[l.iva] || 0) + sub;
-  });
-  // Descuento global — aplicado ANTES del IVA
-  const rawDto = _getNpDescuentoGlobal();
-  const { importe: dtoGlobal } = parseDescuentoGlobal(rawDto, subtotalLineas);
-  const baseTotal = Math.max(0, subtotalLineas - dtoGlobal);
-  const scale = subtotalLineas > 0 ? baseTotal / subtotalLineas : 1;
+  let baseTotal = 0;
   const ivaMap = {};
-  Object.entries(ivaRaw).forEach(([p, s]) => {
-    const a = s * scale * (parseFloat(p) || 0) / 100;
-    if (a > 0) ivaMap[p] = (ivaMap[p] || 0) + a;
+  LINEAS.forEach(l => {
+    const subtotalBruto = l.cantidad * l.precio;
+    const descAmt       = _parseDescuento(l.descuento, subtotalBruto);
+    const subtotal      = Math.max(0, subtotalBruto - descAmt);
+    baseTotal += subtotal;
+    const ivaAmt = subtotal * l.iva / 100;
+    ivaMap[l.iva] = (ivaMap[l.iva] || 0) + ivaAmt;
   });
   const ivaTotal = Object.values(ivaMap).reduce((a, b) => a + b, 0);
+  // Para inversión del sujeto pasivo: el IVA no se repercute en el total
   const ivaEnTotal = OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual) ? 0 : ivaTotal;
   const total = baseTotal + ivaEnTotal;
-  return { subtotalLineas, dtoGlobal, rawDto, baseTotal, ivaMap, ivaTotal, total };
+  return { baseTotal, ivaMap, ivaTotal, total };
 }
 
 /* ══════════════════════════
@@ -335,29 +320,12 @@ window._npDelLinea = (id) => {
 };
 
 function updateTotalesUI() {
-  const { subtotalLineas, dtoGlobal, rawDto, baseTotal, ivaTotal, total } = getLineasTotales();
-  const s    = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  const show = (id, v) => { const el = document.getElementById(id); if (el) el.style.display = v ? "" : "none"; };
-  // Subtotal de líneas (solo visible cuando hay descuento global)
-  show("npSubtotalRow", dtoGlobal > 0);
-  s("npSubtotal", fmt(subtotalLineas));
-  // Fila de descuento global
-  show("npDtoRow", dtoGlobal > 0);
-  if (dtoGlobal > 0) {
-    const { label } = parseDescuentoGlobal(rawDto, subtotalLineas);
-    s("npDtoLbl", label || "Descuento");
-    s("npDtoAmt", "−" + fmt(dtoGlobal));
-  }
+  const { baseTotal, ivaTotal, total } = getLineasTotales();
+  const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
   s("npBase", fmt(baseTotal));
   s("npIva", fmt(ivaTotal));
   s("npTotal", fmt(total));
-  // Preview de ahorro
-  const prev = document.getElementById("npDtoPreview");
-  if (prev) {
-    if (dtoGlobal > 0) { prev.textContent = `Ahorro: −${fmt(dtoGlobal)}`; prev.style.display = ""; }
-    else prev.style.display = "none";
-  }
-  // IVA row visibility
+  // Ocultar fila IVA cuando la operación no repercute IVA al total
   const ivaRow = document.getElementById("npIvaRow");
   if (ivaRow) {
     const mostrarIva = !OP_SIN_IVA.includes(npOpTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual);
@@ -498,7 +466,6 @@ async function savePresupuesto() {
   const editingId = window._npEditingId || null;
   if (editingId) {
     const numero = window._npEditingNumero;
-    // Intentar con plantilla_id; si la columna no existe en BD, reintentar sin ella
     let { error } = await supabase.from("presupuestos")
       .update({ ...payload, plantilla_id: _npPlantillaId }).eq("id", editingId);
     if (error && (error.message?.includes("plantilla_id") || error.message?.includes("schema cache"))) {
@@ -526,7 +493,6 @@ async function savePresupuesto() {
   const lastNum = last?.[0]?.numero ? parseInt((last[0].numero.match(/-(\d+)$/) || [])[1]) || 0 : 0;
   const numero = `P-${year}-${String(lastNum + 1).padStart(4, "0")}`;
 
-  // Intentar con plantilla_id; si la columna no existe en BD, reintentar sin ella
   let { error: _npErr } = await supabase.from("presupuestos").insert({
     user_id: SESSION.user.id, numero, estado: "borrador", ...payload, plantilla_id: _npPlantillaId,
   });
@@ -563,11 +529,6 @@ function resetForm() {
   const tipoEl = document.getElementById("npClienteTipo"); if (tipoEl) tipoEl.value = "empresa";
   const tEmpEl = document.getElementById("npClienteTipoEmpresa"); if (tEmpEl) tEmpEl.value = "";
   document.getElementById("npGuardarCliente").checked = false;
-  // Limpiar descuento global
-  const _dv = document.getElementById("npDtoValor"); if (_dv) _dv.value = "";
-  const _df = document.getElementById("npDtoFields"); if (_df) _df.style.display = "none";
-  const _dt = document.getElementById("npDtoToggle"); if (_dt) _dt.textContent = "+ Añadir descuento";
-  const _dp = document.getElementById("npDtoPreview"); if (_dp) _dp.style.display = "none";
   addLinea();
   updatePreview();
 }
@@ -782,10 +743,6 @@ export function initNuevoPresupuesto() {
   if (!_npListenersAttached.main) {
     _npListenersAttached.main = true;
 
-    // Descuento global — solo registrar UNA vez
-    document.getElementById("npDtoValor")?.addEventListener("input",  updateTotalesUI);
-    document.getElementById("npDtoTipo")?.addEventListener("change",  updateTotalesUI);
-
     ["npClienteNombre", "npClienteNif", "npFecha", "npConcepto", "npNotas", "npValidez"].forEach(id => {
       document.getElementById(id)?.addEventListener("input", updatePreview);
       document.getElementById(id)?.addEventListener("change", updatePreview);
@@ -872,9 +829,6 @@ export function initNuevoPresupuesto() {
     });
     updateNpOpUI();
 
-    // Restaurar descuento global si lo tenía
-    _npRestoreDto(editData.descuento_global || "");
-
     // Guardar id de edición para que savePresupuesto haga UPDATE
     window._npEditingId     = editData.id;
     window._npEditingNumero = editData.numero;
@@ -895,43 +849,6 @@ export function initNuevoPresupuesto() {
     if (LINEAS.length === 0) addLinea();
   }
 }
-
-// ── Descuento global helpers ──
-function _npRestoreDto(raw) {
-  const fields = document.getElementById("npDtoFields");
-  const toggle = document.getElementById("npDtoToggle");
-  const tipo   = document.getElementById("npDtoTipo");
-  const valor  = document.getElementById("npDtoValor");
-  if (!raw) {
-    if (fields) fields.style.display = "none";
-    if (toggle) toggle.textContent = "+ Añadir descuento";
-    if (valor)  valor.value = "";
-    return;
-  }
-  const isPct = raw.endsWith("%");
-  if (tipo)  tipo.value  = isPct ? "pct" : "eur";
-  if (valor) valor.value = isPct ? raw.slice(0, -1) : raw;
-  if (fields) fields.style.display = "";
-  if (toggle) toggle.textContent = "− Quitar descuento";
-  updateTotalesUI();
-}
-window._npToggleDto = function() {
-  const fields = document.getElementById("npDtoFields");
-  const toggle = document.getElementById("npDtoToggle");
-  if (!fields) return;
-  const open = fields.style.display !== "none";
-  fields.style.display = open ? "none" : "";
-  toggle.textContent = open ? "+ Añadir descuento" : "− Quitar descuento";
-  if (open) { const v = document.getElementById("npDtoValor"); if (v) v.value = ""; updateTotalesUI(); }
-  else { setTimeout(() => document.getElementById("npDtoValor")?.focus(), 50); }
-};
-window._npClearDto = function() {
-  const v = document.getElementById("npDtoValor"); if (v) v.value = "";
-  const f = document.getElementById("npDtoFields"); if (f) f.style.display = "none";
-  const t = document.getElementById("npDtoToggle"); if (t) t.textContent = "+ Añadir descuento";
-  updateTotalesUI();
-};
-// Wire up inputs
 
 // Exponer para que main.js o switchView puedan refrescar el selector al abrir la vista
 window._npRefreshPlantillaSel = () => _npInitPlantillaSelector();
