@@ -591,8 +591,8 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     lineas = [{ descripcion: docData.concepto || "Servicio", cantidad: 1, precio: docData.base || 0, iva: docData.iva || 21 }];
   }
 
-  let baseTotal = 0;
-  const ivaMap = {};
+  let subtotalLineas = 0;
+  const ivaRawMap = {};
   let descuentoTotalDoc = 0;
 
   lineas.forEach((l, ri) => {
@@ -603,9 +603,9 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     const subtotal      = Math.max(0, subtotalBruto - descAmt);
 
     descuentoTotalDoc += descAmt;
-    baseTotal += subtotal;
-    const ivaAmt = subtotal * (l.iva || 0) / 100;
-    ivaMap[l.iva] = (ivaMap[l.iva] || 0) + ivaAmt;
+    subtotalLineas += subtotal;
+    const pct = l.iva || 0;
+    ivaRawMap[pct] = (ivaRawMap[pct] || 0) + subtotal;
 
     // ── Calcular líneas de descripción respetando saltos de línea manuales ──
     const descIdx    = activeCols.findIndex(c => c.key === "descripcion");
@@ -684,6 +684,25 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     y += rH;
   });
 
+  // Aplicar descuento global del documento (sobre subtotal de líneas, ANTES del IVA)
+  const _rawDtoG = docData.descuento_global || "";
+  let dtoGlobalAmt = 0;
+  if (_rawDtoG) {
+    if (String(_rawDtoG).endsWith("%")) {
+      dtoGlobalAmt = subtotalLineas * (parseFloat(_rawDtoG) || 0) / 100;
+    } else {
+      dtoGlobalAmt = parseFloat(_rawDtoG) || 0;
+    }
+    dtoGlobalAmt = Math.max(0, Math.min(dtoGlobalAmt, subtotalLineas));
+  }
+  const baseTotal = Math.max(0, subtotalLineas - dtoGlobalAmt);
+  const scale = subtotalLineas > 0 ? baseTotal / subtotalLineas : 1;
+  const ivaMap = {};
+  Object.entries(ivaRawMap).forEach(([p, s]) => {
+    const a = s * scale * (parseFloat(p) || 0) / 100;
+    if (a > 0) ivaMap[p] = (ivaMap[p] || 0) + a;
+  });
+
   // Línea de cierre tabla
   doc.setDrawColor(...colores.acento);
   doc.setLineWidth(0.5);
@@ -717,10 +736,24 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     y += 6.5;
   };
 
-  _totRow(_en ? "Subtotal" : "Base imponible", baseTotal.toFixed(2) + " €");
+  // Si hay descuento global, mostrar subtotal de líneas primero
+  if (dtoGlobalAmt > 0) {
+    _totRow(_en ? "Subtotal" : "Subtotal líneas", subtotalLineas.toFixed(2) + " €");
+  } else {
+    _totRow(_en ? "Subtotal" : "Base imponible", baseTotal.toFixed(2) + " €");
+  }
 
   if (descuentoTotalDoc > 0) {
-    _totRow(_en ? "Discounts" : "Descuentos", "- " + descuentoTotalDoc.toFixed(2) + " €", [200, 50, 50]);
+    _totRow(_en ? "Line discounts" : "Dtos. por línea", "- " + descuentoTotalDoc.toFixed(2) + " €", [200, 50, 50]);
+  }
+
+  if (dtoGlobalAmt > 0) {
+    const _dtoLabel = String(docData.descuento_global).endsWith("%")
+      ? (_en ? `Discount (${parseFloat(docData.descuento_global)}%)` : `Descuento (${parseFloat(docData.descuento_global)}%)`)
+      : (_en ? "Discount" : "Descuento");
+    _totRow(_dtoLabel, "- " + dtoGlobalAmt.toFixed(2) + " €", [185, 28, 28]);
+    // Mostrar base imponible resultante después del descuento
+    _totRow(_en ? "Taxable amount" : "Base imponible", baseTotal.toFixed(2) + " €");
   }
 
   if (!_opSinIvaFila && !_opIvaNoRepercutido) {
