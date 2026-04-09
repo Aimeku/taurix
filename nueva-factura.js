@@ -995,4 +995,3 @@ export function initNuevaFactura() {
 
 // Exponer para que main.js o switchView puedan refrescar el selector al abrir la vista
 window._nfRefreshPlantillaSel = () => _nfInitPlantillaSelector();
-  _nfRestoreDto(f.descuento_global || "");
