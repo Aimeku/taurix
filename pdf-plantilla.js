@@ -184,7 +184,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   const { jsPDF } = window.jspdf;
 
   const perfil   = await _loadPerfil();
-  // Cascada: plantillaId explícito → plantilla_id guardada en el doc → es_default → sin plantilla
+  // Cascada: plantillaId explícito → plantilla_id del doc en BD → es_default → sin plantilla
   const resolvedPlantillaId = plantillaId || docData?.plantilla_id || null;
   const plantilla = await _loadPlantilla(resolvedPlantillaId);
   const cols      = _parseCols(plantilla);
@@ -306,18 +306,10 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   const fecha     = docData.fecha;
   const fmtFecha  = d => { if(!d)return"—"; const [yr,mo,dy]=d.split("-"); return `${dy}/${mo}/${yr}`; };
 
-  const CAB_TOP = 5;   // cabecera empieza a 5mm del borde superior de la página
+  const CAB_TOP = 5;
+  const cabH = logoOk ? Math.max(18, logoTop + logoH_mm + 3) : 18;
 
-  // cabH: altura de la zona de cabecera (espacio para logo + texto).
-  // Se calcula SIEMPRE, incluso cuando estiloCab="sin", para que el logo
-  // tenga espacio reservado y el resto del documento empiece en el sitio correcto.
-  // ─ Con logo: max(18mm, logoTop + logoH + 3mm)
-  // ─ Sin logo: 18mm fijos
-  const cabH = logoOk
-    ? Math.max(18, logoTop + logoH_mm + 3)
-    : 18;
-
-  // Dibujar fondo / línea de cabecera según estilo
+  // Fondo de cabecera
   if (estiloCab === "solido" || estiloCab === "gradiente") {
     doc.setFillColor(...colores.cab);
     doc.rect(ML, CAB_TOP, W, cabH, "F");
@@ -326,38 +318,24 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.setLineWidth(0.8);
     doc.line(ML, CAB_TOP + cabH, PW - MR, CAB_TOP + cabH);
   }
-  // estiloCab === "sin" → no se dibuja nada (pero el espacio cabH sigue reservado para el logo)
 
-  // Colores de texto: con fondo de color → blanco; sin cabecera o línea → color de letra
+  // Texto tipo+número+fecha — siempre visible en todos los estilos
   const cabConFondo = (estiloCab === "solido" || estiloCab === "gradiente");
   const cabTxtColor = cabConFondo ? colores.txtCab : colores.letra;
+  const textRightX  = logoOk ? Math.max(ML + 20, logoLeft - 3) : PW - MR - 4;
+  const textW       = textRightX - ML - 4;
 
-  // Texto tipo + número: se muestra SIEMPRE (en todos los estilos de cabecera)
-  // Si hay logo, el texto se limita al espacio libre a la izquierda del logo
-  const textRightX = logoOk ? Math.max(ML + 20, logoLeft - 3) : PW - MR - 4;
-  const textW      = textRightX - ML - 4;
-
-  // Layout de cabecera — espejo exacto del preview HTML:
-  //   línea 1: TIPO (pequeño, opaco)
-  //   línea 2: Número (grande, bold)
-  //   línea 3: Fecha (pequeño, normal)
-  //   línea 4: Válido hasta (si existe)
-  // Todo alineado a la izquierda, pegado al margen izquierdo.
-  doc.setFont(font, "bold");
-  doc.setFontSize(7.5);
-  doc.setTextColor(...cabTxtColor);
-  // Línea 1: tipo (opacidad simulada mezclando con fondo)
   const _tipoColor = cabConFondo
     ? colores.txtCab.map((c, i) => Math.round(c * 0.75 + colores.cab[i] * 0.25))
     : MUTED;
+  doc.setFont(font, "bold");
+  doc.setFontSize(7.5);
   doc.setTextColor(..._tipoColor);
   doc.text(tipoLabel, ML + 4, CAB_TOP + 5.5);
-  // Línea 2: número
   doc.setFontSize(Math.min(tamF + 3, 13));
   doc.setTextColor(...cabTxtColor);
   const numLine = doc.splitTextToSize(numero.substring(0, 30), textW);
   doc.text(numLine[0], ML + 4, CAB_TOP + 11);
-  // Línea 3: fecha (debajo del número, misma columna izquierda)
   doc.setFont(font, "normal");
   doc.setFontSize(7);
   const _fechaColor = cabConFondo
@@ -366,7 +344,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   doc.setTextColor(..._fechaColor);
   doc.text(fmtFecha(fecha), ML + 4, CAB_TOP + 16.5);
   if (docData.fecha_validez) {
-    doc.text((_en ? "Valid until: " : "Válido hasta: ") + fmtFecha(docData.fecha_validez), ML + 4, CAB_TOP + 21, );
+    doc.text((_en ? "Valid until: " : "Válido hasta: ") + fmtFecha(docData.fecha_validez), ML + 4, CAB_TOP + 21);
   }
 
   // Logo ENCIMA de la cabecera (último dibujado = encima, igual que z-index en CSS)
@@ -394,58 +372,29 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     y += 10;
   }
 
-  // ── EMISOR / CLIENTE ──
-  /*
-   * Sistema de coordenadas CENTRADO por cuadrante — réplica del preview.
-   * ─────────────────────────────────────────────────────────────────────
-   * X=0  → bloque centrado en su cuadrante (emisor=izq, cliente=der)
-   * X<0  → se desplaza a la izquierda     X>0 → a la derecha
-   * Y=0  → posición vertical base         Y<0 → sube  Y>0 → baja
-   *
-   * Fórmula idéntica al logo:
-   *   offsetPx = clamp(sX × (pvW/240), ±(pvW/2 - pad))
-   *   offset_mm = offsetPx × 0.5
-   *
-   * Clamp final: emisorX ∈ [ML+PAD, PW/2-PAD], clienteX ∈ [PW/2+PAD, PW-MR-PAD]
-   */
-
-  // ── Sistema de coordenadas EMISOR / CLIENTE ──
-  // Área útil W = 174mm, cuadrante = 87mm.
-  // Bloque = 48mm (~55% cuadrante) → rango de movimiento ≈ 39mm por lado.
-  // Slider sX ∈ [-120,120] → offset = sX * (W/240) mm (~0.725mm/unit)
-  // Clamp: borde izq nunca sale del cuadrante propio.
-  // sY ∈ [-120,120] → offset vertical, clamp ±12mm
-  const _qW_mm  = W / 2;               // 87mm — ancho de cuadrante
-  const cW      = 48;                  // mm — ancho del bloque (fijo, rango amplio)
-  const _XSCALE = W / 240;             // ~0.725 mm/unit
-  const _YCLAMP = 12;                  // mm — clamp vertical
-
+  // ── EMISOR / CLIENTE — coordenadas nativas PDF (mm) ──
+  const _qW_mm  = W / 2;
+  const cW      = 48;
+  const _XSCALE = W / 240;
+  const _YCLAMP = 12;
   const _sEmX = plantilla?.emisor_x  ?? 0;
   const _sEmY = plantilla?.emisor_y  ?? 0;
   const _sClX = plantilla?.cliente_x ?? 0;
   const _sClY = plantilla?.cliente_y ?? 0;
-
-  // Posición base centrada en cada cuadrante (slider=0)
-  const _cEmMm = ML + _qW_mm / 2;     // 61.5mm
-  const _cClMm = ML + _qW_mm * 3/2;  // 148.5mm
-  const _emBase = _cEmMm - cW / 2;   // 37.5mm
-  const _clBase = _cClMm - cW / 2;   // 124.5mm
-
-  // Borde izq del bloque tras aplicar slider
-  const _emRaw = _emBase + _sEmX * _XSCALE;
-  const _clRaw = _clBase + _sClX * _XSCALE;
-
-  // Clamp: emisor queda dentro de [ML, ML+qW-cW], cliente dentro de [ML+qW, PW-MR-cW]
-  const emisorX  = Math.max(ML,           Math.min(ML + _qW_mm - cW, _emRaw));
-  const clienteX = Math.max(ML + _qW_mm,  Math.min(PW - MR - cW,    _clRaw));
+  const _cEmMm  = ML + _qW_mm / 2;
+  const _cClMm  = ML + _qW_mm * 3/2;
+  const _emBase = _cEmMm - cW / 2;
+  const _clBase = _cClMm - cW / 2;
+  const emisorX  = Math.max(ML,          Math.min(ML + _qW_mm - cW, _emBase + _sEmX * _XSCALE));
+  const clienteX = Math.max(ML + _qW_mm, Math.min(PW - MR - cW,    _clBase + _sClX * _XSCALE));
   const emisorY  = y + Math.max(-_YCLAMP, Math.min(_YCLAMP, _sEmY * _XSCALE));
   const clienteY = y + Math.max(-_YCLAMP, Math.min(_YCLAMP, _sClY * _XSCALE));
 
   const mostrarEmisor = plantilla ? (plantilla.mostrar_emisor !== false) : true;
 
   if (mostrarEmisor) {
-    const lblDe   = (plantilla?.idioma === "en") ? "FROM" : "DE";
-    const lblPara = (plantilla?.idioma === "en")
+    const lblDe   = _en ? "FROM" : "DE";
+    const lblPara = _en
       ? (tipo === "factura" ? "BILL TO" : "TO")
       : (tipo === "factura" ? "FACTURAR A" : "PARA");
 
@@ -591,8 +540,8 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     lineas = [{ descripcion: docData.concepto || "Servicio", cantidad: 1, precio: docData.base || 0, iva: docData.iva || 21 }];
   }
 
-  let subtotalLineas = 0;
-  const ivaRawMap = {};
+  let baseTotal = 0;
+  const ivaMap = {};
   let descuentoTotalDoc = 0;
 
   lineas.forEach((l, ri) => {
@@ -603,9 +552,9 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     const subtotal      = Math.max(0, subtotalBruto - descAmt);
 
     descuentoTotalDoc += descAmt;
-    subtotalLineas += subtotal;
-    const pct = l.iva || 0;
-    ivaRawMap[pct] = (ivaRawMap[pct] || 0) + subtotal;
+    baseTotal += subtotal;
+    const ivaAmt = subtotal * (l.iva || 0) / 100;
+    ivaMap[l.iva] = (ivaMap[l.iva] || 0) + ivaAmt;
 
     // ── Calcular líneas de descripción respetando saltos de línea manuales ──
     const descIdx    = activeCols.findIndex(c => c.key === "descripcion");
@@ -684,25 +633,6 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     y += rH;
   });
 
-  // Aplicar descuento global del documento (sobre subtotal de líneas, ANTES del IVA)
-  const _rawDtoG = docData.descuento_global || "";
-  let dtoGlobalAmt = 0;
-  if (_rawDtoG) {
-    if (String(_rawDtoG).endsWith("%")) {
-      dtoGlobalAmt = subtotalLineas * (parseFloat(_rawDtoG) || 0) / 100;
-    } else {
-      dtoGlobalAmt = parseFloat(_rawDtoG) || 0;
-    }
-    dtoGlobalAmt = Math.max(0, Math.min(dtoGlobalAmt, subtotalLineas));
-  }
-  const baseTotal = Math.max(0, subtotalLineas - dtoGlobalAmt);
-  const scale = subtotalLineas > 0 ? baseTotal / subtotalLineas : 1;
-  const ivaMap = {};
-  Object.entries(ivaRawMap).forEach(([p, s]) => {
-    const a = s * scale * (parseFloat(p) || 0) / 100;
-    if (a > 0) ivaMap[p] = (ivaMap[p] || 0) + a;
-  });
-
   // Línea de cierre tabla
   doc.setDrawColor(...colores.acento);
   doc.setLineWidth(0.5);
@@ -736,24 +666,10 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     y += 6.5;
   };
 
-  // Si hay descuento global, mostrar subtotal de líneas primero
-  if (dtoGlobalAmt > 0) {
-    _totRow(_en ? "Subtotal" : "Subtotal líneas", subtotalLineas.toFixed(2) + " €");
-  } else {
-    _totRow(_en ? "Subtotal" : "Base imponible", baseTotal.toFixed(2) + " €");
-  }
+  _totRow(_en ? "Subtotal" : "Base imponible", baseTotal.toFixed(2) + " €");
 
   if (descuentoTotalDoc > 0) {
-    _totRow(_en ? "Line discounts" : "Dtos. por línea", "- " + descuentoTotalDoc.toFixed(2) + " €", [200, 50, 50]);
-  }
-
-  if (dtoGlobalAmt > 0) {
-    const _dtoLabel = String(docData.descuento_global).endsWith("%")
-      ? (_en ? `Discount (${parseFloat(docData.descuento_global)}%)` : `Descuento (${parseFloat(docData.descuento_global)}%)`)
-      : (_en ? "Discount" : "Descuento");
-    _totRow(_dtoLabel, "- " + dtoGlobalAmt.toFixed(2) + " €", [185, 28, 28]);
-    // Mostrar base imponible resultante después del descuento
-    _totRow(_en ? "Taxable amount" : "Base imponible", baseTotal.toFixed(2) + " €");
+    _totRow(_en ? "Discounts" : "Descuentos", "- " + descuentoTotalDoc.toFixed(2) + " €", [200, 50, 50]);
   }
 
   if (!_opSinIvaFila && !_opIvaNoRepercutido) {
@@ -847,9 +763,9 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     const pieIzq = (tipo === "factura" || tipo === "presupuesto")
       ? notaOperacion
       : tipo === "albaran"
-      ? (_en ? "Delivery note · This document has no fiscal validity · Does not replace an invoice." : "Albarán de entrega · Este documento no tiene validez fiscal · No sustituye a la factura.")
+      ? "Albarán de entrega · Este documento no tiene validez fiscal · No sustituye a la factura."
       : tipo === "proforma"
-      ? (_en ? "PROFORMA INVOICE · Not a valid fiscal document · Does not replace the original invoice." : "FACTURA PROFORMA · Documento sin validez fiscal · No sustituye a la factura original · Art. 11 RD 1619/2012")
+      ? "FACTURA PROFORMA · Documento sin validez fiscal · No sustituye a la factura original · Art. 11 RD 1619/2012"
       : (docData.fecha_validez ? "Válido hasta: " + fmtFecha(docData.fecha_validez) : "");
 
     doc.text(pieIzq, ML + PAD, PH - 10);
@@ -931,8 +847,7 @@ export async function exportFacturaPDFConPlantilla(facturaId, plantillaId = null
     .single();
   if (error || !f) { toast("Factura no encontrada", "error"); return null; }
 
-  // Cascada: plantillaId explícito → doc.plantilla_id (en docData) → es_default → sin plantilla
-  // NO leer selector del formulario: cada doc usa su propia plantilla guardada en BD.
+  // Si el caller no pasa plantillaId, leer del selector del formulario activo
   return generarPDFConPlantilla({ doc: f, tipo: "factura", plantillaId: plantillaId || null, descargar });
 }
 
@@ -945,7 +860,6 @@ export async function exportPresupuestoPDFConPlantilla(presId, plantillaId = nul
     .single();
   if (error || !p) { toast("Presupuesto no encontrado", "error"); return null; }
 
-  // NO leer selector del formulario: cada doc usa su propia plantilla guardada en BD.
   return generarPDFConPlantilla({ doc: p, tipo: "presupuesto", plantillaId: plantillaId || null, descargar });
 }
 
@@ -983,7 +897,6 @@ export async function exportProformaPDFConPlantilla(proformaId, plantillaId = nu
     .single();
   if (error || !p) { toast("Proforma no encontrada", "error"); return null; }
 
-  // p.plantilla_id se usa automáticamente via docData?.plantilla_id en generarPDFConPlantilla
   return generarPDFConPlantilla({
     doc:         p,
     tipo:        "proforma",
