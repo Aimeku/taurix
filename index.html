@@ -1405,33 +1405,7 @@
               </div>
               <div id="npfLineasHeader" style="display:grid;gap:4px;padding:4px 0;border-bottom:2px solid var(--brd)"></div>
               <div id="npfLineasContainer"></div>
-              <!-- DESCUENTO GLOBAL -->
-              <div class="form-block" id="npfDtoWrap">
-                <div class="fb-title" style="display:flex;align-items:center;justify-content:space-between">
-                  <span>Descuento global <span style="font-size:10px;font-weight:400;color:var(--t3)">(opcional, sobre base imponible)</span></span>
-                  <button type="button" id="npfDtoToggle" onclick="window._npfToggleDto()"
-                    style="font-size:11px;padding:3px 10px;border:1.5px solid var(--brd);border-radius:8px;background:var(--bg2);color:var(--t2);cursor:pointer">
-                    + Añadir descuento
-                  </button>
-                </div>
-                <div id="npfDtoFields" style="display:none;margin-top:8px">
-                  <div style="display:flex;gap:8px;align-items:center">
-                    <select id="npfDtoTipo" class="ff-select" style="max-width:90px;flex-shrink:0">
-                      <option value="pct">%</option>
-                      <option value="eur">€</option>
-                    </select>
-                    <input type="number" id="npfDtoValor" class="ff-input" min="0" step="0.01"
-                      placeholder="Ej: 10" style="flex:1"/>
-                    <button type="button" onclick="window._npfClearDto()"
-                      style="background:none;border:none;color:var(--t4);cursor:pointer;font-size:18px;line-height:1;padding:0 4px"
-                      title="Quitar descuento">×</button>
-                  </div>
-                  <div id="npfDtoPreview" style="margin-top:6px;font-size:12px;color:var(--accent);font-weight:600;display:none"></div>
-                </div>
-              </div>
               <div class="lineas-totales">
-                <div class="lt-row" id="npfSubtotalRow" style="display:none"><span>Subtotal líneas</span><strong id="npfSubtotal">0,00 €</strong></div>
-                <div class="lt-row lt-dto" id="npfDtoRow" style="display:none"><span id="npfDtoLbl">Descuento</span><strong id="npfDtoAmt" style="color:#dc2626">0,00 €</strong></div>
                 <div class="lt-row"><span>Base imponible</span><strong id="npfBase">0,00 €</strong></div>
                 <div class="lt-row" id="npfIvaRow"><span>IVA</span><strong id="npfIva">0,00 €</strong></div>
                 <div class="lt-row lt-total"><span>TOTAL PROFORMA</span><strong id="npfTotal">0,00 €</strong></div>
@@ -1663,53 +1637,12 @@
               </div>
               <div id="nrLineasHeader" style="display:grid;gap:4px;padding:4px 0;border-bottom:2px solid var(--brd)"></div>
               <div id="nrLineasContainer"></div>
-              <!-- DESCUENTO GLOBAL -->
-              <div class="form-block" id="nrDtoWrap">
-                <div class="fb-title" style="display:flex;align-items:center;justify-content:space-between">
-                  <span>Descuento global <span style="font-size:10px;font-weight:400;color:var(--t3)">(opcional, sobre base imponible)</span></span>
-                  <button type="button" id="nrDtoToggle" onclick="window._nrToggleDto()"
-                    style="font-size:11px;padding:3px 10px;border:1.5px solid var(--brd);border-radius:8px;background:var(--bg2);color:var(--t2);cursor:pointer">
-                    + Añadir descuento
-                  </button>
-                </div>
-                <div id="nrDtoFields" style="display:none;margin-top:8px">
-                  <div style="display:flex;gap:8px;align-items:center">
-                    <select id="nrDtoTipo" class="ff-select" style="max-width:90px;flex-shrink:0">
-                      <option value="pct">%</option>
-                      <option value="eur">€</option>
-                    </select>
-                    <input type="number" id="nrDtoValor" class="ff-input" min="0" step="0.01"
-                      placeholder="Ej: 10" style="flex:1"/>
-                    <button type="button" onclick="window._nrClearDto()"
-                      style="background:none;border:none;color:var(--t4);cursor:pointer;font-size:18px;line-height:1;padding:0 4px"
-                      title="Quitar descuento">×</button>
-                  </div>
-                  <div id="nrDtoPreview" style="margin-top:6px;font-size:12px;color:var(--accent);font-weight:600;display:none"></div>
-                </div>
-              </div>
               <div class="lineas-totales">
-                <div class="lt-row" id="nrSubtotalRow" style="display:none"><span>Subtotal líneas</span><strong id="nrSubtotal">0,00 €</strong></div>
-                <div class="lt-row lt-dto" id="nrDtoRow" style="display:none"><span id="nrDtoLbl">Descuento</span><strong id="nrDtoAmt" style="color:#dc2626">0,00 €</strong></div>
                 <div class="lt-row"><span>Base imponible</span><strong id="nrBase">0,00 €</strong></div>
                 <div class="lt-row" id="nrIvaRow"><span>IVA</span><strong id="nrIva">0,00 €</strong></div>
                 <div class="lt-row lt-irpf" id="nrIrpfRow" style="display:none"><span id="nrIrpfLbl">IRPF (−15%)</span><strong id="nrIrpfAmt" style="color:#dc2626">0,00 €</strong></div>
                 <div class="lt-row lt-total"><span>TOTAL EST.</span><strong id="nrTotal">0,00 €</strong></div>
                 <div class="lt-row" style="font-size:11px;color:var(--t3);padding-top:2px"><span id="nrAnualEstim"></span></div>
-              </div>
-            </div>
-
-            <!-- PLANTILLA PDF -->
-            <div class="form-block">
-              <div class="fb-title">Plantilla PDF</div>
-              <div class="ff-field" style="margin-bottom:0">
-                <label style="display:flex;align-items:center;gap:8px">
-                  Plantilla de diseño
-                  <span id="nrPlantillaDefaultBadge" style="display:none;font-size:10px;background:rgba(249,115,22,.12);color:#f97316;padding:2px 7px;border-radius:20px;font-weight:700">⭐ Predeterminada</span>
-                </label>
-                <select id="nrPlantillaSel" class="ff-select">
-                  <option value="">— Sin plantilla —</option>
-                </select>
-                <span style="font-size:11px;color:var(--t3);margin-top:4px;display:block">Cada factura generada usará esta plantilla al exportar a PDF.</span>
               </div>
             </div>
 
@@ -2070,26 +2003,17 @@
                   <!-- Documento simulado: la cabecera tiene position:relative para que el logo se posicione sobre ella -->
                   <div id="ep_pv_doc" style="background:#fff;font-size:11px;min-height:480px;overflow:hidden">
 
-                    <!-- BLOQUE CABECERA: position:relative para anclar logo.
-                         ep_pv_cab_wrap siempre tiene altura real (min-height) para
-                         que el logo position:absolute se posicione correctamente
-                         aunque la banda de color esté oculta. -->
-                    <div id="ep_pv_cab_wrap" style="position:relative;min-height:0">
-                      <!-- Logo: position:absolute sobre el wrap. JS calcula top/transform -->
-                      <div id="ep_pv_logo_row" style="display:none;position:absolute;top:0;left:50%;z-index:10;pointer-events:none;transform:translateX(-50%)">
+                    <!-- BLOQUE CABECERA: posición relative para anclar el logo encima -->
+                    <div id="ep_pv_cab_wrap" style="position:relative">
+                      <!-- Logo: position:absolute centrado por defecto. JS aplica transform para desplazar X/Y -->
+                      <div id="ep_pv_logo_row" style="display:none;position:absolute;top:0;left:50%;z-index:2;pointer-events:none;transform:translateX(-50%)">
                         <img id="ep_pv_logo_img" src="" alt="" style="display:block;object-fit:contain"/>
                       </div>
-                      <!-- Cabecera coloreada (se oculta con "Sin cabecera") -->
+                      <!-- Cabecera coloreada -->
                       <div id="ep_pv_cab" style="padding:14px 18px 12px;background:#1a56db;position:relative;z-index:1">
                         <div id="ep_pv_tipo" style="font-size:9px;font-weight:800;letter-spacing:.12em;opacity:.75;color:#fff;text-transform:uppercase">FACTURA</div>
                         <div id="ep_pv_concepto" style="font-size:15px;font-weight:700;color:#fff;margin-top:2px;line-height:1.2">Concepto del documento</div>
                         <div style="font-size:9px;opacity:.6;color:#fff;margin-top:3px" id="ep_pv_fecha"></div>
-                      </div>
-                      <!-- Fallback sin-cabecera: tipo + número visibles cuando cab oculta -->
-                      <div id="ep_pv_sincab" style="display:none;padding:14px 18px 10px">
-                        <div id="ep_pv_tipo2" style="font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#6b7280">FACTURA</div>
-                        <div id="ep_pv_concepto2" style="font-size:15px;font-weight:700;margin-top:2px;line-height:1.2;color:#111">Concepto del documento</div>
-                        <div id="ep_pv_fecha2" style="font-size:9px;color:#9ca3af;margin-top:3px"></div>
                       </div>
                     </div>
 
@@ -2291,33 +2215,7 @@
                 <!-- generado dinámicamente por JS -->
               </div>
               <div id="npLineasContainer"></div>
-              <!-- DESCUENTO GLOBAL -->
-              <div class="form-block" id="npDtoWrap">
-                <div class="fb-title" style="display:flex;align-items:center;justify-content:space-between">
-                  <span>Descuento global <span style="font-size:10px;font-weight:400;color:var(--t3)">(opcional, sobre base imponible)</span></span>
-                  <button type="button" id="npDtoToggle" onclick="window._npToggleDto()"
-                    style="font-size:11px;padding:3px 10px;border:1.5px solid var(--brd);border-radius:8px;background:var(--bg2);color:var(--t2);cursor:pointer">
-                    + Añadir descuento
-                  </button>
-                </div>
-                <div id="npDtoFields" style="display:none;margin-top:8px">
-                  <div style="display:flex;gap:8px;align-items:center">
-                    <select id="npDtoTipo" class="ff-select" style="max-width:90px;flex-shrink:0">
-                      <option value="pct">%</option>
-                      <option value="eur">€</option>
-                    </select>
-                    <input type="number" id="npDtoValor" class="ff-input" min="0" step="0.01"
-                      placeholder="Ej: 10" style="flex:1"/>
-                    <button type="button" onclick="window._npClearDto()"
-                      style="background:none;border:none;color:var(--t4);cursor:pointer;font-size:18px;line-height:1;padding:0 4px"
-                      title="Quitar descuento">×</button>
-                  </div>
-                  <div id="npDtoPreview" style="margin-top:6px;font-size:12px;color:var(--accent);font-weight:600;display:none"></div>
-                </div>
-              </div>
               <div class="lineas-totales">
-                <div class="lt-row" id="npSubtotalRow" style="display:none"><span>Subtotal líneas</span><strong id="npSubtotal">0,00 €</strong></div>
-                <div class="lt-row lt-dto" id="npDtoRow" style="display:none"><span id="npDtoLbl">Descuento</span><strong id="npDtoAmt" style="color:#dc2626">0,00 €</strong></div>
                 <div class="lt-row"><span>Base imponible</span><strong id="npBase">0,00 €</strong></div>
                 <div class="lt-row" id="npIvaRow"><span>IVA</span><strong id="npIva">0,00 €</strong></div>
                 <div class="lt-row lt-total"><span>TOTAL</span><strong id="npTotal">0,00 €</strong></div>
@@ -2615,33 +2513,7 @@
                 <!-- generado dinámicamente por JS -->
               </div>
               <div id="lineasContainer"></div>
-              <!-- DESCUENTO GLOBAL -->
-              <div class="form-block" id="nfDtoWrap">
-                <div class="fb-title" style="display:flex;align-items:center;justify-content:space-between">
-                  <span>Descuento global <span style="font-size:10px;font-weight:400;color:var(--t3)">(opcional, sobre base imponible)</span></span>
-                  <button type="button" id="nfDtoToggle" onclick="window._nfToggleDto()"
-                    style="font-size:11px;padding:3px 10px;border:1.5px solid var(--brd);border-radius:8px;background:var(--bg2);color:var(--t2);cursor:pointer">
-                    + Añadir descuento
-                  </button>
-                </div>
-                <div id="nfDtoFields" style="display:none;margin-top:8px">
-                  <div style="display:flex;gap:8px;align-items:center">
-                    <select id="nfDtoTipo" class="ff-select" style="max-width:90px;flex-shrink:0">
-                      <option value="pct">%</option>
-                      <option value="eur">€</option>
-                    </select>
-                    <input type="number" id="nfDtoValor" class="ff-input" min="0" step="0.01"
-                      placeholder="Ej: 10" style="flex:1"/>
-                    <button type="button" onclick="window._nfClearDto()"
-                      style="background:none;border:none;color:var(--t4);cursor:pointer;font-size:18px;line-height:1;padding:0 4px"
-                      title="Quitar descuento">×</button>
-                  </div>
-                  <div id="nfDtoPreview" style="margin-top:6px;font-size:12px;color:var(--accent);font-weight:600;display:none"></div>
-                </div>
-              </div>
               <div class="lineas-totales">
-                <div class="lt-row" id="ltSubtotalRow" style="display:none"><span>Subtotal líneas</span><strong id="ltSubtotal">0,00 €</strong></div>
-                <div class="lt-row lt-dto" id="ltDtoRow" style="display:none"><span id="ltDtoLbl">Descuento</span><strong id="ltDtoAmt" style="color:#dc2626">0,00 €</strong></div>
                 <div class="lt-row"><span>Base imponible</span><strong id="ltBase">0,00 €</strong></div>
                 <div id="ltIvaRows"></div>
                 <div class="lt-row lt-irpf" id="ltIrpfRow" style="display:none"><span id="ltIrpfLbl">IRPF (−15%)</span><strong id="ltIrpf" style="color:#dc2626">0,00 €</strong></div>
