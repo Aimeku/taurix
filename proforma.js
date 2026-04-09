@@ -141,13 +141,12 @@ window._proformaToFactura = async (id) => {
    PDF PROFORMA con marca de agua
 ══════════════════════════ */
 window._proformaPDF = async (id) => {
-  // Usar el motor de plantillas unificado (pdf-plantilla.js)
-  // Cascada: plantilla_id guardada en el doc → plantilla predeterminada → sin plantilla
+  // Usar el motor de plantillas unificado
   const { exportProformaPDFConPlantilla } = await import("./pdf-plantilla.js");
   await exportProformaPDFConPlantilla(id, null, true);
 };
 
-// Motor legacy (solo usado internamente si importación falla)
+// Motor legacy (mantenido por si acaso)
 async function _proformaPDFLegacy(id) {
   const {data:p} = await supabase.from("proformas").select("*").eq("id",id).single();
   if (!p) return;
