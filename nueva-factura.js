@@ -742,7 +742,13 @@ function resetForm() {
   document.getElementById("nfGuardarCliente").checked=false;
   document.querySelectorAll(".op-type-btn").forEach(b=>b.classList.remove("active"));
   document.querySelector(".op-type-btn[data-op='nacional']")?.classList.add("active");
-  updateOpUI(); addLinea(); updatePreview();
+  updateOpUI();
+  // Limpiar descuento global
+  const _dv=document.getElementById("nfDtoValor"); if(_dv)_dv.value="";
+  const _df=document.getElementById("nfDtoFields"); if(_df)_df.style.display="none";
+  const _dt=document.getElementById("nfDtoToggle"); if(_dt)_dt.textContent="+ Añadir descuento";
+  const _dpv=document.getElementById("nfDtoPreview"); if(_dpv)_dpv.style.display="none";
+  addLinea(); updatePreview();
 }
 
 
@@ -902,10 +908,6 @@ export function initNuevaFactura() {
   if (fechaEl && !fechaEl.value) fechaEl.value=new Date().toISOString().slice(0,10);
   loadPerfilForPreview();
 
-  // Descuento global — listeners registrados aquí (DOM garantizado)
-  document.getElementById("nfDtoValor")?.addEventListener("input",  updateTotalesUI);
-  document.getElementById("nfDtoTipo")?.addEventListener("change",  updateTotalesUI);
-
   document.querySelectorAll(".op-type-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".op-type-btn").forEach(b=>b.classList.remove("active"));
@@ -926,6 +928,12 @@ export function initNuevaFactura() {
 
   initClienteSearch();
   initIrpfToggle();
+  // Descuento global — addEventListener idempotente con AbortController no disponible aquí
+  // Usamos removeEventListener antes de add para evitar duplicados
+  const _nfDtoV = document.getElementById("nfDtoValor");
+  const _nfDtoT = document.getElementById("nfDtoTipo");
+  if (_nfDtoV) { _nfDtoV.removeEventListener("input", updateTotalesUI); _nfDtoV.addEventListener("input", updateTotalesUI); }
+  if (_nfDtoT) { _nfDtoT.removeEventListener("change", updateTotalesUI); _nfDtoT.addEventListener("change", updateTotalesUI); }
   ["nfNombre","nfNif","nfDireccion","nfFecha","nfNotas"].forEach(id => {
     document.getElementById(id)?.addEventListener("input",  updatePreview);
     document.getElementById(id)?.addEventListener("change", updatePreview);
