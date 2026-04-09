@@ -504,6 +504,12 @@ function _resetForm(clearEditing=true){
   document.querySelectorAll(".npf-op-btn").forEach(b=>b.classList.toggle("active",b.dataset.op==="nacional"));
   _updateOpUI();
   _cols=[..._DEFAULT_COLS]; _applyHeader(); _addLinea(); _calcTotales();
+
+  // Limpiar descuento global
+  const _dv=document.getElementById("npfDtoValor");if(_dv)_dv.value="";
+  const _df=document.getElementById("npfDtoFields");if(_df)_df.style.display="none";
+  const _dt=document.getElementById("npfDtoToggle");if(_dt)_dt.textContent="+ Añadir descuento";
+  const _dpv=document.getElementById("npfDtoPreview");if(_dpv)_dpv.style.display="none";
 }
 
 /* ══════════════════════════════════════════════════════
@@ -532,14 +538,16 @@ window._npfClearDto=function(){
   _calcTotales();
 };
 export function initNuevaProforma(){
-  // Descuento global
-  document.getElementById("npfDtoValor")?.addEventListener("input",  _calcTotales);
-  document.getElementById("npfDtoTipo")?.addEventListener("change",  _calcTotales);
   const fe=document.getElementById("npfFecha");
   if(fe&&!fe.value)fe.value=new Date().toISOString().slice(0,10);
 
   if(!_initDone){
     _initDone = true;
+    // Descuento global — solo una vez
+    const _npfDV=document.getElementById("npfDtoValor");
+    const _npfDT=document.getElementById("npfDtoTipo");
+    if(_npfDV){_npfDV.removeEventListener("input",_calcTotales);_npfDV.addEventListener("input",_calcTotales);}
+    if(_npfDT){_npfDT.removeEventListener("change",_calcTotales);_npfDT.addEventListener("change",_calcTotales);}
     _initClienteSearch();
     _initPlantillaSel();
     document.getElementById("npfAddLineaBtn")?.addEventListener("click",()=>_addLinea());
