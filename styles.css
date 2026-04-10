@@ -1350,13 +1350,14 @@ html.dark #onboardingModoOverlay {
 
 .lp-plan-eur-tachado {
   font-family: var(--font-hd);
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 42px;
+  font-weight: 900;
   color: #ef4444;
   text-decoration: line-through;
-  letter-spacing: -1px;
-  margin-right: 2px;
+  letter-spacing: -2px;
+  margin-right: 4px;
   align-self: baseline;
+  opacity: 0.85;
 }
 
 /* Icono grande en plan */
