@@ -1,5 +1,9 @@
 /* ═══════════════════════════════════════════════════════
-   TUGESTOR · productos.js  — v2 con stock, coste, barras
+   TAURIX · productos.js  — v3 estructura ERP estándar
+   Columnas: id, nombre, sku, tipo (product/service/subscription),
+   descripcion, precio_venta, precio_coste, iva, unidad,
+   stock_actual, stock_minimo, codigo_barras, activo,
+   created_at, updated_at
    ═══════════════════════════════════════════════════════ */
 
 import { supabase } from "./supabase.js";
@@ -31,15 +35,20 @@ export function renderProductosTable(list) {
     return;
   }
   const tipoBadge = {
+    service:      `<span class="badge b-income">Servicio</span>`,
+    product:      `<span class="badge b-ic">Producto</span>`,
+    subscription: `<span class="badge b-pendiente">Suscripción</span>`,
+    // legacy values (backwards compat with old rows)
     servicio:    `<span class="badge b-income">Servicio</span>`,
     producto:    `<span class="badge b-ic">Producto</span>`,
     suscripcion: `<span class="badge b-pendiente">Suscripción</span>`,
   };
   tbody.innerHTML = list.map(p => {
-    const margen = (p.precio_coste > 0 && p.precio > 0)
-      ? (((p.precio - p.precio_coste) / p.precio) * 100).toFixed(1) + "%"
+    const margen = (p.precio_coste > 0 && p.precio_venta > 0)
+      ? (((p.precio_venta - p.precio_coste) / p.precio_venta) * 100).toFixed(1) + "%"
       : "—";
-    const stockBadge = p.tipo === "servicio"
+    const esProducto = p.tipo === "product" || p.tipo === "producto";
+    const stockBadge = !esProducto
       ? `<span style="color:var(--t4);font-size:11px">—</span>`
       : (p.stock_actual !== null && p.stock_actual !== undefined)
         ? (p.stock_actual <= (p.stock_minimo || 0)
@@ -49,16 +58,16 @@ export function renderProductosTable(list) {
     return `<tr>
       <td>
         <strong style="font-size:13px">${p.nombre}</strong>
-        ${p.referencia ? `<br><span class="mono" style="font-size:11px;color:var(--t4)">${p.referencia}</span>` : ""}
+        ${p.sku ? `<br><span class="mono" style="font-size:11px;color:var(--t4)">${p.sku}</span>` : ""}
         ${p.codigo_barras ? `<br><span class="mono" style="font-size:10px;color:var(--t4)">🔖 ${p.codigo_barras}</span>` : ""}
       </td>
       <td style="font-size:12px;color:var(--t2);max-width:180px">${p.descripcion || "—"}</td>
-      <td>${tipoBadge[p.tipo] || tipoBadge.servicio}</td>
-      <td class="mono fw7">${fmt(p.precio)}</td>
+      <td>${tipoBadge[p.tipo] || tipoBadge.service}</td>
+      <td class="mono fw7">${fmt(p.precio_venta)}</td>
       <td class="mono" style="font-size:12px;color:var(--t3)">${p.precio_coste ? fmt(p.precio_coste) : "—"}</td>
       <td style="font-size:12px;color:var(--t3)">${margen}</td>
       <td style="font-size:12px">${p.iva}%</td>
-      <td class="mono">${fmt(p.precio * (1 + p.iva / 100))}</td>
+      <td class="mono">${fmt(p.precio_venta * (1 + p.iva / 100))}</td>
       <td>${stockBadge}</td>
       <td>${p.activo !== false ? `<span class="badge b-cobrada">Activo</span>` : `<span class="badge" style="background:#f3f4f6;color:#6b7280">Inactivo</span>`}</td>
       <td><div class="tbl-act">
@@ -71,7 +80,9 @@ export function renderProductosTable(list) {
 
 export function showNuevoProductoModal(prefill = {}) {
   const isEdit   = !!prefill.id;
-  const tipoInit = prefill.tipo || "producto";
+  // Normalize legacy tipo values
+  const tipoNorm = { producto:"product", servicio:"service", suscripcion:"subscription" };
+  const tipoInit = tipoNorm[prefill.tipo] || prefill.tipo || "product";
   const unidades = ["unidad","hora","día","mes","kg","litro","m²","m³","proyecto"];
 
   openModal(`
@@ -84,8 +95,8 @@ export function showNuevoProductoModal(prefill = {}) {
         <div class="modal-grid2">
           <div class="modal-field"><label>Nombre *</label>
             <input autocomplete="off" id="mpd_nombre" class="ff-input" value="${prefill.nombre || ""}" placeholder="Nombre del producto o servicio"/></div>
-          <div class="modal-field"><label>Referencia / SKU</label>
-            <input autocomplete="off" id="mpd_ref" class="ff-input" value="${prefill.referencia || ""}" placeholder="Ej: SRV-001"/></div>
+          <div class="modal-field"><label>SKU <span style="font-weight:400;color:var(--t4)">(código interno único)</span></label>
+            <input autocomplete="off" id="mpd_sku" class="ff-input mono" value="${prefill.sku || ""}" placeholder="Ej: SRV-001"/></div>
         </div>
         <div class="modal-grid2">
           <div class="modal-field"><label>Código de barras <span style="font-weight:400;color:var(--t4)">(EAN, ISBN…)</span></label>
@@ -99,9 +110,9 @@ export function showNuevoProductoModal(prefill = {}) {
           </div>
           <div class="modal-field"><label>Tipo</label>
             <select id="mpd_tipo" class="ff-select">
-              <option value="producto"    ${tipoInit === "producto"    ? "selected" : ""}>📦 Producto físico</option>
-              <option value="servicio"    ${tipoInit === "servicio"    ? "selected" : ""}>🔧 Servicio</option>
-              <option value="suscripcion" ${tipoInit === "suscripcion" ? "selected" : ""}>🔄 Suscripción</option>
+              <option value="product"      ${tipoInit === "product"      ? "selected" : ""}>📦 Producto físico</option>
+              <option value="service"      ${tipoInit === "service"      ? "selected" : ""}>🔧 Servicio</option>
+              <option value="subscription" ${tipoInit === "subscription" ? "selected" : ""}>🔄 Suscripción</option>
             </select>
           </div>
         </div>
@@ -114,7 +125,7 @@ export function showNuevoProductoModal(prefill = {}) {
         <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">💰 Precios</div>
         <div class="modal-grid2">
           <div class="modal-field"><label>Precio de venta (€) * <span style="font-weight:400;color:var(--t4)">sin IVA</span></label>
-            <input autocomplete="off" type="number" id="mpd_precio" class="ff-input" value="${prefill.precio || ""}" step="0.01" placeholder="0.00"/></div>
+            <input autocomplete="off" type="number" id="mpd_precio" class="ff-input" value="${prefill.precio_venta ?? ""}" step="0.01" placeholder="0.00"/></div>
           <div class="modal-field"><label>Precio de coste (€) <span style="font-weight:400;color:var(--t4)">sin IVA</span></label>
             <input autocomplete="off" type="number" id="mpd_coste" class="ff-input" value="${prefill.precio_coste || ""}" step="0.01" placeholder="0.00"/></div>
         </div>
@@ -140,7 +151,7 @@ export function showNuevoProductoModal(prefill = {}) {
           </div>
         </div>
 
-        <div id="mpd_stockSection" style="${tipoInit === "producto" ? "" : "display:none"}">
+        <div id="mpd_stockSection" style="${tipoInit === "product" ? "" : "display:none"}">
           <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">📦 Control de stock</div>
           <div class="modal-grid3">
             <div class="modal-field"><label>Stock actual</label>
@@ -155,7 +166,7 @@ export function showNuevoProductoModal(prefill = {}) {
           </div>
         </div>
 
-        <div id="mpd_unidadRow" style="${tipoInit === "producto" ? "display:none" : ""}">
+        <div id="mpd_unidadRow" style="${tipoInit === "product" ? "display:none" : ""}">
           <div class="modal-grid2" style="margin-top:8px">
             <div class="modal-field"><label>Unidad de medida</label>
               <select id="mpd_unidadSrv" class="ff-select">
@@ -166,11 +177,11 @@ export function showNuevoProductoModal(prefill = {}) {
           </div>
         </div>
 
-        <!-- Activo: solo visible para producto físico -->
-        <div id="mpd_activoWrap" style="${tipoInit === "producto" ? "" : "display:none"};margin-top:10px">
+        <!-- Activo: visible para todos los tipos -->
+        <div style="margin-top:12px">
           <label style="flex-direction:row;align-items:center;gap:6px;cursor:pointer;display:flex">
             <input autocomplete="off" type="checkbox" id="mpd_activo" ${prefill.activo !== false ? "checked" : ""}/>
-            <span style="font-size:13px;font-weight:500">Producto activo</span>
+            <span style="font-size:13px;font-weight:500">Activo <span style="font-weight:400;color:var(--t4)">(desmarcar para ocultar sin eliminar)</span></span>
           </label>
         </div>
 
@@ -189,10 +200,9 @@ export function showNuevoProductoModal(prefill = {}) {
   `);
 
   document.getElementById("mpd_tipo")?.addEventListener("change", e => {
-    const isP = e.target.value === "producto";
+    const isP = e.target.value === "product";
     document.getElementById("mpd_stockSection").style.display = isP ? "" : "none";
     document.getElementById("mpd_unidadRow").style.display    = isP ? "none" : "";
-    document.getElementById("mpd_activoWrap").style.display   = isP ? "" : "none";
   });
 
   const updatePreview = () => {
@@ -245,13 +255,13 @@ export function showNuevoProductoModal(prefill = {}) {
   }
 
   document.getElementById("mpd_save").addEventListener("click", async () => {
-    const nombre = document.getElementById("mpd_nombre").value.trim();
-    const precio = parseFloat(document.getElementById("mpd_precio").value);
-    if (!nombre || isNaN(precio)) { toast("Nombre y precio son obligatorios", "error"); return; }
+    const nombre      = document.getElementById("mpd_nombre").value.trim();
+    const precio_venta = parseFloat(document.getElementById("mpd_precio").value);
+    if (!nombre || isNaN(precio_venta)) { toast("Nombre y precio son obligatorios", "error"); return; }
 
     const tipo       = document.getElementById("mpd_tipo").value;
-    const isProducto = tipo === "producto";
-    const activo     = isProducto ? (document.getElementById("mpd_activo")?.checked ?? true) : true;
+    const isProducto = tipo === "product";
+    const activo     = document.getElementById("mpd_activo")?.checked ?? true;
     const unidad     = isProducto ? (document.getElementById("mpd_unidad")?.value || "unidad") : (document.getElementById("mpd_unidadSrv")?.value || "unidad");
     const costeVal   = parseFloat(document.getElementById("mpd_coste")?.value);
     const stockVal   = parseInt(document.getElementById("mpd_stock")?.value);
@@ -260,10 +270,11 @@ export function showNuevoProductoModal(prefill = {}) {
     const payload = {
       user_id:       SESSION.user.id,
       nombre,
-      referencia:    document.getElementById("mpd_ref").value.trim()    || null,
-      codigo_barras: document.getElementById("mpd_barras").value.trim() || null,
-      descripcion:   document.getElementById("mpd_desc").value.trim()   || null,
-      tipo, precio,
+      sku:           document.getElementById("mpd_sku").value.trim()     || null,
+      codigo_barras: document.getElementById("mpd_barras").value.trim()  || null,
+      descripcion:   document.getElementById("mpd_desc").value.trim()    || null,
+      tipo,
+      precio_venta,
       precio_coste:  !isNaN(costeVal) && costeVal > 0 ? costeVal : null,
       iva:           parseInt(document.getElementById("mpd_iva").value),
       unidad,
@@ -313,7 +324,7 @@ export function initProductosView() {
     const q = e.target.value.toLowerCase();
     renderProductosTable(PRODUCTOS.filter(p =>
       (p.nombre        || "").toLowerCase().includes(q) ||
-      (p.referencia    || "").toLowerCase().includes(q) ||
+      (p.sku           || "").toLowerCase().includes(q) ||
       (p.codigo_barras || "").toLowerCase().includes(q) ||
       (p.descripcion   || "").toLowerCase().includes(q)
     ));
@@ -332,11 +343,11 @@ export function buscarProductoPorCodigo(codigo) {
   const q = codigo.trim().replace(/[\r\n\t]/g,"").toLowerCase();
   if (!q) return null;
 
-  // Búsqueda exacta primero (código de barras o referencia)
+  // Búsqueda exacta primero (código de barras o SKU)
   const exacto = PRODUCTOS.find(p =>
     p.activo !== false && (
       (p.codigo_barras || "").trim().toLowerCase() === q ||
-      (p.referencia    || "").trim().toLowerCase() === q
+      (p.sku           || "").trim().toLowerCase() === q
     )
   );
   if (exacto) return exacto;
@@ -345,7 +356,7 @@ export function buscarProductoPorCodigo(codigo) {
   return PRODUCTOS.find(p =>
     p.activo !== false && (
       (p.codigo_barras || "").toLowerCase().includes(q) ||
-      (p.referencia    || "").toLowerCase().includes(q)
+      (p.sku           || "").toLowerCase().includes(q)
     )
   ) || null;
 }
@@ -519,7 +530,7 @@ export function showImportarProductosModal() {
 
 /* ── Validar filas del Excel ── */
 function validarFilas(raw) {
-  const TIPOS_VALIDOS = ["servicio","producto","suscripcion","service","product"];
+  const TIPOS_VALIDOS = ["service","product","subscription","servicio","producto","suscripcion"];
   const IVAS_VALIDOS  = [0, 4, 10, 21];
 
   return raw.map((row, i) => {
@@ -538,11 +549,13 @@ function validarFilas(raw) {
     };
 
     const nombre       = get("nombre","name","producto","product");
-    const referencia   = get("referencia","ref","sku","codigo","code");
+    // Acepta tanto "sku" como "referencia" para compatibilidad con imports legacy
+    const sku          = get("sku","referencia","ref","codigo","code");
     const codigoBarras = get("codigobarras","codigo_barras","barras","ean","isbn","barcode");
-    const tipoRaw      = get("tipo","type").toLowerCase() || "servicio";
-    const precioRaw    = get("precio","price","pvp");
-    const costeRaw     = get("coste","costo","cost","preciocoste");
+    const tipoRaw      = get("tipo","type").toLowerCase() || "service";
+    // Acepta tanto "precio_venta" como "precio" / "pvp"
+    const precioRaw    = get("precioventa","precio_venta","precio","price","pvp");
+    const costeRaw     = get("preciocoste","precio_coste","coste","costo","cost");
     const ivaRaw       = get("iva","vat","impuesto").replace("%","") || "21";
     const stockRaw     = get("stock","stockactual","stock_actual");
     const stockMinRaw  = get("stockminimo","stock_minimo","stockmin","minimo");
@@ -552,14 +565,18 @@ function validarFilas(raw) {
     // Validaciones obligatorias
     if (!nombre) errores.push("Nombre vacío");
 
-    const precio = parseFloat(precioRaw.replace(",","."));
-    if (isNaN(precio) || precio < 0) errores.push(`Precio inválido: "${precioRaw}"`);
+    const precio_venta = parseFloat(precioRaw.replace(",","."));
+    if (isNaN(precio_venta) || precio_venta < 0) errores.push(`Precio inválido: "${precioRaw}"`);
 
-    // Tipo
-    const tipoMap = { servicio:"servicio", service:"servicio", producto:"producto", product:"producto", suscripcion:"suscripcion" };
-    const tipo = tipoMap[tipoRaw] || "servicio";
+    // Tipo — normalizar a valores ERP estándar
+    const tipoMap = {
+      servicio:"service", service:"service",
+      producto:"product", product:"product",
+      suscripcion:"subscription", subscription:"subscription",
+    };
+    const tipo = tipoMap[tipoRaw] || "service";
     if (!TIPOS_VALIDOS.includes(tipoRaw) && tipoRaw) {
-      avisos.push(`Tipo "${tipoRaw}" no reconocido → se usará "servicio"`);
+      avisos.push(`Tipo "${tipoRaw}" no reconocido → se usará "service"`);
     }
 
     // IVA
@@ -589,14 +606,14 @@ function validarFilas(raw) {
       _errores: errores,
       _avisos:  avisos,
       nombre,
-      referencia:    referencia   || null,
+      sku:           sku          || null,
       codigo_barras: codigoBarras || null,
       tipo,
-      precio:        isNaN(precio) ? 0 : precio,
+      precio_venta:  isNaN(precio_venta) ? 0 : precio_venta,
       precio_coste:  (!isNaN(coste) && coste > 0) ? coste : null,
       iva:           IVAS_VALIDOS.includes(iva) ? iva : 21,
-      stock_actual:  tipo==="producto" && stock!==null && !isNaN(stock) ? stock : null,
-      stock_minimo:  tipo==="producto" && stockMin!==null && !isNaN(stockMin) ? stockMin : null,
+      stock_actual:  tipo==="product" && stock!==null && !isNaN(stock) ? stock : null,
+      stock_minimo:  tipo==="product" && stockMin!==null && !isNaN(stockMin) ? stockMin : null,
       descripcion:   descripcion || null,
       unidad:        unidad || "unidad",
     };
@@ -627,10 +644,10 @@ function mostrarPreview(rows) {
     return `<tr style="background:${bgColor}">
       <td style="color:var(--t4)">${r._fila}</td>
       <td style="font-weight:600">${r.nombre || "—"}</td>
-      <td class="mono" style="font-size:10px">${r.referencia || "—"}</td>
+      <td class="mono" style="font-size:10px">${r.sku || "—"}</td>
       <td class="mono" style="font-size:10px">${r.codigo_barras || "—"}</td>
       <td>${r.tipo}</td>
-      <td class="mono">${fmt(r.precio)}</td>
+      <td class="mono">${fmt(r.precio_venta)}</td>
       <td class="mono" style="color:var(--t3)">${r.precio_coste ? fmt(r.precio_coste) : "—"}</td>
       <td>${r.iva}%</td>
       <td>${r.stock_actual !== null ? r.stock_actual : "—"}</td>
@@ -651,11 +668,11 @@ async function ejecutarImportacion(rows, actualizar) {
     const payload = {
       user_id:       SESSION.user.id,
       nombre:        r.nombre,
-      referencia:    r.referencia,
+      sku:           r.sku,
       codigo_barras: r.codigo_barras,
       descripcion:   r.descripcion,
       tipo:          r.tipo,
-      precio:        r.precio,
+      precio_venta:  r.precio_venta,
       precio_coste:  r.precio_coste,
       iva:           r.iva,
       unidad:        r.unidad,
@@ -664,10 +681,10 @@ async function ejecutarImportacion(rows, actualizar) {
       activo:        true,
     };
 
-    if (actualizar && (r.referencia || r.codigo_barras)) {
-      // Buscar si ya existe por referencia o código de barras
+    if (actualizar && (r.sku || r.codigo_barras)) {
+      // Buscar si ya existe por SKU o código de barras
       const existente = PRODUCTOS.find(p =>
-        (r.referencia    && p.referencia    === r.referencia) ||
+        (r.sku           && p.sku           === r.sku) ||
         (r.codigo_barras && p.codigo_barras === r.codigo_barras)
       );
       if (existente) {
@@ -705,42 +722,42 @@ function descargarPlantillaExcel() {
   const plantilla = [
     {
       "nombre *":         "Camiseta básica blanca",
-      "referencia":       "CAM-BL-M",
+      "sku":              "CAM-BL-M",
       "codigo_barras":    "8400000123456",
-      "tipo":             "producto",
-      "precio *":         19.95,
+      "tipo":             "product",
+      "precio_venta *":   19.95,
       "precio_coste":     8.50,
       "iva":              21,
+      "unidad":           "unidad",
       "stock_actual":     50,
       "stock_minimo":     10,
       "descripcion":      "Camiseta de algodón 100%",
-      "unidad":           "unidad",
     },
     {
       "nombre *":         "Consultoría por hora",
-      "referencia":       "CONS-H",
+      "sku":              "CONS-H",
       "codigo_barras":    "",
-      "tipo":             "servicio",
-      "precio *":         75.00,
+      "tipo":             "service",
+      "precio_venta *":   75.00,
       "precio_coste":     "",
       "iva":              21,
+      "unidad":           "hora",
       "stock_actual":     "",
       "stock_minimo":     "",
       "descripcion":      "Servicio de consultoría profesional",
-      "unidad":           "hora",
     },
     {
       "nombre *":         "Suscripción mensual",
-      "referencia":       "SUB-MES",
+      "sku":              "SUB-MES",
       "codigo_barras":    "",
-      "tipo":             "suscripcion",
-      "precio *":         29.00,
+      "tipo":             "subscription",
+      "precio_venta *":   29.00,
       "precio_coste":     "",
       "iva":              21,
+      "unidad":           "mes",
       "stock_actual":     "",
       "stock_minimo":     "",
       "descripcion":      "Plan mensual de acceso",
-      "unidad":           "mes",
     },
   ];
 
@@ -748,8 +765,8 @@ function descargarPlantillaExcel() {
 
   // Ancho de columnas
   ws["!cols"] = [
-    {wch:30},{wch:15},{wch:18},{wch:12},{wch:12},{wch:14},{wch:8},
-    {wch:14},{wch:14},{wch:30},{wch:10},
+    {wch:30},{wch:15},{wch:18},{wch:14},{wch:14},{wch:14},{wch:8},
+    {wch:10},{wch:14},{wch:14},{wch:30},
   ];
 
   const wb = window.XLSX.utils.book_new();
@@ -757,27 +774,40 @@ function descargarPlantillaExcel() {
 
   // Hoja de instrucciones
   const instrucciones = [
-    { "INSTRUCCIONES": "═══════════════════════════════════════════════" },
+    { "INSTRUCCIONES": "═══════════════════════════════════════════════════════" },
+    { "INSTRUCCIONES": "ESTRUCTURA ERP ESTÁNDAR — TAURIX CATÁLOGO v3" },
+    { "INSTRUCCIONES": "═══════════════════════════════════════════════════════" },
+    { "INSTRUCCIONES": "" },
     { "INSTRUCCIONES": "COLUMNAS OBLIGATORIAS (marcadas con *):" },
-    { "INSTRUCCIONES": "  • nombre *      → Nombre del producto o servicio" },
-    { "INSTRUCCIONES": "  • precio *      → Precio de venta (sin IVA)" },
+    { "INSTRUCCIONES": "  • nombre *        → Nombre del producto o servicio" },
+    { "INSTRUCCIONES": "  • precio_venta *  → Precio de venta sin IVA (ej: 19.95)" },
     { "INSTRUCCIONES": "" },
     { "INSTRUCCIONES": "COLUMNAS OPCIONALES:" },
-    { "INSTRUCCIONES": "  • referencia    → SKU o código interno (ej: CAM-BL-M)" },
-    { "INSTRUCCIONES": "  • codigo_barras → EAN-13, EAN-8, ISBN, QR, etc." },
-    { "INSTRUCCIONES": "  • tipo          → servicio / producto / suscripcion" },
-    { "INSTRUCCIONES": "  • precio_coste  → Precio de compra (para calcular margen)" },
-    { "INSTRUCCIONES": "  • iva           → 0 / 4 / 10 / 21  (por defecto: 21)" },
-    { "INSTRUCCIONES": "  • stock_actual  → Unidades en stock (solo para productos físicos)" },
-    { "INSTRUCCIONES": "  • stock_minimo  → Alerta cuando el stock baje de este número" },
-    { "INSTRUCCIONES": "  • descripcion   → Texto que aparecerá en la línea del documento" },
-    { "INSTRUCCIONES": "  • unidad        → unidad / hora / día / mes / kg / litro / m²" },
+    { "INSTRUCCIONES": "  • sku             → Código interno único (ej: CAM-BL-M)" },
+    { "INSTRUCCIONES": "  • codigo_barras   → EAN-13, EAN-8, ISBN, etc." },
+    { "INSTRUCCIONES": "  • tipo            → product / service / subscription" },
+    { "INSTRUCCIONES": "  • precio_coste    → Precio de compra (para margen)" },
+    { "INSTRUCCIONES": "  • iva             → 0 / 4 / 10 / 21  (por defecto: 21)" },
+    { "INSTRUCCIONES": "  • unidad          → unidad / hora / día / mes / kg / litro / m²" },
+    { "INSTRUCCIONES": "  • stock_actual    → Unidades en stock (solo tipo product)" },
+    { "INSTRUCCIONES": "  • stock_minimo    → Alerta de reposición (solo tipo product)" },
+    { "INSTRUCCIONES": "  • descripcion     → Texto en la línea del documento" },
+    { "INSTRUCCIONES": "" },
+    { "INSTRUCCIONES": "VALORES VÁLIDOS PARA «tipo»:" },
+    { "INSTRUCCIONES": "  product      → Producto físico (con control de stock)" },
+    { "INSTRUCCIONES": "  service      → Servicio (sin stock)" },
+    { "INSTRUCCIONES": "  subscription → Suscripción periódica (sin stock)" },
+    { "INSTRUCCIONES": "" },
+    { "INSTRUCCIONES": "COMPATIBILIDAD: también se aceptan los valores legacy" },
+    { "INSTRUCCIONES": "  producto / servicio / suscripcion (se convierten automáticamente)" },
     { "INSTRUCCIONES": "" },
     { "INSTRUCCIONES": "NOTAS:" },
     { "INSTRUCCIONES": "  • Borra las filas de ejemplo antes de importar" },
     { "INSTRUCCIONES": "  • Los nombres de columna no distinguen mayúsculas" },
     { "INSTRUCCIONES": "  • Puedes usar coma o punto como separador decimal" },
     { "INSTRUCCIONES": "  • Las filas con errores se omiten automáticamente" },
+    { "INSTRUCCIONES": "  • Si importas con 'referencia' en lugar de 'sku', se acepta igual" },
+    { "INSTRUCCIONES": "  • Si importas con 'precio' en lugar de 'precio_venta', se acepta igual" },
   ];
   const ws2 = window.XLSX.utils.json_to_sheet(instrucciones);
   ws2["!cols"] = [{wch:65}];
