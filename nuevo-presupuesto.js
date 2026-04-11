@@ -20,6 +20,9 @@ let clienteSeleccionadoId = null;
 let npPlantillaActual = null;
 let npOpTipoActual = "nacional";
 
+/* ── Descuento global sobre subtotal ── */
+let _dtoGlobal = { tipo: "pct", valor: 0 };
+
 /* ══════════════════════════
    TOTALES
 ══════════════════════════ */
@@ -48,21 +51,61 @@ function updateNpOpUI() {
 }
 
 function getLineasTotales() {
-  let baseTotal = 0;
+  let baseSinDtoGlobal = 0;
   const ivaMap = {};
   LINEAS.forEach(l => {
     const subtotalBruto = l.cantidad * l.precio;
     const descAmt       = _parseDescuento(l.descuento, subtotalBruto);
     const subtotal      = Math.max(0, subtotalBruto - descAmt);
-    baseTotal += subtotal;
-    const ivaAmt = subtotal * l.iva / 100;
+    baseSinDtoGlobal += subtotal;
+  });
+  // Descuento global
+  let dtoGlobalAmt = 0;
+  if (_dtoGlobal.valor > 0) {
+    dtoGlobalAmt = _dtoGlobal.tipo === "pct"
+      ? baseSinDtoGlobal * _dtoGlobal.valor / 100
+      : Math.min(_dtoGlobal.valor, baseSinDtoGlobal);
+    dtoGlobalAmt = Math.max(0, dtoGlobalAmt);
+  }
+  const baseTotal = Math.max(0, baseSinDtoGlobal - dtoGlobalAmt);
+  const ratio     = baseSinDtoGlobal > 0 ? baseTotal / baseSinDtoGlobal : 0;
+  LINEAS.forEach(l => {
+    const subtotalBruto = l.cantidad * l.precio;
+    const descAmt       = _parseDescuento(l.descuento, subtotalBruto);
+    const subtotalLinea = Math.max(0, subtotalBruto - descAmt);
+    const ivaAmt        = subtotalLinea * ratio * l.iva / 100;
     ivaMap[l.iva] = (ivaMap[l.iva] || 0) + ivaAmt;
   });
-  const ivaTotal = Object.values(ivaMap).reduce((a, b) => a + b, 0);
-  // Para inversión del sujeto pasivo: el IVA no se repercute en el total
+  const ivaTotal   = Object.values(ivaMap).reduce((a, b) => a + b, 0);
   const ivaEnTotal = OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual) ? 0 : ivaTotal;
-  const total = baseTotal + ivaEnTotal;
-  return { baseTotal, ivaMap, ivaTotal, total };
+  const total      = baseTotal + ivaEnTotal;
+  return { baseSinDtoGlobal, dtoGlobalAmt, baseTotal, ivaMap, ivaTotal, total };
+}
+function updateTotalesUI() {
+  const { dtoGlobalAmt, baseTotal, ivaTotal, total } = getLineasTotales();
+  const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  s("npBase", fmt(baseTotal));
+  s("npIva", fmt(ivaTotal));
+  s("npTotal", fmt(total));
+  // Fila dto global
+  const npDtoRow = document.getElementById("npDtoGlobalRow");
+  if (npDtoRow) {
+    if (dtoGlobalAmt > 0) {
+      npDtoRow.style.display = "";
+      const lbl = document.getElementById("npDtoGlobalLbl");
+      const val = document.getElementById("npDtoGlobalVal");
+      if (lbl) lbl.textContent = _dtoGlobal.tipo === "pct" ? `Dto. global (−${_dtoGlobal.valor}%)` : "Dto. global";
+      if (val) val.textContent = `−${fmt(dtoGlobalAmt)}`;
+    } else {
+      npDtoRow.style.display = "none";
+    }
+  }
+  // Ocultar fila IVA cuando la operación no repercute IVA al total
+  const ivaRow = document.getElementById("npIvaRow");
+  if (ivaRow) {
+    const mostrarIva = !OP_SIN_IVA.includes(npOpTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual);
+    ivaRow.style.display = mostrarIva ? "" : "none";
+  }
 }
 
 /* ══════════════════════════
@@ -163,9 +206,8 @@ function _buildProdDropdown(descInput, onSelect) {
 const _COL_SCHEMA = {
   descripcion: { label:"Descripción",  fr:3.0, minW:120, align:"left",  inputType:"text",   dataField:"descripcion" },
   cantidad:    { label:"Cant.",        fr:0.7, minW:52,  align:"right", inputType:"number", dataField:"cantidad",   step:"0.01", min:"0.01" },
-  precio:      { label:"P. unit.",     fr:1.0, minW:72,  align:"right", inputType:"number", dataField:"precio",    step:"0.01", placeholder:"0.00" },
+  precio:      { label:"Subtotal",     fr:1.0, minW:72,  align:"right", inputType:"number", dataField:"precio",    step:"0.01", placeholder:"0.00" },
   descuento:   { label:"Dto.",         fr:0.8, minW:60,  align:"right", inputType:"text",   dataField:"descuento", placeholder:"10%/5€" },
-  subtotal:    { label:"Subtotal",     fr:1.0, minW:72,  align:"right", inputType:null,     dataField:null },
   codigo:      { label:"Código",       fr:0.7, minW:55,  align:"left",  inputType:"text",   dataField:"codigo" },
   coeficiente: { label:"Coef.",        fr:0.6, minW:50,  align:"right", inputType:"number", dataField:"coeficiente", step:"0.01" },
   iva:         { label:"IVA",          fr:0.6, minW:56,  align:"right", inputType:"select", dataField:"iva" },
@@ -311,8 +353,11 @@ function onLineaChange(id, el) {
   else if (field === "descuento") linea.descuento   = el.value;
   const subtotalBruto = linea.cantidad * linea.precio;
   const descAmt       = _parseDescuento(linea.descuento, subtotalBruto);
-  const subtotal      = Math.max(0, subtotalBruto - descAmt);
-  document.getElementById(`npLtRow${id}`).textContent = fmt(subtotal);
+  const subtotalNeto  = Math.max(0, subtotalBruto - descAmt);
+  const rowTotal = document.getElementById(`npLtRow${id}`);
+  if (rowTotal) rowTotal.textContent = fmt(subtotalNeto);
+  const rowSub = document.querySelector(`.linea-row[data-linea-id="${id}"] [data-subtotal="${id}"]`);
+  if (rowSub) rowSub.textContent = fmt(subtotalBruto);
   updateTotalesUI(); updatePreview();
 }
 
@@ -478,6 +523,7 @@ async function savePresupuesto() {
     cliente_ciudad:           clienteCiudad           || clienteObj?.ciudad          || null,
     cliente_provincia:        clienteProv             || clienteObj?.provincia        || null,
     cliente_cp:               clienteCp               || clienteObj?.codigo_postal    || null,
+    descuento_global: _dtoGlobal.valor > 0 ? JSON.stringify({ tipo: _dtoGlobal.tipo, valor: _dtoGlobal.valor }) : null,
     base: baseTotal,
     iva: ivaMain,
     lineas: lineasJson,
@@ -760,6 +806,46 @@ function _npRebuildAllRows() {
 ══════════════════════════ */
 const _npListenersAttached = { main: false, _opBtns: false };
 
+/* ── Descuento global UI (presupuesto) ── */
+function _showDtoGlobal() {
+  const wrap = document.getElementById("npDtoGlobalWrap");
+  if (!wrap) return;
+  wrap.style.display = "";
+  const input  = document.getElementById("npDtoGlobalInput");
+  const select = document.getElementById("npDtoGlobalTipo");
+  if (input)  input.value  = _dtoGlobal.valor || "";
+  if (select) select.value = _dtoGlobal.tipo  || "pct";
+  input?.focus();
+}
+function _hideDtoGlobal() {
+  const wrap = document.getElementById("npDtoGlobalWrap");
+  if (wrap) wrap.style.display = "none";
+  _dtoGlobal = { tipo: "pct", valor: 0 };
+  updateTotalesUI(); updatePreview();
+}
+function initDtoGlobal() {
+  const btn    = document.getElementById("npAddDtoGlobalBtn");
+  const wrap   = document.getElementById("npDtoGlobalWrap");
+  const input  = document.getElementById("npDtoGlobalInput");
+  const select = document.getElementById("npDtoGlobalTipo");
+  const remove = document.getElementById("npDtoGlobalRemove");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    if (!wrap || wrap.style.display === "none" || wrap.style.display === "") {
+      _showDtoGlobal();
+    } else { _hideDtoGlobal(); }
+  });
+  const _onChange = () => {
+    _dtoGlobal.tipo  = select?.value || "pct";
+    _dtoGlobal.valor = parseFloat(input?.value) || 0;
+    updateTotalesUI(); updatePreview();
+  };
+  input?.addEventListener("input",  _onChange);
+  input?.addEventListener("change", _onChange);
+  select?.addEventListener("change", _onChange);
+  remove?.addEventListener("click", () => _hideDtoGlobal());
+}
+
 export function initNuevoPresupuesto() {
   const editData = window._npEditData || null;
   window._npEditData = null; // consumir el dato — solo se usa una vez
@@ -771,6 +857,7 @@ export function initNuevoPresupuesto() {
   if (fechaEl && !fechaEl.value) fechaEl.value = new Date().toISOString().slice(0, 10);
 
   initClienteSearch();
+  initDtoGlobal();
 
   // ── Adjuntar listeners SOLO la primera vez (evita multiplicación de importes) ──
   if (!_npListenersAttached.main) {
