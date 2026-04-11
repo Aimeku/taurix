@@ -73,8 +73,7 @@ const SIDEBAR_TAIL = [
   { sep: true, label:"Administración" },
   { view:"productos",     label:"Catálogo",              icon:"package" },
   { view:"plantillas",    label:"Mis plantillas",        icon:"layout" },
-  { view:"documentos",    label:"Documentos",            icon:"folder" },
-  { view:"colaboradores", label:"Colaboradores",         icon:"users3", badge:"colaboradoresBadge" },
+
 ];
 
 /** Devuelve los SIDEBAR_ITEMS correctos según el régimen del perfil */
