@@ -129,7 +129,7 @@ export async function registerEmail(email, password) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: "https://taurix.es/" },
+    options: { emailRedirectTo: "https://taurix.es/?type=confirmation" },
   });
   if (error) {
     if (error.message.includes("already registered")) throw new Error("Este email ya tiene una cuenta. Inicia sesión.");
