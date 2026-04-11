@@ -24,6 +24,11 @@ let clienteSeleccionadoId = null;
 let opTipoActual = "nacional";
 let nfPlantillaActual = null;   // plantilla aplicada actualmente
 
+/* ── Descuento global sobre el subtotal total de la factura ──
+   tipo: "pct" → porcentaje (ej. 10 = 10%), "fixed" → importe fijo en €
+   valor: número. 0 = sin descuento. ── */
+let _dtoGlobal = { tipo: "pct", valor: 0 };
+
 /* ══════════════════════════
    TOTALES
 ══════════════════════════ */
@@ -46,23 +51,46 @@ function getLineasTotales() {
   const irpfPct = (toggle?.checked)
     ? (parseInt(document.getElementById("nfIrpf")?.value) || 0)
     : 0;
-  let baseTotal = 0;
+
+  // ── Suma de bases netas de cada línea (ya con sus descuentos individuales) ──
+  let baseSinDtoGlobal = 0;
   const ivaMap = {};
   LINEAS.forEach(l => {
     const subtotalBruto = l.cantidad * l.precio;
     const descAmt       = _parseDescuento(l.descuento, subtotalBruto);
     const subtotal      = Math.max(0, subtotalBruto - descAmt);
-    baseTotal += subtotal;
-    const ivaAmt = subtotal * l.iva / 100;
+    baseSinDtoGlobal += subtotal;
+  });
+
+  // ── Descuento global sobre el subtotal acumulado ──
+  let dtoGlobalAmt = 0;
+  if (_dtoGlobal.valor > 0) {
+    dtoGlobalAmt = _dtoGlobal.tipo === "pct"
+      ? baseSinDtoGlobal * _dtoGlobal.valor / 100
+      : Math.min(_dtoGlobal.valor, baseSinDtoGlobal);
+    dtoGlobalAmt = Math.max(0, dtoGlobalAmt);
+  }
+
+  // ── Base imponible real (después del descuento global) ──
+  // El IVA se aplica proporcionalmente sobre la base reducida:
+  // ratio = baseConDtoGlobal / baseSinDtoGlobal
+  const baseTotal = Math.max(0, baseSinDtoGlobal - dtoGlobalAmt);
+  const ratio     = baseSinDtoGlobal > 0 ? baseTotal / baseSinDtoGlobal : 0;
+  LINEAS.forEach(l => {
+    const subtotalBruto = l.cantidad * l.precio;
+    const descAmt       = _parseDescuento(l.descuento, subtotalBruto);
+    const subtotalLinea = Math.max(0, subtotalBruto - descAmt);
+    const baseLineaReal = subtotalLinea * ratio;
+    const ivaAmt        = baseLineaReal * l.iva / 100;
     ivaMap[l.iva] = (ivaMap[l.iva] || 0) + ivaAmt;
   });
-  const ivaTotal = Object.values(ivaMap).reduce((a,b) => a+b, 0);
-  const irpfAmt = baseTotal * irpfPct / 100;
-  // Para inversión del sujeto pasivo: el IVA no se repercute en el total
-  // Para exento e intracomunitaria/exportación: IVA ya es 0 en líneas
+
+  const ivaTotal   = Object.values(ivaMap).reduce((a,b) => a+b, 0);
+  const irpfAmt    = baseTotal * irpfPct / 100;
   const ivaEnTotal = OP_IVA_NO_REPERCUTIDO.includes(opTipoActual) ? 0 : ivaTotal;
-  const total   = baseTotal + ivaEnTotal - irpfAmt;
-  return { baseTotal, ivaMap, ivaTotal, irpfAmt, irpfPct, total };
+  const total      = baseTotal + ivaEnTotal - irpfAmt;
+
+  return { baseSinDtoGlobal, dtoGlobalAmt, baseTotal, ivaMap, ivaTotal, irpfAmt, irpfPct, total };
 }
 
 /* ══════════════════════════
@@ -303,8 +331,14 @@ function addLinea(prefill = {}) {
       f("descripcion", linea.descripcion);
       f("precio", linea.precio);
       f("iva", linea.iva);
-      const rowEl = document.getElementById(`ltRow${id}`);
-      if (rowEl) rowEl.textContent = fmt(linea.cantidad * linea.precio);
+      // Actualizar columna total (neto) y subtotal (bruto) en la fila
+      const subtotalBruto = linea.cantidad * linea.precio;
+      const descAmt       = _parseDescuento(linea.descuento, subtotalBruto);
+      const subtotalNeto  = Math.max(0, subtotalBruto - descAmt);
+      const rowTotal = document.getElementById(`ltRow${id}`);
+      if (rowTotal) rowTotal.textContent = fmt(subtotalNeto);
+      const rowSub = row.querySelector(`[data-subtotal="${id}"]`);
+      if (rowSub) rowSub.textContent = fmt(subtotalBruto);
       updateTotalesUI(); updatePreview();
     });
   }
@@ -325,11 +359,19 @@ function onLineaChange(id, el) {
   else if (field === "iva")         linea.iva         = parseInt(el.value)   || 0;
   else if (field === "descuento")   linea.descuento   = el.value;
   else if (field === "tipo")      { linea.tipo        = el.value; updateIrpfVisibility(); return; }
+
   const subtotalBruto = linea.cantidad * linea.precio;
   const descAmt       = _parseDescuento(linea.descuento, subtotalBruto);
-  const subtotal      = Math.max(0, subtotalBruto - descAmt);
-  const rowEl = document.getElementById(`ltRow${id}`);
-  if (rowEl) rowEl.textContent = fmt(subtotal);
+  const subtotalNeto  = Math.max(0, subtotalBruto - descAmt);
+
+  // Columna "total": base neta de la línea (después de su propio descuento)
+  const rowTotal = document.getElementById(`ltRow${id}`);
+  if (rowTotal) rowTotal.textContent = fmt(subtotalNeto);
+
+  // Columna "subtotal": importe bruto de la línea (cantidad × precio, antes de descuento)
+  const rowSub = document.querySelector(`.linea-row[data-linea-id="${id}"] [data-subtotal="${id}"]`);
+  if (rowSub) rowSub.textContent = fmt(subtotalBruto);
+
   updateTotalesUI();
   updatePreview();
 }
@@ -343,19 +385,39 @@ window._delLinea = (id) => {
 };
 
 function updateTotalesUI() {
-  const { baseTotal, ivaMap, irpfAmt, irpfPct, total } = getLineasTotales();
+  const { baseSinDtoGlobal, dtoGlobalAmt, baseTotal, ivaMap, irpfAmt, irpfPct, total } = getLineasTotales();
   const el = id => document.getElementById(id);
+
+  // Base imponible (ya neta tras dto global)
   if (el("ltBase"))    el("ltBase").textContent    = fmt(baseTotal);
   if (el("ltTotal"))   el("ltTotal").textContent   = fmt(total);
-  if (el("ltIrpfRow")) el("ltIrpfRow").style.display = irpfPct>0?"":"none";
+  if (el("ltIrpfRow")) el("ltIrpfRow").style.display = irpfPct > 0 ? "" : "none";
   if (el("ltIrpf"))    el("ltIrpf").textContent    = fmt(irpfAmt);
   if (el("ltIrpfLbl")) el("ltIrpfLbl").textContent = `IRPF (−${irpfPct}%)`;
+
+  // Fila descuento global (se muestra solo cuando hay dto activo)
+  const ltDtoRow = el("ltDtoGlobalRow");
+  if (ltDtoRow) {
+    if (dtoGlobalAmt > 0) {
+      ltDtoRow.style.display = "";
+      const lbl = el("ltDtoGlobalLbl");
+      const val = el("ltDtoGlobalVal");
+      if (lbl) lbl.textContent = _dtoGlobal.tipo === "pct"
+        ? `Dto. global (−${_dtoGlobal.valor}%)`
+        : `Dto. global`;
+      if (val) val.textContent = `−${fmt(dtoGlobalAmt)}`;
+    } else {
+      ltDtoRow.style.display = "none";
+    }
+  }
+
+  // Filas de IVA
   if (el("ltIvaRows")) {
     const mostrarIvaRows = !OP_SIN_IVA.includes(opTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(opTipoActual);
     el("ltIvaRows").innerHTML = mostrarIvaRows
       ? Object.entries(ivaMap)
-          .filter(([,v])=>v>0).sort(([a],[b])=>b-a)
-          .map(([pct,amt])=>`<div class="lt-row"><span>IVA ${pct}%</span><strong>${fmt(amt)}</strong></div>`)
+          .filter(([,v]) => v > 0).sort(([a],[b]) => b - a)
+          .map(([pct,amt]) => `<div class="lt-row"><span>IVA ${pct}%</span><strong>${fmt(amt)}</strong></div>`)
           .join("")
       : "";
   }
@@ -540,6 +602,64 @@ function updateIrpfVisibility() {
   updatePreview();
 }
 
+
+/* ══════════════════════════
+   DESCUENTO GLOBAL SOBRE SUBTOTAL
+   Un único descuento (% o importe fijo) aplicado al subtotal
+   acumulado de todas las líneas, antes de calcular IVA e IRPF.
+══════════════════════════ */
+
+function _nfShowDtoGlobal() {
+  const wrap = document.getElementById("ltDtoGlobalWrap");
+  if (!wrap) return;
+  wrap.style.display = "";
+  const input  = document.getElementById("ltDtoGlobalInput");
+  const select = document.getElementById("ltDtoGlobalTipo");
+  if (input)  input.value  = _dtoGlobal.valor || "";
+  if (select) select.value = _dtoGlobal.tipo  || "pct";
+  input?.focus();
+}
+
+function _nfHideDtoGlobal() {
+  const wrap = document.getElementById("ltDtoGlobalWrap");
+  if (wrap) wrap.style.display = "none";
+  _dtoGlobal = { tipo: "pct", valor: 0 };
+  updateTotalesUI();
+  updatePreview();
+}
+
+function initDtoGlobal() {
+  const btn    = document.getElementById("nfAddDtoGlobalBtn");
+  const wrap   = document.getElementById("ltDtoGlobalWrap");
+  const input  = document.getElementById("ltDtoGlobalInput");
+  const select = document.getElementById("ltDtoGlobalTipo");
+  const remove = document.getElementById("ltDtoGlobalRemove");
+  if (!btn) return;
+
+  btn.addEventListener("click", () => {
+    if (wrap?.style.display === "none" || !wrap?.style.display) {
+      _nfShowDtoGlobal();
+    } else {
+      _nfHideDtoGlobal();
+    }
+  });
+
+  const _onChange = () => {
+    _dtoGlobal.tipo  = select?.value  || "pct";
+    _dtoGlobal.valor = parseFloat(input?.value) || 0;
+    updateTotalesUI();
+    updatePreview();
+  };
+
+  input?.addEventListener("input",  _onChange);
+  input?.addEventListener("change", _onChange);
+  select?.addEventListener("change", _onChange);
+
+  remove?.addEventListener("click", () => {
+    _nfHideDtoGlobal();
+  });
+}
+
 function initIrpfToggle() {
   const toggle = document.getElementById("nfIrpfToggle");
   const sel    = document.getElementById("nfIrpf");
@@ -634,6 +754,10 @@ async function saveFactura() {
   const ivaEntry  = Object.entries(ivaMap).sort(([,a],[,b])=>b-a)[0];
   const ivaMain   = ivaEntry ? parseInt(ivaEntry[0]) : 0;
   const concepto  = LINEAS.filter(l=>l.descripcion).map(l=>l.descripcion).join(" · ") || "Factura";
+  // Serializar descuento global para persistirlo resiliente en BD
+  const _dtoGlobalPayload = (_dtoGlobal.valor > 0)
+    ? JSON.stringify({ tipo: _dtoGlobal.tipo, valor: _dtoGlobal.valor })
+    : null;
 
   const btn = document.getElementById("nfEmitirBtn");
   if (btn) { btn.disabled=true; btn.innerHTML=`<span class="spin"></span> Emitiendo factura…`; }
@@ -671,6 +795,7 @@ async function saveFactura() {
     cliente_nombre: resolvedNombre, cliente_nif: resolvedNif,
     cliente_direccion: resolvedDir,
     cliente_pais: pais,
+    descuento_global: _dtoGlobalPayload,
     notas: (() => {
       const motivoExencion = document.getElementById("nfMotivoExencion")?.value.trim();
       if (opTipoActual === "exento" && motivoExencion) {
@@ -694,6 +819,14 @@ async function saveFactura() {
       .update({ plantilla_id: _nfPlantillaId }).eq("id", fData.id);
     if (pe && !pe.message?.includes("plantilla_id") && !pe.message?.includes("schema cache")) {
       console.warn("plantilla_id factura:", pe.message);
+    }
+  }
+  // Guardar descuento_global de forma resiliente (columna puede no existir aún en BD)
+  if (!error && fData?.id && _dtoGlobalPayload) {
+    const { error: dge } = await supabase.from("facturas")
+      .update({ descuento_global: _dtoGlobalPayload }).eq("id", fData.id);
+    if (dge && !dge.message?.includes("descuento_global") && !dge.message?.includes("schema cache")) {
+      console.warn("descuento_global factura:", dge.message);
     }
   }
 
@@ -744,6 +877,9 @@ async function saveFactura() {
 
 function resetForm() {
   LINEAS=[]; lineaIdCounter=0; clienteSeleccionadoId=null; opTipoActual="nacional";
+  // Limpiar descuento global
+  _dtoGlobal = { tipo: "pct", valor: 0 };
+  _nfHideDtoGlobal();
   document.getElementById("lineasContainer").innerHTML="";
   ["nfNombre","nfNif","nfDireccion","nfNotas","nfNombreComercial",
    "nfCiudad","nfProvincia","nfCp","nfEmailCliente","nfTelCliente"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
@@ -916,6 +1052,7 @@ export function initNuevaFactura() {
 
   initClienteSearch();
   initIrpfToggle();
+  initDtoGlobal();
   ["nfNombre","nfNif","nfDireccion","nfFecha","nfNotas"].forEach(id => {
     document.getElementById(id)?.addEventListener("input",  updatePreview);
     document.getElementById(id)?.addEventListener("change", updatePreview);
