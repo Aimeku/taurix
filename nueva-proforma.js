@@ -132,11 +132,11 @@ function _addLinea(pf={}) {
   const di=row.querySelector("[data-field='descripcion']");
   if(di) _buildProdDropdown(di, (p) => {
     const lx=LINEAS.find(x=>x.id===id);
-    if(lx){lx.descripcion=p.descripcion||p.nombre;lx.precio=p.precio;lx.iva=p.iva;lx.producto_id=p.id;}
+    if(lx){lx.descripcion=p.descripcion||p.nombre;lx.precio=p.precio_venta;lx.iva=p.iva;lx.producto_id=p.id;}
     const f=(field,val)=>{const el=row.querySelector(`[data-field="${field}"]`);if(el)el.value=val;};
-    f("descripcion",p.descripcion||p.nombre);f("precio",p.precio);f("iva",p.iva);
+    f("descripcion",p.descripcion||p.nombre);f("precio",p.precio_venta);f("iva",p.iva);
     const tot=document.getElementById(`npfLt${id}`);
-    if(tot)tot.textContent=fmt((lx?.cantidad||1)*p.precio);
+    if(tot)tot.textContent=fmt((lx?.cantidad||1)*p.precio_venta);
     _calcTotales();
     _actualizarVisibilidadReducirStock("npfReducirStockWrap");
   });
@@ -172,10 +172,10 @@ function _buildProdDropdown(descInput, onSelect) {
           <div style="flex:1;min-width:0">
             <div class="csd-name">${p.nombre}${stockBadge}</div>
             ${p.descripcion ? `<div class="csd-meta">${p.descripcion}</div>` : ""}
-            ${p.referencia  ? `<div class="csd-meta" style="font-family:monospace">Ref: ${p.referencia}</div>` : ""}
+            ${p.sku ? `<div class="csd-meta" style="font-family:monospace">SKU: ${p.sku}</div>` : ""}
           </div>
           <div style="text-align:right;flex-shrink:0">
-            <div style="font-size:13px;font-weight:800;color:var(--accent);font-family:monospace">${fmt(p.precio)}</div>
+            <div style="font-size:13px;font-weight:800;color:var(--accent);font-family:monospace">${fmt(p.precio_venta)}</div>
             <div class="csd-meta">IVA ${p.iva}%</div>
           </div>
         </div>
@@ -210,7 +210,7 @@ function _buildProdDropdown(descInput, onSelect) {
       p.activo !== false && (
         p.nombre.toLowerCase().includes(q) ||
         (p.descripcion || "").toLowerCase().includes(q) ||
-        (p.referencia  || "").toLowerCase().includes(q)
+        (p.sku || "").toLowerCase().includes(q)
       )
     ).slice(0, 10);
     if (!m.length) {
