@@ -295,15 +295,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Detectar tipo de flujo por URL ANTES del listener ──
      Con flowType "pkce", Supabase intercambia el ?code= y dispara SIGNED_IN.
+     - Recovery:      ?code=...&type=recovery
+     - Confirmation:  ?code=...&type=signup  (PKCE usa "signup", no "confirmation")
+                      o simplemente ?code=... sin type (también es confirmación)
      Guardamos la intención en sessionStorage para detectarla en el listener. */
   const _urlParams = new URLSearchParams(window.location.search);
   const _urlType   = _urlParams.get("type");
   const _urlCode   = _urlParams.get("code");
+  // token_hash es el formato antiguo (flow implícito), también lo soportamos
+  const _tokenHash = _urlParams.get("token_hash");
 
   if (_urlCode && _urlType === "recovery") {
     sessionStorage.setItem("taurix_recovery_pending", "1");
-  }
-  if (_urlCode && _urlType === "confirmation") {
+  } else if (_urlCode && (_urlType === "signup" || _urlType === "confirmation" || !_urlType)) {
+    // Cualquier ?code= que no sea recovery es una confirmación de email
+    sessionStorage.setItem("taurix_confirmation_pending", "1");
+  } else if (_tokenHash && _urlType === "signup") {
+    // Flow implícito — token_hash directo
     sessionStorage.setItem("taurix_confirmation_pending", "1");
   }
 
@@ -351,10 +359,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.add("hidden");
       window.history.replaceState({}, document.title, window.location.pathname);
-      // Guardar el flag ANTES del signOut — sobrevive al reload
-      sessionStorage.setItem("taurix_email_verified", "1");
-      await supabase.auth.signOut();
-      window.location.reload();
+      // Guardar el flag en localStorage (sobrevive al reload)
+      localStorage.setItem("taurix_email_verified", "1");
+      // signOut completo antes de recargar — Supabase limpia la sesión de localStorage
+      try { await supabase.auth.signOut(); } catch(_) {}
+      // Pequeña pausa para que Supabase limpie el storage antes del reload
+      setTimeout(() => window.location.reload(), 100);
       return;
     }
 
@@ -408,8 +418,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   /* ── Email verificado — mostrar modal de login con mensaje de éxito ── */
-  if (sessionStorage.getItem("taurix_email_verified") === "1") {
-    sessionStorage.removeItem("taurix_email_verified");
+  if (localStorage.getItem("taurix_email_verified") === "1") {
+    localStorage.removeItem("taurix_email_verified");
     document.getElementById("landingPage")?.classList.remove("hidden");
     showAuthModal();
     setTimeout(() => {
