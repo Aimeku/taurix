@@ -467,7 +467,7 @@ async function _save(){
     })(),
   };
 
-  const _npfPlantillaId = document.getElementById("npfPlantillaSel")?.value || null;
+  const _npfPlantillaId = document.getElementById("npfPlantillaSel")?.value || "none";
 
   let err;
   if(editandoId){
