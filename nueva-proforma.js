@@ -138,6 +138,7 @@ function _addLinea(pf={}) {
     const tot=document.getElementById(`npfLt${id}`);
     if(tot)tot.textContent=fmt((lx?.cantidad||1)*p.precio);
     _calcTotales();
+    _actualizarVisibilidadReducirStock("npfReducirStockWrap");
   });
   cont.appendChild(row); _calcTotales(); _actualizarVisibilidadReducirStock("npfReducirStockWrap");
 }
