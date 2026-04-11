@@ -41,7 +41,10 @@ async function _loadPerfil() {
    Orden: plantillaId → es_default → null
 ── */
 async function _loadPlantilla(plantillaId) {
-  // 1. Plantilla explícita
+  // "none" = el usuario eligió explícitamente "Sin plantilla" → no caer a default
+  if (plantillaId === "none") return null;
+
+  // 1. Plantilla explícita por UUID
   if (plantillaId) {
     const { data } = await supabase
       .from("plantillas_usuario")
@@ -51,7 +54,7 @@ async function _loadPlantilla(plantillaId) {
       .maybeSingle();
     if (data) return data;
   }
-  // 2. Plantilla predeterminada
+  // 2. Plantilla predeterminada (solo cuando no se especificó ninguna)
   const { data: def } = await supabase
     .from("plantillas_usuario")
     .select("*")
@@ -213,15 +216,12 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   doc.rect(0, 0, PW, PH, "F");
 
   // ── LOGO ──
-  // Determinar si la plantilla quiere mostrar logo ANTES de cargar nada.
-  // Si mostrar_logo=false en la plantilla, no cargar ningún logo — ni el de
-  // la plantilla ni el del perfil. Así un documento sin logo no hereda el logo
-  // del perfil ni de ninguna otra plantilla.
+  // Evaluar mostrarLogo PRIMERO para no cargar nada innecesariamente.
+  // Si la plantilla tiene mostrar_logo=false, ni se toca perfil.logo_url.
   const mostrarLogo = plantilla ? (plantilla.mostrar_logo !== false) : true;
 
   let logoB64 = null;
   if (mostrarLogo) {
-    // Prioridad: logo embebido en la plantilla → logo del perfil fiscal
     logoB64 = plantilla?.logo_b64 || null;
     if (!logoB64 && perfil.logo_url) {
       logoB64 = await _logoToBase64(perfil.logo_url);
@@ -415,41 +415,13 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     y += 19;
   }
 
-  // ── EMISOR / CLIENTE — sistema de coordenadas idéntico al preview HTML ──
-  //
-  // El preview calcula:
-  //   offsetPx = clamp(slider * (pvW/240), ±maxOffset)   donde pvW=420
-  //   left_px  = center_cuadrante_px  (posición absoluta en el preview)
-  //   transform: translateX(calc(-50% + offsetPx))
-  //
-  // Para replicarlo en mm usamos PX_TO_MM=0.5 (=210/420), igual que el logo:
-  //   offsetMm = offsetPx * PX_TO_MM
-  //   left_mm  = center_cuadrante_mm
-  //   posición final = left_mm - blkW/2 + offsetMm
-  //
-  // Centro de cuadrantes en mm — espejo de _cEmPx/_cClPx del preview:
-  //   _pad_pv=18px → en mm = 18*PX_TO_MM = 9mm  (≈ ML)
-  //   _qW_px = (pvW - 2*18)/2 = (420-36)/2 = 192px → 96mm
-  //   _cEmPx = 18 + 192/2 = 114px → 57mm
-  //   _cClPx = 18 + 192 + 192/2 = 306px → 153mm
-  //   → Cuadrante izq: centro = ML + (W/2)/2        = ML + W/4
-  //   → Cuadrante der: centro = ML + W/2 + (W/2)/2  = ML + 3*W/4
-  const _cEmMm   = ML + W / 4;
-  const _cClMm   = ML + W * 3 / 4;
-  const cW       = 48;   // ancho del bloque de texto en mm
-
-  // Offset X: misma fórmula que preview → mm
-  const _maxOffPx  = PVW / 2 - 18;                                          // clamp preview
-  const _offEmXPx  = Math.max(-_maxOffPx, Math.min(_maxOffPx, (plantilla?.emisor_x  ?? 0) * (PVW / 240)));
-  const _offClXPx  = Math.max(-_maxOffPx, Math.min(_maxOffPx, (plantilla?.cliente_x ?? 0) * (PVW / 240)));
-  const _offEmXmm  = _offEmXPx  * PX_TO_MM;
-  const _offClXmm  = _offClXPx  * PX_TO_MM;
-
-  // Posición X final: center - blkW/2 + offset, clampeado a los márgenes del cuadrante
-  const emisorX  = Math.max(ML,        Math.min(ML + W / 2 - cW, _cEmMm - cW / 2 + _offEmXmm));
-  const clienteX = Math.max(ML + W/2,  Math.min(PW - MR   - cW, _cClMm - cW / 2 + _offClXmm));
-
-  // Y: fijamos en base de la sección (sin slider vertical — eliminado del editor)
+  // ── EMISOR / CLIENTE — posición fija, alineada con márgenes y tabla ──
+  // Emisor: arranca en el margen izquierdo (ML)
+  // Cliente: arranca en la mitad del área útil + pequeño gap
+  // Ancho de cada bloque: mitad del área útil menos el gap
+  const cW      = (W / 2) - 4;   // ancho de cada bloque (mm)
+  const emisorX  = ML;
+  const clienteX = ML + W / 2 + 4;
   const emisorY  = y;
   const clienteY = y;
 
