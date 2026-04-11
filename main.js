@@ -583,19 +583,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   /* ── IVA / IRPF / IS ── */
-  document.getElementById("exportIvaBtn")?.addEventListener("click", exportLibroIngPDF);
-  document.getElementById("exportIrpfBtn")?.addEventListener("click", exportLibroGstPDF);
+  document.getElementById("exportIvaBtn")?.addEventListener("click", exportarDatos303);
+  document.getElementById("exportIvaPdfBtn")?.addEventListener("click", exportarPDF303);
+  document.getElementById("exportIrpfBtn")?.addEventListener("click", exportarDatos130);
+  document.getElementById("exportIrpfPdfBtn")?.addEventListener("click", exportarPDF130);
   document.getElementById("exportISBtn")?.addEventListener("click", () => toast("Exportación IS en desarrollo", "info"));
 
 
 
-  /* ── Otros modelos ── */
-  ["export111Btn", "export115Btn", "export347Btn", "export349Btn", "export190Btn", "export390Btn"].forEach(id => {
-    document.getElementById(id)?.addEventListener("click", () => {
-      const num = id.replace("export", "").replace("Btn", "");
-      toast(`Exportación Modelo ${num} en desarrollo`, "info");
-    });
-  });
+  /* ── Otros modelos — los listeners los registra initOtrosModelosView() ── */
 
   /* ── Libros ── */
   document.getElementById("exportLibroIngBtn")?.addEventListener("click", exportLibroIngPDF);
@@ -699,12 +695,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Validaciones en modales ── */
   initValidacionesModal();
-
-  /* ── Exportar casillas 303/130 ── */
-  document.getElementById("exportIvaBtn")?.addEventListener("click", exportarDatos303);
-  document.getElementById("exportIvaPdfBtn")?.addEventListener("click", exportarPDF303);
-  document.getElementById("exportIrpfBtn")?.addEventListener("click", exportarDatos130);
-  document.getElementById("exportIrpfPdfBtn")?.addEventListener("click", exportarPDF130);
 
   /* ── Pipeline CRM ── */
   initPipelineView();
