@@ -602,6 +602,7 @@
           <a href="#" id="openPrivacidad">Política de privacidad</a>
           <a href="#" id="openTerminos">Términos de uso</a>
           <a href="#" id="openCookies">Política de cookies</a>
+          <a href="#" id="openAvisoLegal">Aviso legal</a>
         </div>
         <div class="lp-footer-col">
           <div class="lp-footer-col-title">Contacto</div>
@@ -625,22 +626,42 @@
     <div class="legal-modal-header"><h2>Política de Privacidad</h2><button class="legal-modal-close" onclick="document.getElementById('modalPrivacidad').style.display='none'">×</button></div>
     <div class="legal-modal-body">
       <p class="legal-updated">Última actualización: abril 2026</p>
+
       <h3>1. Responsable del tratamiento</h3>
-      <p>Taurix es una aplicación web de gestión fiscal para autónomos y pymes españolas, prestada por el titular del proyecto con domicilio en España. Contacto para ejercicio de derechos y consultas: <strong><a id="emailContactoP" href="#" class="email-link">taurixsupport&#64;gmail&#46;com</a></strong>.</p>
+      <p>El responsable del tratamiento de los datos personales recogidos a través de Taurix es el titular del proyecto, con domicilio en España. Para cualquier consulta relativa a privacidad o ejercicio de derechos: <strong><a id="emailContactoP" href="#" class="email-link">taurixsupport&#64;gmail&#46;com</a></strong>.</p>
+
       <h3>2. Categorías de datos tratados</h3>
-      <p>Tratamos exclusivamente los datos que el propio usuario introduce: identificación y contacto (nombre y dirección de email obtenida mediante Google OAuth o registro directo) y datos fiscales y contables (facturas, clientes, gastos, productos, nóminas y demás información introducida en la plataforma). No recogemos datos de navegación, no empleamos rastreadores de terceros y no tratamos categorías especiales de datos en el sentido del art. 9 RGPD.</p>
-      <h3>3. Finalidades y bases jurídicas</h3>
-      <p>Los datos se tratan para la ejecución del contrato de prestación del servicio suscrito por el usuario (art. 6.1.b RGPD). No realizamos elaboración de perfiles, segmentación publicitaria ni cesiones comerciales de datos. Las únicas comunicaciones de datos a terceros son las estrictamente necesarias para la prestación del servicio: Supabase (infraestructura de base de datos) y Stripe (procesamiento de pagos), ambos sujetos a acuerdos de encargo de tratamiento conformes al RGPD.</p>
-      <h3>4. Asistente de inteligencia artificial</h3>
-      <p>Taurix incorpora un asistente de IA con acceso a los datos fiscales del usuario para ofrecer orientación personalizada. Las consultas se procesan de forma segura. Los datos del usuario no se utilizan para entrenar modelos de IA ni se ceden a terceros. Las respuestas del asistente son meramente orientativas y no constituyen asesoramiento fiscal profesional; la responsabilidad de cualquier declaración presentada ante organismos públicos recae íntegramente en el usuario o su representante legal.</p>
-      <h3>5. Seguridad y encargados de tratamiento</h3>
-      <p>Los datos se almacenan en Supabase (infraestructura en la Unión Europea, certificación SOC 2, cifrado en tránsito mediante TLS 1.2+ y en reposo mediante AES-256). La arquitectura de Row Level Security garantiza el aislamiento de datos entre cuentas. Los pagos se procesan por Stripe, Inc., certificado PCI-DSS nivel 1; Taurix no almacena en ningún momento datos de tarjeta.</p>
-      <h3>6. Transferencias internacionales</h3>
-      <p>Supabase opera con infraestructura alojada en la Unión Europea. Stripe procesa datos en virtud de las cláusulas contractuales tipo aprobadas por la Comisión Europea, garantizando un nivel de protección equivalente al exigido por el RGPD. No se realizan otras transferencias fuera del Espacio Económico Europeo.</p>
+      <p>Taurix trata exclusivamente los datos que el propio usuario introduce de forma activa: datos de identificación y contacto (nombre y dirección de correo electrónico, obtenidos mediante Google OAuth o registro directo), y datos fiscales, contables y laborales (facturas, clientes, proveedores, gastos, productos, nóminas y demás información introducida en la plataforma). No se recogen datos de navegación, no se emplean tecnologías de rastreo de terceros y no se tratan categorías especiales de datos en el sentido del art. 9 RGPD. El usuario es responsable de la exactitud y licitud de los datos que introduce en la plataforma.</p>
+
+      <h3>3. Finalidades y bases jurídicas del tratamiento</h3>
+      <p>Los datos se tratan con las siguientes finalidades y bases jurídicas:<br>
+      — <strong>Prestación del servicio:</strong> ejecución del contrato de suscripción suscrito por el usuario (art. 6.1.b RGPD).<br>
+      — <strong>Facturación y gestión de cobros:</strong> ejecución del contrato y cumplimiento de obligaciones legales en materia mercantil y fiscal (art. 6.1.b y 6.1.c RGPD).<br>
+      — <strong>Seguridad del sistema y prevención del fraude:</strong> interés legítimo del responsable en garantizar la integridad y seguridad de la plataforma (art. 6.1.f RGPD).<br>
+      — <strong>Cumplimiento de obligaciones legales:</strong> conservación de datos conforme a la normativa tributaria y mercantil aplicable (art. 6.1.c RGPD).<br>
+      No se realizan elaboración de perfiles, segmentación publicitaria ni cesiones comerciales de datos a terceros.</p>
+
+      <h3>4. Encargados del tratamiento</h3>
+      <p>Taurix utiliza los siguientes proveedores como encargados del tratamiento, con quienes mantiene los correspondientes acuerdos de encargo de tratamiento (DPA) conformes al RGPD:<br>
+      — <strong>Supabase, Inc.</strong> — infraestructura de base de datos y autenticación, con servidores en la Unión Europea, certificación SOC 2, cifrado en tránsito TLS 1.2+ y en reposo AES-256. La arquitectura Row Level Security garantiza el aislamiento de datos entre cuentas.<br>
+      — <strong>Stripe, Inc.</strong> — procesamiento de pagos recurrentes, certificado PCI-DSS nivel 1. Taurix no almacena en ningún momento datos de tarjeta de crédito o débito.<br>
+      — <strong>Google LLC</strong> — autenticación mediante Google OAuth, para usuarios que opten por este método de acceso.<br>
+      Los modelos de IA utilizados por el asistente fiscal procesan los datos del usuario de forma segura sin cederlos a terceros ni utilizarlos para entrenar modelos.</p>
+
+      <h3>5. Transferencias internacionales de datos</h3>
+      <p>Supabase opera con infraestructura alojada en la Unión Europea. Stripe y Google procesan datos amparados en las cláusulas contractuales tipo aprobadas por la Comisión Europea (Decisión de Ejecución 2021/914), garantizando un nivel de protección equivalente al exigido por el RGPD. No se realizan otras transferencias fuera del Espacio Económico Europeo.</p>
+
+      <h3>6. Asistente de inteligencia artificial</h3>
+      <p>Taurix incorpora un asistente de IA fiscal con acceso a los datos de la cuenta del usuario para ofrecer orientación personalizada. Las consultas al asistente se procesan de forma segura con la única finalidad de generar respuestas de apoyo al usuario. Los datos del usuario no se utilizan para entrenar modelos de IA, no se ceden a terceros y el tratamiento está sujeto al RGPD. El asistente tiene carácter meramente informativo y sus respuestas no constituyen asesoramiento fiscal ni jurídico profesional.</p>
+
       <h3>7. Conservación de datos</h3>
-      <p>Los datos fiscales y contables se conservan durante el plazo de prescripción tributaria establecido en la Ley General Tributaria (4 años) o, si es mayor, el plazo que resulte aplicable conforme a la normativa mercantil o laboral vigente. Una vez solicitada la baja, los datos se eliminan de forma segura en el plazo máximo de 30 días, salvo obligación legal de conservación.</p>
-      <h3>8. Derechos del interesado</h3>
-      <p>El usuario puede ejercer en cualquier momento sus derechos de acceso, rectificación, supresión, portabilidad, oposición y limitación del tratamiento mediante solicitud al email de soporte. Taurix responderá en el plazo de un mes conforme al art. 12 RGPD. Asimismo, el usuario tiene derecho a presentar reclamación ante la Agencia Española de Protección de Datos (www.aepd.es).</p>
+      <p>Los datos fiscales y contables se conservan durante el plazo de prescripción tributaria establecido en la Ley 58/2003, General Tributaria (4 años), o el plazo superior que resulte aplicable conforme a la normativa mercantil o laboral vigente. Una vez solicitada la cancelación de cuenta, los datos personales se eliminan de forma segura en el plazo máximo de 30 días, salvo que exista obligación legal de conservación que lo impida.</p>
+
+      <h3>8. Derechos de los interesados</h3>
+      <p>Conforme al RGPD, el usuario puede ejercer en cualquier momento los derechos de acceso, rectificación, supresión («derecho al olvido»), portabilidad, oposición y limitación del tratamiento mediante solicitud escrita al correo de soporte. Taurix responderá en el plazo de un mes desde la recepción de la solicitud, conforme al art. 12 RGPD. En caso de respuesta insatisfactoria, el usuario tiene derecho a presentar reclamación ante la Agencia Española de Protección de Datos (<strong>www.aepd.es</strong>).</p>
+
+      <h3>9. Responsabilidad sobre los datos introducidos</h3>
+      <p>El usuario es el único responsable de la exactitud, licitud y adecuación de los datos que introduce en Taurix, incluyendo datos de terceros (clientes, empleados, proveedores). Al introducir datos de terceros, el usuario declara disponer de la legitimación necesaria para su tratamiento. Taurix actúa como encargado del tratamiento respecto a los datos de terceros introducidos por el usuario, quien ostenta la condición de responsable del tratamiento de dichos datos.</p>
     </div>
   </div>
 </div>
@@ -650,34 +671,50 @@
     <div class="legal-modal-header"><h2>Términos de Uso</h2><button class="legal-modal-close" onclick="document.getElementById('modalTerminos').style.display='none'">×</button></div>
     <div class="legal-modal-body">
       <p class="legal-updated">Última actualización: abril 2026</p>
+
       <h3>1. Objeto y naturaleza del servicio</h3>
-      <p>Taurix es un servicio de software en la nube (SaaS) de apoyo a la gestión fiscal, contable y laboral, dirigido a autónomos y pymes con domicilio fiscal en España. El acceso al servicio se produce de forma inmediata tras la contratación. Taurix no es un despacho de asesoría fiscal ni actúa como representante del usuario ante la AEAT, la TGSS ni ningún otro organismo. La responsabilidad de verificar los cálculos y presentar declaraciones correctas recae íntegramente en el usuario o su representante legal.</p>
-      <h3>2. Cuentas y acceso</h3>
-      <p>El registro se realiza mediante Google OAuth o email y contraseña. El usuario es responsable de mantener la confidencialidad de sus credenciales y de todas las acciones realizadas bajo su cuenta. Los colaboradores o técnicos invitados actúan bajo la responsabilidad del titular de la cuenta principal, quien responderá de cualquier uso indebido realizado desde cuentas subordinadas.</p>
+      <p>Taurix es un servicio de software en la nube (SaaS) de apoyo a la gestión fiscal, contable y laboral, dirigido a autónomos y pymes con domicilio fiscal en España. El acceso al servicio se produce de forma inmediata tras la contratación. Taurix no es un despacho de asesoría fiscal ni actúa como representante, mandatario ni gestor del usuario ante la AEAT, la TGSS, el Registro Mercantil ni ningún otro organismo público. La responsabilidad de verificar la exactitud de los cálculos y presentar declaraciones correctas ante cualquier organismo recae íntegramente en el usuario o en el asesor fiscal o gestor colegiado que este designe.</p>
+
+      <h3>2. Cuentas y uso permitido</h3>
+      <p>El registro se realiza mediante Google OAuth o email y contraseña. El usuario es responsable de mantener la confidencialidad de sus credenciales y de todas las acciones realizadas bajo su cuenta. Los colaboradores o técnicos invitados actúan bajo la responsabilidad del titular de la cuenta principal.<br>
+      Queda expresamente prohibido: (a) utilizar la plataforma para fines ilícitos o contrarios a la normativa española o de la UE; (b) intentar acceder de forma no autorizada a datos de otras cuentas o a la infraestructura del servicio; (c) introducir código malicioso, malware, scripts de automatización no autorizados o cualquier elemento que pueda dañar el servicio o a otros usuarios; (d) realizar ingeniería inversa, descompilar o intentar obtener el código fuente del software; (e) revender, sublicenciar o ceder el acceso al servicio a terceros sin autorización expresa. El incumplimiento de estas prohibiciones faculta a Taurix para suspender o cancelar la cuenta de forma inmediata.</p>
+
       <h3>3. Suscripción, pagos y renovación automática</h3>
-      <p>El servicio se presta mediante suscripción mensual de renovación automática, gestionada a través de Stripe, Inc. (proveedor de pagos certificado PCI-DSS nivel 1). Al contratar, el usuario autoriza expresamente los cargos recurrentes mensuales en el método de pago registrado. El cobro se realiza al inicio de cada periodo mensual.</p>
-      <p>La suscripción se renueva automáticamente cada mes salvo cancelación expresa por parte del usuario antes de la fecha de renovación. La cancelación puede realizarse en cualquier momento desde la configuración de la cuenta, sin coste adicional ni penalización. El acceso al servicio se mantiene activo hasta el último día del periodo mensual ya abonado; no se realizan reembolsos parciales por cancelación anticipada dentro de un periodo en curso, de conformidad con el art. 103.a de la LGDCU (servicios digitales de acceso inmediato).</p>
-      <p>Taurix no almacena datos de tarjeta de crédito o débito; éstos son gestionados íntegramente por Stripe conforme a la normativa PCI-DSS. Los datos de facturación y el historial de pagos están disponibles en la configuración de la cuenta.</p>
+      <p>El servicio se presta mediante suscripción mensual de renovación automática, gestionada a través de Stripe, Inc. (proveedor de pagos certificado PCI-DSS nivel 1). Al contratar, el usuario autoriza expresamente cargos recurrentes mensuales en el método de pago registrado. El cobro se realiza al inicio de cada periodo mensual.<br>
+      La suscripción se renueva automáticamente cada mes salvo cancelación expresa antes de la fecha de renovación. La cancelación puede realizarse desde la configuración de la cuenta, sin coste adicional ni penalización. El acceso al servicio se mantiene activo hasta el último día del periodo mensual ya abonado. No se realizan reembolsos parciales por cancelación anticipada dentro de un periodo en curso, de conformidad con el art. 103.a del Real Decreto Legislativo 1/2007 (LGDCU), aplicable a servicios digitales de contenido y acceso inmediato.<br>
+      Taurix no almacena datos de tarjeta de crédito o débito; estos son gestionados íntegramente por Stripe conforme a la normativa PCI-DSS. El historial de pagos y las facturas del servicio están disponibles en la configuración de la cuenta.</p>
+
       <h3>4. Impagos y suspensión del servicio</h3>
-      <p>Si un cobro recurrente no puede procesarse, Stripe realizará hasta tres reintentos automáticos en los días siguientes. Si el pago continúa sin completarse, Taurix se reserva el derecho a suspender el acceso al servicio hasta que la deuda quede saldada. En caso de impago persistente (superior a 30 días), Taurix podrá proceder a la cancelación definitiva de la cuenta, con conservación de los datos conforme al apartado de privacidad.</p>
+      <p>Si un cobro recurrente no puede procesarse, Stripe efectuará hasta tres reintentos automáticos en los días siguientes. Si el pago continúa sin completarse, Taurix se reserva el derecho a suspender el acceso al servicio hasta que la deuda quede regularizada. En caso de impago persistente superior a 30 días naturales, Taurix podrá proceder a la cancelación definitiva de la cuenta, manteniéndose la conservación de datos conforme a lo establecido en la Política de Privacidad.</p>
+
       <h3>5. Modificación de precios</h3>
-      <p>Taurix podrá modificar el precio de la suscripción con un preaviso mínimo de 30 días, comunicado por email a la dirección registrada. El nuevo precio se aplicará a partir del siguiente periodo de facturación posterior a la comunicación. Los periodos ya abonados no se verán afectados. Si el usuario no acepta el nuevo precio, podrá cancelar su suscripción antes de la fecha de renovación sin coste alguno.</p>
-      <h3>6. Disputas de pago</h3>
-      <p>Antes de iniciar cualquier disputa o contracargo (chargeback) ante su entidad bancaria o Stripe, el usuario se compromete a contactar con el soporte de Taurix en <strong>taurixsupport&#64;gmail&#46;com</strong> para resolver el asunto directamente. Taurix se reserva el derecho a suspender o cancelar cuentas desde las que se hayan iniciado contracargos infundados o abusivos, sin perjuicio de las acciones legales que correspondan.</p>
-      <h3>7. IVA y facturación</h3>
-      <p>Los precios publicados se expresan sin IVA. El IVA aplicable (21% tipo general) se añadirá al importe final conforme a la normativa fiscal española vigente. Taurix emitirá factura por cada cargo mensual, disponible en la configuración de la cuenta. Los usuarios con NIF-IVA intracomunitario válido podrán estar sujetos a las reglas de inversión del sujeto pasivo según la normativa de la UE.</p>
-      <h3>8. Asistente de IA fiscal</h3>
-      <p>El asistente de IA incorporado en Taurix tiene carácter orientativo. Sus respuestas no constituyen asesoramiento fiscal ni jurídico profesional y no generan relación de mandato ni representación entre Taurix y el usuario. Taurix no asume responsabilidad por decisiones fiscales adoptadas basándose exclusivamente en las indicaciones del asistente.</p>
-      <h3>9. Propiedad intelectual y datos del usuario</h3>
-      <p>El software, diseño, algoritmos y contenidos de Taurix son propiedad intelectual del titular del proyecto y están protegidos por la legislación española y comunitaria. Los datos introducidos por el usuario son de su exclusiva propiedad; el usuario puede exportarlos en cualquier momento en formatos estándar. Taurix no vende, cede, alquila ni monetiza los datos del usuario con terceros.</p>
-      <h3>10. Disponibilidad y mantenimiento</h3>
-      <p>Taurix presta el servicio procurando la máxima disponibilidad, pero no garantiza un nivel de servicio (SLA) específico. Las interrupciones programadas por mantenimiento se comunicarán con antelación razonable y se realizarán preferentemente en horario de menor uso. Taurix no será responsable de daños o pérdidas derivados de interrupciones no imputables a su negligencia.</p>
+      <p>Taurix podrá modificar el precio de la suscripción con un preaviso mínimo de 30 días, comunicado por email a la dirección registrada en la cuenta. El nuevo precio se aplicará a partir del siguiente periodo de facturación posterior a la comunicación. Los periodos ya abonados no se verán afectados. Si el usuario no acepta el nuevo precio, podrá cancelar su suscripción antes de la fecha de renovación sin coste ni penalización.</p>
+
+      <h3>6. Disputas de pago y contracargos</h3>
+      <p>Antes de iniciar cualquier disputa o contracargo (<em>chargeback</em>) ante su entidad bancaria o ante Stripe, el usuario se compromete a contactar previamente con el soporte de Taurix en <strong>taurixsupport&#64;gmail&#46;com</strong> para intentar resolver el asunto de forma directa. Taurix se reserva el derecho a suspender o cancelar las cuentas desde las que se hayan iniciado contracargos infundados o abusivos, sin perjuicio del ejercicio de las acciones legales que correspondan para la recuperación de los importes disputados y los costes asociados.</p>
+
+      <h3>7. IVA y facturación del servicio</h3>
+      <p>Los precios publicados se expresan sin IVA. El IVA aplicable (21%, tipo general) se añadirá al importe final conforme a la normativa fiscal española vigente. Taurix emitirá factura por cada cargo mensual, disponible en la configuración de la cuenta. Los usuarios con NIF-IVA intracomunitario válido podrán estar sujetos a las reglas de inversión del sujeto pasivo (ISP) conforme a la Directiva 2006/112/CE y su transposición en la Ley 37/1992 del IVA.</p>
+
+      <h3>8. Asistente de inteligencia artificial</h3>
+      <p>Taurix incorpora un asistente de IA fiscal con finalidad exclusivamente informativa y de apoyo técnico al usuario. El asistente no constituye asesoramiento fiscal, tributario, laboral ni jurídico de ningún tipo. No existe relación de asesor fiscal, mandato ni representación entre Taurix y el usuario derivada del uso del asistente. Las respuestas generadas por la IA son orientativas, pueden contener errores o imprecisiones y no sustituyen el criterio de un gestor o asesor fiscal colegiado.<br>
+      El usuario asume la responsabilidad final de verificar los resultados del asistente antes de presentar cualquier declaración o modelo fiscal ante organismos públicos. Taurix no garantiza la exactitud absoluta de las respuestas generadas por IA y no responde por sanciones, recargos, intereses de demora ni perjuicios de ningún tipo derivados de decisiones adoptadas basándose exclusivamente en las indicaciones del asistente.<br>
+      El usuario no utilizará el asistente para fines ilícitos, ni introducirá datos de terceros sin legitimación suficiente. Taurix podrá limitar o suspender el acceso al asistente en caso de uso abusivo o contrario a estos términos.</p>
+
+      <h3>9. Propiedad intelectual</h3>
+      <p>El software, diseño, interfaz, algoritmos, lógica fiscal, modelos de cálculo y contenidos de Taurix son propiedad intelectual del titular del proyecto y están protegidos por la legislación española sobre propiedad intelectual e industrial y por la normativa comunitaria aplicable. Queda prohibida su reproducción, distribución, modificación o explotación sin autorización expresa. Los datos introducidos por el usuario son de su exclusiva propiedad; el usuario puede exportarlos en cualquier momento en formatos estándar. Taurix no vende, cede, alquila ni monetiza los datos del usuario con terceros.</p>
+
+      <h3>10. Disponibilidad, mantenimiento y fuerza mayor</h3>
+      <p>Taurix presta el servicio procurando la máxima disponibilidad, pero no garantiza disponibilidad ininterrumpida ni un nivel de servicio (SLA) específico. Las interrupciones programadas por mantenimiento se comunicarán con antelación razonable y se realizarán preferentemente en horario de menor uso. Taurix no será responsable de daños o pérdidas derivados de: (a) interrupciones o fallos de los proveedores de infraestructura (Supabase, Stripe, Google); (b) eventos de fuerza mayor (desastres naturales, conflictos, decisiones gubernamentales, ciberataques masivos u otros eventos fuera del control razonable del prestador); (c) uso incorrecto de la plataforma por parte del usuario; (d) pérdida de datos atribuible a acción u omisión del propio usuario.</p>
+
       <h3>11. Limitación de responsabilidad</h3>
-      <p>En ningún caso la responsabilidad total de Taurix frente al usuario por cualquier concepto superará el importe abonado por el usuario en los tres meses anteriores al hecho que origine la reclamación. Taurix no responde por lucro cesante, pérdida de datos, sanciones tributarias ni daños indirectos derivados del uso del servicio.</p>
+      <p>En ningún caso la responsabilidad total acumulada de Taurix frente al usuario, por cualquier concepto y con independencia de la causa de la reclamación, superará el importe efectivamente abonado por el usuario durante los tres meses inmediatamente anteriores al hecho generador de la reclamación. Taurix no responde en ningún caso por: lucro cesante; pérdida de ingresos o de negocio; pérdida o corrupción de datos; sanciones, recargos o intereses de demora impuestos por organismos tributarios o de la Seguridad Social; daños indirectos, consecuenciales o punitivos de cualquier naturaleza. Esta limitación se aplicará en la máxima medida permitida por la legislación española aplicable.</p>
+
       <h3>12. Modificación de los términos</h3>
-      <p>Taurix podrá modificar estos términos con preaviso de 15 días mediante notificación por email o aviso en la plataforma. El uso continuado del servicio tras la entrada en vigor de los nuevos términos implica su aceptación. Si el usuario no acepta los cambios, podrá cancelar su suscripción sin penalización antes de la fecha de entrada en vigor.</p>
+      <p>Taurix podrá modificar estos términos con un preaviso mínimo de 15 días, comunicado mediante notificación por email a la dirección registrada o mediante aviso visible en la plataforma. El uso continuado del servicio tras la entrada en vigor de los nuevos términos implica su aceptación. Si el usuario no acepta los cambios, podrá cancelar su suscripción sin penalización antes de la fecha de entrada en vigor.</p>
+
       <h3>13. Legislación aplicable y resolución de conflictos</h3>
-      <p>Estos términos se rigen por la legislación española, en particular la LSSI-CE, la LGDCU y el Reglamento (UE) 2016/679 (RGPD). Para la resolución de conflictos, las partes se someten a los juzgados y tribunales del domicilio del titular del proyecto, salvo que la normativa vigente establezca un fuero imperativo distinto en favor del usuario consumidor.</p>
+      <p>Estos términos se rigen por la legislación española, en particular la Ley 34/2002 (LSSI-CE), el Real Decreto Legislativo 1/2007 (LGDCU), la Ley 7/1998 sobre condiciones generales de contratación y el Reglamento (UE) 2016/679 (RGPD). Para la resolución de conflictos, las partes se someten a los juzgados y tribunales del domicilio del titular del proyecto, salvo que la normativa vigente establezca un fuero imperativo distinto en favor del usuario en su condición de consumidor o usuario final.</p>
     </div>
   </div>
 </div>
@@ -687,22 +724,74 @@
     <div class="legal-modal-header"><h2>Política de Cookies y Almacenamiento Local</h2><button class="legal-modal-close" onclick="document.getElementById('modalCookies').style.display='none'">×</button></div>
     <div class="legal-modal-body">
       <p class="legal-updated">Última actualización: abril 2026</p>
+
       <h3>1. Ausencia de cookies de rastreo y publicidad</h3>
-      <p>Taurix está diseñado con un enfoque de privacidad por defecto (<em>privacy by design</em>). No instalamos cookies propias ni de terceros con fines publicitarios, analíticos, de perfilado o rastreo de comportamiento. No integramos herramientas de analítica de terceros (Google Analytics, Hotjar ni similares), ni píxeles de redes sociales (Meta, TikTok ni equivalentes). En consecuencia, no compartimos ningún dato de actividad con plataformas publicitarias.</p>
+      <p>Taurix está desarrollado bajo un principio de privacidad por diseño (<em>privacy by design</em>) y privacidad por defecto (<em>privacy by default</em>), conforme al art. 25 RGPD. No instalamos cookies propias ni de terceros con fines publicitarios, analíticos, de perfilado o rastreo de comportamiento. No integramos herramientas de analítica de terceros (Google Analytics, Hotjar, Matomo ni similares), ni píxeles de redes sociales (Meta, TikTok, LinkedIn ni equivalentes), ni tecnologías de fingerprinting. No compartimos ningún dato de actividad con plataformas publicitarias.</p>
+
       <h3>2. Almacenamiento local técnico estrictamente necesario</h3>
-      <p>Taurix utiliza exclusivamente la API <em>localStorage</em> del navegador para el almacenamiento de preferencias de interfaz y tokens de sesión necesarios para el funcionamiento del servicio. No se utilizan cookies HTTP. Los elementos almacenados son los siguientes:</p>
+      <p>Taurix utiliza exclusivamente la API <em>localStorage</em> del navegador para el almacenamiento técnico de tokens de sesión y preferencias de interfaz imprescindibles para el funcionamiento del servicio. Taurix no establece cookies HTTP de ningún tipo. Los elementos de almacenamiento local utilizados son los siguientes:</p>
       <ul>
-        <li><strong>Token de sesión Supabase</strong> — credencial cifrada de autenticación que permite mantener la sesión activa sin requerir inicio de sesión en cada visita. Imprescindible para el funcionamiento del servicio.</li>
-        <li><strong>tg_dark</strong> — preferencia de tema visual (modo claro u oscuro). Exclusivamente local.</li>
-        <li><strong>tg_onboard_done</strong> — indicador que registra si el usuario ha completado el proceso de alta inicial, evitando que se muestre de nuevo. Exclusivamente local.</li>
-        <li><strong>tg_empresa_id</strong> — identificador de la última empresa seleccionada en cuentas multi-empresa. Exclusivamente local.</li>
-        <li><strong>tg_trim / tg_year</strong> — último trimestre fiscal y ejercicio seleccionados, para restaurar el contexto entre sesiones. Exclusivamente local.</li>
+        <li><strong>Token de sesión Supabase</strong> — credencial cifrada de autenticación necesaria para mantener la sesión del usuario activa. Sin este elemento, el servicio no puede prestarse.</li>
+        <li><strong>tg_dark</strong> — preferencia de tema visual (modo claro u oscuro) seleccionada por el usuario.</li>
+        <li><strong>tg_onboard_done</strong> — indicador que registra si el usuario ha completado el proceso de alta inicial, para evitar su repetición.</li>
+        <li><strong>tg_empresa_id</strong> — identificador de la última empresa seleccionada, disponible en cuentas multi-empresa.</li>
+        <li><strong>tg_trim / tg_year</strong> — último trimestre fiscal y ejercicio seleccionados, para restaurar el contexto de trabajo entre sesiones.</li>
+        <li><strong>tg_cookies</strong> — registro del reconocimiento del aviso informativo sobre almacenamiento técnico.</li>
       </ul>
-      <p>Todos estos datos residen únicamente en el dispositivo del usuario. No se transmiten a servidores de Taurix ni a terceros con ninguna finalidad. El usuario puede eliminarlos en cualquier momento accediendo a la configuración de privacidad de su navegador y borrando los datos del sitio correspondiente a taurix.app.</p>
-      <h3>3. Base legal y ausencia de obligación de consentimiento</h3>
-      <p>De conformidad con el art. 22.2 de la Ley 34/2002, de Servicios de la Sociedad de la Información y del Comercio Electrónico (LSSI-CE), quedan exceptuados de la obligación de recabar consentimiento previo los dispositivos de almacenamiento y recuperación de datos cuando su única finalidad sea permitir la comunicación entre el usuario y el prestador o cuando sean estrictamente necesarios para prestar el servicio expresamente solicitado. Todo el almacenamiento local descrito en esta política cumple dichos requisitos. En consecuencia, Taurix no muestra banner de cookies ni solicita consentimiento para estos elementos.</p>
-      <h3>4. Actualizaciones de esta política</h3>
-      <p>Si en el futuro se incorporasen herramientas que requirieran el uso de cookies sujetas a consentimiento, esta política se actualizaría con antelación suficiente y se implementaría el mecanismo de consentimiento correspondiente. A la fecha de la última actualización indicada, Taurix opera sin cookies de ningún tipo.</p>
+      <p>Todos estos elementos residen exclusivamente en el dispositivo del usuario y no se transmiten a servidores de Taurix ni a terceros con ninguna finalidad. El usuario puede eliminarlos accediendo a la configuración de privacidad de su navegador y borrando los datos del sitio taurix.app.</p>
+
+      <h3>3. Base legal y ausencia de obligación de consentimiento previo</h3>
+      <p>Conforme al art. 22.2 de la Ley 34/2002, de Servicios de la Sociedad de la Información y del Comercio Electrónico (LSSI-CE), quedan exceptuados de la obligación de recabar consentimiento previo los dispositivos de almacenamiento y recuperación de datos cuya única finalidad sea permitir la comunicación por red o que resulten estrictamente necesarios para prestar el servicio expresamente solicitado por el usuario. La totalidad del almacenamiento local descrito en esta política cumple dichos requisitos. En consecuencia, Taurix no presenta banner de cookies ni recaba consentimiento específico para estos elementos.</p>
+
+      <h3>4. Coherencia con el RGPD</h3>
+      <p>El almacenamiento técnico descrito no implica tratamiento de datos personales en el sentido del art. 4.2 RGPD, al no transmitirse información a ningún servidor externo. En ningún caso se utiliza el almacenamiento local para finalidades distintas de las estrictamente técnicas descritas en esta política.</p>
+
+      <h3>5. Actualizaciones de esta política</h3>
+      <p>Si en el futuro Taurix incorporara herramientas que requiriesen el uso de cookies o tecnologías de almacenamiento sujetas a consentimiento, esta política se actualizaría con antelación suficiente y se implementaría el mecanismo de consentimiento legalmente exigido. A la fecha de la última actualización indicada, Taurix opera sin cookies de ningún tipo.</p>
+    </div>
+  </div>
+</div>
+
+<div id="modalAvisoLegal" class="legal-modal-overlay" style="display:none">
+  <div class="legal-modal">
+    <div class="legal-modal-header"><h2>Aviso Legal</h2><button class="legal-modal-close" onclick="document.getElementById('modalAvisoLegal').style.display='none'">×</button></div>
+    <div class="legal-modal-body">
+      <p class="legal-updated">Última actualización: abril 2026</p>
+
+      <h3>1. Identificación del titular</h3>
+      <p>En cumplimiento del art. 10 de la Ley 34/2002, de 11 de julio, de Servicios de la Sociedad de la Información y del Comercio Electrónico (LSSI-CE), se facilitan los siguientes datos identificativos:<br>
+      <strong>Denominación:</strong> Taurix<br>
+      <strong>Domicilio:</strong> España<br>
+      <strong>Email de contacto:</strong> <a href="#" class="email-link">taurixsupport&#64;gmail&#46;com</a><br>
+      <strong>Actividad:</strong> Prestación de servicios de software en la nube (SaaS) para gestión fiscal, contable y laboral.</p>
+
+      <h3>2. Objeto y condiciones de uso del sitio web</h3>
+      <p>El presente Aviso Legal regula el acceso y uso del sitio web taurix.app (en adelante, «el Sitio») y de la aplicación SaaS accesible desde el mismo. El acceso al Sitio implica la aceptación plena de las presentes condiciones. El titular se reserva el derecho a modificar unilateralmente el contenido y estructura del Sitio, así como las presentes condiciones, sin perjuicio de las obligaciones contractuales adquiridas con usuarios suscritos.</p>
+
+      <h3>3. Propiedad intelectual e industrial</h3>
+      <p>La totalidad de los contenidos del Sitio y de la aplicación Taurix —incluyendo, sin carácter limitativo, el software, código fuente, algoritmos de cálculo fiscal, diseño visual, interfaz de usuario, textos, logotipos, imágenes y estructura— son propiedad del titular o de terceros que han autorizado su uso, y están protegidos por la legislación española e internacional sobre propiedad intelectual e industrial (Real Decreto Legislativo 1/1996, por el que se aprueba el Texto Refundido de la Ley de Propiedad Intelectual, y demás normativa aplicable).<br>
+      Queda expresamente prohibida la reproducción total o parcial, distribución, transformación, comunicación pública, ingeniería inversa, descompilación o cualquier otro acto de explotación no autorizado expresamente, sin perjuicio de las acciones legales que correspondan.</p>
+
+      <h3>4. Limitación de responsabilidad del contenido</h3>
+      <p>El titular no garantiza la exactitud, exhaustividad ni actualidad de los contenidos informativos publicados en el Sitio. Los contenidos de carácter fiscal, tributario o contable que puedan aparecer en el Sitio o en la aplicación tienen carácter meramente orientativo y no constituyen asesoramiento profesional. El titular no será responsable de los daños derivados del uso de la información publicada en el Sitio ni de las decisiones adoptadas por el usuario basándose en dicha información.</p>
+
+      <h3>5. Naturaleza del servicio SaaS — exclusión de asesoramiento fiscal</h3>
+      <p>Taurix es una herramienta de software de apoyo a la gestión fiscal y contable. El servicio no implica, en ningún caso, la prestación de servicios de asesoramiento fiscal, tributario, laboral o jurídico por parte del titular. El asistente de inteligencia artificial incorporado en la plataforma tiene finalidad exclusivamente informativa y de orientación técnica; sus respuestas no constituyen asesoramiento fiscal profesional ni generan relación de mandato, representación o asesoría entre el titular y el usuario. El usuario es el único responsable de las declaraciones presentadas ante la AEAT, la TGSS o cualquier otro organismo público.</p>
+
+      <h3>6. Prohibición de uso indebido</h3>
+      <p>El usuario se compromete a utilizar el Sitio y el servicio de conformidad con la ley, la moral y el orden público. Queda prohibido: utilizar el Sitio o la aplicación para actividades ilícitas o fraudulentas; intentar acceder de forma no autorizada a los sistemas del titular o de terceros; introducir virus, malware o cualquier código dañino; realizar actividades que puedan dañar, inutilizar, sobrecargar o deteriorar los sistemas del titular. El incumplimiento de estas obligaciones facultará al titular para adoptar las medidas técnicas y legales que correspondan.</p>
+
+      <h3>7. Enlaces a sitios de terceros</h3>
+      <p>El Sitio puede contener enlaces a páginas web de terceros. El titular no controla el contenido de dichos sitios, no asume responsabilidad alguna por los mismos y la inclusión de un enlace no implica recomendación ni asociación con el tercero enlazado. El usuario accede a los sitios enlazados bajo su exclusiva responsabilidad.</p>
+
+      <h3>8. Disponibilidad del sitio web</h3>
+      <p>El titular no garantiza la disponibilidad ininterrumpida del Sitio ni de la aplicación. El acceso podrá verse temporalmente interrumpido por razones técnicas, de mantenimiento, causas de fuerza mayor o decisiones de los proveedores de infraestructura. El titular no asume responsabilidad por los daños derivados de interrupciones no imputables a su negligencia.</p>
+
+      <h3>9. Protección de datos personales</h3>
+      <p>El tratamiento de los datos personales recogidos a través del Sitio y la aplicación se rige por lo establecido en la Política de Privacidad de Taurix, disponible en este mismo Sitio, en cumplimiento del Reglamento (UE) 2016/679 (RGPD) y de la Ley Orgánica 3/2018, de Protección de Datos Personales y garantía de los derechos digitales (LOPDGDD).</p>
+
+      <h3>10. Legislación aplicable y jurisdicción</h3>
+      <p>El presente Aviso Legal se rige por la legislación española, en particular la Ley 34/2002 (LSSI-CE), el Real Decreto Legislativo 1/2007 (LGDCU) y el Reglamento (UE) 2016/679 (RGPD). Para la resolución de cualquier controversia derivada del acceso o uso del Sitio, las partes se someten a la jurisdicción de los juzgados y tribunales competentes del domicilio del titular, salvo que la normativa vigente establezca un fuero imperativo distinto en favor del usuario consumidor.</p>
     </div>
   </div>
 </div>
