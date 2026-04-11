@@ -450,7 +450,7 @@ async function _save() {
       producto_id: l.producto_id || null,
     }))),
   };
-  const _nrPlantillaId = document.getElementById("nrPlantillaSel")?.value || null;
+  const _nrPlantillaId = document.getElementById("nrPlantillaSel")?.value || "none";
 
   let err;
   if (editandoId) {
