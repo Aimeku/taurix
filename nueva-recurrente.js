@@ -162,7 +162,7 @@ function _addLinea(pf = {}) {
   const di = row.querySelector("[data-field='descripcion']");
   if (di) _buildProdDropdown(di, p => {
     const lx = LINEAS.find(x => x.id === id);
-    if (lx) { lx.descripcion = p.descripcion||p.nombre; lx.precio = p.precio; lx.iva = sinIva ? 0 : p.iva; }
+    if (lx) { lx.descripcion = p.descripcion||p.nombre; lx.precio = p.precio; lx.iva = sinIva ? 0 : p.iva; lx.producto_id = p.id; }
     const f = (field, val) => { const el=row.querySelector(`[data-field="${field}"]`); if(el) el.value=val; };
     f("descripcion", p.descripcion||p.nombre); f("precio", p.precio); if (!sinIva) f("iva", p.iva);
     const tot = document.getElementById(`nrLt${id}`);
@@ -390,6 +390,7 @@ async function _save() {
       descripcion: l.descripcion, cantidad: l.cantidad, precio: l.precio,
       iva: l.iva, descuento: l.descuento ?? "",
       subtotal: Math.max(0, l.cantidad*l.precio - _parseDto(l.descuento, l.cantidad*l.precio)),
+      producto_id: l.producto_id || null,
     }))),
   };
   const _nrPlantillaId = document.getElementById("nrPlantillaSel")?.value || null;
