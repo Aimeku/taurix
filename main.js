@@ -60,7 +60,7 @@ import { initContabilidadView, refreshLibroDiario, refreshSumasSaldos, refreshBa
 import { initOtrosModelosView } from "./otros-modelos.js";
 import { initAmortizacionesView } from "./amortizaciones.js";
 import { initValidacionesModal, validarIdentificadorFiscal, validarIBAN } from "./validaciones.js";
-import { exportarDatos303, exportarDatos130, GASTOS_DEDUCIBLES } from "./fiscal.js";
+import { exportarDatos303, exportarDatos130, exportarPDF303, exportarPDF130, GASTOS_DEDUCIBLES } from "./fiscal.js";
 import { initRecurrentesView, refreshRecurrentes } from "./facturas-recurrentes.js";
 import { initNuevaRecurrente } from "./nueva-recurrente.js";
 import { initPlantillasView, refreshPlantillas } from "./plantillas-usuario.js";
@@ -702,7 +702,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Exportar casillas 303/130 ── */
   document.getElementById("exportIvaBtn")?.addEventListener("click", exportarDatos303);
+  document.getElementById("exportIvaPdfBtn")?.addEventListener("click", exportarPDF303);
   document.getElementById("exportIrpfBtn")?.addEventListener("click", exportarDatos130);
+  document.getElementById("exportIrpfPdfBtn")?.addEventListener("click", exportarPDF130);
 
   /* ── Pipeline CRM ── */
   initPipelineView();
