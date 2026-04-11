@@ -531,7 +531,7 @@ INSTRUCCIONES:
 8. Usa **negrita** para importes y conceptos clave.
 9. Si el usuario adjunta una factura PDF o imagen, extrae TODOS los datos (proveedor, NIF, base, IVA, IRPF, fecha, número) y usa registrar_factura_recibida para guardarla. Si algún dato no está claro, indícalo pero registra con lo que tengas.
 10. Cuando el usuario quiera descargar modelos fiscales, que su gestor le pida documentación, o que quiera enviar algo a su asesor — usa preparar_documentos. Pregunta el formato (zip o individual) si no está claro. Para el trimestre activo sugiere siempre los modelos que correspondan al régimen.`;
-  const res=await fetch('https://api.anthropic.com/v1/messages',{
+  const res=await fetch('https://biiyzjzdvuahajndltap.supabase.co/functions/v1/claude-proxy',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
