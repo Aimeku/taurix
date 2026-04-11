@@ -341,36 +341,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     /* SIGNED_IN tras confirmación de email al crear cuenta ──
-       Cerramos la sesión que Supabase crea automáticamente y
-       redirigimos al login con un mensaje de éxito. */
+       Marcamos el flag de "verificado" en sessionStorage, cerramos sesión
+       con signOut() y recargamos. En la siguiente carga, el flag estará
+       presente y mostramos el modal de login con el mensaje de éxito.
+       Así evitamos la race condition entre signOut() y el listener SIGNED_OUT. */
     if (event === "SIGNED_IN" && sessionStorage.getItem("taurix_confirmation_pending") === "1") {
       sessionStorage.removeItem("taurix_confirmation_pending");
       _isRecoveryFlow = true;
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.add("hidden");
       window.history.replaceState({}, document.title, window.location.pathname);
-      // Cerrar sesión — el usuario debe entrar manualmente
-      sessionStorage.setItem("taurix_confirmation_signout", "1");
+      // Guardar el flag ANTES del signOut — sobrevive al reload
+      sessionStorage.setItem("taurix_email_verified", "1");
       await supabase.auth.signOut();
-      // Mostrar landing con modal de login y mensaje de éxito
-      sessionStorage.removeItem("taurix_confirmation_signout");
-      document.getElementById("landingPage")?.classList.remove("hidden");
-      showAuthModal();
-      setTimeout(() => {
-        const successEl = document.getElementById("authSuccess");
-        if (successEl) {
-          successEl.textContent = "✅ Email verificado. Ya puedes iniciar sesión.";
-          successEl.style.display = "";
-        }
-      }, 150);
+      window.location.reload();
       return;
     }
 
     if (event === "SIGNED_OUT") {
       sessionStorage.removeItem("taurix_recovery_pending");
-      // Ignorar SIGNED_OUT provocados por flujos especiales (recovery/confirmation)
       if (sessionStorage.getItem("taurix_recovery_signout") === "1") return;
-      if (sessionStorage.getItem("taurix_confirmation_signout") === "1") return;
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.remove("hidden");
     }
@@ -416,6 +406,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     localStorage.setItem("tg_cookies", "essential");
     if (cookieBanner) cookieBanner.style.display = "none";
   });
+
+  /* ── Email verificado — mostrar modal de login con mensaje de éxito ── */
+  if (sessionStorage.getItem("taurix_email_verified") === "1") {
+    sessionStorage.removeItem("taurix_email_verified");
+    document.getElementById("landingPage")?.classList.remove("hidden");
+    showAuthModal();
+    setTimeout(() => {
+      const successEl = document.getElementById("authSuccess");
+      if (successEl) {
+        successEl.textContent = "✅ Email verificado. Ya puedes iniciar sesión.";
+        successEl.style.display = "";
+      }
+    }, 150);
+    return;
+  }
 
   /* ── Sesión ── */
   // Si ya se activó el recovery flow, no continuar con la app
