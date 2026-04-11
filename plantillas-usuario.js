@@ -301,8 +301,6 @@ function _runPreview() {
   const logoX    = _gi("ep_logo_x",    0);
   const logoY    = _gi("ep_logo_y",    8);
   const logoSize = _gi("ep_logo_size", 30);
-  const emisorX  = _gi("ep_emisor_x",  0);
-  const clienteX = _gi("ep_cliente_x", 0);
 
   /* ── Documento ── */
   const doc = _g("ep_pv_doc");
@@ -388,72 +386,43 @@ function _runPreview() {
   const feEl = _g("ep_pv_fecha");
   if (feEl) { feEl.style.color = txtColor; if (!feEl.textContent) feEl.textContent = new Date().toLocaleDateString("es-ES"); }
 
-  /* ── Emisor / Cliente ──
-     Sistema de coordenadas CENTRADO por cuadrante — idéntico al del logo.
-     ─────────────────────────────────────────────────────────────────────
-     X=0  → bloque centrado en su cuadrante (izq=emisor, der=cliente)
-     X<0  → se desplaza hacia la izquierda del cuadrante
-     X>0  → se desplaza hacia la derecha del cuadrante
-     Y=0  → posición vertical base; Y<0 sube, Y>0 baja
-
-     Implementación — espejo exacto del logo:
-       left = center_del_cuadrante_px
-       transform = translateX(calc(-50% + offsetPx)) translateY(tyPx)
-     Donde offsetPx = clamp(sX * (pvW/240), ±(pvW/2 - 8))
-
-     El contenedor ep_pv_emisor_row es position:relative + overflow:hidden.
-     Los bloques son position:absolute.
-     Límite de bloque = [8px, pvW-8px] en coordenadas del doc.
+  /* ── Emisor / Cliente — layout fijo, profesional, sin coordenadas variables ──
+     Flexbox a dos columnas igual que el PDF: emisor izquierda, cliente derecha.
+     Alineado con los márgenes del documento (padding 18px a cada lado).
   ── */
-  // ── Emisor / Cliente — sistema de coordenadas sincronizado con el PDF ──
-  //
-  // El PDF usa:
-  //   _cEmMm = ML + W/4  (centro cuadrante izq en mm)
-  //   _cClMm = ML + 3W/4 (centro cuadrante der en mm)
-  //   offset = clamp(slider*(PVW/240), ±(PVW/2-18)) * PX_TO_MM
-  //
-  // En el preview (px) — mismo sistema:
-  //   pvW=420, _pad_pv=18, _qW=(420-36)/2=192
-  //   _cEmPx = 18 + 192/2 = 114px  →  equivale a ML+W/4 en mm → (9+48.5)=57.5mm → 115px ✓
-  //   _cClPx = 18 + 192 + 96 = 306px → equivale a ML+3W/4 → 57.5+96=153.5mm → 307px ✓
-  //   offsetPx = clamp(slider*(pvW/240), ±(pvW/2-18))
-  //   posición X del bloque = center - blkW/2 + offsetPx
-  //
-  // Y: fijo en la posición base (slider eliminado del editor)
-
   const er = _g("ep_pv_emisor_row");
   if (er) {
-    er.style.display = mostEmisor ? "block" : "none";
-    er.style.minHeight = "68px";
-    er.style.position  = "relative";
-    er.style.overflow  = "hidden";
+    er.style.display       = mostEmisor ? "flex" : "none";
+    er.style.flexDirection = "row";
+    er.style.gap           = "8px";
+    er.style.padding       = "10px 18px 14px";
+    er.style.borderBottom  = "1px solid #e5e7eb";
+    er.style.minHeight     = "";
+    er.style.position      = "static";
+    er.style.overflow      = "visible";
   }
-
-  const _pad_pv   = 18;
-  const _qW       = (pvW - 2 * _pad_pv) / 2;          // 192px @ pvW=420
-  const _cEmPx    = _pad_pv + _qW / 2;                 // 114px
-  const _cClPx    = _pad_pv + _qW + _qW / 2;           // 306px
-  const _maxOff   = pvW / 2 - _pad_pv;                 // 192px
-  const _blkW     = Math.round(_qW - 8);               // 184px
-
-  const _offEmX = Math.max(-_maxOff, Math.min(_maxOff, emisorX  * (pvW / 240)));
-  const _offClX = Math.max(-_maxOff, Math.min(_maxOff, clienteX * (pvW / 240)));
 
   const eb = _g("ep_pv_emisor_bloque");
   if (eb) {
-    eb.style.position  = "absolute";
-    eb.style.left      = _cEmPx + "px";
-    eb.style.top       = "10px";
-    eb.style.width     = _blkW + "px";
-    eb.style.transform = `translateX(calc(-50% + ${_offEmX}px))`;
+    eb.style.position  = "static";
+    eb.style.left      = "";
+    eb.style.top       = "";
+    eb.style.width     = "";
+    eb.style.transform = "none";
+    eb.style.flex      = "1";
+    eb.style.minWidth  = "0";
+    eb.style.boxSizing = "border-box";
   }
   const cb2 = _g("ep_pv_cliente_bloque");
   if (cb2) {
-    cb2.style.position  = "absolute";
-    cb2.style.left      = _cClPx + "px";
-    cb2.style.top       = "10px";
-    cb2.style.width     = _blkW + "px";
-    cb2.style.transform = `translateX(calc(-50% + ${_offClX}px))`;
+    cb2.style.position  = "static";
+    cb2.style.left      = "";
+    cb2.style.top       = "";
+    cb2.style.width     = "";
+    cb2.style.transform = "none";
+    cb2.style.flex      = "1";
+    cb2.style.minWidth  = "0";
+    cb2.style.boxSizing = "border-box";
   }
 
   const st = (id,v) => { const e=_g(id); if(e) e.textContent=v; };
