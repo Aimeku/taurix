@@ -70,8 +70,7 @@ async function _loadPlantilla(plantillaId) {
 const _CATALOG_LABELS = {
   descripcion: { es: "Descripción",  en: "Description" },
   cantidad:    { es: "Cantidad",     en: "Qty"          },
-  precio:      { es: "Precio",       en: "Price"        },
-  subtotal:    { es: "Subtotal",     en: "Subtotal"     },
+  precio:      { es: "Subtotal",     en: "Subtotal"     },
   descuento:   { es: "Descuento",    en: "Discount"     },
   codigo:      { es: "Código",       en: "Code"         },
   coeficiente: { es: "Coeficiente",  en: "Coef."        },
