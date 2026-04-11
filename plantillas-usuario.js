@@ -40,8 +40,7 @@ const ACCENT_COLS = ["#3b82f6","#f97316","#059669","#8b5cf6","#ef4444","#0ea5e9"
 const COLUMNAS_CATALOGO = [
   { id:"descripcion", label:"Descripción",  labelEn:"Description", obligatoria:true  },
   { id:"cantidad",    label:"Cantidad",     labelEn:"Qty",          obligatoria:false },
-  { id:"precio",      label:"Precio",       labelEn:"Price",        obligatoria:false },
-  { id:"subtotal",    label:"Subtotal",     labelEn:"Subtotal",     obligatoria:false },
+  { id:"precio",      label:"Subtotal",     labelEn:"Subtotal",     obligatoria:false },
   { id:"descuento",   label:"Descuento",    labelEn:"Discount",     obligatoria:false },
   { id:"codigo",      label:"Código",       labelEn:"Code",         obligatoria:false },
   { id:"coeficiente", label:"Coeficiente",  labelEn:"Coef.",        obligatoria:false },
@@ -529,7 +528,6 @@ function _runPreview() {
             if      (id==="descripcion")  { v=l.d; }
             else if (id==="cantidad")     { v=String(l.c); }
             else if (id==="precio")       { v=l.p.toFixed(2)+"€"; mono=true; }
-            else if (id==="subtotal")     { v=(l.c*l.p).toFixed(2)+"€"; mono=true; }
             else if (id==="descuento")    { v="0.00€"; mono=true; }
             else if (id==="codigo")       { v="—"; }
             else if (id==="coeficiente")  { v="1.00"; mono=true; }
