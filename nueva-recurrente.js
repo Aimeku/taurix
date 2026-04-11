@@ -162,11 +162,11 @@ function _addLinea(pf = {}) {
   const di = row.querySelector("[data-field='descripcion']");
   if (di) _buildProdDropdown(di, p => {
     const lx = LINEAS.find(x => x.id === id);
-    if (lx) { lx.descripcion = p.descripcion||p.nombre; lx.precio = p.precio; lx.iva = sinIva ? 0 : p.iva; lx.producto_id = p.id; }
+    if (lx) { lx.descripcion = p.descripcion||p.nombre; lx.precio = p.precio_venta; lx.iva = sinIva ? 0 : p.iva; lx.producto_id = p.id; }
     const f = (field, val) => { const el=row.querySelector(`[data-field="${field}"]`); if(el) el.value=val; };
-    f("descripcion", p.descripcion||p.nombre); f("precio", p.precio); if (!sinIva) f("iva", p.iva);
+    f("descripcion", p.descripcion||p.nombre); f("precio", p.precio_venta); if (!sinIva) f("iva", p.iva);
     const tot = document.getElementById(`nrLt${id}`);
-    if (tot) tot.textContent = fmt((lx?.cantidad||1) * p.precio);
+    if (tot) tot.textContent = fmt((lx?.cantidad||1) * p.precio_venta);
     _calcTotales();
     _actualizarVisibilidadReducirStock("nrReducirStockWrap");
   });
@@ -213,7 +213,7 @@ function _buildProdDropdown(descInput, onSelect) {
           ${p.descripcion?`<div class="csd-meta">${p.descripcion}</div>`:""}
         </div>
         <div style="text-align:right;flex-shrink:0">
-          <div style="font-size:13px;font-weight:800;color:var(--accent);font-family:monospace">${fmt(p.precio)}</div>
+          <div style="font-size:13px;font-weight:800;color:var(--accent);font-family:monospace">${fmt(p.precio_venta)}</div>
           <div class="csd-meta">IVA ${p.iva}%</div>
         </div>
       </div></div>`).join("");
