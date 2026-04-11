@@ -282,6 +282,7 @@ function addLinea(prefill = {}) {
       linea.descripcion = p.descripcion || p.nombre;
       linea.precio      = p.precio;
       linea.iva         = p.iva;
+      linea.producto_id = p.id;
       const f = (field, val) => { const el=row.querySelector(`[data-field="${field}"]`); if(el) el.value=val; };
       f("descripcion", linea.descripcion);
       f("precio", linea.precio);
@@ -432,6 +433,7 @@ async function savePresupuesto() {
     descripcion: l.descripcion, cantidad: l.cantidad, precio: l.precio, iva: l.iva,
     descuento: l.descuento ?? "",
     subtotal: Math.max(0, l.cantidad*l.precio - _parseDescuento(l.descuento, l.cantidad*l.precio)),
+    producto_id: l.producto_id || null,
   })));
 
   const payload = {
