@@ -46,10 +46,7 @@ export function renderProductosTable(list) {
             ? `<span class="badge b-vencida" title="Stock mínimo alcanzado">⚠️ ${p.stock_actual}</span>`
             : `<span class="badge b-cobrada">${p.stock_actual}</span>`)
         : `<span style="color:var(--t4);font-size:11px">—</span>`;
-    return `<tr data-prod-id="${p.id}">
-      <td style="width:36px;text-align:center">
-        <input type="checkbox" class="prod-check" data-id="${p.id}" style="width:15px;height:15px;accent-color:var(--ox);cursor:pointer"/>
-      </td>
+    return `<tr>
       <td>
         <strong style="font-size:13px">${p.nombre}</strong>
         ${p.referencia ? `<br><span class="mono" style="font-size:11px;color:var(--t4)">${p.referencia}</span>` : ""}
@@ -326,37 +323,6 @@ export function initProductosView() {
     renderProductosTable(v ? PRODUCTOS.filter(p => p.tipo === v) : PRODUCTOS);
   });
 
-  // ── Checkbox "seleccionar todos" ──
-  document.getElementById("prodCheckAll")?.addEventListener("change", e => {
-    const checked = e.target.checked;
-    document.querySelectorAll(".prod-check").forEach(cb => { cb.checked = checked; });
-    _actualizarBotonReducir();
-  });
-
-  // ── Delegar clicks en checkboxes individuales (tbody dinámico) ──
-  document.getElementById("prodBody")?.addEventListener("change", e => {
-    if (!e.target.classList.contains("prod-check")) return;
-    // Sincronizar "seleccionar todos"
-    const total    = document.querySelectorAll(".prod-check").length;
-    const checked  = document.querySelectorAll(".prod-check:checked").length;
-    const allBox   = document.getElementById("prodCheckAll");
-    if (allBox) { allBox.checked = checked === total && total > 0; allBox.indeterminate = checked > 0 && checked < total; }
-    _actualizarBotonReducir();
-  });
-
-  // ── Botón Reducir stock ──
-  document.getElementById("reducirStockBtn")?.addEventListener("click", () => {
-    const ids = [...document.querySelectorAll(".prod-check:checked")].map(cb => cb.dataset.id);
-    showReducirStockModal(ids);
-  });
-}
-
-function _actualizarBotonReducir() {
-  const btn     = document.getElementById("reducirStockBtn");
-  if (!btn) return;
-  const checked = document.querySelectorAll(".prod-check:checked").length;
-  btn.style.display = checked > 0 ? "" : "none";
-  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12H4"/><polyline points="10 18 4 12 10 6"/></svg> Reducir stock (${checked})`;
 }
 
 export function buscarProductoPorCodigo(codigo) {
@@ -819,110 +785,4 @@ function descargarPlantillaExcel() {
 
   window.XLSX.writeFile(wb, "plantilla_productos_taurix.xlsx");
   toast("Plantilla descargada ✅ — rellénala y súbela aquí", "success", 4000);
-}
-
-
-/* ══════════════════════════════════════════════════════════════════
-   REDUCIR STOCK MANUAL — selección múltiple desde la tabla
-   Se llama desde el botón "Reducir stock" del toolbar.
-   Recibe los IDs de los productos seleccionados.
-══════════════════════════════════════════════════════════════════ */
-export async function showReducirStockModal(ids) {
-  if (!ids.length) { toast("Selecciona al menos un producto para reducir stock.", "error"); return; }
-
-  // Filtrar solo productos físicos con stock definido
-  const prods = PRODUCTOS.filter(p => ids.includes(p.id) && p.tipo !== "servicio" && p.stock_actual != null);
-  if (!prods.length) { toast("Los productos seleccionados son servicios o no tienen stock configurado.", "error"); return; }
-
-  const filas = prods.map(p => `
-    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--brd)">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:700;color:var(--t1)">${p.nombre}</div>
-        ${p.referencia ? `<div style="font-size:11px;color:var(--t4);font-family:monospace">Ref: ${p.referencia}</div>` : ""}
-      </div>
-      <div style="font-size:12px;color:var(--t3);white-space:nowrap">Stock actual: <strong style="color:var(--t1)">${p.stock_actual}</strong></div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <label style="font-size:12px;color:var(--t3)">Reducir:</label>
-        <input
-          type="number" min="0" max="${p.stock_actual}" value="0" step="1"
-          data-prod-id="${p.id}" data-stock-actual="${p.stock_actual}"
-          style="width:70px;padding:5px 8px;border:1px solid var(--brd);border-radius:7px;font-size:13px;font-family:monospace;text-align:center;background:var(--bg);color:var(--t1)"
-          class="rs-input"
-        />
-      </div>
-      <div style="font-size:12px;color:var(--t3);white-space:nowrap;min-width:80px;text-align:right">
-        → Quedará: <strong id="rs-resultado-${p.id}" style="color:var(--ox)">${p.stock_actual}</strong>
-      </div>
-    </div>`).join("");
-
-  openModal(`
-    <div class="modal" style="max-width:580px">
-      <div class="modal-hd">
-        <span class="modal-title">📦 Reducir stock del catálogo</span>
-        <button class="modal-x" onclick="window._cm()">×</button>
-      </div>
-      <div class="modal-bd">
-        <p class="modal-note" style="margin-bottom:16px">
-          Introduce la cantidad a reducir de cada producto. El stock no puede quedar por debajo de 0.
-        </p>
-        <div id="rs-filas">${filas}</div>
-      </div>
-      <div class="modal-ft" style="display:flex;justify-content:flex-end;gap:10px;padding:16px 20px;border-top:1px solid var(--brd)">
-        <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
-        <button class="btn-primary" id="rsConfirmarBtn">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          Aplicar reducción
-        </button>
-      </div>
-    </div>`);
-
-  // Actualizar el "quedará" en tiempo real
-  document.querySelectorAll(".rs-input").forEach(input => {
-    input.addEventListener("input", () => {
-      const pid        = input.dataset.prodId;
-      const stockActual = parseInt(input.dataset.stockActual) || 0;
-      const reducir    = Math.max(0, Math.min(parseInt(input.value) || 0, stockActual));
-      input.value      = reducir;
-      const resEl      = document.getElementById(`rs-resultado-${pid}`);
-      if (resEl) {
-        const nuevo = stockActual - reducir;
-        resEl.textContent = nuevo;
-        resEl.style.color = nuevo <= 0 ? "var(--red,#dc2626)" : nuevo <= 3 ? "var(--amber,#d97706)" : "var(--ox)";
-      }
-    });
-  });
-
-  // Confirmar
-  document.getElementById("rsConfirmarBtn").addEventListener("click", async () => {
-    const btn = document.getElementById("rsConfirmarBtn");
-    btn.disabled = true;
-    btn.innerHTML = `<span style="display:inline-block;width:13px;height:13px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite"></span> Guardando…`;
-
-    let actualizados = 0;
-    const inputs = document.querySelectorAll(".rs-input");
-    for (const input of inputs) {
-      const reducir = parseInt(input.value) || 0;
-      if (reducir <= 0) continue;
-      const pid        = input.dataset.prodId;
-      const stockActual = parseInt(input.dataset.stockActual) || 0;
-      const nuevoStock  = Math.max(0, stockActual - reducir);
-      const { error } = await supabase.from("productos")
-        .update({ stock_actual: nuevoStock })
-        .eq("id", pid)
-        .eq("user_id", SESSION.user.id);
-      if (!error) {
-        const prod = PRODUCTOS.find(p => p.id === pid);
-        if (prod) prod.stock_actual = nuevoStock;
-        actualizados++;
-      }
-    }
-
-    closeModal();
-    if (actualizados > 0) {
-      toast(`✅ Stock actualizado en ${actualizados} producto${actualizados > 1 ? "s" : ""}.`, "ok");
-      await refreshProductos();
-    } else {
-      toast("No se introdujo ninguna cantidad para reducir.", "error");
-    }
-  });
 }
