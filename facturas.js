@@ -312,13 +312,23 @@ window._notaCredito = async (id) => {
     const baseRect = -Math.abs(base);
 
     const { data: nc, error } = await supabase.from("facturas").insert({
-      user_id: SESSION.user.id,
-      concepto: `Nota de crédito · ${f.numero_factura} · ${causa}`,
-      base: baseRect, iva: f.iva, tipo: "emitida",
-      tipo_operacion: f.tipo_operacion, fecha, estado: "borrador",
-      cliente_id: f.cliente_id, cliente_nombre: f.cliente_nombre,
-      cliente_nif: f.cliente_nif, cliente_direccion: f.cliente_direccion,
-      factura_rectif_de: f.id, cobrada: false,
+      user_id:           SESSION.user.id,
+      concepto:          `Nota de crédito — ${f.numero_factura}`,
+      base:              baseRect,
+      iva:               f.iva,
+      tipo:              "emitida",
+      tipo_operacion:    f.tipo_operacion,
+      fecha,
+      estado:            "borrador",
+      cliente_id:        f.cliente_id,
+      cliente_nombre:    f.cliente_nombre,
+      cliente_nif:       f.cliente_nif,
+      cliente_direccion: f.cliente_direccion,
+      factura_rectif_de: f.id,
+      cobrada:           false,
+      es_rectificativa:  true,
+      // Guardamos número de la original y motivo en notas para el PDF
+      notas: `RECTIF_NUMERO:${f.numero_factura}|RECTIF_MOTIVO:${causa}`,
     }).select().single();
     if (error) { toast("Error: "+error.message,"error"); return; }
 
