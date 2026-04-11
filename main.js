@@ -37,7 +37,7 @@ import {
   exportHistoricoExcel, exportClientesExcel
 } from "./exports.js";
 import { refreshPresupuestos, initPresupuestosView } from "./presupuestos.js";
-import { loadProductos, setProductos, refreshProductos, initProductosView, showReducirStockModal } from "./productos.js";
+import { loadProductos, setProductos, refreshProductos, initProductosView } from "./productos.js";
 import {
   loadProveedores, setProveedores, refreshProveedores,
   refreshGastosRecurrentes, initGastosView
