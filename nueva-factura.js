@@ -812,7 +812,7 @@ async function saveFactura() {
     })))
   }).select().single();
   // Guardar plantilla_id de forma resiliente (columna puede no existir aún)
-  const _nfPlantillaId = document.getElementById("nfPlantillaSel")?.value || null;
+  const _nfPlantillaId = document.getElementById("nfPlantillaSel")?.value || "none";
   if (!error && fData?.id && _nfPlantillaId) {
     const { error: pe } = await supabase.from("facturas")
       .update({ plantilla_id: _nfPlantillaId }).eq("id", fData.id);
