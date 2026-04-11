@@ -295,39 +295,60 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Detectar tipo de flujo por URL ANTES del listener ──
      Con flowType "pkce", Supabase intercambia el ?code= y dispara SIGNED_IN.
-     - Recovery:      ?code=...&type=recovery
-     - Confirmation:  ?code=...&type=signup  (PKCE usa "signup", no "confirmation")
-                      o simplemente ?code=... sin type (también es confirmación)
-     Guardamos la intención en sessionStorage para detectarla en el listener. */
+     Guardamos la intención en sessionStorage (misma pestaña) Y en
+     localStorage (si el link abre pestaña nueva, no hay sessionStorage). */
   const _urlParams = new URLSearchParams(window.location.search);
   const _urlType   = _urlParams.get("type");
   const _urlCode   = _urlParams.get("code");
-  // token_hash es el formato antiguo (flow implícito), también lo soportamos
   const _tokenHash = _urlParams.get("token_hash");
 
   if (_urlCode && _urlType === "recovery") {
     sessionStorage.setItem("taurix_recovery_pending", "1");
-  } else if (_urlCode && (_urlType === "signup" || _urlType === "confirmation" || !_urlType)) {
-    // Cualquier ?code= que no sea recovery es una confirmación de email
+    localStorage.setItem("taurix_recovery_pending_ls", "1");
+  } else if (_urlCode || (_tokenHash && _urlType === "signup")) {
+    // Cualquier ?code= que no sea recovery es confirmación de email
+    // PKCE puede venir con type=signup, type=confirmation o sin type
     sessionStorage.setItem("taurix_confirmation_pending", "1");
-  } else if (_tokenHash && _urlType === "signup") {
-    // Flow implícito — token_hash directo
-    sessionStorage.setItem("taurix_confirmation_pending", "1");
+    localStorage.setItem("taurix_confirmation_pending_ls", "1");
   }
 
   // Ocultar todo mientras se procesa cualquier flujo especial
-  if (sessionStorage.getItem("taurix_recovery_pending") === "1" ||
-      sessionStorage.getItem("taurix_confirmation_pending") === "1") {
+  const _hasPendingFlow =
+    sessionStorage.getItem("taurix_recovery_pending") === "1" ||
+    localStorage.getItem("taurix_recovery_pending_ls") === "1" ||
+    sessionStorage.getItem("taurix_confirmation_pending") === "1" ||
+    localStorage.getItem("taurix_confirmation_pending_ls") === "1";
+
+  if (_hasPendingFlow) {
     _isRecoveryFlow = true;
     document.getElementById("appShell")?.classList.add("hidden");
     document.getElementById("landingPage")?.classList.add("hidden");
   }
+
+  const _isRecoveryPending = () =>
+    sessionStorage.getItem("taurix_recovery_pending") === "1" ||
+    localStorage.getItem("taurix_recovery_pending_ls") === "1";
+
+  const _isConfirmationPending = () =>
+    sessionStorage.getItem("taurix_confirmation_pending") === "1" ||
+    localStorage.getItem("taurix_confirmation_pending_ls") === "1";
+
+  const _clearRecoveryPending = () => {
+    sessionStorage.removeItem("taurix_recovery_pending");
+    localStorage.removeItem("taurix_recovery_pending_ls");
+  };
+
+  const _clearConfirmationPending = () => {
+    sessionStorage.removeItem("taurix_confirmation_pending");
+    localStorage.removeItem("taurix_confirmation_pending_ls");
+  };
 
   supabase.auth.onAuthStateChange(async (event, session) => {
     /* PASSWORD_RECOVERY: flow implícito (antiguo) — por compatibilidad */
     if (event === "PASSWORD_RECOVERY") {
       _isRecoveryFlow = true;
       sessionStorage.setItem("taurix_recovery_pending", "1");
+      localStorage.setItem("taurix_recovery_pending_ls", "1");
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.add("hidden");
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -337,8 +358,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     /* SIGNED_IN tras intercambio PKCE del link de recovery */
-    if (event === "SIGNED_IN" && sessionStorage.getItem("taurix_recovery_pending") === "1") {
-      sessionStorage.removeItem("taurix_recovery_pending");
+    if (event === "SIGNED_IN" && _isRecoveryPending()) {
+      _clearRecoveryPending();
       _isRecoveryFlow = true;
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.add("hidden");
@@ -348,28 +369,23 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    /* SIGNED_IN tras confirmación de email al crear cuenta ──
-       Marcamos el flag de "verificado" en sessionStorage, cerramos sesión
-       con signOut() y recargamos. En la siguiente carga, el flag estará
-       presente y mostramos el modal de login con el mensaje de éxito.
-       Así evitamos la race condition entre signOut() y el listener SIGNED_OUT. */
-    if (event === "SIGNED_IN" && sessionStorage.getItem("taurix_confirmation_pending") === "1") {
-      sessionStorage.removeItem("taurix_confirmation_pending");
+    /* SIGNED_IN tras confirmación de email (pestaña nueva o misma pestaña) ──
+       Cerramos sesión y recargamos. El flag en localStorage sobrevive al reload
+       y a la nueva pestaña. En la siguiente carga mostramos el login con éxito. */
+    if (event === "SIGNED_IN" && _isConfirmationPending()) {
+      _clearConfirmationPending();
       _isRecoveryFlow = true;
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.add("hidden");
       window.history.replaceState({}, document.title, window.location.pathname);
-      // Guardar el flag en localStorage (sobrevive al reload)
       localStorage.setItem("taurix_email_verified", "1");
-      // signOut completo antes de recargar — Supabase limpia la sesión de localStorage
       try { await supabase.auth.signOut(); } catch(_) {}
-      // Pequeña pausa para que Supabase limpie el storage antes del reload
       setTimeout(() => window.location.reload(), 100);
       return;
     }
 
     if (event === "SIGNED_OUT") {
-      sessionStorage.removeItem("taurix_recovery_pending");
+      _clearRecoveryPending();
       if (sessionStorage.getItem("taurix_recovery_signout") === "1") return;
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.remove("hidden");
