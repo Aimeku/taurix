@@ -536,8 +536,8 @@ export function showNuevoPresupuestoModal(prefill = {}) {
             <div class="csc-item" data-prod-id="${p.id}"
               style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--brd)">
               <strong>${p.nombre}</strong>
-              ${p.referencia ? `<span class="mono" style="font-size:11px;color:var(--t4);margin-left:6px">${p.referencia}</span>` : ""}
-              <span style="float:right;color:var(--brand);font-weight:700">${fmt(p.precio)}</span>
+              ${p.sku ? `<span class="mono" style="font-size:11px;color:var(--t4);margin-left:6px">${p.sku}</span>` : ""}
+              <span style="float:right;color:var(--brand);font-weight:700">${fmt(p.precio_venta)}</span>
               ${p.descripcion ? `<div style="font-size:11px;color:var(--t3);margin-top:2px">${p.descripcion.slice(0,60)}</div>` : ""}
             </div>`).join("");
           dropdown.querySelectorAll(".csc-item").forEach(item => {
@@ -548,14 +548,14 @@ export function showNuevoPresupuestoModal(prefill = {}) {
               if (li) {
                 // Descripción del producto (del campo descripcion, no nombre)
                 li.descripcion = prod.descripcion || prod.nombre;
-                li.precio      = prod.precio;
+                li.precio      = prod.precio_venta;
                 li.iva         = prod.iva;
               }
               descInput.value = prod.descripcion || prod.nombre;
-              row.querySelector(`[data-field="precio"]`).value = prod.precio;
+              row.querySelector(`[data-field="precio"]`).value = prod.precio_venta;
               row.querySelector(`[data-field="iva"]`).value    = prod.iva;
               const tot = document.getElementById(`pmlt${id}`);
-              if (tot) tot.textContent = fmt(li.cantidad * prod.precio);
+              if (tot) tot.textContent = fmt(li.cantidad * prod.precio_venta);
               calcTotales();
               dropdown.style.display = "none";
             });
@@ -702,14 +702,14 @@ export function showNuevoPresupuestoModal(prefill = {}) {
         addLinea({
           descripcion: prod.descripcion || prod.nombre,
           cantidad:    qty,
-          precio:      prod.precio,
+          precio:      prod.precio_venta,
           iva:         prod.iva,
         });
       }
 
       // Feedback positivo
       mostrarFeedback(
-        `✅ ${yaExiste?"Cantidad actualizada":"Añadido"}: ${prod.nombre}${qty>1?" × "+qty:""} — ${fmt(prod.precio)}`,
+        `✅ ${yaExiste?"Cantidad actualizada":"Añadido"}: ${prod.nombre}${qty>1?" × "+qty:""} — ${fmt(prod.precio_venta)}`,
         "ok"
       );
 
