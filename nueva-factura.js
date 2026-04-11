@@ -99,10 +99,10 @@ function _buildProdDropdown(descInput, onSelect) {
             <div style="flex:1;min-width:0">
               <div class="csd-name">${p.nombre}${stockBadge}</div>
               ${p.descripcion ? `<div class="csd-meta">${p.descripcion}</div>` : ""}
-              ${p.referencia  ? `<div class="csd-meta" style="font-family:monospace">Ref: ${p.referencia}</div>` : ""}
+              ${p.sku ? `<div class="csd-meta" style="font-family:monospace">SKU: ${p.sku}</div>` : ""}
             </div>
             <div style="text-align:right;flex-shrink:0">
-              <div style="font-size:13px;font-weight:800;color:var(--accent);font-family:monospace">${fmt(p.precio)}</div>
+              <div style="font-size:13px;font-weight:800;color:var(--accent);font-family:monospace">${fmt(p.precio_venta)}</div>
               <div class="csd-meta">IVA ${p.iva}%</div>
             </div>
           </div>
@@ -138,7 +138,7 @@ function _buildProdDropdown(descInput, onSelect) {
       p.activo !== false && (
         p.nombre.toLowerCase().includes(q) ||
         (p.descripcion || "").toLowerCase().includes(q) ||
-        (p.referencia  || "").toLowerCase().includes(q)
+        (p.sku || "").toLowerCase().includes(q)
       )
     ).slice(0, 10);
     if (!m.length) {
@@ -294,7 +294,7 @@ function addLinea(prefill = {}) {
       const linea = LINEAS.find(l => l.id === id);
       if (!linea) return;
       linea.descripcion  = p.descripcion || p.nombre;
-      linea.precio       = p.precio;
+      linea.precio       = p.precio_venta;
       linea.iva          = p.iva;
       linea.tipo         = p.tipo || "producto";
       linea.producto_id  = p.id;   // ← referencia al catálogo para descuento de stock
@@ -947,11 +947,11 @@ export function initNuevaFactura() {
           yaExiste = true;
         }
       });
-      if (!yaExiste) addLinea({ descripcion: prod.descripcion||prod.nombre, cantidad: qty, precio: prod.precio, iva: prod.iva });
+      if (!yaExiste) addLinea({ descripcion: prod.descripcion||prod.nombre, cantidad: qty, precio: prod.precio_venta, iva: prod.iva });
       updateTotalesUI(); updatePreview();
       if (nfScanFeedback) {
         nfScanFeedback.style.color="#059669"; nfScanFeedback.style.opacity="1";
-        nfScanFeedback.textContent=`✅ ${yaExiste?"Cantidad actualizada":"Añadido"}: ${prod.nombre}${qty>1?" × "+qty:""} — ${fmt(prod.precio)}`;
+        nfScanFeedback.textContent=`✅ ${yaExiste?"Cantidad actualizada":"Añadido"}: ${prod.nombre}${qty>1?" × "+qty:""} — ${fmt(prod.precio_venta)}`;
         setTimeout(()=>{ if(nfScanFeedback) nfScanFeedback.style.opacity="0"; },3000);
       }
       try {
