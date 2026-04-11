@@ -213,11 +213,20 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   doc.rect(0, 0, PW, PH, "F");
 
   // ── LOGO ──
-  let logoB64 = plantilla?.logo_b64 || null;
-  if (!logoB64 && perfil.logo_url) {
-    logoB64 = await _logoToBase64(perfil.logo_url);
-  }
+  // Determinar si la plantilla quiere mostrar logo ANTES de cargar nada.
+  // Si mostrar_logo=false en la plantilla, no cargar ningún logo — ni el de
+  // la plantilla ni el del perfil. Así un documento sin logo no hereda el logo
+  // del perfil ni de ninguna otra plantilla.
   const mostrarLogo = plantilla ? (plantilla.mostrar_logo !== false) : true;
+
+  let logoB64 = null;
+  if (mostrarLogo) {
+    // Prioridad: logo embebido en la plantilla → logo del perfil fiscal
+    logoB64 = plantilla?.logo_b64 || null;
+    if (!logoB64 && perfil.logo_url) {
+      logoB64 = await _logoToBase64(perfil.logo_url);
+    }
+  }
 
   /*
    * ═══════════════════════════════════════════════════════════════════════
@@ -406,23 +415,43 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     y += 19;
   }
 
-  // ── EMISOR / CLIENTE — coordenadas nativas PDF (mm) ──
-  const _qW_mm  = W / 2;
-  const cW      = 48;
-  const _XSCALE = W / 240;
-  const _YCLAMP = 12;
-  const _sEmX = plantilla?.emisor_x  ?? 0;
-  const _sEmY = plantilla?.emisor_y  ?? 0;
-  const _sClX = plantilla?.cliente_x ?? 0;
-  const _sClY = plantilla?.cliente_y ?? 0;
-  const _cEmMm  = ML + _qW_mm / 2;
-  const _cClMm  = ML + _qW_mm * 3/2;
-  const _emBase = _cEmMm - cW / 2;
-  const _clBase = _cClMm - cW / 2;
-  const emisorX  = Math.max(ML,          Math.min(ML + _qW_mm - cW, _emBase + _sEmX * _XSCALE));
-  const clienteX = Math.max(ML + _qW_mm, Math.min(PW - MR - cW,    _clBase + _sClX * _XSCALE));
-  const emisorY  = y + Math.max(-_YCLAMP, Math.min(_YCLAMP, _sEmY * _XSCALE));
-  const clienteY = y + Math.max(-_YCLAMP, Math.min(_YCLAMP, _sClY * _XSCALE));
+  // ── EMISOR / CLIENTE — sistema de coordenadas idéntico al preview HTML ──
+  //
+  // El preview calcula:
+  //   offsetPx = clamp(slider * (pvW/240), ±maxOffset)   donde pvW=420
+  //   left_px  = center_cuadrante_px  (posición absoluta en el preview)
+  //   transform: translateX(calc(-50% + offsetPx))
+  //
+  // Para replicarlo en mm usamos PX_TO_MM=0.5 (=210/420), igual que el logo:
+  //   offsetMm = offsetPx * PX_TO_MM
+  //   left_mm  = center_cuadrante_mm
+  //   posición final = left_mm - blkW/2 + offsetMm
+  //
+  // Centro de cuadrantes en mm — espejo de _cEmPx/_cClPx del preview:
+  //   _pad_pv=18px → en mm = 18*PX_TO_MM = 9mm  (≈ ML)
+  //   _qW_px = (pvW - 2*18)/2 = (420-36)/2 = 192px → 96mm
+  //   _cEmPx = 18 + 192/2 = 114px → 57mm
+  //   _cClPx = 18 + 192 + 192/2 = 306px → 153mm
+  //   → Cuadrante izq: centro = ML + (W/2)/2        = ML + W/4
+  //   → Cuadrante der: centro = ML + W/2 + (W/2)/2  = ML + 3*W/4
+  const _cEmMm   = ML + W / 4;
+  const _cClMm   = ML + W * 3 / 4;
+  const cW       = 48;   // ancho del bloque de texto en mm
+
+  // Offset X: misma fórmula que preview → mm
+  const _maxOffPx  = PVW / 2 - 18;                                          // clamp preview
+  const _offEmXPx  = Math.max(-_maxOffPx, Math.min(_maxOffPx, (plantilla?.emisor_x  ?? 0) * (PVW / 240)));
+  const _offClXPx  = Math.max(-_maxOffPx, Math.min(_maxOffPx, (plantilla?.cliente_x ?? 0) * (PVW / 240)));
+  const _offEmXmm  = _offEmXPx  * PX_TO_MM;
+  const _offClXmm  = _offClXPx  * PX_TO_MM;
+
+  // Posición X final: center - blkW/2 + offset, clampeado a los márgenes del cuadrante
+  const emisorX  = Math.max(ML,        Math.min(ML + W / 2 - cW, _cEmMm - cW / 2 + _offEmXmm));
+  const clienteX = Math.max(ML + W/2,  Math.min(PW - MR   - cW, _cClMm - cW / 2 + _offClXmm));
+
+  // Y: fijamos en base de la sección (sin slider vertical — eliminado del editor)
+  const emisorY  = y;
+  const clienteY = y;
 
   const mostrarEmisor = plantilla ? (plantilla.mostrar_emisor !== false) : true;
 
