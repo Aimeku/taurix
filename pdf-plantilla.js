@@ -328,10 +328,27 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   const _tipoColor = cabConFondo
     ? colores.txtCab.map((c, i) => Math.round(c * 0.75 + colores.cab[i] * 0.25))
     : MUTED;
+
+  // ── Detectar si es rectificativa y extraer datos del campo notas ──
+  const esRectificativa = !!(docData.factura_rectif_de || docData.es_rectificativa);
+  let rectifNumeroOriginal = "—";
+  let rectifMotivo         = "—";
+  if (esRectificativa && docData.notas) {
+    const mNum = docData.notas.match(/RECTIF_NUMERO:([^|]+)/);
+    const mMot = docData.notas.match(/RECTIF_MOTIVO:([^|]+)/);
+    if (mNum) rectifNumeroOriginal = mNum[1].trim();
+    if (mMot) rectifMotivo         = mMot[1].trim();
+  }
+
+  // tipoLabel sobreescrito si es rectificativa
+  const tipoLabelFinal = esRectificativa
+    ? (_en ? "CREDIT NOTE" : "FACTURA RECTIFICATIVA")
+    : tipoLabel;
+
   doc.setFont(font, "bold");
   doc.setFontSize(7.5);
   doc.setTextColor(..._tipoColor);
-  doc.text(tipoLabel, ML + 4, CAB_TOP + 5.5);
+  doc.text(tipoLabelFinal, ML + 4, CAB_TOP + 5.5);
   doc.setFontSize(Math.min(tamF + 3, 13));
   doc.setTextColor(...cabTxtColor);
   const numLine = doc.splitTextToSize(numero.substring(0, 30), textW);
@@ -370,6 +387,24 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     doc.setTextColor(146, 64, 14);
     doc.text("DOCUMENTO SIN VALIDEZ FISCAL — No sustituye a la factura.", PW / 2, y + 1.5, { align: "center" });
     y += 10;
+  }
+
+  // ── BANNER RECTIFICATIVA — datos de la factura original ──
+  if (esRectificativa) {
+    doc.setFillColor(254, 242, 242);
+    doc.setDrawColor(252, 165, 165);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(ML, y - 4, W, 14, 1.5, 1.5, "FD");
+    doc.setFont(font, "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(153, 27, 27);
+    doc.text("FACTURA RECTIFICATIVA — Art. 15 RD 1619/2012", ML + 4, y + 1);
+    doc.setFont(font, "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(127, 29, 29);
+    doc.text(`Factura rectificada: ${rectifNumeroOriginal}`, ML + 4, y + 6);
+    doc.text(`Motivo: ${rectifMotivo}`, ML + 4, y + 10.5);
+    y += 19;
   }
 
   // ── EMISOR / CLIENTE — coordenadas nativas PDF (mm) ──
@@ -549,7 +584,10 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     const precio        = l.precio || 0;
     const subtotalBruto = qty * precio;
     const descAmt       = _parseDescuento(l.descuento, subtotalBruto);
-    const subtotal      = Math.max(0, subtotalBruto - descAmt);
+    // Rectificativas tienen importes negativos — no forzar a 0
+    const subtotal      = esRectificativa
+      ? subtotalBruto - descAmt
+      : Math.max(0, subtotalBruto - descAmt);
 
     descuentoTotalDoc += descAmt;
     baseTotal += subtotal;
@@ -673,12 +711,11 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   }
 
   if (!_opSinIvaFila && !_opIvaNoRepercutido) {
-    Object.entries(ivaMap).filter(([, v]) => v > 0).sort(([a], [b]) => Number(b) - Number(a)).forEach(([pct, amt]) => {
+    Object.entries(ivaMap).filter(([, v]) => esRectificativa ? v !== 0 : v > 0).sort(([a], [b]) => Number(b) - Number(a)).forEach(([pct, amt]) => {
       _totRow((_en ? "VAT " : "IVA ") + pct + "%", amt.toFixed(2) + " €");
     });
   } else if (_opIvaNoRepercutido) {
-    // Mostrar IVA indicando que no se repercute
-    Object.entries(ivaMap).filter(([, v]) => v > 0).sort(([a], [b]) => Number(b) - Number(a)).forEach(([pct, amt]) => {
+    Object.entries(ivaMap).filter(([, v]) => esRectificativa ? v !== 0 : v > 0).sort(([a], [b]) => Number(b) - Number(a)).forEach(([pct, amt]) => {
       _totRow((_en ? "VAT " : "IVA ") + pct + "% (" + (_en ? "not charged" : "no repercutido") + ")", amt.toFixed(2) + " €", MUTED);
     });
   }
@@ -703,7 +740,11 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   } // end if mostrarPrecios
 
   // ── NOTAS ──
-  const notas = docData.notas;
+  // Filtrar metadatos internos de rectificativa del campo notas
+  const notasRaw = docData.notas || "";
+  const notas = esRectificativa
+    ? notasRaw.replace(/RECTIF_NUMERO:[^|]+\|?/g, "").replace(/RECTIF_MOTIVO:[^|]+\|?/g, "").trim()
+    : notasRaw;
   if (notas && y < PH - 50) {
     const LIGHT = colores.fdoTab;
     // Respetar saltos de linea manuales: dividir por \n primero, luego splitTextToSize por ancho
