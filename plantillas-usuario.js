@@ -302,9 +302,7 @@ function _runPreview() {
   const logoY    = _gi("ep_logo_y",    8);
   const logoSize = _gi("ep_logo_size", 30);
   const emisorX  = _gi("ep_emisor_x",  0);
-  const emisorY  = _gi("ep_emisor_y",  0);
   const clienteX = _gi("ep_cliente_x", 0);
-  const clienteY = _gi("ep_cliente_y", 0);
 
   /* ── Documento ── */
   const doc = _g("ep_pv_doc");
@@ -407,53 +405,53 @@ function _runPreview() {
      Los bloques son position:absolute.
      Límite de bloque = [8px, pvW-8px] en coordenadas del doc.
   ── */
+  // ── Emisor / Cliente — sistema de coordenadas sincronizado con el PDF ──
+  //
+  // El PDF usa:
+  //   _cEmMm = ML + W/4  (centro cuadrante izq en mm)
+  //   _cClMm = ML + 3W/4 (centro cuadrante der en mm)
+  //   offset = clamp(slider*(PVW/240), ±(PVW/2-18)) * PX_TO_MM
+  //
+  // En el preview (px) — mismo sistema:
+  //   pvW=420, _pad_pv=18, _qW=(420-36)/2=192
+  //   _cEmPx = 18 + 192/2 = 114px  →  equivale a ML+W/4 en mm → (9+48.5)=57.5mm → 115px ✓
+  //   _cClPx = 18 + 192 + 96 = 306px → equivale a ML+3W/4 → 57.5+96=153.5mm → 307px ✓
+  //   offsetPx = clamp(slider*(pvW/240), ±(pvW/2-18))
+  //   posición X del bloque = center - blkW/2 + offsetPx
+  //
+  // Y: fijo en la posición base (slider eliminado del editor)
+
   const er = _g("ep_pv_emisor_row");
   if (er) {
     er.style.display = mostEmisor ? "block" : "none";
-    // Altura dinámica: fijar suficiente para contener texto de empresa + datos
     er.style.minHeight = "68px";
     er.style.position  = "relative";
     er.style.overflow  = "hidden";
   }
 
-  // Centro de cada cuadrante en coordenadas del preview (en px)
-  // El área útil del doc = pvW - 2*18px (padding visual de 18px a cada lado)
-  // Cuadrante izq: [18, pvW/2], centro = 18 + (pvW/2-18)/2 = 9 + pvW/4
-  // Cuadrante der: [pvW/2, pvW-18], centro = pvW/2 + (pvW/2-18)/2 = pvW - 9 - pvW/4
-  const _pad_pv   = 18;                           // px — padding visual del doc preview
-  const _qW       = (pvW - 2 * _pad_pv) / 2;     // ancho de cada cuadrante útil (px)
-  const _cEmPx    = _pad_pv + _qW / 2;            // centro cuadrante izq (px)
-  const _cClPx    = _pad_pv + _qW + _qW / 2;      // centro cuadrante der (px)
-  const _maxOff   = pvW / 2 - _pad_pv;            // clamp máximo offset (px)
-  const _tyClamp  = 20;                            // clamp vertical (px)
+  const _pad_pv   = 18;
+  const _qW       = (pvW - 2 * _pad_pv) / 2;          // 192px @ pvW=420
+  const _cEmPx    = _pad_pv + _qW / 2;                 // 114px
+  const _cClPx    = _pad_pv + _qW + _qW / 2;           // 306px
+  const _maxOff   = pvW / 2 - _pad_pv;                 // 192px
+  const _blkW     = Math.round(_qW - 8);               // 184px
 
-  // Escala: misma fórmula que el logo → sX * (pvW/240)
   const _offEmX = Math.max(-_maxOff, Math.min(_maxOff, emisorX  * (pvW / 240)));
-  const _offEmY = Math.max(-_tyClamp, Math.min(_tyClamp, emisorY * SCALE));
   const _offClX = Math.max(-_maxOff, Math.min(_maxOff, clienteX * (pvW / 240)));
-  const _offClY = Math.max(-_tyClamp, Math.min(_tyClamp, clienteY * SCALE));
-
-  // Ancho de cada bloque = cuadrante útil - un pequeño gap interno
-  const _blkW = Math.round(_qW - 8);              // px, con gap de 4px a cada lado
 
   const eb = _g("ep_pv_emisor_bloque");
   if (eb) {
     eb.style.position  = "absolute";
     eb.style.left      = _cEmPx + "px";
-    eb.style.top       = (10 + _offEmY) + "px";   // 10px de padding top base
+    eb.style.top       = "10px";
     eb.style.width     = _blkW + "px";
     eb.style.transform = `translateX(calc(-50% + ${_offEmX}px))`;
-    // Clamp: nunca salir del área visible del doc
-    // Con left=_cEmPx y translate=-50%: borde izq = _cEmPx - _blkW/2 + offsetX
-    // Mínimo: borde izq >= _pad_pv → offsetX >= _pad_pv - (_cEmPx - _blkW/2)
-    // Máximo: borde der <= pvW/2 → offsetX <= pvW/2 - (_cEmPx + _blkW/2)
-    // El clamp _maxOff ya es conservador, y el parent overflow:hidden hace de red de seguridad.
   }
   const cb2 = _g("ep_pv_cliente_bloque");
   if (cb2) {
     cb2.style.position  = "absolute";
     cb2.style.left      = _cClPx + "px";
-    cb2.style.top       = (10 + _offClY) + "px";
+    cb2.style.top       = "10px";
     cb2.style.width     = _blkW + "px";
     cb2.style.transform = `translateX(calc(-50% + ${_offClX}px))`;
   }
