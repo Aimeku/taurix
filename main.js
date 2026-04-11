@@ -465,6 +465,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   await handleRememberSession();
   const session = await getSession();
   if (!session) return;
+  // Bloquear acceso si el email no está verificado — por si Supabase crea sesión sin confirmación
+  if (session.user && !session.user.email_confirmed_at) {
+    await supabase.auth.signOut();
+    return;
+  }
   setSession(session);
 
   // Exponer sesión globalmente — necesario para query-context.js y gestor/store.js
