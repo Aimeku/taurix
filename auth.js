@@ -143,7 +143,9 @@ export async function registerEmail(email, password) {
    RECUPERAR CONTRASEÑA
 ══════════════════════════════════════════════════════════ */
 export async function resetPassword(email) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: "https://taurix.es/" });
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: "https://taurix.es/?type=recovery"
+  });
   if (error) throw new Error(error.message);
 }
 
