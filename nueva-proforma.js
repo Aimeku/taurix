@@ -9,7 +9,7 @@
 
 import { supabase } from "./supabase.js";
 import { SESSION, CLIENTES, fmt, toast, switchView, OP_INFO, OP_SIN_IVA, OP_IVA_NO_REPERCUTIDO } from "./utils.js";
-import { PRODUCTOS } from "./productos.js";
+import { PRODUCTOS, refreshProductos } from "./productos.js";
 import { refreshProforma } from "./proforma.js";
 
 /* ── Estado ── */
@@ -369,13 +369,8 @@ async function _descontarStockSiProcede(checkboxId) {
       .eq("user_id", SESSION.user.id);
     if (!error) prod.stock_actual = nuevoStock;
   }
-}
-
-function _actualizarVisibilidadReducirStock(wrapId) {
-  const wrap = document.getElementById(wrapId);
-  if (!wrap) return;
-  const tieneProductos = LINEAS.some(l => l.producto_id);
-  wrap.style.display = tieneProductos ? "flex" : "none";
+  // Refrescar catálogo para que la vista se actualice sin recargar
+  refreshProductos().catch(() => {});
 }
 
 async function _save(){
