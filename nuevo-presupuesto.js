@@ -295,6 +295,7 @@ function addLinea(prefill = {}) {
   container.appendChild(row);
   updateTotalesUI();
   updatePreview();
+  _actualizarVisibilidadReducirStock("npReducirStockWrap");
   // No auto-focus: el usuario elige por dónde empezar
 }
 
@@ -386,6 +387,31 @@ function updatePreview() {
 /* ══════════════════════════
    GUARDAR PRESUPUESTO
 ══════════════════════════ */
+
+/* ── Descuento de stock al guardar (si el checkbox está marcado) ── */
+async function _descontarStockSiProcede(checkboxId) {
+  if (!document.getElementById(checkboxId)?.checked) return;
+  const lineasConProducto = LINEAS.filter(l => l.producto_id && l.cantidad > 0);
+  for (const linea of lineasConProducto) {
+    const prod = PRODUCTOS.find(p => p.id === linea.producto_id);
+    if (!prod || prod.tipo === "servicio" || prod.stock_actual == null) continue;
+    const nuevoStock = Math.max(0, prod.stock_actual - linea.cantidad);
+    const { error } = await supabase.from("productos")
+      .update({ stock_actual: nuevoStock })
+      .eq("id", linea.producto_id)
+      .eq("user_id", SESSION.user.id);
+    if (!error) prod.stock_actual = nuevoStock;
+  }
+}
+
+/* ── Mostrar/ocultar el checkbox según haya líneas con producto_id ── */
+function _actualizarVisibilidadReducirStock(wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const tieneProductos = LINEAS.some(l => l.producto_id);
+  wrap.style.display = tieneProductos ? "flex" : "none";
+}
+
 async function savePresupuesto() {
   const concepto = document.getElementById("npConcepto")?.value.trim();
   const fecha = document.getElementById("npFecha")?.value;
@@ -479,6 +505,7 @@ async function savePresupuesto() {
     }
     window._npEditingId = null;
     window._npEditingNumero = null;
+    await _descontarStockSiProcede("npReducirStock");
     toast(`✅ Presupuesto ${numero} actualizado`, "success");
     resetForm();
     if (btn) { btn.disabled = false; btn.textContent = "Guardar presupuesto"; }
@@ -510,6 +537,7 @@ async function savePresupuesto() {
     toast("Error: " + error.message, "error"); return;
   }
 
+  await _descontarStockSiProcede("npReducirStock");
   toast(`✅ Presupuesto ${numero} creado`, "success");
   resetForm();
   if (btn) { btn.disabled = false; btn.textContent = "Guardar presupuesto"; }
