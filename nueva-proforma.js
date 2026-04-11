@@ -373,6 +373,13 @@ async function _descontarStockSiProcede(checkboxId) {
   refreshProductos().catch(() => {});
 }
 
+function _actualizarVisibilidadReducirStock(wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const tieneProductos = LINEAS.some(l => l.producto_id);
+  wrap.style.display = tieneProductos ? "flex" : "none";
+}
+
 async function _save(){
   const concepto=document.getElementById("npfConcepto")?.value.trim();
   const fecha=document.getElementById("npfFecha")?.value;
