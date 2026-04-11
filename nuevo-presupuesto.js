@@ -289,6 +289,7 @@ function addLinea(prefill = {}) {
       f("iva", linea.iva);
       document.getElementById(`npLtRow${id}`).textContent = fmt(linea.cantidad * linea.precio);
       updateTotalesUI(); updatePreview();
+      _actualizarVisibilidadReducirStock("npReducirStockWrap");
     });
   }
 
