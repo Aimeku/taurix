@@ -168,6 +168,7 @@ function _addLinea(pf = {}) {
     const tot = document.getElementById(`nrLt${id}`);
     if (tot) tot.textContent = fmt((lx?.cantidad||1) * p.precio);
     _calcTotales();
+    _actualizarVisibilidadReducirStock("nrReducirStockWrap");
   });
   cont.appendChild(row); _calcTotales(); _actualizarVisibilidadReducirStock("nrReducirStockWrap");
 }
