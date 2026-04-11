@@ -90,19 +90,22 @@ const IA_TOOLS = [
   },
   {
     name: "preparar_documentos",
-    description: "Genera y empaqueta documentos fiscales descargables (PDFs de modelos, libros, Excel). Úsala cuando el usuario pida preparar documentos, quiera descargar modelos o su gestor/asesor le haya pedido documentación fiscal.",
+    description: "Genera y empaqueta documentos fiscales descargables (PDFs de modelos, libros, Excel). Úsala cuando el usuario pida preparar documentos, quiera descargar modelos o su gestor/asesor le haya pedido documentación fiscal. Por defecto usa formato 'individual' (botones de descarga) salvo que el usuario pida expresamente un ZIP.",
     input_schema: {
       type: "object",
       properties: {
         documentos: {
           type: "array",
-          description: "Lista de documentos a generar",
+          description: "Lista de documentos a generar. Usar variante _pdf o _excel según lo que pida el usuario. Si no especifica formato, usar PDF para modelos fiscales y excel para datos tabulares.",
           items: {
             type: "string",
             enum: [
-              "modelo_303",
-              "modelo_130",
-              "modelo_200_IS",
+              "modelo_303_pdf",
+              "modelo_303_excel",
+              "modelo_130_pdf",
+              "modelo_130_excel",
+              "modelo_200_IS_pdf",
+              "modelo_200_IS_excel",
               "modelo_111",
               "modelo_115",
               "modelo_347",
@@ -117,8 +120,8 @@ const IA_TOOLS = [
         },
         formato: {
           type: "string",
-          enum: ["zip", "individual"],
-          description: "zip = todos en un ZIP descargable, individual = botones separados por documento"
+          enum: ["individual", "zip"],
+          description: "individual = botones separados por documento (por defecto), zip = todos en un ZIP descargable"
         },
         motivo: {
           type: "string",
@@ -530,7 +533,7 @@ INSTRUCCIONES:
 7. Usa cifras REALES del contexto. Importes: 1.234,56 €
 8. Usa **negrita** para importes y conceptos clave.
 9. Si el usuario adjunta una factura PDF o imagen, extrae TODOS los datos (proveedor, NIF, base, IVA, IRPF, fecha, número) y usa registrar_factura_recibida para guardarla. Si algún dato no está claro, indícalo pero registra con lo que tengas.
-10. Cuando el usuario quiera descargar modelos fiscales, que su gestor le pida documentación, o que quiera enviar algo a su asesor — usa preparar_documentos. Pregunta el formato (zip o individual) si no está claro. Para el trimestre activo sugiere siempre los modelos que correspondan al régimen.`;
+10. Cuando el usuario quiera descargar modelos fiscales, que su gestor le pida documentación, o que quiera enviar algo a su asesor — usa preparar_documentos. SIEMPRE usa formato 'individual' (botones de descarga) salvo que el usuario pida expresamente un ZIP. Para documentos usa las claves con sufijo: _pdf para PDF (ej: modelo_303_pdf, modelo_130_pdf, modelo_200_IS_pdf) y _excel para Excel (ej: modelo_303_excel). Si el usuario pide "el 303" o "el modelo 303" sin especificar formato, usa modelo_303_pdf. Para el trimestre activo sugiere siempre los modelos que correspondan al régimen.`;
   const res=await fetch('https://biiyzjzdvuahajndltap.supabase.co/functions/v1/claude-proxy',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -818,18 +821,26 @@ async function _ejecutarHerramienta(nombre, input) {
 async function _generarPaqueteDocumentos(documentos, formato, motivo) {
   // Mapa: clave → { label, fn, ext }
   const MAPA = {
-    modelo_303:        { label: 'Modelo 303 · IVA',             ext: 'pdf', fn: async () => { const {exportarDatos303}   = await import('./fiscal.js');         return _capturarPDF(() => exportarDatos303()); } },
-    modelo_130:        { label: 'Modelo 130 · IRPF',            ext: 'pdf', fn: async () => { const {exportarDatos130}   = await import('./fiscal.js');         return _capturarPDF(() => exportarDatos130()); } },
-    modelo_200_IS:     { label: 'Modelo 200 · IS',              ext: 'pdf', fn: async () => { const {refreshIS}          = await import('./dashboard.js');      return _capturarPDF(async () => { await refreshIS(); if (window._switchView) window._switchView('is'); }); } },
-    modelo_111:        { label: 'Modelo 111 · Retenciones',     ext: 'pdf', fn: async () => { const {exportModelo111PDF} = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo111PDF()); } },
-    modelo_115:        { label: 'Modelo 115 · Alquiler',        ext: 'pdf', fn: async () => { const {exportModelo115PDF} = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo115PDF()); } },
-    modelo_347:        { label: 'Modelo 347 · Terceros',        ext: 'pdf', fn: async () => { const {exportModelo347PDF} = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo347PDF()); } },
-    modelo_349:        { label: 'Modelo 349 · Intracom.',       ext: 'pdf', fn: async () => { const {exportModelo349PDF} = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo349PDF()); } },
-    modelo_390:        { label: 'Modelo 390 · Resumen IVA',     ext: 'pdf', fn: async () => { const {exportModelo390PDF} = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo390PDF()); } },
-    modelo_190:        { label: 'Modelo 190 · Retenciones',     ext: 'pdf', fn: async () => { const {exportModelo190PDF} = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo190PDF()); } },
-    libro_ingresos_pdf:{ label: 'Libro de Ingresos',            ext: 'pdf', fn: async () => { const {exportLibroIngPDF}  = await import('./exports.js');        return _capturarPDF(() => exportLibroIngPDF()); } },
-    libro_gastos_pdf:  { label: 'Libro de Gastos',              ext: 'pdf', fn: async () => { const {exportLibroGstPDF}  = await import('./exports.js');        return _capturarPDF(() => exportLibroGstPDF()); } },
-    facturas_excel:    { label: 'Facturas (Excel)',              ext: 'xlsx',fn: async () => { const {exportFacturasExcel}= await import('./exports.js');        return _capturarXLSX(() => exportFacturasExcel()); } },
+    // Modelo 303 — IVA
+    modelo_303_pdf:    { label: 'Modelo 303 · IVA (PDF)',       ext: 'pdf',  fn: async () => { const {exportarPDF303}      = await import('./fiscal.js');        return _capturarPDF(() => exportarPDF303()); } },
+    modelo_303_excel:  { label: 'Modelo 303 · IVA (Excel)',     ext: 'xlsx', fn: async () => { const {exportarDatos303}    = await import('./fiscal.js');        return _capturarXLSX(() => exportarDatos303()); } },
+    // Modelo 130 — IRPF
+    modelo_130_pdf:    { label: 'Modelo 130 · IRPF (PDF)',      ext: 'pdf',  fn: async () => { const {exportarPDF130}      = await import('./fiscal.js');        return _capturarPDF(() => exportarPDF130()); } },
+    modelo_130_excel:  { label: 'Modelo 130 · IRPF (Excel)',    ext: 'xlsx', fn: async () => { const {exportarDatos130}    = await import('./fiscal.js');        return _capturarXLSX(() => exportarDatos130()); } },
+    // Modelo 200 — IS
+    modelo_200_IS_pdf:  { label: 'Modelo 200 · IS (PDF)',       ext: 'pdf',  fn: async () => { const {exportarPDFIS}       = await import('./fiscal.js');        return _capturarPDF(() => exportarPDFIS()); } },
+    modelo_200_IS_excel:{ label: 'Modelo 200 · IS (Excel)',     ext: 'xlsx', fn: async () => { const {exportarExcelIS}     = await import('./fiscal.js');        return _capturarXLSX(() => exportarExcelIS()); } },
+    // Otros modelos
+    modelo_111:        { label: 'Modelo 111 · Retenciones',     ext: 'pdf',  fn: async () => { const {exportModelo111PDF}  = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo111PDF()); } },
+    modelo_115:        { label: 'Modelo 115 · Alquiler',        ext: 'pdf',  fn: async () => { const {exportModelo115PDF}  = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo115PDF()); } },
+    modelo_347:        { label: 'Modelo 347 · Terceros',        ext: 'pdf',  fn: async () => { const {exportModelo347PDF}  = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo347PDF()); } },
+    modelo_349:        { label: 'Modelo 349 · Intracom.',       ext: 'pdf',  fn: async () => { const {exportModelo349PDF}  = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo349PDF()); } },
+    modelo_390:        { label: 'Modelo 390 · Resumen IVA',     ext: 'pdf',  fn: async () => { const {exportModelo390PDF}  = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo390PDF()); } },
+    modelo_190:        { label: 'Modelo 190 · Retenciones',     ext: 'pdf',  fn: async () => { const {exportModelo190PDF}  = await import('./otros-modelos.js'); return _capturarPDF(() => exportModelo190PDF()); } },
+    // Libros y datos
+    libro_ingresos_pdf:{ label: 'Libro de Ingresos (PDF)',      ext: 'pdf',  fn: async () => { const {exportLibroIngPDF}   = await import('./exports.js');       return _capturarPDF(() => exportLibroIngPDF()); } },
+    libro_gastos_pdf:  { label: 'Libro de Gastos (PDF)',        ext: 'pdf',  fn: async () => { const {exportLibroGstPDF}   = await import('./exports.js');       return _capturarPDF(() => exportLibroGstPDF()); } },
+    facturas_excel:    { label: 'Facturas (Excel)',              ext: 'xlsx', fn: async () => { const {exportFacturasExcel} = await import('./exports.js');       return _capturarXLSX(() => exportFacturasExcel()); } },
   };
 
   const ctx = _s.taxResult;
@@ -839,7 +850,7 @@ async function _generarPaqueteDocumentos(documentos, formato, motivo) {
   // Mostrar mensaje de preparando
   _addAccion('⏳ Preparando documentos…', `${documentos.length} archivo${documentos.length>1?'s':''} · ${motivo}`, null);
 
-  if (formato === 'individual') {
+  if (formato === 'individual' || formato !== 'zip') {
     // Modo individual: botones separados que descargan al pulsar
     const items = documentos.map(key => {
       const def = MAPA[key];
