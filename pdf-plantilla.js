@@ -645,7 +645,10 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
           return; // ya pintado, saltar el doc.text genérico
         case "cantidad":     val = String(qty); break;
         case "precio":       val = precio.toFixed(2) + " €"; break;
-        case "subtotal":     val = subtotal.toFixed(2) + " €"; break;
+        case "subtotal":
+          // Columna "subtotal" = importe BRUTO de la línea (cantidad × precio, antes de descuento)
+          val = subtotalBruto.toFixed(2) + " €";
+          break;
         case "iva":          val = (l.iva || 0) + "%"; break;
         case "descuento":
           val = descAmt > 0
@@ -655,6 +658,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
         case "codigo":       val = l.codigo || l.referencia || "—"; break;
         case "coeficiente":  val = l.coeficiente != null ? String(l.coeficiente) : "1.00"; break;
         case "total":
+          // Columna "total" = base neta de la línea (subtotal - descuento de línea)
           val = subtotal.toFixed(2) + " €";
           doc.setFont(font, "bold");
           break;
@@ -678,6 +682,31 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   y += 8;
 
   // ── TOTALES ── (no se muestran en albarán sin precios)
+  // ── Leer y aplicar descuento global del documento ──
+  // descuento_global se guarda como JSON: { tipo: "pct"|"fixed", valor: number }
+  let _dtoGlobalAmt = 0;
+  let _dtoGlobalLabel = "";
+  const _baseSinDtoGlobal = baseTotal; // antes de aplicar el descuento global
+  try {
+    const _dgRaw = docData.descuento_global;
+    if (_dgRaw) {
+      const _dg = typeof _dgRaw === "string" ? JSON.parse(_dgRaw) : _dgRaw;
+      if (_dg && _dg.valor > 0) {
+        _dtoGlobalAmt = _dg.tipo === "pct"
+          ? _baseSinDtoGlobal * _dg.valor / 100
+          : Math.min(_dg.valor, _baseSinDtoGlobal);
+        _dtoGlobalAmt = Math.max(0, _dtoGlobalAmt);
+        _dtoGlobalLabel = _dg.tipo === "pct"
+          ? (_en ? `Global discount (${_dg.valor}%)` : `Dto. global (${_dg.valor}%)`)
+          : (_en ? "Global discount" : "Dto. global");
+        // Reducir base y reajustar ivaMap proporcionalmente
+        const _ratio = _baseSinDtoGlobal > 0 ? (_baseSinDtoGlobal - _dtoGlobalAmt) / _baseSinDtoGlobal : 0;
+        baseTotal = _baseSinDtoGlobal - _dtoGlobalAmt;
+        for (const k of Object.keys(ivaMap)) ivaMap[k] *= _ratio;
+      }
+    }
+  } catch(e) { /* descuento_global malformado o ausente — ignorar */ }
+
   const ivaTotal    = Object.values(ivaMap).reduce((a, b) => a + b, 0);
   if (tipo === "albaran" && !mostrarPrecios) {
     // Saltar bloque de totales
@@ -704,11 +733,22 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
     y += 6.5;
   };
 
-  _totRow(_en ? "Subtotal" : "Base imponible", baseTotal.toFixed(2) + " €");
+  // Primera fila: subtotal bruto antes de cualquier descuento (si hay descuentos)
+  const _hayDescuentos = descuentoTotalDoc > 0 || _dtoGlobalAmt > 0;
+  if (_hayDescuentos) {
+    _totRow(_en ? "Subtotal" : "Subtotal bruto", _baseSinDtoGlobal.toFixed(2) + " €", MUTED);
+  }
 
   if (descuentoTotalDoc > 0) {
-    _totRow(_en ? "Discounts" : "Descuentos", "- " + descuentoTotalDoc.toFixed(2) + " €", [200, 50, 50]);
+    _totRow(_en ? "Line discounts" : "Descuentos en líneas", "- " + descuentoTotalDoc.toFixed(2) + " €", [200, 50, 50]);
   }
+
+  if (_dtoGlobalAmt > 0) {
+    _totRow(_dtoGlobalLabel, "- " + _dtoGlobalAmt.toFixed(2) + " €", [5, 150, 105]);
+  }
+
+  // Fila base imponible real (después de todos los descuentos)
+  _totRow(_en ? "Taxable base" : "Base imponible", baseTotal.toFixed(2) + " €");
 
   if (!_opSinIvaFila && !_opIvaNoRepercutido) {
     Object.entries(ivaMap).filter(([, v]) => esRectificativa ? v !== 0 : v > 0).sort(([a], [b]) => Number(b) - Number(a)).forEach(([pct, amt]) => {
