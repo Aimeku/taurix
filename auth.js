@@ -625,6 +625,51 @@ export function showResetPasswordModal(recoverySession = null) {
   modal.querySelectorAll(".auth-pw-toggle").forEach(btn => { btn.addEventListener("click", () => { const input = document.getElementById(btn.dataset.target); input.type = input.type === "password" ? "text" : "password"; btn.textContent = input.type === "password" ? "👁" : "🙈"; }); });
   document.getElementById("rpPw1")?.addEventListener("input", e => { const pw = e.target.value; const wrap = document.getElementById("rpStrengthWrap"), bar = document.getElementById("rpStrengthBar"), lbl = document.getElementById("rpStrengthLabel"); if (!pw) { if (wrap) wrap.style.display = "none"; return; } if (wrap) wrap.style.display = ""; let score = 0; if (pw.length >= 8) score++; if (pw.length >= 12) score++; if (/[A-Z]/.test(pw)) score++; if (/[0-9]/.test(pw)) score++; if (/[^A-Za-z0-9]/.test(pw)) score++; const levels = [{ pct: "20%", color: "#dc2626", label: "Muy débil" }, { pct: "40%", color: "#f97316", label: "Débil" }, { pct: "60%", color: "#eab308", label: "Regular" }, { pct: "80%", color: "#22c55e", label: "Buena" }, { pct: "100%", color: "#059669", label: "Excelente" }]; const lvl = levels[Math.min(score, 4)]; if (bar) { bar.style.width = lvl.pct; bar.style.background = lvl.color; } if (lbl) { lbl.textContent = `Fortaleza: ${lvl.label}`; lbl.style.color = lvl.color; } });
   modal.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("rpSubmitBtn")?.click(); });
-  document.getElementById("rpSubmitBtn").addEventListener("click", async () => { const pw1 = document.getElementById("rpPw1").value, pw2 = document.getElementById("rpPw2").value; showError(""); if (!pw1 || pw1.length < 8) { showError("Mín. 8 caracteres."); return; } if (pw1 !== pw2) { showError("Las contraseñas no coinciden."); return; } setLoading(true); try { if (recoverySession?.access_token) await supabase.auth.setSession({ access_token: recoverySession.access_token, refresh_token: recoverySession.refresh_token }); const { error } = await supabase.auth.updateUser({ password: pw1 }); if (error) throw new Error(error.message); showSuccess("✅ Contraseña actualizada. Redirigiendo…"); setTimeout(() => { modal.remove(); window.history.replaceState({}, document.title, window.location.pathname); window.location.reload(); }, 1800); } catch (e) { showError(e.message); setLoading(false); } });
+  document.getElementById("rpSubmitBtn").addEventListener("click", async () => {
+    const pw1 = document.getElementById("rpPw1").value;
+    const pw2 = document.getElementById("rpPw2").value;
+    showError("");
+    if (!pw1 || pw1.length < 8) { showError("Mín. 8 caracteres."); return; }
+    if (pw1 !== pw2)             { showError("Las contraseñas no coinciden."); return; }
+    setLoading(true);
+    try {
+      // 1. Asegurar sesión de recovery activa antes de updateUser
+      if (recoverySession?.access_token) {
+        await supabase.auth.setSession({
+          access_token:  recoverySession.access_token,
+          refresh_token: recoverySession.refresh_token
+        });
+      }
+
+      // 2. Actualizar contraseña
+      const { error } = await supabase.auth.updateUser({ password: pw1 });
+      if (error) throw new Error(error.message);
+
+      // 3. Mostrar éxito
+      showSuccess("✅ Contraseña actualizada correctamente");
+
+      // 4. Cerrar sesión (la que Supabase crea automáticamente tras updateUser)
+      //    Usamos signOut antes de redirigir para que el usuario deba
+      //    hacer login manual con su nueva contraseña.
+      //    El flag en sessionStorage evita que onAuthStateChange(SIGNED_OUT)
+      //    provoque un comportamiento inesperado durante esta transición.
+      sessionStorage.setItem("taurix_recovery_signout", "1");
+      await supabase.auth.signOut();
+
+      // 5. Limpiar estado y redirigir al login tras breve pausa
+      setTimeout(() => {
+        modal.remove();
+        sessionStorage.removeItem("taurix_recovery_pending");
+        sessionStorage.removeItem("taurix_recovery_signout");
+        window.history.replaceState({}, document.title, window.location.pathname);
+        // Recargar para mostrar la landing/login limpia sin sesión
+        window.location.reload();
+      }, 1600);
+
+    } catch (e) {
+      showError(e.message);
+      setLoading(false);
+    }
+  });
   setTimeout(() => document.getElementById("rpPw1")?.focus(), 100);
 }
