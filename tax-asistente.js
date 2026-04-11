@@ -466,7 +466,7 @@ function _msgBienvenida(ctx) {
   const badge=ctx.esSociedad
     ?`<span style="font-size:10px;background:#EEF2FF;color:#4F46E5;padding:2px 7px;border-radius:100px;font-weight:700;margin-left:6px">SL·IS</span>`
     :`<span style="font-size:10px;background:var(--ox-lt);color:var(--ox-dd);padding:2px 7px;border-radius:100px;font-weight:700;margin-left:6px">Autónomo</span>`;
-  _addMsg('ai',`Listo para actuar. ${trim} ${ctx.year}:<div class="ta-card"><div class="ta-card-hd">${trim} ${ctx.year} ${badge}</div><div class="ta-card-row"><span class="l">IVA · Mod.303</span><span class="v ${r303.resultado_final>0?'pay':'save'}">${fmt(Math.abs(r303.resultado_final))} ${r303.resultado_final>0?'↑ a ingresar':'↓ a compensar'}</span></div>${filaImp}${al.length?`<div class="ta-card-row"><span class="l">Alertas urgentes</span><span class="v warn">${al.length} activa${al.length>1?'s':''}</span></div>`:''}</div>`);
+  _addMsg('ai', `¡Hola! Soy la IA de Taurix y actuaré como tu gestor fiscal. Puedes pedirme cosas como:<ul style="margin:8px 0 0 0;padding-left:18px;line-height:1.8;font-size:13px"><li>Calcular y exportar tus modelos fiscales (303, 130, 111…)</li><li>Revisar tus alertas fiscales del trimestre</li><li>Registrar una factura recibida desde un PDF</li><li>Consultar cuánto debes reservar para impuestos</li><li>Preparar documentación para enviar a tu gestor</li></ul>¿En qué te ayudo hoy?`);
 }
 
 function _send() {
