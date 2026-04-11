@@ -293,34 +293,52 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ── Auth listener — PRIMERO, antes de getSession() ── */
   let _isRecoveryFlow = false;
 
+  /* ── Detectar PKCE recovery code en URL ANTES del listener ──
+     Con flowType "pkce", Supabase intercambia el ?code= y dispara
+     SIGNED_IN (no PASSWORD_RECOVERY). Guardamos la intención en
+     sessionStorage para sobrevivir a cualquier redirección interna. */
+  const _urlParams = new URLSearchParams(window.location.search);
+  const _hasRecoveryCode = _urlParams.get("code") && _urlParams.get("type") === "recovery";
+  if (_hasRecoveryCode) {
+    sessionStorage.setItem("taurix_recovery_pending", "1");
+  }
+  if (sessionStorage.getItem("taurix_recovery_pending") === "1") {
+    _isRecoveryFlow = true;
+    document.getElementById("appShell")?.classList.add("hidden");
+    document.getElementById("landingPage")?.classList.add("hidden");
+  }
+
   supabase.auth.onAuthStateChange((event, session) => {
+    /* PASSWORD_RECOVERY: flow implícito (antiguo) — por compatibilidad */
     if (event === "PASSWORD_RECOVERY") {
+      _isRecoveryFlow = true;
+      sessionStorage.setItem("taurix_recovery_pending", "1");
+      document.getElementById("appShell")?.classList.add("hidden");
+      document.getElementById("landingPage")?.classList.add("hidden");
+      window.history.replaceState({}, document.title, window.location.pathname);
+      document.getElementById("resetPwModal")?.remove();
+      showResetPasswordModal(session);
+      return;
+    }
+
+    /* SIGNED_IN tras intercambio PKCE del link de recovery */
+    if (event === "SIGNED_IN" && sessionStorage.getItem("taurix_recovery_pending") === "1") {
+      sessionStorage.removeItem("taurix_recovery_pending");
       _isRecoveryFlow = true;
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.add("hidden");
       window.history.replaceState({}, document.title, window.location.pathname);
       document.getElementById("resetPwModal")?.remove();
-      // Pasar la sesión directamente al modal para que updateUser funcione
       showResetPasswordModal(session);
       return;
     }
+
     if (event === "SIGNED_OUT") {
+      sessionStorage.removeItem("taurix_recovery_pending");
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.remove("hidden");
     }
   });
-
-  /* ── Detectar PKCE recovery code en URL ── */
-  const _urlCode = new URLSearchParams(window.location.search);
-  if (_urlCode.get("code") && _urlCode.get("type") === "recovery" ||
-      _urlCode.get("code") && document.referrer.includes("supabase.co")) {
-    _isRecoveryFlow = true;
-    document.getElementById("appShell")?.classList.add("hidden");
-    document.getElementById("landingPage")?.classList.add("hidden");
-    // Supabase intercambiará el code automáticamente via detectSessionInUrl
-    // El evento PASSWORD_RECOVERY o SIGNED_IN llegará en onAuthStateChange
-    return;
-  }
 
   /* ── CTA / landing ── */
   ["ctaNavBtn", "ctaHeroBtn", "ctaHeroSecBtn", "ctaPlanGratisBtn",
