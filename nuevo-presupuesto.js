@@ -9,7 +9,7 @@ import {
   SESSION, CLIENTES, fmt, fmtDate, toast,
   openModal, closeModal, switchView, OP_INFO, OP_SIN_IVA, OP_IVA_NO_REPERCUTIDO
 } from "./utils.js";
-import { PRODUCTOS, buscarProductoPorCodigo } from "./productos.js";
+import { PRODUCTOS, buscarProductoPorCodigo, refreshProductos } from "./productos.js";
 import { PLANTILLAS, getPlantillaDefault } from "./plantillas-usuario.js";
 import { refreshPresupuestos } from "./presupuestos.js";
 import { refreshClientes, populateClienteSelect } from "./clientes.js";
@@ -403,6 +403,8 @@ async function _descontarStockSiProcede(checkboxId) {
       .eq("user_id", SESSION.user.id);
     if (!error) prod.stock_actual = nuevoStock;
   }
+  // Refrescar catálogo para que la vista se actualice sin recargar
+  refreshProductos().catch(() => {});
 }
 
 /* ── Mostrar/ocultar el checkbox según haya líneas con producto_id ── */
