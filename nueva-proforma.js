@@ -139,7 +139,7 @@ function _addLinea(pf={}) {
     if(tot)tot.textContent=fmt((lx?.cantidad||1)*p.precio);
     _calcTotales();
   });
-  cont.appendChild(row); _calcTotales();
+  cont.appendChild(row); _calcTotales(); _actualizarVisibilidadReducirStock("npfReducirStockWrap");
 }
 
 /* ══════════════════════════════════════════════════════
@@ -353,6 +353,30 @@ async function _getNextNumero(){
 /* ══════════════════════════════════════════════════════
    GUARDAR
 ══════════════════════════════════════════════════════ */
+
+/* ── Descuento de stock al guardar (si el checkbox está marcado) ── */
+async function _descontarStockSiProcede(checkboxId) {
+  if (!document.getElementById(checkboxId)?.checked) return;
+  const lineasConProducto = LINEAS.filter(l => l.producto_id && l.cantidad > 0);
+  for (const linea of lineasConProducto) {
+    const prod = PRODUCTOS.find(p => p.id === linea.producto_id);
+    if (!prod || prod.tipo === "servicio" || prod.stock_actual == null) continue;
+    const nuevoStock = Math.max(0, prod.stock_actual - linea.cantidad);
+    const { error } = await supabase.from("productos")
+      .update({ stock_actual: nuevoStock })
+      .eq("id", linea.producto_id)
+      .eq("user_id", SESSION.user.id);
+    if (!error) prod.stock_actual = nuevoStock;
+  }
+}
+
+function _actualizarVisibilidadReducirStock(wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const tieneProductos = LINEAS.some(l => l.producto_id);
+  wrap.style.display = tieneProductos ? "flex" : "none";
+}
+
 async function _save(){
   const concepto=document.getElementById("npfConcepto")?.value.trim();
   const fecha=document.getElementById("npfFecha")?.value;
@@ -428,6 +452,7 @@ async function _save(){
 
   if(err){toast("Error: "+err.message,"error");if(btn){btn.disabled=false;btn.textContent=editandoId?"Actualizar proforma":"Guardar proforma";}return;}
 
+  await _descontarStockSiProcede("npfReducirStock");
   toast(editandoId?"Proforma actualizada":`Proforma ${numero} creada`,"success");
   _resetForm(); await refreshProforma(); switchView("proformas");
 }
