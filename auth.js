@@ -118,6 +118,11 @@ export async function loginEmail(email, password) {
       throw new Error("Email o contraseña incorrectos.");
     throw new Error(error.message);
   }
+  // Doble comprobación en el frontend: si el email no está confirmado, cerrar sesión y bloquear
+  if (data?.user && !data.user.email_confirmed_at) {
+    await supabase.auth.signOut();
+    throw new Error("Debes verificar tu email antes de iniciar sesión. Revisa tu bandeja de entrada (y la carpeta de spam).");
+  }
   return data;
 }
 
