@@ -2637,8 +2637,39 @@
                 <!-- generado dinámicamente por JS -->
               </div>
               <div id="lineasContainer"></div>
+
+              <!-- Botón añadir descuento global — separado visualmente de las líneas -->
+              <div style="display:flex;justify-content:flex-end;margin:8px 0 0 0">
+                <button id="nfAddDtoGlobalBtn" type="button" title="Aplicar un descuento sobre el total de todas las líneas" style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--t2);background:transparent;border:1.5px dashed var(--brd);border-radius:7px;padding:5px 12px;cursor:pointer;transition:border-color .15s,color .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--brd)';this.style.color='var(--t2)'">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Dto. sobre subtotal
+                </button>
+              </div>
+
               <div class="lineas-totales">
                 <div class="lt-row"><span>Base imponible</span><strong id="ltBase">0,00 €</strong></div>
+
+                <!-- Fila input descuento global (visible solo cuando está activo) -->
+                <div id="ltDtoGlobalWrap" style="display:none;padding:6px 0 2px 0;border-top:1px solid var(--brd)">
+                  <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
+                    <span style="font-size:12px;color:var(--t2);white-space:nowrap">Descuento global</span>
+                    <select id="ltDtoGlobalTipo" style="font-size:12px;padding:3px 6px;border:1.5px solid var(--brd);border-radius:6px;background:var(--bg2);color:var(--t1);cursor:pointer">
+                      <option value="pct">%</option>
+                      <option value="fixed">€</option>
+                    </select>
+                    <input id="ltDtoGlobalInput" type="number" min="0" step="0.01" placeholder="0" style="width:72px;font-size:12px;padding:3px 7px;border:1.5px solid var(--brd);border-radius:6px;background:var(--bg2);color:var(--t1);text-align:right"/>
+                    <button id="ltDtoGlobalRemove" type="button" title="Quitar descuento global" style="display:flex;align-items:center;justify-content:center;padding:3px;border:none;background:transparent;color:var(--t3);cursor:pointer;border-radius:4px" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='var(--t3)'">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Fila dto global calculado (visible solo cuando dtoGlobalAmt > 0) -->
+                <div class="lt-row" id="ltDtoGlobalRow" style="display:none;color:#059669">
+                  <span id="ltDtoGlobalLbl">Dto. global</span>
+                  <strong id="ltDtoGlobalVal" style="color:#059669">−0,00 €</strong>
+                </div>
+
                 <div id="ltIvaRows"></div>
                 <div class="lt-row lt-irpf" id="ltIrpfRow" style="display:none"><span id="ltIrpfLbl">IRPF (−15%)</span><strong id="ltIrpf" style="color:#dc2626">0,00 €</strong></div>
                 <div class="lt-row lt-total"><span>TOTAL FACTURA</span><strong id="ltTotal">0,00 €</strong></div>
