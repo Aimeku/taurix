@@ -5,7 +5,7 @@
    empleados, contabilidad, tesorería, pipeline, 347, 349...
    ═══════════════════════════════════════════════════════ */
 
-import { login, logout, getSession, showAuthModal, showResetPasswordModal, showAjustesModal } from "./auth.js";
+import { login, logout, getSession, handleRememberSession, showAuthModal, showResetPasswordModal, showAjustesModal } from "./auth.js";
 import { supabase } from "./supabase.js";
 
 import {
@@ -387,6 +387,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ── Sesión ── */
   // Si ya se activó el recovery flow, no continuar con la app
   if (_isRecoveryFlow) return;
+  // Limpiar sesión si el usuario cerró el navegador sin marcar "recordar"
+  await handleRememberSession();
   const session = await getSession();
   if (!session) return;
   setSession(session);
