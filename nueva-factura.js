@@ -678,15 +678,13 @@ async function saveFactura() {
       }
       return notas;
     })(),
-        lineas: JSON.stringify(LINEAS.map(l=>({
+    lineas: JSON.stringify(LINEAS.map(l=>({
       descripcion: l.descripcion, cantidad: l.cantidad,
       precio: l.precio, iva: l.iva,
       descuento: l.descuento ?? "",
       subtotal: Math.max(0, l.cantidad*l.precio - _parseDescuento(l.descuento, l.cantidad*l.precio)),
       tipo: l.tipo || "servicio",
       producto_id: l.producto_id || null
-    })))antidad*l.precio)),
-      tipo: l.tipo || "servicio"
     })))
   }).select().single();
   // Guardar plantilla_id de forma resiliente (columna puede no existir aún)
