@@ -992,6 +992,188 @@ async function _cargarJsPDF() {
   });
 }
 
+/* ══════════════════════════════════════════
+   IS — helpers internos (sin depender de dashboard.js)
+══════════════════════════════════════════ */
+async function _calcDatosIS() {
+  const year = getYear();
+  const uid  = SESSION?.user?.id;
+  const [fR, nR, bR] = await Promise.all([
+    supabase.from("facturas")
+      .select("tipo,base,iva,estado,irpf,irpf_retencion")
+      .eq("user_id", uid)
+      .gte("fecha", `${year}-01-01`).lte("fecha", `${year}-12-31`),
+    supabase.from("nominas")
+      .select("salario_bruto,ss_empresa")
+      .eq("user_id", uid)
+      .gte("fecha", `${year}-01-01`),
+    supabase.from("bienes_inversion")
+      .select("valor_adquisicion,coeficiente,tipo_bien")
+      .eq("user_id", uid),
+  ]);
+  const facs  = fR.data || [];
+  const noms  = nR.data || [];
+  const bienes = bR.data || [];
+
+  const _coef = (tipo) => ({ inmueble:3, vehiculo:16, informatico:25, maquinaria:12, mobiliario:10 }[tipo] ?? 10);
+
+  const ing   = facs.filter(f => f.tipo === "emitida" && f.estado === "emitida").reduce((a, f) => a + f.base, 0);
+  const gst   = facs.filter(f => f.tipo === "recibida").reduce((a, f) => a + f.base, 0);
+  const gstP  = noms.reduce((a, n) => a + (n.salario_bruto || 0) + (n.ss_empresa || 0), 0);
+  const amort = bienes.reduce((a, b) => a + b.valor_adquisicion * _coef(b.tipo_bien) / 100, 0);
+  const baii  = ing - gst - gstP - amort;
+  const base  = Math.max(0, baii);
+  const cuota = base * 0.25;
+  const ret   = facs.filter(f => f.tipo === "emitida" && f.estado === "emitida")
+    .reduce((a, f) => a + f.base * ((f.irpf_retencion || f.irpf || 0)) / 100, 0);
+  const dif   = Math.max(0, cuota - ret);
+
+  const { data: pf } = await supabase.from("perfil_fiscal")
+    .select("*").eq("user_id", uid).maybeSingle();
+
+  return { year, ing, gst, gstP, amort, baii, base, cuota, ret, dif, pf };
+}
+
+/* ══════════════════════════════════════════
+   EXPORTAR EXCEL — IMPUESTO DE SOCIEDADES
+══════════════════════════════════════════ */
+export async function exportarExcelIS() {
+  const d = await _calcDatosIS();
+
+  if (!window.XLSX) {
+    await new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+      s.onload = res; s.onerror = rej; document.head.appendChild(s);
+    });
+  }
+
+  const ws = window.XLSX.utils.json_to_sheet([{
+    "Ejercicio":                              d.year,
+    "NIF":                                    d.pf?.nif || "",
+    "Razón Social":                           d.pf?.nombre_razon_social || "",
+    "Ingresos de explotación":                d.ing.toFixed(2),
+    "Gastos de explotación":                  d.gst.toFixed(2),
+    "Gastos de personal (nóminas + SS)":      d.gstP.toFixed(2),
+    "Amortizaciones":                         d.amort.toFixed(2),
+    "Resultado contable (BAI)":               d.baii.toFixed(2),
+    "Base imponible (tras ajustes)":          d.base.toFixed(2),
+    "Tipo impositivo":                        "25%",
+    "Cuota íntegra":                          d.cuota.toFixed(2),
+    "Retenciones y pagos a cuenta":           d.ret.toFixed(2),
+    "Pagos fraccionados (Mod. 202)":          "0.00",
+    "CUOTA DIFERENCIAL (Mod. 200)":           d.dif.toFixed(2),
+    "Plazo presentación":                     "25 de julio",
+    "Generado con Taurix":                    new Date().toLocaleDateString("es-ES"),
+  }]);
+  ws["!cols"] = [
+    {wch:12},{wch:14},{wch:28},{wch:26},{wch:26},{wch:30},{wch:18},
+    {wch:26},{wch:28},{wch:16},{wch:16},{wch:28},{wch:28},{wch:28},{wch:22},{wch:22},
+  ];
+  const wb = window.XLSX.utils.book_new();
+  window.XLSX.utils.book_append_sheet(wb, ws, `IS_${d.year}`);
+  window.XLSX.writeFile(wb, `impuesto_sociedades_${d.year}.xlsx`);
+  toast("Impuesto de Sociedades exportado en Excel ✅", "success");
+}
+
+/* ══════════════════════════════════════════
+   EXPORTAR PDF — IMPUESTO DE SOCIEDADES
+══════════════════════════════════════════ */
+export async function exportarPDFIS() {
+  await _cargarJsPDF();
+  const d = await _calcDatosIS();
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const PW = 210, ML = 18, W = PW - ML * 2;
+  const PURPLE = [124, 58, 237], INK = [15, 23, 42], MUTED = [100, 116, 139], LIGHT = [248, 250, 252];
+
+  // Cabecera
+  doc.setFillColor(...PURPLE); doc.rect(0, 0, PW, 32, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+  doc.text("IMPUESTO DE SOCIEDADES — MODELO 200", ML, 13);
+  doc.setFontSize(9); doc.setFont("helvetica", "normal");
+  doc.text("Liquidación anual · Art. 124 LIS", ML, 20);
+  doc.setFontSize(8);
+  doc.text("Estimación a partir de datos contables registrados en Taurix", ML, 27);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(14);
+  doc.text("M-200", PW - ML, 20, { align: "right" });
+
+  let y = 42;
+
+  // Datos contribuyente
+  doc.setFillColor(...LIGHT); doc.rect(ML, y, W, 18, "FD");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(...MUTED);
+  doc.text("DATOS DEL SUJETO PASIVO", ML + 4, y + 5);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...INK);
+  doc.text(`${d.pf?.nombre_razon_social || "—"}`, ML + 4, y + 11);
+  doc.text(`NIF: ${d.pf?.nif || "—"}`, ML + 4, y + 16);
+  doc.setTextColor(...MUTED);
+  doc.text(`Ejercicio fiscal: ${d.year}`, PW - ML, y + 11, { align: "right" });
+  doc.text("Plazo: 25 de julio", PW - ML, y + 16, { align: "right" });
+  y += 26;
+
+  const filas = [
+    { label: "Ingresos de explotación",                      valor: d.ing },
+    { label: "Gastos de explotación",                        valor: d.gst },
+    { label: "Gastos de personal (nóminas + SS empresa)",    valor: d.gstP },
+    { label: "Amortizaciones",                               valor: d.amort },
+    { label: "Resultado contable / BAI",                     valor: d.baii,  bold: true },
+    { label: "Base imponible (tras ajustes extracontables)", valor: d.base,  bold: true },
+    { label: "Cuota íntegra (base × 25%)",                   valor: d.cuota },
+    { label: "Retenciones y pagos a cuenta",                 valor: d.ret },
+    { label: "Pagos fraccionados Mod. 202",                  valor: 0 },
+    { label: "CUOTA DIFERENCIAL — RESULTADO MOD. 200",       valor: d.dif,   bold: true },
+  ];
+
+  doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...INK);
+  doc.text("LIQUIDACIÓN", ML, y); y += 6;
+  doc.setDrawColor(...PURPLE); doc.setLineWidth(0.5); doc.line(ML, y, PW - ML, y); y += 6;
+
+  filas.forEach((f, i) => {
+    if (i % 2 === 0) doc.setFillColor(250, 248, 255); else doc.setFillColor(255, 255, 255);
+    doc.rect(ML, y, W, 8, "F");
+    doc.setFont("helvetica", f.bold ? "bold" : "normal");
+    doc.setFontSize(f.bold ? 10 : 9);
+    doc.setTextColor(f.bold ? PURPLE[0] : INK[0], f.bold ? PURPLE[1] : INK[1], f.bold ? PURPLE[2] : INK[2]);
+    doc.text(f.label, ML + 3, y + 5.5);
+    doc.text(fmt(f.valor), PW - ML - 2, y + 5.5, { align: "right" });
+    y += 8;
+  });
+
+  y += 8;
+
+  // Resultado
+  doc.setFillColor(...PURPLE); doc.rect(ML, y, W, 14, "F");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(255, 255, 255);
+  doc.text(d.dif > 0 ? "RESULTADO A INGRESAR" : "SIN CUOTA A INGRESAR", ML + 4, y + 9);
+  doc.text(fmt(d.dif), PW - ML - 2, y + 9, { align: "right" });
+  y += 22;
+
+  // Nota legal
+  const nota = "Estimación del Impuesto sobre Sociedades (Art. 124 LIS). Tipo general 25%. Calculado a partir de los datos contables registrados en Taurix. Documento orientativo — verifique con su asesor fiscal antes de presentar el Modelo 200 ante la AEAT.";
+  const lines = doc.splitTextToSize("NOTA: " + nota, W - 8);
+  doc.setFillColor(...LIGHT); doc.setDrawColor(200);
+  doc.rect(ML, y, W, lines.length * 4.5 + 8, "FD");
+  doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+  doc.text(lines, ML + 4, y + 6);
+  y += lines.length * 4.5 + 14;
+
+  // Firmas
+  doc.setDrawColor(200); doc.line(ML, y, ML + 70, y); doc.line(PW - ML - 70, y, PW - ML, y);
+  doc.setFontSize(8); doc.setTextColor(...MUTED);
+  doc.text("Firma del representante legal", ML + 5, y + 5);
+  doc.text("Fecha y sello AEAT", PW - ML - 50, y + 5);
+
+  // Footer
+  doc.setFontSize(7);
+  doc.text(`Generado con Taurix · ${new Date().toLocaleDateString("es-ES")} · Documento orientativo. Verifique con la AEAT antes de presentar.`, PW / 2, 290, { align: "center" });
+
+  doc.save(`impuesto_sociedades_${d.year}.pdf`);
+  toast("Impuesto de Sociedades exportado en PDF ✅", "success");
+}
+
 function toast(msg, type) {
   const c = document.getElementById("toastEl");
   if (!c) return;
