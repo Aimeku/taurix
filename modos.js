@@ -34,7 +34,7 @@ const SIDEBAR_BASE = [
   { sep: true, label:"Gastos y tesorería" },
   { action:"gastoRapido", label:"Gasto rápido",          icon:"zap",    accent:true },
   { view:"gastos",        label:"Proveedores / Gastos",  icon:"credit-card", badge:"snBadgeVencidos" },
-  { view:"tesoreria",     label:"Tesorería y banco",     icon:"bank" },
+
   { sep: true, label:"RRHH y Nóminas" },
   { view:"empleados",     label:"Empleados",             icon:"users2" },
   { view:"nominas",       label:"Nóminas",               icon:"card" },
