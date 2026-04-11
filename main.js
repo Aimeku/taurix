@@ -293,22 +293,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ── Auth listener — PRIMERO, antes de getSession() ── */
   let _isRecoveryFlow = false;
 
-  /* ── Detectar PKCE recovery code en URL ANTES del listener ──
-     Con flowType "pkce", Supabase intercambia el ?code= y dispara
-     SIGNED_IN (no PASSWORD_RECOVERY). Guardamos la intención en
-     sessionStorage para sobrevivir a cualquier redirección interna. */
+  /* ── Detectar tipo de flujo por URL ANTES del listener ──
+     Con flowType "pkce", Supabase intercambia el ?code= y dispara SIGNED_IN.
+     Guardamos la intención en sessionStorage para detectarla en el listener. */
   const _urlParams = new URLSearchParams(window.location.search);
-  const _hasRecoveryCode = _urlParams.get("code") && _urlParams.get("type") === "recovery";
-  if (_hasRecoveryCode) {
+  const _urlType   = _urlParams.get("type");
+  const _urlCode   = _urlParams.get("code");
+
+  if (_urlCode && _urlType === "recovery") {
     sessionStorage.setItem("taurix_recovery_pending", "1");
   }
-  if (sessionStorage.getItem("taurix_recovery_pending") === "1") {
+  if (_urlCode && _urlType === "confirmation") {
+    sessionStorage.setItem("taurix_confirmation_pending", "1");
+  }
+
+  // Ocultar todo mientras se procesa cualquier flujo especial
+  if (sessionStorage.getItem("taurix_recovery_pending") === "1" ||
+      sessionStorage.getItem("taurix_confirmation_pending") === "1") {
     _isRecoveryFlow = true;
     document.getElementById("appShell")?.classList.add("hidden");
     document.getElementById("landingPage")?.classList.add("hidden");
   }
 
-  supabase.auth.onAuthStateChange((event, session) => {
+  supabase.auth.onAuthStateChange(async (event, session) => {
     /* PASSWORD_RECOVERY: flow implícito (antiguo) — por compatibilidad */
     if (event === "PASSWORD_RECOVERY") {
       _isRecoveryFlow = true;
@@ -333,11 +340,37 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
+    /* SIGNED_IN tras confirmación de email al crear cuenta ──
+       Cerramos la sesión que Supabase crea automáticamente y
+       redirigimos al login con un mensaje de éxito. */
+    if (event === "SIGNED_IN" && sessionStorage.getItem("taurix_confirmation_pending") === "1") {
+      sessionStorage.removeItem("taurix_confirmation_pending");
+      _isRecoveryFlow = true;
+      document.getElementById("appShell")?.classList.add("hidden");
+      document.getElementById("landingPage")?.classList.add("hidden");
+      window.history.replaceState({}, document.title, window.location.pathname);
+      // Cerrar sesión — el usuario debe entrar manualmente
+      sessionStorage.setItem("taurix_confirmation_signout", "1");
+      await supabase.auth.signOut();
+      // Mostrar landing con modal de login y mensaje de éxito
+      sessionStorage.removeItem("taurix_confirmation_signout");
+      document.getElementById("landingPage")?.classList.remove("hidden");
+      showAuthModal();
+      setTimeout(() => {
+        const successEl = document.getElementById("authSuccess");
+        if (successEl) {
+          successEl.textContent = "✅ Email verificado. Ya puedes iniciar sesión.";
+          successEl.style.display = "";
+        }
+      }, 150);
+      return;
+    }
+
     if (event === "SIGNED_OUT") {
       sessionStorage.removeItem("taurix_recovery_pending");
-      // Si el SIGNED_OUT viene del signOut() post-recovery, ignorarlo:
-      // el reload() que sigue a continuación ya mostrará la landing limpia.
+      // Ignorar SIGNED_OUT provocados por flujos especiales (recovery/confirmation)
       if (sessionStorage.getItem("taurix_recovery_signout") === "1") return;
+      if (sessionStorage.getItem("taurix_confirmation_signout") === "1") return;
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.remove("hidden");
     }
