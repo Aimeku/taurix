@@ -25,6 +25,7 @@
 import { getYear, getTrim, fmt, TRIM_LABELS, TRIM_PLAZOS } from "../utils.js";
 import { buildTaxContext } from "./tax-context.js";
 import { persistirAlertas } from "./tax-data.js";
+import { calcFechaLimitePlazo } from "./tax-rules.js";
 
 /* ══════════════════════════════════════════════════════════════════
    CACHÉ EN MEMORIA
@@ -248,25 +249,74 @@ export async function refreshAlertasEngine() {
 ══════════════════════════════════════════════════════════════════ */
 
 /**
- * Devuelve el system prompt completo con el contexto fiscal del usuario.
- * A usar en la llamada a la API de Anthropic desde el asistente fiscal.
+ * Devuelve el trimestre fiscal PENDIENTE DE PRESENTACIÓN según la normativa española.
  *
+ * Regla legal (art. 71 Rgto IVA / art. 109 Rgto IRPF):
+ *   T1 → plazo: 1–20 abril       T2 → plazo: 1–20 julio
+ *   T3 → plazo: 1–20 octubre     T4 → plazo: 1–30 enero (año siguiente)
+ *
+ * Durante el plazo de presentación de un trimestre (ej: 1–20 abril),
+ * ese trimestre TODAVÍA está pendiente → lo devolvemos como activo.
+ * Solo cuando el plazo ha vencido consideramos ese trimestre presentado
+ * y avanzamos al siguiente.
+ *
+ * @returns {{ trim: string, year: number, dentroDelPlazo: boolean, fechaLimite: Date }}
+ */
+function getTrimFiscalPendiente() {
+  const hoy   = new Date();
+  const orden = ["T1", "T2", "T3", "T4"];
+
+  // Año del trimestre en curso según el selector de la UI (puede ser año pasado en T4)
+  const uiYear = getYear();
+
+  for (const trim of orden) {
+    // Para T4 el plazo cae en enero del año siguiente
+    const yearPlazo = trim === "T4" ? uiYear + 1 : uiYear;
+    const limite    = calcFechaLimitePlazo(uiYear, trim);
+
+    // Si hoy es anterior o igual al límite → este trimestre aún está en plazo
+    if (hoy <= limite) {
+      // Confirmamos que el trimestre pertenece al año correcto:
+      // en enero de año N+1 el T4 pertenece al año N
+      const yearTrim = trim === "T4" && hoy.getFullYear() === uiYear + 1
+        ? uiYear
+        : uiYear;
+      return { trim, year: yearTrim, dentroDelPlazo: true, fechaLimite: limite };
+    }
+  }
+
+  // Si todos los trimestres del año han vencido (después del 30 enero del año siguiente)
+  // devolver T4 del año anterior como referencia
+  return {
+    trim: "T4",
+    year: uiYear - 1,
+    dentroDelPlazo: false,
+    fechaLimite: calcFechaLimitePlazo(uiYear - 1, "T4"),
+  };
+}
+
+/**
+ * Devuelve el system prompt completo con el contexto fiscal del usuario.
+ * Usa el trimestre fiscal pendiente de presentación (no el trimestre de actividad).
  * @returns {Promise<string>}
  */
 export async function getContextoParaClaude() {
-  const year = getYear();
-  const trim = getTrim();
-  const ctx  = await _getContext(year, trim);
-  return ctx.contextoParaClaude;
+  const { trim, year } = getTrimFiscalPendiente();
+  const ctx = await _getContext(year, trim);
+  // Inyectar la fecha actual para que Claude sepa en qué día está
+  const hoy = new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
+  const plazo = calcFechaLimitePlazo(year, trim).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
+  const nota  = `\nFECHA ACTUAL: ${hoy}\nTRIMESTRE PENDIENTE DE PRESENTACIÓN: ${trim} ${year} (plazo hasta ${plazo})\nEste trimestre TODAVÍA está en plazo — NO está presentado.\n`;
+  return nota + ctx.contextoParaClaude;
 }
 
 /**
  * Devuelve el objeto TaxContextResult completo (para el panel del asistente).
+ * Usa el trimestre fiscal pendiente de presentación.
  * @returns {Promise<Object>}
  */
 export async function getTaxContextResult() {
-  const year = getYear();
-  const trim = getTrim();
+  const { trim, year } = getTrimFiscalPendiente();
   return _getContext(year, trim);
 }
 
