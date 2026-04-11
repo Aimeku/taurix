@@ -13,7 +13,7 @@ import { emitirFacturaDB } from "./facturas.js";
 import { refreshClientes, populateClienteSelect } from "./clientes.js";
 import { refreshDashboard } from "./dashboard.js";
 import { refreshFacturas } from "./facturas.js";
-import { PRODUCTOS, buscarProductoPorCodigo } from "./productos.js";
+import { PRODUCTOS, buscarProductoPorCodigo, refreshProductos } from "./productos.js";
 import { PLANTILLAS, getPlantillaDefault } from "./plantillas-usuario.js";
 
 /* ── Estado interno del formulario ── */
@@ -713,6 +713,8 @@ async function saveFactura() {
         prod.stock_actual = nuevoStock;
       }
     }
+    // Refrescar catálogo para que la vista de productos se actualice sin recargar
+    refreshProductos().catch(() => {});
   }
 
   if (error) {
