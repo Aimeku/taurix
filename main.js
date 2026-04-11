@@ -5,7 +5,7 @@
    empleados, contabilidad, tesorería, pipeline, 347, 349...
    ═══════════════════════════════════════════════════════ */
 
-import { login, logout, getSession, showAuthModal, showResetPasswordModal } from "./auth.js";
+import { login, logout, getSession, showAuthModal, showResetPasswordModal, showAjustesModal } from "./auth.js";
 import { supabase } from "./supabase.js";
 
 import {
@@ -452,6 +452,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ── Sidebar ── */
   document.getElementById("logoutBtn")?.addEventListener("click", logout);
   document.getElementById("perfilFiscalBtn")?.addEventListener("click", showPerfilModal);
+  document.getElementById("topbarAvatar")?.addEventListener("click", showAjustesModal);
   document.getElementById("gastoRapidoBtn")?.addEventListener("click", showGastoRapidoModal);
   document.getElementById("serieConfigBtn")?.addEventListener("click", showSerieConfigModal);
   document.getElementById("cobrosRefreshBtn")?.addEventListener("click", refreshCobros);
