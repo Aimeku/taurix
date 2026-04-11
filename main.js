@@ -378,6 +378,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.add("hidden");
       window.history.replaceState({}, document.title, window.location.pathname);
+      // Mostrar pantalla de espera mientras se hace signOut + reload
+      const _splash = document.createElement("div");
+      _splash.id = "taurix-verify-splash";
+      _splash.style.cssText = "position:fixed;inset:0;z-index:99999;background:var(--bg1,#f2f3f7);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px";
+      _splash.innerHTML = `
+        <img src="Logo_Sin_Texto_transparent.png" style="width:56px;height:56px;border-radius:14px" alt="Taurix"/>
+        <div style="font-family:system-ui,sans-serif;font-size:15px;font-weight:700;color:#0d0f16">Verificando tu cuenta…</div>
+        <div style="width:36px;height:36px;border:3px solid #e0e3ee;border-top-color:#f97316;border-radius:50%;animation:spin .7s linear infinite"></div>
+        <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
+      document.body.appendChild(_splash);
       localStorage.setItem("taurix_email_verified", "1");
       try { await supabase.auth.signOut(); } catch(_) {}
       setTimeout(() => window.location.reload(), 100);
