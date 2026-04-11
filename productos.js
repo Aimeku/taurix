@@ -71,7 +71,7 @@ export function renderProductosTable(list) {
 
 export function showNuevoProductoModal(prefill = {}) {
   const isEdit   = !!prefill.id;
-  const tipoInit = prefill.tipo || "servicio";
+  const tipoInit = prefill.tipo || "producto";
   const unidades = ["unidad","hora","día","mes","kg","litro","m²","m³","proyecto"];
 
   openModal(`
