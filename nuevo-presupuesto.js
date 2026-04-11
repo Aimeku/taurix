@@ -367,20 +367,6 @@ window._npDelLinea = (id) => {
   updateTotalesUI(); updatePreview();
 };
 
-function updateTotalesUI() {
-  const { baseTotal, ivaTotal, total } = getLineasTotales();
-  const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  s("npBase", fmt(baseTotal));
-  s("npIva", fmt(ivaTotal));
-  s("npTotal", fmt(total));
-  // Ocultar fila IVA cuando la operación no repercute IVA al total
-  const ivaRow = document.getElementById("npIvaRow");
-  if (ivaRow) {
-    const mostrarIva = !OP_SIN_IVA.includes(npOpTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual);
-    ivaRow.style.display = mostrarIva ? "" : "none";
-  }
-}
-
 /* ══════════════════════════
    PREVIEW
 ══════════════════════════ */
