@@ -132,7 +132,7 @@ function _addLinea(pf={}) {
   const di=row.querySelector("[data-field='descripcion']");
   if(di) _buildProdDropdown(di, (p) => {
     const lx=LINEAS.find(x=>x.id===id);
-    if(lx){lx.descripcion=p.descripcion||p.nombre;lx.precio=p.precio;lx.iva=p.iva;}
+    if(lx){lx.descripcion=p.descripcion||p.nombre;lx.precio=p.precio;lx.iva=p.iva;lx.producto_id=p.id;}
     const f=(field,val)=>{const el=row.querySelector(`[data-field="${field}"]`);if(el)el.value=val;};
     f("descripcion",p.descripcion||p.nombre);f("precio",p.precio);f("iva",p.iva);
     const tot=document.getElementById(`npfLt${id}`);
@@ -400,7 +400,7 @@ async function _save(){
     cliente_email:document.getElementById("npfClienteEmail")?.value.trim()||null,
     base,iva:ivaMain,
     lineas:JSON.stringify(LINEAS.map(l=>({descripcion:l.descripcion,cantidad:l.cantidad,precio:l.precio,
-      iva:l.iva,descuento:l.descuento??"",codigo:l.codigo??"",coeficiente:l.coeficiente??""}))),
+      iva:l.iva,descuento:l.descuento??"",codigo:l.codigo??"",coeficiente:l.coeficiente??"",producto_id:l.producto_id||null}))),
     notas: (() => {
       const motivoExencion = document.getElementById("npfMotivoExencion")?.value.trim();
       const notasVal = document.getElementById("npfNotas")?.value.trim() || null;
