@@ -673,3 +673,297 @@ export function showResetPasswordModal(recoverySession = null) {
   });
   setTimeout(() => document.getElementById("rpPw1")?.focus(), 100);
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   MODAL AJUSTES DE CUENTA
+   Permite cambiar email y contraseña desde dentro de la app.
+   Usa overlay propio (z-index 9500) para no depender de openModal/utils.
+══════════════════════════════════════════════════════════════════ */
+export function showAjustesModal() {
+  // Evitar duplicados
+  document.getElementById("ajustesModal")?.remove();
+
+  const modal = document.createElement("div");
+  modal.id = "ajustesModal";
+  modal.innerHTML = `
+<div class="auth-overlay" id="ajustesOverlay" style="z-index:9500">
+  <div class="auth-card" style="padding:0;max-width:460px;width:92%">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:24px 28px 20px">
+      <div>
+        <h2 class="auth-title" style="font-size:20px;margin:0 0 4px">Ajustes de cuenta</h2>
+        <p class="auth-sub" style="margin:0;font-size:12px">Actualiza tu email o contraseña</p>
+      </div>
+      <button id="ajustesCerrarBtn" style="background:none;border:none;cursor:pointer;color:var(--t3);padding:4px;border-radius:6px;font-size:20px;line-height:1" title="Cerrar">×</button>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:0;border-top:1px solid var(--brd);border-bottom:1px solid var(--brd)">
+      <button class="aj-tab aj-tab--active" id="ajTabEmail" data-tab="email"
+        style="flex:1;padding:12px;background:none;border:none;border-bottom:2px solid var(--ox);font-size:13px;font-weight:700;color:var(--ox);cursor:pointer;transition:all .15s;font-family:var(--font)">
+        ✉️ Cambiar email
+      </button>
+      <button class="aj-tab" id="ajTabPw" data-tab="pw"
+        style="flex:1;padding:12px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:700;color:var(--t3);cursor:pointer;transition:all .15s;font-family:var(--font)">
+        🔑 Cambiar contraseña
+      </button>
+    </div>
+
+    <!-- Panel Email -->
+    <div id="ajPanelEmail" style="padding:24px 28px 28px">
+      <div class="auth-error"  id="ajEmailErr"  style="display:none;margin-bottom:14px"></div>
+      <div class="auth-success" id="ajEmailOk"  style="display:none;margin-bottom:14px"></div>
+      <div class="auth-field" style="margin-bottom:18px">
+        <label style="display:block;margin-bottom:6px;font-size:12.5px;font-weight:700;color:var(--t2)">Nuevo email</label>
+        <input type="email" id="ajNewEmail" class="ff-input" placeholder="nuevo@email.com" autocomplete="email"
+          style="width:100%;box-sizing:border-box"/>
+      </div>
+      <div class="auth-field" style="margin-bottom:22px">
+        <label style="display:block;margin-bottom:6px;font-size:12.5px;font-weight:700;color:var(--t2)">Contraseña actual <span style="font-weight:400;color:var(--t4)">(para confirmar)</span></label>
+        <div class="auth-pw-wrap">
+          <input type="password" id="ajEmailPw" class="ff-input" placeholder="••••••••" autocomplete="current-password"
+            style="width:100%;box-sizing:border-box"/>
+          <button type="button" class="auth-pw-toggle" data-target="ajEmailPw">👁</button>
+        </div>
+      </div>
+      <button class="auth-submit" id="ajEmailBtn" style="margin:0"><span>Guardar nuevo email</span></button>
+      <p style="font-size:11px;color:var(--t4);margin:10px 0 0;line-height:1.5">
+        Recibirás un email de confirmación en la nueva dirección. Hasta que confirmes, seguirás usando la actual.
+      </p>
+    </div>
+
+    <!-- Panel Contraseña (oculto inicialmente) -->
+    <div id="ajPanelPw" style="padding:24px 28px 28px;display:none">
+      <div class="auth-error"   id="ajPwErr" style="display:none;margin-bottom:14px"></div>
+      <div class="auth-success" id="ajPwOk"  style="display:none;margin-bottom:14px"></div>
+      <div class="auth-field" style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:6px;font-size:12.5px;font-weight:700;color:var(--t2)">Contraseña actual</label>
+        <div class="auth-pw-wrap">
+          <input type="password" id="ajCurPw" class="ff-input" placeholder="••••••••" autocomplete="current-password"
+            style="width:100%;box-sizing:border-box"/>
+          <button type="button" class="auth-pw-toggle" data-target="ajCurPw">👁</button>
+        </div>
+      </div>
+      <div class="auth-field" style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:6px;font-size:12.5px;font-weight:700;color:var(--t2)">Nueva contraseña</label>
+        <div class="auth-pw-wrap">
+          <input type="password" id="ajNewPw" class="ff-input" placeholder="Mín. 8 caracteres" autocomplete="new-password"
+            style="width:100%;box-sizing:border-box"/>
+          <button type="button" class="auth-pw-toggle" data-target="ajNewPw">👁</button>
+        </div>
+      </div>
+      <!-- Barra de fortaleza -->
+      <div id="ajPwStrengthWrap" style="margin-bottom:16px;display:none">
+        <div style="height:4px;background:var(--brd);border-radius:4px;overflow:hidden;margin-bottom:5px">
+          <div id="ajPwStrengthBar" style="height:100%;width:0%;transition:width .3s,background .3s;border-radius:4px"></div>
+        </div>
+        <div id="ajPwStrengthLabel" style="font-size:11px;color:var(--t3)"></div>
+      </div>
+      <div class="auth-field" style="margin-bottom:22px">
+        <label style="display:block;margin-bottom:6px;font-size:12.5px;font-weight:700;color:var(--t2)">Confirmar nueva contraseña</label>
+        <div class="auth-pw-wrap">
+          <input type="password" id="ajConfPw" class="ff-input" placeholder="Repite la contraseña" autocomplete="new-password"
+            style="width:100%;box-sizing:border-box"/>
+          <button type="button" class="auth-pw-toggle" data-target="ajConfPw">👁</button>
+        </div>
+      </div>
+      <button class="auth-submit" id="ajPwBtn" style="margin:0"><span>Guardar nueva contraseña</span></button>
+    </div>
+
+  </div>
+</div>`;
+
+  document.body.appendChild(modal);
+
+  /* ── Helpers UI ── */
+  const showErr = (id, msg) => { const e = document.getElementById(id); e.textContent = msg; e.style.display = msg ? "" : "none"; };
+  const showOk  = (id, msg) => { const e = document.getElementById(id); e.textContent = msg; e.style.display = msg ? "" : "none"; };
+  const clearAll = (scope) => { showErr(scope+"Err",""); showOk(scope+"Ok",""); };
+  const setLoad = (btnId, on) => {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.disabled = on;
+    btn.innerHTML = on
+      ? `<span class="auth-spinner"></span><span>Guardando…</span>`
+      : btnId === "ajEmailBtn" ? `<span>Guardar nuevo email</span>` : `<span>Guardar nueva contraseña</span>`;
+  };
+
+  /* ── Cerrar ── */
+  const cerrar = () => modal.remove();
+  document.getElementById("ajustesCerrarBtn").addEventListener("click", cerrar);
+  document.getElementById("ajustesOverlay").addEventListener("click", e => {
+    if (e.target === document.getElementById("ajustesOverlay")) cerrar();
+  });
+
+  /* ── Tabs ── */
+  document.querySelectorAll(".aj-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      const target = tab.dataset.tab;
+      // Estilos activo/inactivo
+      document.querySelectorAll(".aj-tab").forEach(t => {
+        const active = t.dataset.tab === target;
+        t.style.borderBottomColor = active ? "var(--ox)" : "transparent";
+        t.style.color = active ? "var(--ox)" : "var(--t3)";
+      });
+      document.getElementById("ajPanelEmail").style.display = target === "email" ? "" : "none";
+      document.getElementById("ajPanelPw").style.display    = target === "pw"    ? "" : "none";
+    });
+  });
+
+  /* ── Toggle visibilidad contraseña ── */
+  modal.querySelectorAll(".auth-pw-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const input = document.getElementById(btn.dataset.target);
+      if (!input) return;
+      input.type = input.type === "password" ? "text" : "password";
+      btn.textContent = input.type === "password" ? "👁" : "🙈";
+    });
+  });
+
+  /* ── Barra de fortaleza contraseña ── */
+  document.getElementById("ajNewPw").addEventListener("input", e => {
+    const pw = e.target.value;
+    const wrap = document.getElementById("ajPwStrengthWrap");
+    const bar  = document.getElementById("ajPwStrengthBar");
+    const lbl  = document.getElementById("ajPwStrengthLabel");
+    if (!pw) { wrap.style.display = "none"; return; }
+    wrap.style.display = "";
+    let score = 0;
+    if (pw.length >= 8)            score++;
+    if (pw.length >= 12)           score++;
+    if (/[A-Z]/.test(pw))          score++;
+    if (/[0-9]/.test(pw))          score++;
+    if (/[^A-Za-z0-9]/.test(pw))   score++;
+    const levels = [
+      { pct: "20%", color: "#dc2626", label: "Muy débil"  },
+      { pct: "40%", color: "#f97316", label: "Débil"      },
+      { pct: "60%", color: "#eab308", label: "Regular"    },
+      { pct: "80%", color: "#22c55e", label: "Buena"      },
+      { pct: "100%",color: "#059669", label: "Excelente"  },
+    ];
+    const lvl = levels[Math.min(score, 4)];
+    bar.style.width      = lvl.pct;
+    bar.style.background = lvl.color;
+    lbl.textContent      = `Fortaleza: ${lvl.label}`;
+    lbl.style.color      = lvl.color;
+  });
+
+  /* ── Enter en campos ── */
+  ["ajNewEmail","ajEmailPw"].forEach(id => {
+    document.getElementById(id)?.addEventListener("keydown", e => {
+      if (e.key === "Enter") document.getElementById("ajEmailBtn")?.click();
+    });
+  });
+  ["ajCurPw","ajNewPw","ajConfPw"].forEach(id => {
+    document.getElementById(id)?.addEventListener("keydown", e => {
+      if (e.key === "Enter") document.getElementById("ajPwBtn")?.click();
+    });
+  });
+
+  /* ══════════════════════════════════════════════════════════════
+     GUARDAR NUEVO EMAIL
+     Flujo: verificar contraseña actual → updateUser({ email })
+     Supabase enviará confirmación a la nueva dirección.
+  ══════════════════════════════════════════════════════════════ */
+  document.getElementById("ajEmailBtn").addEventListener("click", async () => {
+    clearAll("ajEmail");
+    const newEmail = document.getElementById("ajNewEmail").value.trim();
+    const curPw    = document.getElementById("ajEmailPw").value;
+
+    // Validaciones cliente
+    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      showErr("ajEmailErr", "Introduce un email válido."); return;
+    }
+    if (!curPw) {
+      showErr("ajEmailErr", "Introduce tu contraseña actual para confirmar."); return;
+    }
+
+    setLoad("ajEmailBtn", true);
+    try {
+      // 1. Re-autenticar para verificar que la contraseña es correcta
+      const { data: sess } = await supabase.auth.getSession();
+      const currentEmail   = sess?.session?.user?.email;
+      if (!currentEmail) throw new Error("No hay sesión activa.");
+
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email:    currentEmail,
+        password: curPw,
+      });
+      if (signInErr) throw new Error("Contraseña actual incorrecta.");
+
+      // 2. Actualizar email
+      const { error: updateErr } = await supabase.auth.updateUser({ email: newEmail });
+      if (updateErr) throw new Error(updateErr.message);
+
+      // 3. Éxito
+      showOk("ajEmailOk", "✅ Revisa tu nueva dirección: te hemos enviado un email de confirmación.");
+      document.getElementById("ajNewEmail").value = "";
+      document.getElementById("ajEmailPw").value  = "";
+
+    } catch (err) {
+      showErr("ajEmailErr", err.message);
+    } finally {
+      setLoad("ajEmailBtn", false);
+    }
+  });
+
+  /* ══════════════════════════════════════════════════════════════
+     GUARDAR NUEVA CONTRASEÑA
+     Flujo: re-autenticar con contraseña actual → updateUser({ password })
+     La sesión sigue activa — no hace falta volver a entrar.
+  ══════════════════════════════════════════════════════════════ */
+  document.getElementById("ajPwBtn").addEventListener("click", async () => {
+    clearAll("ajPw");
+    const curPw  = document.getElementById("ajCurPw").value;
+    const newPw  = document.getElementById("ajNewPw").value;
+    const confPw = document.getElementById("ajConfPw").value;
+
+    // Validaciones cliente
+    if (!curPw) {
+      showErr("ajPwErr", "Introduce tu contraseña actual."); return;
+    }
+    if (!newPw || newPw.length < 8) {
+      showErr("ajPwErr", "La nueva contraseña debe tener al menos 8 caracteres."); return;
+    }
+    if (newPw !== confPw) {
+      showErr("ajPwErr", "Las contraseñas no coinciden."); return;
+    }
+    if (curPw === newPw) {
+      showErr("ajPwErr", "La nueva contraseña debe ser diferente a la actual."); return;
+    }
+
+    setLoad("ajPwBtn", true);
+    try {
+      // 1. Re-autenticar para verificar contraseña actual
+      const { data: sess } = await supabase.auth.getSession();
+      const currentEmail   = sess?.session?.user?.email;
+      if (!currentEmail) throw new Error("No hay sesión activa.");
+
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email:    currentEmail,
+        password: curPw,
+      });
+      if (signInErr) throw new Error("Contraseña actual incorrecta.");
+
+      // 2. Actualizar contraseña — la sesión sigue activa
+      const { error: updateErr } = await supabase.auth.updateUser({ password: newPw });
+      if (updateErr) throw new Error(updateErr.message);
+
+      // 3. Éxito — limpiar campos
+      showOk("ajPwOk", "✅ Contraseña actualizada correctamente.");
+      document.getElementById("ajCurPw").value  = "";
+      document.getElementById("ajNewPw").value  = "";
+      document.getElementById("ajConfPw").value = "";
+      document.getElementById("ajPwStrengthWrap").style.display = "none";
+
+    } catch (err) {
+      showErr("ajPwErr", err.message);
+    } finally {
+      setLoad("ajPwBtn", false);
+    }
+  });
+
+  // Foco inicial
+  setTimeout(() => document.getElementById("ajNewEmail")?.focus(), 100);
+}
