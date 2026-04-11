@@ -754,6 +754,244 @@ export async function exportarDatos130() {
   toast("Casillas Modelo 130 exportadas ✅", "success");
 }
 
+/* ══════════════════════════════════════════
+   EXPORTAR PDF — MODELO 303
+══════════════════════════════════════════ */
+export async function exportarPDF303() {
+  await _cargarJsPDF();
+  const year = getYear(), trim = getTrim();
+  const facs = await getFacturasTrim(year, trim);
+  const r    = calcModelo303Completo(facs);
+  const { data: pf } = await supabase.from("perfil_fiscal")
+    .select("*").eq("user_id", SESSION.user.id).maybeSingle();
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const PW = 210, ML = 18, W = PW - ML * 2;
+  const BLUE = [26, 86, 219], INK = [15, 23, 42], MUTED = [100, 116, 139], LIGHT = [248, 250, 252];
+
+  // Cabecera
+  doc.setFillColor(...BLUE); doc.rect(0, 0, PW, 32, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+  doc.text("MODELO 303", ML, 13);
+  doc.setFontSize(9); doc.setFont("helvetica", "normal");
+  doc.text("IMPUESTO SOBRE EL VALOR AÑADIDO", ML, 20);
+  doc.setFontSize(8);
+  doc.text("Autoliquidación trimestral — Art. 167 LIVA", ML, 27);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(14);
+  doc.text("M-303", PW - ML, 20, { align: "right" });
+
+  let y = 42;
+  doc.setTextColor(...INK);
+
+  // Datos contribuyente
+  doc.setFillColor(...LIGHT); doc.rect(ML, y, W, 18, "FD");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(...MUTED);
+  doc.text("DATOS DEL OBLIGADO TRIBUTARIO", ML + 4, y + 5);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...INK);
+  doc.text(`${pf?.nombre_razon_social || "—"}`, ML + 4, y + 11);
+  doc.text(`NIF: ${pf?.nif || "—"}`, ML + 4, y + 16);
+  doc.setTextColor(...MUTED);
+  doc.text(`Periodo: ${trim} · ${year}`, PW - ML, y + 11, { align: "right" });
+  doc.text(`Plazo: ${TRIM_PLAZOS[trim] || "—"}`, PW - ML, y + 16, { align: "right" });
+  y += 26;
+
+  const filas = [
+    { label: "Cas.01/02 — Base ventas nacionales 21%",     valor: r.repBase[21] || 0 },
+    { label: "Cas.03/04 — Base ventas nacionales 10%",     valor: r.repBase[10] || 0 },
+    { label: "Cas.05/06 — Base ventas nacionales 4%",      valor: r.repBase[4]  || 0 },
+    { label: "Cas.09 — Total IVA repercutido",             valor: r.rep.total,       bold: true },
+    { label: "Cas.10 — Base adquisiciones intracomunitarias", valor: r.byOp.ic_adquisiciones || 0 },
+    { label: "Cas.12 — Base ISP recibida",                 valor: r.byOp.isp_recibida || 0 },
+    { label: "Cas.28 — IVA soportado interior",            valor: r.sopDeducible.int },
+    { label: "Cas.29 — IVA soportado importaciones",       valor: r.sopDeducible.imp },
+    { label: "Cas.40 — Total IVA deducible",               valor: r.sopDeducible.total, bold: true },
+    { label: "Cas.59 — Entregas IC exentas",               valor: r.byOp.ic_entregas || 0 },
+    { label: "Cas.60 — Exportaciones exentas",             valor: r.byOp.exportacion || 0 },
+    { label: "Prorrata aplicada",                          texto: r.prorrataPct !== null ? r.prorrataPct + "%" : "100% (plena)" },
+  ];
+
+  // Sección liquidación
+  doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...INK);
+  doc.text("LIQUIDACIÓN", ML, y); y += 6;
+  doc.setDrawColor(...BLUE); doc.setLineWidth(0.5); doc.line(ML, y, PW - ML, y); y += 6;
+
+  filas.forEach((f, i) => {
+    if (i % 2 === 0) doc.setFillColor(248, 250, 255); else doc.setFillColor(255, 255, 255);
+    doc.rect(ML, y, W, 8, "F");
+    doc.setFont("helvetica", f.bold ? "bold" : "normal");
+    doc.setFontSize(f.bold ? 10 : 9);
+    doc.setTextColor(f.bold ? BLUE[0] : INK[0], f.bold ? BLUE[1] : INK[1], f.bold ? BLUE[2] : INK[2]);
+    doc.text(f.label, ML + 3, y + 5.5);
+    if (f.valor !== undefined && f.valor !== null) {
+      doc.text(fmt(f.valor), PW - ML - 2, y + 5.5, { align: "right" });
+    } else if (f.texto) {
+      doc.text(f.texto, PW - ML - 2, y + 5.5, { align: "right" });
+    }
+    y += 8;
+  });
+
+  y += 8;
+
+  // Resultado
+  doc.setFillColor(...BLUE); doc.rect(ML, y, W, 14, "F");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(255, 255, 255);
+  const resultadoLabel = r.resultado >= 0 ? "RESULTADO A INGRESAR" : "RESULTADO A COMPENSAR";
+  doc.text(resultadoLabel, ML + 4, y + 9);
+  doc.text(fmt(Math.abs(r.resultado)), PW - ML - 2, y + 9, { align: "right" });
+  y += 22;
+
+  // Nota legal
+  const nota = "Autoliquidación del Impuesto sobre el Valor Añadido (Art. 167 LIVA). Resultado calculado automáticamente a partir de las facturas registradas. Verifique con la AEAT antes de presentar.";
+  const lines = doc.splitTextToSize("NOTA: " + nota, W - 8);
+  doc.setFillColor(...LIGHT); doc.setDrawColor(200);
+  doc.rect(ML, y, W, lines.length * 4.5 + 8, "FD");
+  doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+  doc.text(lines, ML + 4, y + 6);
+  y += lines.length * 4.5 + 14;
+
+  // Firmas
+  doc.setDrawColor(200); doc.line(ML, y, ML + 70, y); doc.line(PW - ML - 70, y, PW - ML, y);
+  doc.setFontSize(8); doc.setTextColor(...MUTED);
+  doc.text("Firma del obligado tributario", ML + 10, y + 5);
+  doc.text("Fecha y sello AEAT", PW - ML - 50, y + 5);
+
+  // Footer
+  doc.setFontSize(7);
+  doc.text(`Generado con Taurix · ${new Date().toLocaleDateString("es-ES")} · Documento orientativo. Verifique con la AEAT antes de presentar.`, PW / 2, 290, { align: "center" });
+
+  doc.save(`modelo_303_${year}_${trim}.pdf`);
+  toast("Modelo 303 exportado en PDF ✅", "success");
+}
+
+/* ══════════════════════════════════════════
+   EXPORTAR PDF — MODELO 130
+══════════════════════════════════════════ */
+export async function exportarPDF130() {
+  await _cargarJsPDF();
+  const year = getYear(), trim = getTrim();
+  const facs = await getFacturasTrim(year, trim);
+  const per  = calcIRPF(facs);
+  const { data: pf } = await supabase.from("perfil_fiscal")
+    .select("*").eq("user_id", SESSION.user.id).maybeSingle();
+
+  // Acumulados trimestres anteriores (mismo cálculo que exportarDatos130)
+  let ingA = 0, gstA = 0, retA = 0, pagPrev = 0;
+  const ord = ["T1", "T2", "T3", "T4"];
+  for (let i = 0; i < ord.indexOf(trim); i++) {
+    const ff = await getFacturasTrim(year, ord[i]);
+    const rx = calcIRPF(ff);
+    ingA += rx.ingresos; gstA += rx.gastos; retA += rx.retenciones;
+    pagPrev += Math.max(0, (rx.ingresos - rx.gastos) * 0.20 - rx.retenciones);
+  }
+  const ingT = per.ingresos + ingA;
+  const gstT = per.gastos   + gstA;
+  const retT = per.retenciones + retA;
+  const rend = ingT - gstT;
+  const pago = Math.max(0, rend * 0.20);
+  const resultado = Math.max(0, pago - retT - pagPrev);
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const PW = 210, ML = 18, W = PW - ML * 2;
+  const INDIGO = [67, 56, 202], INK = [15, 23, 42], MUTED = [100, 116, 139], LIGHT = [248, 250, 252];
+
+  // Cabecera
+  doc.setFillColor(...INDIGO); doc.rect(0, 0, PW, 32, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+  doc.text("MODELO 130", ML, 13);
+  doc.setFontSize(9); doc.setFont("helvetica", "normal");
+  doc.text("IRPF — PAGO FRACCIONADO ESTIMACIÓN DIRECTA", ML, 20);
+  doc.setFontSize(8);
+  doc.text("Art. 109 RIRPF — Actividades Económicas", ML, 27);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(14);
+  doc.text("M-130", PW - ML, 20, { align: "right" });
+
+  let y = 42;
+
+  // Datos contribuyente
+  doc.setFillColor(...LIGHT); doc.rect(ML, y, W, 18, "FD");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(...MUTED);
+  doc.text("DATOS DEL OBLIGADO TRIBUTARIO", ML + 4, y + 5);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...INK);
+  doc.text(`${pf?.nombre_razon_social || "—"}`, ML + 4, y + 11);
+  doc.text(`NIF: ${pf?.nif || "—"}`, ML + 4, y + 16);
+  doc.setTextColor(...MUTED);
+  doc.text(`Periodo: ${trim} · ${year}`, PW - ML, y + 11, { align: "right" });
+  doc.text(`Plazo: ${TRIM_PLAZOS[trim] || "—"}`, PW - ML, y + 16, { align: "right" });
+  y += 26;
+
+  const filas = [
+    { label: "Cas.01 — Ingresos íntegros del trimestre",              valor: per.ingresos },
+    { label: "Cas.02 — Gastos deducibles del trimestre",              valor: per.gastos },
+    { label: "Cas.03 — Ingresos acumulados trimestres anteriores",    valor: ingA },
+    { label: "Cas.04 — Gastos acumulados trimestres anteriores",      valor: gstA },
+    { label: "Cas.05 — Rendimiento neto acumulado",                   valor: rend,        bold: true },
+    { label: "Cas.06 — 20% s/rendimiento neto acumulado",            valor: pago },
+    { label: "Cas.07 — Retenciones e ingresos a cuenta acumulados",  valor: retT },
+    { label: "Cas.08 — Pagos fraccionados periodos anteriores",       valor: pagPrev },
+    { label: "Cas.09 — RESULTADO A INGRESAR",                        valor: resultado,   bold: true },
+  ];
+
+  doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...INK);
+  doc.text("LIQUIDACIÓN", ML, y); y += 6;
+  doc.setDrawColor(...INDIGO); doc.setLineWidth(0.5); doc.line(ML, y, PW - ML, y); y += 6;
+
+  filas.forEach((f, i) => {
+    if (i % 2 === 0) doc.setFillColor(248, 250, 255); else doc.setFillColor(255, 255, 255);
+    doc.rect(ML, y, W, 8, "F");
+    doc.setFont("helvetica", f.bold ? "bold" : "normal");
+    doc.setFontSize(f.bold ? 10 : 9);
+    doc.setTextColor(f.bold ? INDIGO[0] : INK[0], f.bold ? INDIGO[1] : INK[1], f.bold ? INDIGO[2] : INK[2]);
+    doc.text(f.label, ML + 3, y + 5.5);
+    doc.text(fmt(f.valor), PW - ML - 2, y + 5.5, { align: "right" });
+    y += 8;
+  });
+
+  y += 8;
+
+  // Resultado
+  doc.setFillColor(...INDIGO); doc.rect(ML, y, W, 14, "F");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(255, 255, 255);
+  doc.text("RESULTADO A INGRESAR", ML + 4, y + 9);
+  doc.text(fmt(resultado), PW - ML - 2, y + 9, { align: "right" });
+  y += 22;
+
+  // Nota legal
+  const nota = "Pago fraccionado del Impuesto sobre la Renta de las Personas Físicas para actividades económicas en estimación directa (Art. 109 RIRPF). Resultado calculado automáticamente. Verifique con la AEAT antes de presentar.";
+  const lines = doc.splitTextToSize("NOTA: " + nota, W - 8);
+  doc.setFillColor(...LIGHT); doc.setDrawColor(200);
+  doc.rect(ML, y, W, lines.length * 4.5 + 8, "FD");
+  doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+  doc.text(lines, ML + 4, y + 6);
+  y += lines.length * 4.5 + 14;
+
+  // Firmas
+  doc.setDrawColor(200); doc.line(ML, y, ML + 70, y); doc.line(PW - ML - 70, y, PW - ML, y);
+  doc.setFontSize(8); doc.setTextColor(...MUTED);
+  doc.text("Firma del obligado tributario", ML + 10, y + 5);
+  doc.text("Fecha y sello AEAT", PW - ML - 50, y + 5);
+
+  // Footer
+  doc.setFontSize(7);
+  doc.text(`Generado con Taurix · ${new Date().toLocaleDateString("es-ES")} · Documento orientativo. Verifique con la AEAT antes de presentar.`, PW / 2, 290, { align: "center" });
+
+  doc.save(`modelo_130_${year}_${trim}.pdf`);
+  toast("Modelo 130 exportado en PDF ✅", "success");
+}
+
+async function _cargarJsPDF() {
+  if (window.jspdf?.jsPDF) return;
+  await new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
 function toast(msg, type) {
   const c = document.getElementById("toastEl");
   if (!c) return;
