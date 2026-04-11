@@ -216,9 +216,10 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   doc.rect(0, 0, PW, PH, "F");
 
   // ── LOGO ──
-  // Evaluar mostrarLogo PRIMERO para no cargar nada innecesariamente.
-  // Si la plantilla tiene mostrar_logo=false, ni se toca perfil.logo_url.
-  const mostrarLogo = plantilla ? (plantilla.mostrar_logo !== false) : true;
+  // Si hay plantilla: respetar su campo mostrar_logo.
+  // Si NO hay plantilla (el documento se guardó sin ninguna): no mostrar logo.
+  // Nunca mostrar el logo del perfil cuando la plantilla no lo ha activado explícitamente.
+  const mostrarLogo = plantilla ? (plantilla.mostrar_logo !== false) : false;
 
   let logoB64 = null;
   if (mostrarLogo) {
