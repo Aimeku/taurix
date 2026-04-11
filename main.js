@@ -335,6 +335,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (event === "SIGNED_OUT") {
       sessionStorage.removeItem("taurix_recovery_pending");
+      // Si el SIGNED_OUT viene del signOut() post-recovery, ignorarlo:
+      // el reload() que sigue a continuación ya mostrará la landing limpia.
+      if (sessionStorage.getItem("taurix_recovery_signout") === "1") return;
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.remove("hidden");
     }
