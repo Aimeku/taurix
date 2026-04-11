@@ -19,15 +19,17 @@ let clienteSelId  = null;
 let editandoId    = null;
 let opTipo        = "nacional";
 
+/* ── Descuento global sobre subtotal ── */
+let _dtoGlobal = { tipo: "pct", valor: 0 };
+
 /* ══════════════════════════════════════════════════════
    COLUMNAS DINÁMICAS
 ══════════════════════════════════════════════════════ */
 const _COL_SCHEMA = {
   descripcion: { label:"Descripción", fr:3.0, minW:120, align:"left",  inputType:"text",   field:"descripcion" },
   cantidad:    { label:"Cant.",       fr:0.7, minW:52,  align:"right", inputType:"number", field:"cantidad",   step:"0.01", min:"0.01" },
-  precio:      { label:"P. unit.",    fr:1.0, minW:72,  align:"right", inputType:"number", field:"precio",     step:"0.01", placeholder:"0.00" },
+  precio:      { label:"Subtotal",    fr:1.0, minW:72,  align:"right", inputType:"number", field:"precio",     step:"0.01", placeholder:"0.00" },
   descuento:   { label:"Dto.",        fr:0.8, minW:60,  align:"right", inputType:"text",   field:"descuento",  placeholder:"10%/5e" },
-  subtotal:    { label:"Subtotal",    fr:1.0, minW:72,  align:"right", inputType:null },
   codigo:      { label:"Código",      fr:0.7, minW:55,  align:"left",  inputType:"text",   field:"codigo" },
   coeficiente: { label:"Coef.",       fr:0.6, minW:50,  align:"right", inputType:"number", field:"coeficiente", step:"0.01" },
   iva:         { label:"IVA",         fr:0.6, minW:56,  align:"right", inputType:"select", field:"iva" },
@@ -63,25 +65,49 @@ function _parseDto(raw, sub) {
   return parseFloat(s)||0;
 }
 function _calcTotales() {
-  let base=0; const ivaMap={};
+  let baseSinDto=0; const ivaMap={};
   LINEAS.forEach(l=>{
     const bruto=(l.cantidad||0)*(l.precio||0);
     const sub=Math.max(0,bruto-_parseDto(l.descuento,bruto));
-    base+=sub; ivaMap[l.iva]=(ivaMap[l.iva]||0)+sub*(l.iva||0)/100;
+    baseSinDto+=sub;
+  });
+  let dtoGlobalAmt=0;
+  if(_dtoGlobal.valor>0){
+    dtoGlobalAmt=_dtoGlobal.tipo==="pct"
+      ?baseSinDto*_dtoGlobal.valor/100
+      :Math.min(_dtoGlobal.valor,baseSinDto);
+    dtoGlobalAmt=Math.max(0,dtoGlobalAmt);
+  }
+  const base=Math.max(0,baseSinDto-dtoGlobalAmt);
+  const ratio=baseSinDto>0?base/baseSinDto:0;
+  LINEAS.forEach(l=>{
+    const bruto=(l.cantidad||0)*(l.precio||0);
+    const sub=Math.max(0,bruto-_parseDto(l.descuento,bruto));
+    ivaMap[l.iva]=(ivaMap[l.iva]||0)+sub*ratio*(l.iva||0)/100;
   });
   const ivaTot=Object.values(ivaMap).reduce((a,b)=>a+b,0);
-  // Para inversión del sujeto pasivo: IVA calculado pero no sumado al total
-  const ivaEnTotal = OP_IVA_NO_REPERCUTIDO.includes(opTipo) ? 0 : ivaTot;
-  const total = base + ivaEnTotal;
+  const ivaEnTotal=OP_IVA_NO_REPERCUTIDO.includes(opTipo)?0:ivaTot;
+  const total=base+ivaEnTotal;
   const s=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   s("npfBase",fmt(base)); s("npfIva",fmt(ivaTot)); s("npfTotal",fmt(total));
+  // Fila dto global
+  const dtoRow=document.getElementById("npfDtoGlobalRow");
+  if(dtoRow){
+    if(dtoGlobalAmt>0){
+      dtoRow.style.display="";
+      const lbl=document.getElementById("npfDtoGlobalLbl");
+      const val=document.getElementById("npfDtoGlobalVal");
+      if(lbl)lbl.textContent=_dtoGlobal.tipo==="pct"?`Dto. global (−${_dtoGlobal.valor}%)`:"Dto. global";
+      if(val)val.textContent=`−${fmt(dtoGlobalAmt)}`;
+    } else { dtoRow.style.display="none"; }
+  }
   // Ocultar fila IVA cuando la operación no repercute IVA
   const ivaRow=document.getElementById("npfIvaRow");
   if(ivaRow){
-    const mostrarIva = !OP_SIN_IVA.includes(opTipo) || OP_IVA_NO_REPERCUTIDO.includes(opTipo);
-    ivaRow.style.display = mostrarIva ? "" : "none";
+    const mostrarIva=!OP_SIN_IVA.includes(opTipo)||OP_IVA_NO_REPERCUTIDO.includes(opTipo);
+    ivaRow.style.display=mostrarIva?"":"none";
   }
-  return {base,ivaMap,ivaTot};
+  return {base,ivaMap,ivaTot,dtoGlobalAmt};
 }
 
 /* ── Tipo de operación ── */
@@ -238,6 +264,8 @@ function _onChange(id,el){
   const sub=Math.max(0,bruto-_parseDto(l.descuento,bruto));
   const tot=document.getElementById(`npfLt${id}`);
   if(tot)tot.textContent=fmt(sub);
+  const rowSub=document.querySelector(`.linea-row[data-linea-id="${id}"] [data-subtotal="${id}"]`);
+  if(rowSub)rowSub.textContent=fmt(bruto);
   _calcTotales();
 }
 
@@ -425,6 +453,7 @@ async function _save(){
     cliente_nombre:document.getElementById("npfClienteNombre")?.value.trim()||null,
     cliente_nif:document.getElementById("npfClienteNif")?.value.trim()||null,
     cliente_email:document.getElementById("npfClienteEmail")?.value.trim()||null,
+    descuento_global:_dtoGlobal.valor>0?JSON.stringify({tipo:_dtoGlobal.tipo,valor:_dtoGlobal.valor}):null,
     base,iva:ivaMain,
     lineas:JSON.stringify(LINEAS.map(l=>({descripcion:l.descripcion,cantidad:l.cantidad,precio:l.precio,
       iva:l.iva,descuento:l.descuento??"",codigo:l.codigo??"",coeficiente:l.coeficiente??"",producto_id:l.producto_id||null}))),
@@ -528,6 +557,35 @@ function _resetForm(clearEditing=true){
 ══════════════════════════════════════════════════════ */
 let _initDone = false;
 
+/* ── Descuento global UI (proforma) ── */
+function _showDtoGlobal(){
+  const wrap=document.getElementById("npfDtoGlobalWrap"); if(!wrap)return;
+  wrap.style.display="";
+  const input=document.getElementById("npfDtoGlobalInput");
+  const select=document.getElementById("npfDtoGlobalTipo");
+  if(input)input.value=_dtoGlobal.valor||"";
+  if(select)select.value=_dtoGlobal.tipo||"pct";
+  input?.focus();
+}
+function _hideDtoGlobal(){
+  const wrap=document.getElementById("npfDtoGlobalWrap");
+  if(wrap)wrap.style.display="none";
+  _dtoGlobal={tipo:"pct",valor:0};
+  _calcTotales();
+}
+function initDtoGlobal(){
+  const btn=document.getElementById("npfAddDtoGlobalBtn");
+  const input=document.getElementById("npfDtoGlobalInput");
+  const select=document.getElementById("npfDtoGlobalTipo");
+  const remove=document.getElementById("npfDtoGlobalRemove");
+  if(!btn)return;
+  btn.addEventListener("click",()=>_showDtoGlobal());
+  const _oc=()=>{_dtoGlobal.tipo=select?.value||"pct";_dtoGlobal.valor=parseFloat(input?.value)||0;_calcTotales();};
+  input?.addEventListener("input",_oc); input?.addEventListener("change",_oc);
+  select?.addEventListener("change",_oc);
+  remove?.addEventListener("click",()=>_hideDtoGlobal());
+}
+
 export function initNuevaProforma(){
   const fe=document.getElementById("npfFecha");
   if(fe&&!fe.value)fe.value=new Date().toISOString().slice(0,10);
@@ -535,6 +593,7 @@ export function initNuevaProforma(){
   if(!_initDone){
     _initDone = true;
     _initClienteSearch();
+    initDtoGlobal();
     _initPlantillaSel();
     document.getElementById("npfAddLineaBtn")?.addEventListener("click",()=>_addLinea());
     document.getElementById("npfGuardarBtn")?.addEventListener("click",()=>_save());
