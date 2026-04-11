@@ -1914,7 +1914,7 @@
               <div class="ep-tabs-bar" style="border-radius:0;margin:0">
                 <button class="ep-tab" data-tab="diseno"    onclick="window._epTab('diseno')">🎨 Diseño</button>
                 <button class="ep-tab" data-tab="fuente"    onclick="window._epTab('fuente')">🔤 Fuente</button>
-                <button class="ep-tab" data-tab="contenido" onclick="window._epTab('contenido')">📝 Contenido</button>
+                <button class="ep-tab" data-tab="contenido" onclick="window._epTab('contenido')" style="display:none">📝 Contenido</button>
                 <button class="ep-tab" data-tab="columnas"  onclick="window._epTab('columnas')">📊 Columnas</button>
                 <button class="ep-tab" data-tab="avanzado"  onclick="window._epTab('avanzado')">⚙️ Avanzado</button>
                 <div class="ep-lang-wrap">
@@ -2127,26 +2127,19 @@
                     <div class="fb-title">Posición emisor / cliente</div>
                     <div class="ff-grid2" style="margin-bottom:14px">
                       <div class="ff-field">
-                        <label style="display:flex;justify-content:space-between">Emisor X <span id="ep_emisor_x_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label>
+                        <label style="display:flex;justify-content:space-between">Emisor — posición horizontal <span id="ep_emisor_x_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label>
                         <input type="range" id="ep_emisor_x" min="-80" max="80" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_emisor_x_val').textContent=this.value;window._epPreview()"/>
-                        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t4);margin-top:2px"><span>← izq</span><span>0</span><span>der →</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t4);margin-top:2px"><span>← izquierda</span><span>centro</span><span>derecha →</span></div>
                       </div>
                       <div class="ff-field">
-                        <label style="display:flex;justify-content:space-between">Emisor Y <span id="ep_emisor_y_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label>
-                        <input type="range" id="ep_emisor_y" min="-30" max="30" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_emisor_y_val').textContent=this.value;window._epPreview()"/>
-                        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t4);margin-top:2px"><span>↑ arriba</span><span>0</span><span>↓ abajo</span></div>
-                      </div>
-                      <div class="ff-field">
-                        <label style="display:flex;justify-content:space-between">Cliente X <span id="ep_cliente_x_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label>
+                        <label style="display:flex;justify-content:space-between">Cliente — posición horizontal <span id="ep_cliente_x_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label>
                         <input type="range" id="ep_cliente_x" min="-80" max="80" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_cliente_x_val').textContent=this.value;window._epPreview()"/>
-                        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t4);margin-top:2px"><span>← izq</span><span>0</span><span>der →</span></div>
-                      </div>
-                      <div class="ff-field">
-                        <label style="display:flex;justify-content:space-between">Cliente Y <span id="ep_cliente_y_val" style="color:var(--accent);font-family:monospace;font-weight:700">0</span></label>
-                        <input type="range" id="ep_cliente_y" min="-30" max="30" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('ep_cliente_y_val').textContent=this.value;window._epPreview()"/>
-                        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t4);margin-top:2px"><span>↑ arriba</span><span>0</span><span>↓ abajo</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t4);margin-top:2px"><span>← izquierda</span><span>centro</span><span>derecha →</span></div>
                       </div>
                     </div>
+                    <!-- Inputs Y ocultos con valor fijo 0 para compatibilidad con datos guardados -->
+                    <input type="hidden" id="ep_emisor_y"  value="0"/>
+                    <input type="hidden" id="ep_cliente_y" value="0"/>
                     <div class="fb-title">Pie de página</div>
                     <div class="ff-grid2">
                       <div class="ff-field"><label>Texto legal del pie</label><input autocomplete="off" id="ep_pie" class="ff-input" placeholder="Inscrita en el RM de Madrid…"/></div>
