@@ -721,6 +721,18 @@ window._epInit = function() {
       : `<span style="font-size:11px;color:var(--t4);text-align:center;line-height:1.4">Click para<br>subir logo</span>`;
     if(btn) btn.textContent=_epLogo?"📁 Cambiar logo":"📁 Subir logo";
     if(rm)  rm.style.display=_epLogo?"":"none";
+    // Si no hay logo subido: desactivar y deshabilitar el toggle "Mostrar logo"
+    const mlChkInner=_g("ep_mostrar_logo"), mlLblInner=_g("ep_mostrar_logo_lbl");
+    if(mlChkInner){
+      if(!_epLogo){
+        mlChkInner.checked=false;
+        mlChkInner.disabled=true;
+        if(mlLblInner){ mlLblInner.style.opacity="0.4"; mlLblInner.style.pointerEvents="none"; mlLblInner.title="Sube un logo primero"; }
+      } else {
+        mlChkInner.disabled=false;
+        if(mlLblInner){ mlLblInner.style.opacity=""; mlLblInner.style.pointerEvents=""; mlLblInner.title=""; }
+      }
+    }
   };
   _updLogoUI();
   _g("ep_logo_btn")?.addEventListener("click",()=>_g("ep_logo_inp")?.click(),{signal:sig});
