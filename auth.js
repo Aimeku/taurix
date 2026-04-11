@@ -113,7 +113,7 @@ export async function loginEmail(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     if (error.message.includes("Email not confirmed"))
-      throw new Error("Email o contraseña incorrectos.");
+      throw new Error("Debes verificar tu email antes de iniciar sesión. Revisa tu bandeja de entrada (y la carpeta de spam).");
     if (error.message.includes("Invalid login credentials"))
       throw new Error("Email o contraseña incorrectos.");
     throw new Error(error.message);
@@ -136,7 +136,12 @@ export async function registerEmail(email, password) {
     if (error.message.includes("Password should be")) throw new Error("La contraseña debe tener al menos 6 caracteres.");
     throw new Error(error.message);
   }
-  return { needsConfirm: !data.session };
+  // Si Supabase devuelve sesión directamente (confirmación desactivada en el dashboard),
+  // la cerramos igualmente — el usuario SIEMPRE debe confirmar su email antes de entrar.
+  if (data.session) {
+    await supabase.auth.signOut();
+  }
+  return { needsConfirm: true };
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -555,16 +560,14 @@ export function showAuthModal() {
     const btn = document.getElementById("registerSubmitBtn");
     setLoading(btn, true, "Crear cuenta gratis");
     try {
-      const { needsConfirm } = await registerEmail(email, pw);
-      if (needsConfirm) {
-        showSuccess(`✅ Cuenta creada. Confirma tu email en ${email} y luego inicia sesión.`);
+      await registerEmail(email, pw);
+      // Siempre mostrar pantalla de confirmación — nunca entrar directamente
+      showSuccess(`📧 Te hemos enviado un email de verificación a ${email}. Confirma tu cuenta para poder iniciar sesión.`);
+      setLoading(btn, false, "Crear cuenta gratis");
+      setTimeout(() => {
         switchTab("login");
         setTimeout(() => { const li = document.getElementById("loginEmail"); if (li) li.value = email; }, 100);
-      } else {
-        // Cuenta creada y sesión abierta → NO enviar 2FA en registro
-        modal.remove();
-        window.location.reload();
-      }
+      }, 2500);
     } catch (e) {
       showError(e.message);
       setLoading(btn, false, "Crear cuenta gratis");
