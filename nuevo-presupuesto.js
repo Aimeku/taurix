@@ -523,7 +523,7 @@ async function savePresupuesto() {
     })(),
     tipo_operacion: npOpTipoActual,
   };
-  const _npPlantillaId = document.getElementById("npPlantillaSel")?.value || null;
+  const _npPlantillaId = document.getElementById("npPlantillaSel")?.value || "none";
 
   // ── MODO EDICIÓN: UPDATE manteniendo el mismo número ──────
   const editingId = window._npEditingId || null;
