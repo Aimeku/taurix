@@ -233,6 +233,12 @@ export function showAuthModal() {
               </div>
             </div>
 
+            <!-- Checkbox "Recordar sesión" -->
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:20px;font-size:13px;color:var(--t2)">
+              <input type="checkbox" id="loginRemember" style="width:15px;height:15px;accent-color:var(--accent)"/>
+              <span>Recordar mi sesión en este dispositivo</span>
+            </label>
+
             <button class="auth-submit" id="loginSubmitBtn"><span>Entrar</span></button>
 
             <p style="text-align:center;margin-top:14px;font-size:12px;color:var(--t4)">
@@ -474,9 +480,15 @@ export function showAuthModal() {
       // Verificar código localmente
       verify2FACode(_loginEmail, code);
 
-      // Sin checkbox: sesión no persiste entre cierres de navegador
-      sessionStorage.setItem("taurix_no_persist", "1");
-      localStorage.setItem("taurix_must_clear_on_reload", "1");
+      // Gestionar "recordar sesión"
+      const remember = document.getElementById("loginRemember")?.checked === true;
+      if (!remember) {
+        sessionStorage.setItem("taurix_no_persist", "1");
+        localStorage.setItem("taurix_must_clear_on_reload", "1");
+      } else {
+        sessionStorage.removeItem("taurix_no_persist");
+        localStorage.removeItem("taurix_must_clear_on_reload");
+      }
 
       // Detener temporizadores
       if (_resendTimer) clearInterval(_resendTimer);
