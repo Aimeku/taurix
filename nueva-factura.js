@@ -293,11 +293,12 @@ function addLinea(prefill = {}) {
     _buildProdDropdown(descInput, (p) => {
       const linea = LINEAS.find(l => l.id === id);
       if (!linea) return;
-      linea.descripcion = p.descripcion || p.nombre;
-      linea.precio      = p.precio;
-      linea.iva         = p.iva;
-      linea.tipo        = p.tipo || "producto";
-      row.dataset.tipo  = linea.tipo;
+      linea.descripcion  = p.descripcion || p.nombre;
+      linea.precio       = p.precio;
+      linea.iva          = p.iva;
+      linea.tipo         = p.tipo || "producto";
+      linea.producto_id  = p.id;   // ← referencia al catálogo para descuento de stock
+      row.dataset.tipo   = linea.tipo;
       const f = (field, val) => { const el=row.querySelector(`[data-field="${field}"]`); if(el) el.value=val; };
       f("descripcion", linea.descripcion);
       f("precio", linea.precio);
@@ -677,11 +678,14 @@ async function saveFactura() {
       }
       return notas;
     })(),
-    lineas: JSON.stringify(LINEAS.map(l=>({
+        lineas: JSON.stringify(LINEAS.map(l=>({
       descripcion: l.descripcion, cantidad: l.cantidad,
       precio: l.precio, iva: l.iva,
       descuento: l.descuento ?? "",
       subtotal: Math.max(0, l.cantidad*l.precio - _parseDescuento(l.descuento, l.cantidad*l.precio)),
+      tipo: l.tipo || "servicio",
+      producto_id: l.producto_id || null
+    })))antidad*l.precio)),
       tipo: l.tipo || "servicio"
     })))
   }).select().single();
@@ -692,6 +696,24 @@ async function saveFactura() {
       .update({ plantilla_id: _nfPlantillaId }).eq("id", fData.id);
     if (pe && !pe.message?.includes("plantilla_id") && !pe.message?.includes("schema cache")) {
       console.warn("plantilla_id factura:", pe.message);
+    }
+  }
+
+  // ── Descontar stock automáticamente para facturas emitidas ──
+  if (!error && fData?.id && tipo === "emitida") {
+    const lineasConProducto = LINEAS.filter(l => l.producto_id && l.cantidad > 0);
+    for (const linea of lineasConProducto) {
+      const prod = PRODUCTOS.find(p => p.id === linea.producto_id);
+      if (!prod || prod.tipo === "servicio" || prod.stock_actual == null) continue;
+      const nuevoStock = Math.max(0, prod.stock_actual - linea.cantidad);
+      const { error: stockErr } = await supabase.from("productos")
+        .update({ stock_actual: nuevoStock })
+        .eq("id", linea.producto_id)
+        .eq("user_id", SESSION.user.id);
+      if (!stockErr) {
+        // Actualizar el array local para que el dropdown refleje el nuevo stock
+        prod.stock_actual = nuevoStock;
+      }
     }
   }
 
