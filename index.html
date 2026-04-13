@@ -1539,9 +1539,9 @@
                   </div>
                 </div>
 
-                <div class="lt-row" id="npfDtoGlobalRow" style="display:none">
+                <div class="lt-row" id="npfDtoGlobalRow" style="display:none;color:#059669">
                   <span id="npfDtoGlobalLbl">Dto. global</span>
-                  <strong id="npfDtoGlobalVal">−0,00 €</strong>
+                  <strong id="npfDtoGlobalVal" style="color:#059669">−0,00 €</strong>
                 </div>
                 <div class="lt-row" id="npfIvaRow"><span>IVA</span><strong id="npfIva">0,00 €</strong></div>
                 <div class="lt-row lt-total"><span>TOTAL PROFORMA</span><strong id="npfTotal">0,00 €</strong></div>
@@ -1802,12 +1802,12 @@
                   </div>
                 </div>
 
-                <div class="lt-row" id="nrDtoGlobalRow" style="display:none">
+                <div class="lt-row" id="nrDtoGlobalRow" style="display:none;color:#059669">
                   <span id="nrDtoGlobalLbl">Dto. global</span>
-                  <strong id="nrDtoGlobalVal">−0,00 €</strong>
+                  <strong id="nrDtoGlobalVal" style="color:#059669">−0,00 €</strong>
                 </div>
                 <div class="lt-row" id="nrIvaRow"><span>IVA</span><strong id="nrIva">0,00 €</strong></div>
-                <div class="lt-row lt-irpf" id="nrIrpfRow" style="display:none"><span id="nrIrpfLbl">IRPF (−15%)</span><strong id="nrIrpfAmt">0,00 €</strong></div>
+                <div class="lt-row lt-irpf" id="nrIrpfRow" style="display:none"><span id="nrIrpfLbl">IRPF (−15%)</span><strong id="nrIrpfAmt" style="color:#dc2626">0,00 €</strong></div>
                 <div class="lt-row lt-total"><span>TOTAL EST.</span><strong id="nrTotal">0,00 €</strong></div>
                 <div class="lt-row" style="font-size:11px;color:var(--t3);padding-top:2px"><span id="nrAnualEstim"></span></div>
               </div>
@@ -2368,8 +2368,23 @@
                 <div class="ff-field"><label>Fecha *</label><input type="date" id="npFecha" class="ff-input"/></div>
                 <div class="ff-field"><label>Válido hasta</label><input type="date" id="npValidez" class="ff-input"/></div>
               </div>
-              <div class="ff-field"><label>Notas / Condiciones</label>
-                <textarea id="npNotas" class="ff-input ff-textarea" placeholder="Forma de pago, plazos, condiciones…"></textarea>
+              <div class="ff-grid2" style="margin-top:10px">
+                <div class="ff-field">
+                  <label>IBAN (cuenta de pago)</label>
+                  <input id="npIban" class="ff-input" placeholder="ES00 0000 0000 0000 0000 0000"/>
+                </div>
+                <div class="ff-field">
+                  <label>Titular de la cuenta</label>
+                  <input id="npTitularCuenta" class="ff-input" placeholder="Nombre del titular"/>
+                </div>
+              </div>
+              <div class="ff-field" style="margin-top:10px">
+                <label>Condiciones de pago</label>
+                <textarea id="npCondicionesPago" class="ff-input ff-textarea" style="min-height:52px" placeholder="Pago a 15 días · Transferencia bancaria…"></textarea>
+              </div>
+              <div class="ff-field" style="margin-top:10px">
+                <label>Notas / Condiciones</label>
+                <textarea id="npNotas" class="ff-input ff-textarea" placeholder="Información adicional para el cliente…"></textarea>
               </div>
             </div>
 
@@ -2421,14 +2436,14 @@
                   </div>
                 </div>
 
-                <div class="lt-row" id="npDtoGlobalRow" style="display:none">
+                <div class="lt-row" id="npDtoGlobalRow" style="display:none;color:#059669">
                   <span id="npDtoGlobalLbl">Dto. global</span>
-                  <strong id="npDtoGlobalVal">−0,00 €</strong>
+                  <strong id="npDtoGlobalVal" style="color:#059669">−0,00 €</strong>
                 </div>
                 <div class="lt-row" id="npIvaRow"><span>IVA</span><strong id="npIva">0,00 €</strong></div>
-                <div class="lt-row" id="npIrpfRow" style="display:none">
+                <div class="lt-row" id="npIrpfRow" style="display:none;color:#dc2626">
                   <span id="npIrpfLbl">Retención IRPF</span>
-                  <strong id="npIrpfVal">−0,00 €</strong>
+                  <strong id="npIrpfVal" style="color:#dc2626">−0,00 €</strong>
                 </div>
                 <div class="lt-row lt-total"><span>TOTAL</span><strong id="npTotal">0,00 €</strong></div>
               </div>
@@ -2754,21 +2769,38 @@
                 </div>
 
                 <!-- Fila dto global calculado (visible solo cuando dtoGlobalAmt > 0) -->
-                <div class="lt-row" id="ltDtoGlobalRow" style="display:none">
+                <div class="lt-row" id="ltDtoGlobalRow" style="display:none;color:#059669">
                   <span id="ltDtoGlobalLbl">Dto. global</span>
-                  <strong id="ltDtoGlobalVal">−0,00 €</strong>
+                  <strong id="ltDtoGlobalVal" style="color:#059669">−0,00 €</strong>
                 </div>
 
                 <div id="ltIvaRows"></div>
-                <div class="lt-row lt-irpf" id="ltIrpfRow" style="display:none"><span id="ltIrpfLbl">IRPF (−15%)</span><strong id="ltIrpf">0,00 €</strong></div>
+                <div class="lt-row lt-irpf" id="ltIrpfRow" style="display:none"><span id="ltIrpfLbl">IRPF (−15%)</span><strong id="ltIrpf" style="color:#dc2626">0,00 €</strong></div>
                 <div class="lt-row lt-total"><span>TOTAL FACTURA</span><strong id="ltTotal">0,00 €</strong></div>
               </div>
             </div>
 
-            <!-- NOTAS + DATOS BANCARIOS -->
+            <!-- INFORMACIÓN ADICIONAL DEL DOCUMENTO -->
             <div class="form-block">
-              <div class="fb-title">Condiciones de pago y datos bancarios</div>
-              <textarea id="nfNotas" class="ff-input ff-textarea" placeholder="IBAN: ES00 0000 0000 0000 0000 0000 · BIC: XXXXXXXX&#10;Condiciones de pago: 30 días fecha factura&#10;Referencia proyecto: [escribe aquí]"></textarea>
+              <div class="fb-title">Información adicional</div>
+              <div class="ff-grid2">
+                <div class="ff-field">
+                  <label>IBAN (cuenta de pago)</label>
+                  <input id="nfIban" class="ff-input" placeholder="ES00 0000 0000 0000 0000 0000"/>
+                </div>
+                <div class="ff-field">
+                  <label>Titular de la cuenta</label>
+                  <input id="nfTitularCuenta" class="ff-input" placeholder="Nombre del titular"/>
+                </div>
+              </div>
+              <div class="ff-field" style="margin-top:10px">
+                <label>Condiciones de pago</label>
+                <textarea id="nfCondicionesPago" class="ff-input ff-textarea" style="min-height:52px" placeholder="Pago a 15 días · Transferencia bancaria…"></textarea>
+              </div>
+              <div class="ff-field" style="margin-top:10px">
+                <label>Notas del documento</label>
+                <textarea id="nfNotas" class="ff-input ff-textarea" placeholder="Información adicional para el cliente…"></textarea>
+              </div>
             </div>
 
             <div class="nf-actions-col">
@@ -2818,7 +2850,7 @@
               <div class="fpv-totales">
                 <div class="fpvt-row"><span>Base imponible</span><span id="pvBase">—</span></div>
                 <div id="pvIvaDesglose"></div>
-                <div class="fpvt-row fpvt-irpf" id="pvIrpfRow" style="display:none"><span id="pvIrpfLbl">IRPF (−15%)</span><span id="pvIrpfAmt">—</span></div>
+                <div class="fpvt-row fpvt-irpf" id="pvIrpfRow" style="display:none"><span id="pvIrpfLbl">IRPF (−15%)</span><span id="pvIrpfAmt" style="color:#dc2626">—</span></div>
                 <div class="fpvt-total"><span>TOTAL</span><span id="pvTotal">— €</span></div>
               </div>
               <div class="fpv-notas" id="pvNotas" style="display:none"></div>
