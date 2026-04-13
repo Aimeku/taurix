@@ -418,7 +418,7 @@ function updatePreview() {
       ${(!OP_SIN_IVA.includes(npOpTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual)) ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t3);margin-bottom:4px">
         <span>IVA</span><span>${fmt(ivaTotal)}</span>
       </div>` : ""}
-      ${irpfPct > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+      ${irpfPct > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:#dc2626;margin-bottom:4px">
         <span>Retención IRPF (${irpfPct}%)</span><span>−${fmt(irpfAmt)}</span>
       </div>` : ""}
       <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:var(--t1);border-top:2px solid var(--brd);padding-top:8px">
@@ -460,6 +460,9 @@ function _actualizarVisibilidadReducirStock(wrapId) {
 async function savePresupuesto() {
   const concepto = document.getElementById("npConcepto")?.value.trim();
   const fecha = document.getElementById("npFecha")?.value;
+  const condicionesPago  = document.getElementById("npCondicionesPago")?.value.trim() || null;
+  const iban             = document.getElementById("npIban")?.value.trim() || null;
+  const titularCuenta    = document.getElementById("npTitularCuenta")?.value.trim() || null;
   if (!concepto || !fecha) { toast("Concepto y fecha son obligatorios", "error"); return; }
   if (!LINEAS.length || LINEAS.every(l => !l.precio || l.precio <= 0)) { toast("Añade al menos una línea con precio", "error"); return; }
 
@@ -525,6 +528,9 @@ async function savePresupuesto() {
     cliente_provincia:        clienteProv             || clienteObj?.provincia        || null,
     cliente_cp:               clienteCp               || clienteObj?.codigo_postal    || null,
     descuento_global: _dtoGlobal.valor > 0 ? JSON.stringify({ tipo: _dtoGlobal.tipo, valor: _dtoGlobal.valor }) : null,
+    condiciones_pago:  condicionesPago,
+    iban:              iban,
+    titular_cuenta:    titularCuenta,
     base: baseTotal,
     iva: ivaMain,
     lineas: lineasJson,
@@ -607,6 +613,9 @@ function resetForm() {
   });
   const csi = document.getElementById("npClienteSearch"); if (csi) csi.value = "";
   document.getElementById("npFecha").value = new Date().toISOString().slice(0, 10);
+  ["npIban","npTitularCuenta","npCondicionesPago"].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = "";
+  });
   // Reset retención IRPF
   const _rToggle = document.getElementById("npIrpfToggle");
   const _rSel    = document.getElementById("npIrpfSel");
@@ -947,6 +956,9 @@ export function initNuevoPresupuesto() {
     set("npClienteProvincia",        editData.cliente_provincia);
     set("npClienteCp",               editData.cliente_cp);
     set("npNotas",                   editData.notas);
+    set("npCondicionesPago",          editData.condiciones_pago);
+    set("npIban",                     editData.iban);
+    set("npTitularCuenta",            editData.titular_cuenta);
 
     // Cliente seleccionado
     clienteSeleccionadoId = editData.cliente_id || null;
