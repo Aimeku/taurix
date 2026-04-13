@@ -367,20 +367,25 @@ function _runPreview() {
   /* ── Cabecera ── */
   const cab = _g("ep_pv_cab");
   if (cab) {
+    // Siempre visible: tipo/número/fecha se muestran igual que en el PDF.
+    // "Sin cabecera" solo elimina el fondo visual, nunca el bloque de datos.
+    cab.style.display      = "";
+    cab.style.paddingRight = hasLogo
+      ? Math.max(Math.round(logoSize * SCALE * 1.2) + 12, 48) + "px"
+      : "18px";
     if (!mostCab || estCab === "sin") {
-      cab.style.display = "none";
+      // Sin fondo — fondo transparente heredado del documento, sin borde
+      cab.style.background   = "transparent";
+      cab.style.borderBottom = "none";
     } else {
-      cab.style.display      = "";
-      cab.style.paddingRight = hasLogo
-        ? Math.max(Math.round(logoSize * SCALE * 1.2) + 12, 48) + "px"
-        : "18px";
       if (estCab === "solido")    { cab.style.background = colorCab; cab.style.borderBottom = "none"; }
       if (estCab === "gradiente") { cab.style.background = `linear-gradient(135deg,${colorCab},${colorAcc})`; cab.style.borderBottom = "none"; }
       if (estCab === "linea")     { cab.style.background = colorFdo;  cab.style.borderBottom = `3px solid ${colorCab}`; }
     }
   }
   const pvC = _g("ep_pv_concepto"), pvT = _g("ep_pv_tipo");
-  const txtColor = estCab === "linea" ? colorLetra : colorTxtC;
+  // Sin cabecera visual: texto en color letra del documento (igual que el PDF sin fondo)
+  const txtColor = (!mostCab || estCab === "sin") ? colorLetra : (estCab === "linea" ? colorLetra : colorTxtC);
   if (pvC) { pvC.textContent = concepto; pvC.style.color = txtColor; }
   if (pvT) { pvT.textContent = L.tipo;   pvT.style.color = txtColor; }
   const feEl = _g("ep_pv_fecha");
