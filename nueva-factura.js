@@ -724,6 +724,10 @@ async function saveFactura() {
   const clienteDir        = document.getElementById("nfDireccion")?.value.trim();
   const pais              = document.getElementById("nfPais")?.value || "ES";
   const notas             = document.getElementById("nfNotas")?.value.trim();
+  const condicionesPago   = document.getElementById("nfCondicionesPago")?.value.trim() || null;
+  const iban              = document.getElementById("nfIban")?.value.trim() || null;
+  const titularCuenta     = document.getElementById("nfTitularCuenta")?.value.trim() || null;
+  const fechaVencimiento  = document.getElementById("nfVencimiento")?.value || null;
   const clienteNombreC    = document.getElementById("nfNombreComercial")?.value.trim();
   const clienteTipoEmp    = document.getElementById("nfTipoEmpresa")?.value || null;
   const clienteCiudad     = document.getElementById("nfCiudad")?.value.trim();
@@ -798,6 +802,10 @@ async function saveFactura() {
       }
       return notas;
     })(),
+    fecha_vencimiento: fechaVencimiento,
+    condiciones_pago:  condicionesPago,
+    iban:              iban,
+    titular_cuenta:    titularCuenta,
     lineas: JSON.stringify(LINEAS.map(l=>({
       descripcion: l.descripcion, cantidad: l.cantidad,
       precio: l.precio, iva: l.iva,
@@ -876,6 +884,9 @@ function resetForm() {
   _dtoGlobal = { tipo: "pct", valor: 0 };
   _nfHideDtoGlobal();
   document.getElementById("lineasContainer").innerHTML="";
+  ["nfIban","nfTitularCuenta","nfCondicionesPago"].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = "";
+  });
   ["nfNombre","nfNif","nfDireccion","nfNotas","nfNombreComercial",
    "nfCiudad","nfProvincia","nfCp","nfEmailCliente","nfTelCliente"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   const nfTEmp = document.getElementById("nfTipoEmpresa"); if(nfTEmp) nfTEmp.value="";
