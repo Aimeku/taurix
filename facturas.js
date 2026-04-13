@@ -188,8 +188,8 @@ export async function refreshFacturas() {
 
   facturas.sort((a,b) => (b.fecha||"").localeCompare(a.fecha||""));
   tbody.innerHTML = facturas.map(f => {
-    const total  = f.base + (f.base*f.iva)/100;
-    const ivaAmt = (f.base*f.iva)/100;
+    const total  = f.base + f.base*(f.iva||0)/100 - f.base*(f.irpf_retencion||0)/100;
+    const ivaAmt = f.base*(f.iva||0)/100;
     const opKey  = f.tipo_operacion||"nacional";
 
     /* ── Columna acciones ── */
