@@ -513,7 +513,6 @@ async function savePresupuesto() {
 
   const payload = {
     concepto, fecha,
-    irpf_retencion: irpfRetencion,
     fecha_validez: document.getElementById("npValidez")?.value || null,
     cliente_id: cId || null,
     cliente_nombre:           clienteNombre           || clienteObj?.nombre           || "",
@@ -545,9 +544,10 @@ async function savePresupuesto() {
   const editingId = window._npEditingId || null;
   if (editingId) {
     const numero = window._npEditingNumero;
+    const _updateExtras = { plantilla_id: _npPlantillaId, ...(irpfRetencion != null ? { irpf_retencion: irpfRetencion } : {}) };
     let { error } = await supabase.from("presupuestos")
-      .update({ ...payload, plantilla_id: _npPlantillaId }).eq("id", editingId);
-    if (error && (error.message?.includes("plantilla_id") || error.message?.includes("schema cache"))) {
+      .update({ ...payload, ..._updateExtras }).eq("id", editingId);
+    if (error && (error.message?.includes("plantilla_id") || error.message?.includes("irpf_retencion") || error.message?.includes("schema cache"))) {
       ({ error } = await supabase.from("presupuestos").update(payload).eq("id", editingId));
     }
     if (error) {
@@ -573,10 +573,11 @@ async function savePresupuesto() {
   const lastNum = last?.[0]?.numero ? parseInt((last[0].numero.match(/-(\d+)$/) || [])[1]) || 0 : 0;
   const numero = `P-${year}-${String(lastNum + 1).padStart(4, "0")}`;
 
+  const _insertExtras = { plantilla_id: _npPlantillaId, ...(irpfRetencion != null ? { irpf_retencion: irpfRetencion } : {}) };
   let { error: _npErr } = await supabase.from("presupuestos").insert({
-    user_id: SESSION.user.id, numero, estado: "borrador", ...payload, plantilla_id: _npPlantillaId,
+    user_id: SESSION.user.id, numero, estado: "borrador", ...payload, ..._insertExtras,
   });
-  if (_npErr && (_npErr.message?.includes("plantilla_id") || _npErr.message?.includes("schema cache"))) {
+  if (_npErr && (_npErr.message?.includes("plantilla_id") || _npErr.message?.includes("irpf_retencion") || _npErr.message?.includes("schema cache"))) {
     ({ error: _npErr } = await supabase.from("presupuestos").insert({
       user_id: SESSION.user.id, numero, estado: "borrador", ...payload,
     }));
