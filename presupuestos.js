@@ -1020,6 +1020,10 @@ async function convertirAFactura(presId) {
       irpf_retencion:     p.irpf_retencion || null,
       tipo_operacion:     p.tipo_operacion || "nacional",
       notas:              notasPres,
+      condiciones_pago:   p.condiciones_pago || null,
+      iban:               p.iban || null,
+      titular_cuenta:     p.titular_cuenta || null,
+      fecha_vencimiento:  p.fecha_validez || null,
       presupuesto_origen: p.id,
     }).select().single();
     if (fe) { toast("Error creando factura: " + fe.message, "error"); return; }
@@ -1251,6 +1255,10 @@ async function albaranAFactura(presId) {
       irpf_retencion:     p.irpf_retencion || null,
       tipo_operacion:     p.tipo_operacion || "nacional",
       notas:              notasFactura,
+      condiciones_pago:   p.condiciones_pago || null,
+      iban:               p.iban || null,
+      titular_cuenta:     p.titular_cuenta || null,
+      fecha_vencimiento:  p.fecha_validez || null,
       presupuesto_origen: p.id,
     }).select().single();
     if (fe) { toast("Error creando factura: " + fe.message, "error"); return; }
