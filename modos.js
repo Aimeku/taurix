@@ -35,10 +35,6 @@ const SIDEBAR_BASE = [
   { action:"gastoRapido", label:"Gasto rápido",          icon:"zap",    accent:true },
   { view:"gastos",        label:"Proveedores / Gastos",  icon:"credit-card", badge:"snBadgeVencidos" },
 
-  { sep: true, label:"RRHH y Nóminas" },
-  { view:"empleados",     label:"Empleados",             icon:"users2" },
-  { view:"nominas",       label:"Nóminas",               icon:"card" },
-  { view:"ss",            label:"Seguridad Social",      icon:"shield2" },
 ];
 
 // Items fiscales según régimen
