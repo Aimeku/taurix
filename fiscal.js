@@ -998,30 +998,24 @@ async function _cargarJsPDF() {
 async function _calcDatosIS() {
   const year = getYear();
   const uid  = SESSION?.user?.id;
-  const [fR, nR, bR] = await Promise.all([
+  const [fR, bR] = await Promise.all([
     supabase.from("facturas")
       .select("tipo,base,iva,estado,irpf,irpf_retencion")
       .eq("user_id", uid)
       .gte("fecha", `${year}-01-01`).lte("fecha", `${year}-12-31`),
-    supabase.from("nominas")
-      .select("salario_bruto,ss_empresa")
-      .eq("user_id", uid)
-      .gte("fecha", `${year}-01-01`),
     supabase.from("bienes_inversion")
       .select("valor_adquisicion,coeficiente,tipo_bien")
       .eq("user_id", uid),
   ]);
   const facs  = fR.data || [];
-  const noms  = nR.data || [];
   const bienes = bR.data || [];
 
   const _coef = (tipo) => ({ inmueble:3, vehiculo:16, informatico:25, maquinaria:12, mobiliario:10 }[tipo] ?? 10);
 
   const ing   = facs.filter(f => f.tipo === "emitida" && f.estado === "emitida").reduce((a, f) => a + f.base, 0);
   const gst   = facs.filter(f => f.tipo === "recibida").reduce((a, f) => a + f.base, 0);
-  const gstP  = noms.reduce((a, n) => a + (n.salario_bruto || 0) + (n.ss_empresa || 0), 0);
   const amort = bienes.reduce((a, b) => a + b.valor_adquisicion * _coef(b.tipo_bien) / 100, 0);
-  const baii  = ing - gst - gstP - amort;
+  const baii  = ing - gst - amort;
   const base  = Math.max(0, baii);
   const cuota = base * 0.25;
   const ret   = facs.filter(f => f.tipo === "emitida" && f.estado === "emitida")
@@ -1031,7 +1025,7 @@ async function _calcDatosIS() {
   const { data: pf } = await supabase.from("perfil_fiscal")
     .select("*").eq("user_id", uid).maybeSingle();
 
-  return { year, ing, gst, gstP, amort, baii, base, cuota, ret, dif, pf };
+  return { year, ing, gst, amort, baii, base, cuota, ret, dif, pf };
 }
 
 /* ══════════════════════════════════════════
@@ -1054,7 +1048,6 @@ export async function exportarExcelIS() {
     "Razón Social":                           d.pf?.nombre_razon_social || "",
     "Ingresos de explotación":                d.ing.toFixed(2),
     "Gastos de explotación":                  d.gst.toFixed(2),
-    "Gastos de personal (nóminas + SS)":      d.gstP.toFixed(2),
     "Amortizaciones":                         d.amort.toFixed(2),
     "Resultado contable (BAI)":               d.baii.toFixed(2),
     "Base imponible (tras ajustes)":          d.base.toFixed(2),
@@ -1117,7 +1110,6 @@ export async function exportarPDFIS() {
   const filas = [
     { label: "Ingresos de explotación",                      valor: d.ing },
     { label: "Gastos de explotación",                        valor: d.gst },
-    { label: "Gastos de personal (nóminas + SS empresa)",    valor: d.gstP },
     { label: "Amortizaciones",                               valor: d.amort },
     { label: "Resultado contable / BAI",                     valor: d.baii,  bold: true },
     { label: "Base imponible (tras ajustes extracontables)", valor: d.base,  bold: true },
