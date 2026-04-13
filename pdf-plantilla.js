@@ -780,6 +780,52 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   y += 20;
   } // end if mostrarPrecios
 
+  // ── CONDICIONES DE PAGO + FECHA VENCIMIENTO ──
+  const condicionesPago = docData.condiciones_pago || "";
+  const fechaVenc       = docData.fecha_vencimiento || docData.fecha_validez || "";
+  if ((condicionesPago || fechaVenc) && y < PH - 50) {
+    const LIGHT = colores.fdoTab;
+    const lineas_cp = [];
+    if (condicionesPago) {
+      condicionesPago.split(/\r?\n/).forEach(line =>
+        doc.splitTextToSize(line || " ", W - 10).forEach(l => lineas_cp.push(l))
+      );
+    }
+    if (fechaVenc) {
+      const fVLabel = (_en ? "Due date: " : "Vencimiento: ") + fmtFecha(fechaVenc);
+      lineas_cp.push(fVLabel);
+    }
+    const nh_cp = lineas_cp.length * 4.5 + 13;
+    doc.setFillColor(...LIGHT);
+    doc.setDrawColor(...BORDER);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(ML, y, W, nh_cp, 1.5, 1.5, "FD");
+    doc.setFont(font, "bold"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+    doc.text(_en ? "PAYMENT CONDITIONS" : "CONDICIONES DE PAGO", ML + PAD, y + 6);
+    doc.setFont(font, "normal"); doc.setFontSize(tamF); doc.setTextColor(...colores.letra);
+    doc.text(lineas_cp, ML + PAD, y + 11.5, { lineHeightFactor: 1.4 });
+    y += nh_cp + 6;
+  }
+
+  // ── DATOS DE PAGO (IBAN por documento) ──
+  const ibanDoc     = docData.iban || "";
+  const titularDoc  = docData.titular_cuenta || "";
+  if (ibanDoc && y < PH - 40) {
+    const LIGHT = colores.fdoTab;
+    const lineas_iban = [ ibanDoc ];
+    if (titularDoc) lineas_iban.push((_en ? "Account holder: " : "Titular: ") + titularDoc);
+    const nh_iban = lineas_iban.length * 4.5 + 13;
+    doc.setFillColor(...LIGHT);
+    doc.setDrawColor(...BORDER);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(ML, y, W, nh_iban, 1.5, 1.5, "FD");
+    doc.setFont(font, "bold"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+    doc.text(_en ? "PAYMENT DETAILS" : "DATOS DE PAGO", ML + PAD, y + 6);
+    doc.setFont(font, "normal"); doc.setFontSize(tamF); doc.setTextColor(...colores.letra);
+    doc.text(lineas_iban, ML + PAD, y + 11.5, { lineHeightFactor: 1.4 });
+    y += nh_iban + 6;
+  }
+
   // ── NOTAS ──
   // Filtrar metadatos internos de rectificativa del campo notas
   const notasRaw = docData.notas || "";
