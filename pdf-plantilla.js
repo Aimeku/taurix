@@ -741,11 +741,11 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   }
 
   if (descuentoTotalDoc > 0) {
-    _totRow(_en ? "Line discounts" : "Descuentos en líneas", "- " + descuentoTotalDoc.toFixed(2) + " €", [200, 50, 50]);
+    _totRow(_en ? "Line discounts" : "Descuentos en líneas", "- " + descuentoTotalDoc.toFixed(2) + " €");
   }
 
   if (_dtoGlobalAmt > 0) {
-    _totRow(_dtoGlobalLabel, "- " + _dtoGlobalAmt.toFixed(2) + " €", [5, 150, 105]);
+    _totRow(_dtoGlobalLabel, "- " + _dtoGlobalAmt.toFixed(2) + " €");
   }
 
   // Fila base imponible real (después de todos los descuentos)
@@ -762,7 +762,7 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   }
 
   if (docData.irpf_retencion > 0) {
-    _totRow((_en ? "WHT " : "IRPF ") + docData.irpf_retencion + "%", "- " + irpfAmt.toFixed(2) + " €", [185, 28, 28]);
+    _totRow((_en ? "WHT " : "IRPF ") + docData.irpf_retencion + "%", "- " + irpfAmt.toFixed(2) + " €");
   }
 
   doc.setDrawColor(...BORDER);
