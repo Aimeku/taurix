@@ -131,8 +131,8 @@ export async function refreshPresupuestos() {
     (p.cliente_nombre|| "").toLowerCase().includes(search)
   );
   if (clientef) presupuestos = presupuestos.filter(p => (p.cliente_nombre||"").toLowerCase().includes(clientef));
-  if (minf > 0) presupuestos = presupuestos.filter(p => (p.base + p.base*p.iva/100) >= minf);
-  if (maxf > 0) presupuestos = presupuestos.filter(p => (p.base + p.base*p.iva/100) <= maxf);
+  if (minf > 0) presupuestos = presupuestos.filter(p => (p.base + p.base*(p.iva||0)/100 - p.base*(p.irpf_retencion||0)/100) >= minf);
+  if (maxf > 0) presupuestos = presupuestos.filter(p => (p.base + p.base*(p.iva||0)/100 - p.base*(p.irpf_retencion||0)/100) <= maxf);
 
   // Poblar select clientes
   const selCli = document.getElementById("presFilterCliente");
@@ -170,7 +170,7 @@ export async function refreshPresupuestos() {
     return (b.fecha || "").localeCompare(a.fecha || "");
   });
   tbody.innerHTML = presupuestos.map(p => {
-    const total  = p.base + (p.base * p.iva / 100);
+    const total  = p.base + p.base*(p.iva||0)/100 - p.base*(p.irpf_retencion||0)/100;
     const hoy    = new Date().toISOString().slice(0, 10);
     const vencido = p.fecha_validez && p.fecha_validez < hoy && p.estado !== "aceptado" && p.estado !== "albaran";
     const badgeEstado = vencido ? estadoBadge.expirado : (estadoBadge[p.estado] || estadoBadge.borrador);
@@ -228,14 +228,14 @@ export async function refreshPresupuestos() {
   }).join("");
 
   // KPIs
-  const total     = presupuestos.reduce((a, p) => a + p.base + p.base * p.iva / 100, 0);
+  const total     = presupuestos.reduce((a, p) => a + p.base + p.base*(p.iva||0)/100 - p.base*(p.irpf_retencion||0)/100, 0);
   const aceptados = presupuestos.filter(p => p.estado === "aceptado" || p.estado === "albaran");
   const pendientes = presupuestos.filter(p => p.estado === "enviado");
   const tasa = presupuestos.length > 0 ? Math.round(aceptados.length / presupuestos.length * 100) : 0;
 
   const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
   s("presKpiTotal",     fmt(total));
-  s("presKpiAceptados", fmt(aceptados.reduce((a, p) => a + p.base + p.base * p.iva / 100, 0)));
+  s("presKpiAceptados", fmt(aceptados.reduce((a, p) => a + p.base + p.base*(p.iva||0)/100 - p.base*(p.irpf_retencion||0)/100, 0)));
   s("presKpiPendientes",pendientes.length);
   s("presKpiTasa",      tasa + "%");
 }
@@ -1097,7 +1097,7 @@ export async function showEnviarEmailModal(presId) {
           <div class="epp-num">${p.numero||"S/N"}</div>
           <div class="epp-datos">
             <span><strong>${p.cliente_nombre||"—"}</strong></span>
-            <span class="mono fw7" style="color:var(--brand)">${fmt(p.base+p.base*p.iva/100)}</span>
+            <span class="mono fw7" style="color:var(--brand)">${fmt(p.base + p.base*(p.iva||0)/100 - p.base*(p.irpf_retencion||0)/100)}</span>
             ${p.fecha_validez?`<span style="color:var(--t3);font-size:12px">Válido hasta ${new Date(p.fecha_validez).toLocaleDateString("es-ES")}</span>`:""}
           </div>
         </div>
@@ -1193,7 +1193,7 @@ export async function showEnviarEmailModal(presId) {
 function _defaultEmailBody(p, perfil) {
   const nom   = perfil.nombre_razon_social || "nosotros";
   const valid = p.fecha_validez ? `\n\nEste presupuesto es válido hasta el ${new Date(p.fecha_validez).toLocaleDateString("es-ES")}.` : "";
-  return `Estimado/a ${p.cliente_nombre||"cliente"},\n\nAdjunto encontrará el presupuesto correspondiente a: ${p.concepto||"los servicios solicitados"}.\n\nImporte total: ${fmt(p.base+p.base*p.iva/100)}${valid}\n\nPara aceptar el presupuesto o si tiene cualquier consulta, no dude en contactarnos.\n\nUn saludo,\n${nom}`;
+  return `Estimado/a ${p.cliente_nombre||"cliente"},\n\nAdjunto encontrará el presupuesto correspondiente a: ${p.concepto||"los servicios solicitados"}.\n\nImporte total: ${fmt(p.base + p.base*(p.iva||0)/100 - p.base*(p.irpf_retencion||0)/100)}${valid}\n\nPara aceptar el presupuesto o si tiene cualquier consulta, no dude en contactarnos.\n\nUn saludo,\n${nom}`;
 }
 
 /* ══════════════════════════
@@ -1847,7 +1847,7 @@ function _mostrarPaginaFirma(p, token) {
   document.getElementById("appShell")?.classList.add("hidden");
 
   const lineas = p.lineas ? JSON.parse(p.lineas) : [];
-  const total  = p.base + p.base*(p.iva||21)/100;
+  const total  = p.base + p.base*(p.iva||21)/100 - p.base*(p.irpf_retencion||0)/100;
   const validez = p.fecha_validez ? new Date(p.fecha_validez) : null;
   const expirado = validez && validez < new Date();
   const yaResuelto = p.firma_estado === "aceptado" || p.firma_estado === "rechazado";
@@ -1902,6 +1902,7 @@ function _mostrarPaginaFirma(p, token) {
             <tfoot>
               <tr><td colspan="2" style="padding:10px;text-align:right;font-size:12px;color:#64748b">Base imponible</td><td style="padding:10px;text-align:right;font-family:monospace;font-weight:600">${fmt(p.base)}</td></tr>
               <tr><td colspan="2" style="padding:10px;text-align:right;font-size:12px;color:#64748b">IVA ${p.iva||21}%</td><td style="padding:10px;text-align:right;font-family:monospace;font-weight:600">${fmt(p.base*(p.iva||21)/100)}</td></tr>
+              ${p.irpf_retencion > 0 ? `<tr><td colspan="2" style="padding:10px;text-align:right;font-size:12px;color:#64748b">Retención IRPF ${p.irpf_retencion}%</td><td style="padding:10px;text-align:right;font-family:monospace;font-weight:600">- ${fmt(p.base*(p.irpf_retencion||0)/100)}</td></tr>` : ""}
               <tr style="background:#eff6ff"><td colspan="2" style="padding:12px 10px;text-align:right;font-weight:800;font-size:14px;color:#1a56db">TOTAL</td><td style="padding:12px 10px;text-align:right;font-family:monospace;font-weight:900;font-size:16px;color:#1a56db">${fmt(total)}</td></tr>
             </tfoot>
           </table>` : ""}
