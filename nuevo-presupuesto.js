@@ -78,15 +78,23 @@ function getLineasTotales() {
   });
   const ivaTotal   = Object.values(ivaMap).reduce((a, b) => a + b, 0);
   const ivaEnTotal = OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual) ? 0 : ivaTotal;
-  const total      = baseTotal + ivaEnTotal;
-  return { baseSinDtoGlobal, dtoGlobalAmt, baseTotal, ivaMap, ivaTotal, total };
+  const npToggle   = document.getElementById("npIrpfToggle");
+  const irpfPct    = npToggle?.checked ? (parseInt(document.getElementById("npIrpfSel")?.value) || 0) : 0;
+  const irpfAmt    = baseTotal * irpfPct / 100;
+  const total      = baseTotal + ivaEnTotal - irpfAmt;
+  return { baseSinDtoGlobal, dtoGlobalAmt, baseTotal, ivaMap, ivaTotal, irpfPct, irpfAmt, total };
 }
 function updateTotalesUI() {
-  const { dtoGlobalAmt, baseTotal, ivaTotal, total } = getLineasTotales();
+  const { dtoGlobalAmt, baseTotal, ivaTotal, irpfPct, irpfAmt, total } = getLineasTotales();
   const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
   s("npBase", fmt(baseTotal));
-  s("npIva", fmt(ivaTotal));
+  s("npIva",  fmt(ivaTotal));
   s("npTotal", fmt(total));
+  // Fila retención IRPF
+  const npIrpfRow = document.getElementById("npIrpfRow");
+  if (npIrpfRow) npIrpfRow.style.display = irpfPct > 0 ? "" : "none";
+  s("npIrpfLbl", `Retención IRPF (${irpfPct}%)`);
+  s("npIrpfVal", `−${fmt(irpfAmt)}`);
   // Fila dto global
   const npDtoRow = document.getElementById("npDtoGlobalRow");
   if (npDtoRow) {
@@ -375,7 +383,7 @@ function updatePreview() {
   const nif = document.getElementById("npClienteNif")?.value || "";
   const fecha = document.getElementById("npFecha")?.value || "—";
   const concepto = document.getElementById("npConcepto")?.value || "—";
-  const { baseTotal, ivaTotal, total } = getLineasTotales();
+  const { baseTotal, ivaTotal, irpfPct, irpfAmt, total } = getLineasTotales();
 
   const previewEl = document.getElementById("npPreviewContent");
   if (!previewEl) return;
@@ -407,8 +415,11 @@ function updatePreview() {
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t3);margin-bottom:4px">
         <span>Base</span><span>${fmt(baseTotal)}</span>
       </div>
-      ${(!OP_SIN_IVA.includes(npOpTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual)) ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t3);margin-bottom:8px">
+      ${(!OP_SIN_IVA.includes(npOpTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual)) ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t3);margin-bottom:4px">
         <span>IVA</span><span>${fmt(ivaTotal)}</span>
+      </div>` : ""}
+      ${irpfPct > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:#dc2626;margin-bottom:4px">
+        <span>Retención IRPF (${irpfPct}%)</span><span>−${fmt(irpfAmt)}</span>
       </div>` : ""}
       <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:var(--t1);border-top:2px solid var(--brd);padding-top:8px">
         <span>TOTAL</span><span>${fmt(total)}</span>
@@ -496,8 +507,13 @@ async function savePresupuesto() {
     producto_id: l.producto_id || null,
   })));
 
+  const npIrpfToggleEl = document.getElementById("npIrpfToggle");
+  const npIrpfSelEl    = document.getElementById("npIrpfSel");
+  const irpfRetencion  = npIrpfToggleEl?.checked ? (parseInt(npIrpfSelEl?.value) || null) : null;
+
   const payload = {
     concepto, fecha,
+    irpf_retencion: irpfRetencion,
     fecha_validez: document.getElementById("npValidez")?.value || null,
     cliente_id: cId || null,
     cliente_nombre:           clienteNombre           || clienteObj?.nombre           || "",
@@ -590,6 +606,13 @@ function resetForm() {
   });
   const csi = document.getElementById("npClienteSearch"); if (csi) csi.value = "";
   document.getElementById("npFecha").value = new Date().toISOString().slice(0, 10);
+  // Reset retención IRPF
+  const _rToggle = document.getElementById("npIrpfToggle");
+  const _rSel    = document.getElementById("npIrpfSel");
+  const _rRow    = document.getElementById("npIrpfRow");
+  if (_rToggle) _rToggle.checked = false;
+  if (_rSel)    { _rSel.value = "15"; _rSel.style.display = "none"; }
+  if (_rRow)    _rRow.style.display = "none";
   const paisEl = document.getElementById("npClientePais"); if (paisEl) paisEl.value = "ES";
   const tipoEl = document.getElementById("npClienteTipo"); if (tipoEl) tipoEl.value = "empresa";
   const tEmpEl = document.getElementById("npClienteTipoEmpresa"); if (tEmpEl) tEmpEl.value = "";
@@ -856,6 +879,20 @@ export function initNuevoPresupuesto() {
 
     document.getElementById("npAddLineaBtn")?.addEventListener("click", () => addLinea());
     document.getElementById("npGuardarBtn")?.addEventListener("click", () => savePresupuesto());
+
+    // Retención IRPF — mismo comportamiento que en nueva factura
+    document.getElementById("npIrpfToggle")?.addEventListener("change", () => {
+      const toggle = document.getElementById("npIrpfToggle");
+      const sel    = document.getElementById("npIrpfSel");
+      if (sel) sel.style.display = toggle?.checked ? "" : "none";
+      if (!toggle?.checked && sel) sel.value = "15";
+      updateTotalesUI();
+      updatePreview();
+    });
+    document.getElementById("npIrpfSel")?.addEventListener("change", () => {
+      updateTotalesUI();
+      updatePreview();
+    });
   }
 
   // ── Tipo de operación ─────────────────────────────────────
@@ -927,6 +964,16 @@ export function initNuevoPresupuesto() {
 
     updateTotalesUI();
     updatePreview();
+
+    // Restaurar retención IRPF si el presupuesto la tenía
+    if (editData.irpf_retencion) {
+      const _eToggle = document.getElementById("npIrpfToggle");
+      const _eSel    = document.getElementById("npIrpfSel");
+      if (_eToggle) _eToggle.checked = true;
+      if (_eSel)    { _eSel.value = String(editData.irpf_retencion); _eSel.style.display = ""; }
+      updateTotalesUI();
+      updatePreview();
+    }
 
     // Restaurar tipo de operación guardado
     npOpTipoActual = editData.tipo_operacion || "nacional";
