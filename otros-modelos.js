@@ -9,15 +9,14 @@ import { SESSION, fmt, fmtDate, toast, getYear, getTrim, getFechaRango, getFactu
 
 /* ══════════════════════════
    MODELO 111 — Retenciones IRPF
-   (trabajadores + profesionales)
+   Solo profesionales (facturas con irpf_retencion > 0)
+   No incluye nóminas ni rendimientos del trabajo
 ══════════════════════════ */
 export async function calcModelo111() {
   const year = getYear(), trim = getTrim();
   const { ini, fin } = getFechaRango(year, trim);
 
-  // Retenciones de facturas emitidas (rendimientos profesionales)
-  // Usar getQueryContext para respetar contexto gestor
-  // Siempre user_id — las facturas se guardan con user_id (igual que utils.js/_getCtx)
+  // Retenciones de facturas emitidas (rendimientos profesionales únicamente)
   const uid = SESSION?.user?.id;
   const { data: facturas } = await supabase.from("facturas")
     .select("base, irpf_retencion, cliente_nombre")
@@ -27,20 +26,13 @@ export async function calcModelo111() {
     .not("irpf_retencion", "is", null)
     .gt("irpf_retencion", 0);
 
-  const { data: nominas } = await supabase.from("nominas")
-    .select("irpf, nombre_empleado")
-    .eq("user_id", uid)
-    .gte("fecha", ini).lte("fecha", fin);
-
   const retProf = (facturas || []).reduce((a, f) => a + f.base * (f.irpf_retencion || 0) / 100, 0);
-  const retNom  = (nominas  || []).reduce((a, n) => a + (n.irpf || 0), 0);
-  const total   = retProf + retNom;
+  const total   = retProf;
 
   // Update UI
   const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  s("m111Nominas", fmt(retNom));
-  s("m111Prof",    fmt(retProf));
-  s("m111Total",   fmt(total));
+  s("m111Prof",  fmt(retProf));
+  s("m111Total", fmt(total));
 
   // Estado visual
   const stEl = document.getElementById("m111Estado");
@@ -48,7 +40,7 @@ export async function calcModelo111() {
     ? `<span class="badge b-pagar">A ingresar: ${fmt(total)}</span>`
     : `<span class="badge b-compen">Sin retenciones este trimestre</span>`;
 
-  return { retProf, retNom, total, facturas: facturas || [], nominas: nominas || [], year, trim };
+  return { retProf, total, facturas: facturas || [], year, trim };
 }
 
 export async function exportModelo111PDF() {
@@ -56,16 +48,15 @@ export async function exportModelo111PDF() {
   await generarPDFModelo({
     numero: "111",
     titulo: "RETENCIONES E INGRESOS A CUENTA DEL IRPF",
-    subtitulo: "Rendimientos del Trabajo y Actividades Económicas",
+    subtitulo: "Rendimientos de Actividades Económicas — Profesionales",
     year: data.year, trim: data.trim,
     resultado: data.total,
     filas: [
-      { label: "Retenciones de trabajadores (nóminas)", valor: data.retNom },
-      { label: "Retenciones de profesionales (facturas)", valor: data.retProf },
+      { label: "Retenciones de profesionales (facturas con IRPF)", valor: data.retProf },
       { label: "CUOTA A INGRESAR", valor: data.total, bold: true },
     ],
     plazo: TRIM_PLAZOS[data.trim],
-    nota: "Retenciones e ingresos a cuenta del Impuesto sobre la Renta de las Personas Físicas. Liquidación trimestral."
+    nota: "Retenciones e ingresos a cuenta del IRPF sobre rendimientos de actividades económicas (art. 95 RIRPF). Liquidación trimestral."
   });
 }
 
@@ -300,11 +291,11 @@ export async function exportModelo190PDF() {
     titulo: "RESUMEN ANUAL RETENCIONES E INGRESOS A CUENTA IRPF",
     subtitulo: "Rendimientos del trabajo, actividades económicas y otras rentas",
     year, trim: "ANUAL",
-    resultado: data190.retNom + data190.retProf,
+    resultado: 0 + data190.retProf,
     filas: [
-      { label: "Retenciones rendimientos del trabajo", valor: data190.retNom },
+      { label: "Retenciones rendimientos del trabajo", valor: 0 },
       { label: "Retenciones rendimientos profesionales", valor: data190.retProf },
-      { label: "TOTAL RETENCIONES AÑO", valor: data190.retNom + data190.retProf, bold: true },
+      { label: "TOTAL RETENCIONES AÑO", valor: 0 + data190.retProf, bold: true },
     ],
     plazo: "Enero del año siguiente",
     nota: "Declaración informativa anual complementaria al Modelo 111. Debe incluir todos los perceptores con datos identificativos."
@@ -704,13 +695,11 @@ export async function exportarFichero190() {
     return;
   }
 
-  // Obtener perceptores (empleados con retención + profesionales)
+  // Obtener perceptores — solo profesionales (facturas con retención IRPF)
   const { data: facturas } = await supabase.from("facturas").select("*")
     .eq("user_id", SESSION.user.id).gte("fecha",`${year}-01-01`).lte("fecha",`${year}-12-31`)
-    .eq("tipo","emitida").not("irpf_retencion","is",null);
-
-  const { data: nominas } = await supabase.from("nominas").select("*")
-    .eq("user_id", SESSION.user.id).gte("fecha",`${year}-01-01`);
+    .eq("tipo","emitida").not("irpf_retencion","is",null)
+    .gt("irpf_retencion", 0);
 
   const rpad  = (v,n) => String(v||"").toUpperCase().padEnd(n," ").slice(0,n);
   const lpad0 = (v,n) => String(Math.round(v||0)).padStart(n,"0").slice(0,n);
@@ -719,7 +708,7 @@ export async function exportarFichero190() {
 
   const perceptores = [];
 
-  // Profesionales (facturas con retención)
+  // Profesionales (facturas con retención IRPF — clave G, art. 95.1 RIRPF)
   const porProf = {};
   (facturas||[]).forEach(f => {
     const k = (f.cliente_nif||f.cliente_nombre||"DESCONOCIDO").toUpperCase();
@@ -729,18 +718,6 @@ export async function exportarFichero190() {
   });
   Object.values(porProf).forEach(p => {
     perceptores.push({ ...p, clave:"G", subclave:"01" }); // G = prof. art. 95.1 RIRPF
-  });
-
-  // Trabajadores (nóminas)
-  const porEmp = {};
-  (nominas||[]).forEach(n => {
-    const k = (n.nombre_empleado||"EMPLEADO").toUpperCase();
-    if (!porEmp[k]) porEmp[k] = { nif:"", nombre:n.nombre_empleado||"", base:0, retencion:0 };
-    porEmp[k].base      += n.salario_bruto||0;
-    porEmp[k].retencion += n.irpf||0;
-  });
-  Object.values(porEmp).forEach(p => {
-    perceptores.push({ ...p, clave:"A", subclave:"01" }); // A = rendimientos trabajo
   });
 
   if (!perceptores.length) {
