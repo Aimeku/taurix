@@ -2563,19 +2563,18 @@
                   <input type="date" id="nfFecha" class="ff-input"/>
                 </div>
                 <div class="ff-field" id="irpfFieldWrap" style="display:none">
-                  <label>Retención IRPF</label>
-                  <div style="display:flex;align-items:center;gap:10px">
-                    <label class="irpf-toggle">
-                      <input type="checkbox" id="nfIrpfToggle"/>
-                      <span class="irpf-toggle-slider"></span>
+                  <label style="margin-bottom:6px">Retención IRPF</label>
+                  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--t2);font-weight:400">
+                      <input type="checkbox" id="nfIrpfToggle" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)"/>
+                      Aplicar retención IRPF <span style="color:var(--t3);font-size:11.5px">(solo profesionales)</span>
                     </label>
-                    <select id="nfIrpf" class="ff-select" style="display:none;min-width:160px">
-                      <option value="7">7% — Inicio actividad</option>
+                    <select id="nfIrpf" class="ff-select" style="display:none;min-width:130px">
+                      <option value="7">7% — Nuevo autónomo</option>
                       <option value="15" selected>15% — General</option>
-                      <option value="19">19% — Profesionales</option>
                     </select>
-                    <span id="nfIrpfHint" style="font-size:11.5px;color:var(--t3)">No aplicar</span>
                   </div>
+                  <span id="nfIrpfHint" style="display:none"></span>
                 </div>
               </div>
 
