@@ -2576,20 +2576,7 @@
                   <label>Fecha *</label>
                   <input type="date" id="nfFecha" class="ff-input"/>
                 </div>
-                <div class="ff-field" id="irpfFieldWrap" style="display:none">
-                  <label style="margin-bottom:6px">Retención IRPF</label>
-                  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--t2);font-weight:400">
-                      <input type="checkbox" id="nfIrpfToggle" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)"/>
-                      Aplicar retención IRPF <span style="color:var(--t3);font-size:11.5px">(solo profesionales)</span>
-                    </label>
-                    <select id="nfIrpf" class="ff-select" style="display:none;min-width:130px">
-                      <option value="7">7% — Nuevo autónomo</option>
-                      <option value="15" selected>15% — General</option>
-                    </select>
-                  </div>
-                  <span id="nfIrpfHint" style="display:none"></span>
-                </div>
+
               </div>
 
               <!-- Campos adicionales: forma de pago, vencimiento, referencia -->
@@ -2729,12 +2716,23 @@
               </div>
               <div id="lineasContainer"></div>
 
-              <!-- Botón añadir descuento global — separado visualmente de las líneas -->
-              <div style="display:flex;justify-content:flex-end;margin:8px 0 0 0">
+              <!-- Botón añadir descuento global + control retención IRPF -->
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin:8px 0 0 0">
                 <button id="nfAddDtoGlobalBtn" type="button" title="Aplicar un descuento sobre el total de todas las líneas" style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--t2);background:transparent;border:1.5px dashed var(--brd);border-radius:7px;padding:5px 12px;cursor:pointer;transition:border-color .15s,color .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--brd)';this.style.color='var(--t2)'">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   Dto. sobre subtotal
                 </button>
+                <div id="irpfFieldWrap" style="display:none;align-items:center;gap:10px;flex-wrap:wrap">
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--t2);font-weight:400">
+                    <input type="checkbox" id="nfIrpfToggle" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)"/>
+                    Aplicar retención IRPF <span style="color:var(--t3);font-size:11.5px">(solo profesionales)</span>
+                  </label>
+                  <select id="nfIrpf" class="ff-select" style="display:none;min-width:130px">
+                    <option value="7">7% — Nuevo autónomo</option>
+                    <option value="15" selected>15% — General</option>
+                  </select>
+                  <span id="nfIrpfHint" style="display:none"></span>
+                </div>
               </div>
 
               <div class="lineas-totales">
