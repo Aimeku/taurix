@@ -418,7 +418,7 @@ function updatePreview() {
       ${(!OP_SIN_IVA.includes(npOpTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual)) ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t3);margin-bottom:4px">
         <span>IVA</span><span>${fmt(ivaTotal)}</span>
       </div>` : ""}
-      ${irpfPct > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:#dc2626;margin-bottom:4px">
+      ${irpfPct > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
         <span>Retención IRPF (${irpfPct}%)</span><span>−${fmt(irpfAmt)}</span>
       </div>` : ""}
       <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:var(--t1);border-top:2px solid var(--brd);padding-top:8px">
