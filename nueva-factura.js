@@ -567,34 +567,32 @@ function updatePreview() {
 
 /* ══════════════════════════
    LÓGICA IRPF INTELIGENTE
-   - Sociedad o cliente particular → campo oculto
-   - Autónomo + cliente empresa   → toggle ON/OFF + selector %
+   - Sociedad o factura recibida → campo oculto
+   - Autónomo + factura emitida  → checkbox visible, selector aparece al activar
 ══════════════════════════ */
 function updateIrpfVisibility() {
   const wrap   = document.getElementById("irpfFieldWrap");
   const toggle = document.getElementById("nfIrpfToggle");
   const sel    = document.getElementById("nfIrpf");
-  const hint   = document.getElementById("nfIrpfHint");
   if (!wrap || !toggle || !sel) return;
 
-  const regime       = PERFIL_FISCAL_CACHE?.regime || "autonomo_ed";
-  const tipoCliente  = document.getElementById("nfTipoCliente")?.value || "empresa";
-  const esSociedad   = regime === "sociedad";
-  const esParticular = tipoCliente === "particular";
+  const regime     = PERFIL_FISCAL_CACHE?.regime || "autonomo_ed";
+  const tipoFact   = document.getElementById("nfTipo")?.value || "emitida";
+  const esSociedad = regime === "sociedad";
+  const esRecibida = tipoFact === "recibida";
 
-  // Al menos una línea debe ser servicio para que aplique IRPF
-  const hayServicio  = LINEAS.length === 0 || LINEAS.some(l => (l.tipo || "servicio") === "servicio");
-
-  const irpfAplica = !esSociedad && !esParticular && hayServicio;
+  // Mostrar solo para autónomos en facturas emitidas
+  const irpfAplica = !esSociedad && !esRecibida;
 
   if (!irpfAplica) {
     wrap.style.display = "none";
     toggle.checked = false;
     sel.style.display = "none";
-    sel.value = "0";
-    if (hint) { hint.style.display = ""; hint.textContent = "No aplicar"; }
+    sel.value = "15";
   } else {
     wrap.style.display = "";
+    // El selector solo aparece si el checkbox está activo
+    sel.style.display = toggle.checked ? "" : "none";
   }
 
   updateTotalesUI();
@@ -668,11 +666,9 @@ function initIrpfToggle() {
   toggle.addEventListener("change", () => {
     if (toggle.checked) {
       sel.style.display = "";
-      if (hint) hint.style.display = "none";
     } else {
       sel.style.display = "none";
-      sel.value = "0"; // sin retención cuando toggle OFF
-      if (hint) { hint.style.display = ""; hint.textContent = "No aplicar"; }
+      sel.value = "15"; // reset a 15% cuando toggle OFF (no se aplica mientras esté oculto)
     }
     updateTotalesUI();
     updatePreview();
@@ -1057,6 +1053,7 @@ export function initNuevaFactura() {
     document.getElementById(id)?.addEventListener("change", updatePreview);
   });
   document.getElementById("nfTipoCliente")?.addEventListener("change", updateIrpfVisibility);
+  document.getElementById("nfTipo")?.addEventListener("change", updateIrpfVisibility);
   document.getElementById("addLineaBtn")?.addEventListener("click", ()=>addLinea());
 
   // ══════════════════════════════════════════════════
