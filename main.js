@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════════════════
    TAURIX · main.js  — v3 MÁXIMO
    Orquestador principal. Inicializa todos los módulos:
-   auth, dashboard, fiscal, IS, nóminas,
-   empleados, contabilidad, tesorería, pipeline, 347, 349...
+   auth, dashboard, fiscal, IS, contabilidad,
+   tesorería, pipeline, 347, 349...
    ═══════════════════════════════════════════════════════ */
 
 import { login, logout, getSession, handleRememberSession, showAuthModal, showResetPasswordModal, showAjustesModal } from "./auth.js";
@@ -43,7 +43,6 @@ import {
   refreshGastosRecurrentes, initGastosView
 } from "./gastos.js";
 import { initPipelineView, refreshPipeline } from "./pipeline.js";
-import { loadEmpleados, setEmpleados, refreshEmpleados, refreshNominas, initNominasView } from "./nominas.js";
 import { initTesoreriaView, refreshTesoreria } from "./tesoreria.js";
 import { initInformesView } from "./informes.js";
 import { initAlertasView, refreshAlertas } from "./alertas.js";
@@ -625,12 +624,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("exportHistExcelBtn")?.addEventListener("click", exportHistoricoExcel);
   document.getElementById("dashExportBtn")?.addEventListener("click", exportFacturasExcel);
 
-  /* ── Nóminas ── */
-  document.getElementById("exportNominasBtn")?.addEventListener("click", () => toast("Exportar nóminas en desarrollo", "info"));
-  ["exportTC1Btn", "exportTC2Btn", "exportSEPANominasBtn"].forEach(id => {
-    document.getElementById(id)?.addEventListener("click", () => toast("Exportación SEPA / TC en desarrollo", "info"));
-  });
-
   /* ── Pipeline ── */
   document.getElementById("nuevaOportunidadBtn")?.addEventListener("click", () => {
     toast("Pipeline CRM próximamente", "info");
@@ -700,9 +693,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ── Pipeline CRM ── */
   initPipelineView();
 
-  /* ── Nóminas y empleados ── */
-  initNominasView();
-
   /* ── Tesorería ── */
   initTesoreriaView();
 
@@ -735,8 +725,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (view === "contabilidad")    await refreshLibroDiario();
         if (view === "amortizaciones")  { const { refreshBienesInversion } = await import("./amortizaciones.js"); await refreshBienesInversion(); }
         if (view === "cobros")          await refreshCobros();
-        if (view === "nominas")         { const { refreshNominas } = await import("./nominas.js"); await refreshNominas(); }
-        if (view === "empleados")       { const { refreshEmpleados } = await import("./nominas.js"); if(refreshEmpleados) await refreshEmpleados(); }
         if (view === "colaboradores")   await refreshColaboradoresView();
         // view "cartera" eliminada — plan único
         // view "revision-cliente" eliminada — plan único
@@ -799,10 +787,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const proveedores = await loadProveedores();
   setProveedores(proveedores);
 
-  // Cargar empleados
-  const empleados = await loadEmpleados();
-  setEmpleados(empleados);
-
   await fullRefresh();
   await refreshProductos();
   // Precarga de trabajos y agenda para que no salgan en blanco
@@ -810,7 +794,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   try { await refreshAgenda();   } catch(e) { console.warn('refreshAgenda:', e.message); }
   await refreshProveedores();
   await refreshGastosRecurrentes();
-  await refreshEmpleados();
 
   // Actualizar 347 badge
   try {
