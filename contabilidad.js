@@ -147,14 +147,12 @@ export const PLAN_CUENTAS = {
   "441": "Deudores, efectos comerciales a cobrar",
   "449": "Deudores de dudoso cobro",
   "460": "Anticipos de remuneraciones",
-  "465": "Remuneraciones pendientes de pago",
   "470": "Hacienda Pública, deudora por diversos conceptos",
   "471": "Organismos de la Seguridad Social, deudores",
   "472": "Hacienda Pública, IVA soportado",
   "473": "Hacienda Pública, retenciones y pagos a cuenta",
   "474": "Activos por diferencias temporarias deducibles",
   "475": "Hacienda Pública, acreedora por conceptos fiscales",
-  "476": "Organismos de la Seguridad Social, acreedores",
   "477": "Hacienda Pública, IVA repercutido",
   "478": "Ajustes negativos en la imposición sobre beneficios",
   "479": "Pasivos por diferencias temporarias imponibles",
@@ -249,9 +247,7 @@ export const PLAN_CUENTAS = {
   "636": "Devolución de impuestos",
   "638": "Ajustes positivos en la imposición sobre beneficios",
   "639": "Ajustes positivos en la imposición indirecta",
-  "640": "Sueldos y salarios",
   "641": "Indemnizaciones",
-  "642": "Seguridad Social a cargo de la empresa",
   "643": "Retribuciones a largo plazo mediante sistemas de aportación definida",
   "644": "Retribuciones a largo plazo mediante sistemas de prestación definida",
   "645": "Retribuciones al personal mediante instrumentos de patrimonio",
@@ -379,8 +375,6 @@ function detectarCuentaGasto(concepto, categoria) {
   if (c.includes("luz") || c.includes("agua") || c.includes("gas ") || c.includes("electric") ||
       c.includes("telefon") || c.includes("internet") || c.includes("movil") ||
       c.includes("suministr")) return "628";
-  if (c.includes("sueldo") || c.includes("salario") || c.includes("nomina")) return "640";
-  if (c.includes("ss ") || c.includes("seguridad social") || c.includes("reta")) return "642";
   if (c.includes("amortiz")) return "681";
   if (c.includes("software") || c.includes("licencia") || c.includes("suscripcion") ||
       c.includes("saas") || c.includes("nube") || c.includes("cloud")) return "629";
@@ -403,12 +397,10 @@ export async function generarAsientos(year, trim) {
   const { ini, fin } = getFechaRango(year, trim);
 
   // Carga paralela
-  const [facturasRes, nominasRes, asientosManualesRes, bienesRes] = await Promise.all([
+  const [facturasRes, asientosManualesRes, bienesRes] = await Promise.all([
     supabase.from("facturas").select("*")
       .eq("user_id", SESSION.user.id).gte("fecha", ini).lte("fecha", fin)
       .order("fecha", { ascending: true }),
-    supabase.from("nominas").select("*")
-      .eq("user_id", SESSION.user.id).gte("fecha", ini).lte("fecha", fin),
     supabase.from("asientos_manuales").select("*")
       .eq("user_id", SESSION.user.id).gte("fecha", ini).lte("fecha", fin)
       .order("fecha", { ascending: true }),
@@ -416,7 +408,6 @@ export async function generarAsientos(year, trim) {
   ]);
 
   const facturas         = facturasRes.data || [];
-  const nominas          = nominasRes.data  || [];
   const asientosManuales = asientosManualesRes.data || [];
   const bienes           = bienesRes.data   || [];
 
@@ -473,23 +464,7 @@ export async function generarAsientos(year, trim) {
     }
   });
 
-  // ── 2. Asientos de nóminas ──
-  nominas.forEach(nom => {
-    if (!nom.salario_bruto) return;
-    const mesStr = `${nom.anio}-${String(nom.mes).padStart(2,"0")}-28`;
-    asientos.push({ n: n++, fecha: mesStr, tipo:"nomina", ref:"NOM",
-      concepto:`Nómina ${nom.nombre_empleado || "—"} ${nom.mes}/${nom.anio}`,
-      lineas: [
-        { cuenta:"640", nombre:"Sueldos y salarios",             debe: nom.salario_bruto, haber: 0 },
-        { cuenta:"642", nombre:"Seguridad Social empresa",       debe: nom.ss_empresa || 0, haber: 0 },
-        { cuenta:"465", nombre:"Remuneraciones pendientes pago", debe: 0, haber: nom.salario_neto || 0 },
-        { cuenta:"476", nombre:"Organismos SS, acreedores",      debe: 0, haber: (nom.ss_trabajador||0) + (nom.ss_empresa||0) },
-        { cuenta:"475", nombre:"HP, retenciones IRPF",           debe: 0, haber: nom.irpf || 0 },
-      ]
-    });
-  });
-
-  // ── 3. Asientos de amortización ──
+  // ── 2. Asientos de amortización ──
   const añoActual = new Date().getFullYear();
   bienes.forEach(b => {
     if (!b.valor_adquisicion || !b.fecha_alta) return;
@@ -558,7 +533,6 @@ export async function refreshLibroDiario() {
     factura:     { color:"#1a56db", bg:"#eff6ff", label:"INGRESO" },
     cobro:       { color:"#059669", bg:"#f0fdf4", label:"COBRO" },
     gasto:       { color:"#dc2626", bg:"#fef2f2", label:"GASTO" },
-    nomina:      { color:"#7c3aed", bg:"#f5f3ff", label:"NÓMINA" },
     amortizacion:{ color:"#d97706", bg:"#fef9c3", label:"AMORT." },
     manual:      { color:"#6b7280", bg:"#f9fafb", label:"MANUAL" },
   };
