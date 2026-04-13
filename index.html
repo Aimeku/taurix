@@ -429,7 +429,7 @@
       Cumplimiento total con la AEAT · 100% Legal · España 🇪🇸
     </div>
     <h1 class="lp-h1">La gestión fiscal<br><em>que mereces</em></h1>
-    <p class="lp-hero-sub">Facturas, clientes, IVA, IRPF, IS, libros oficiales, nóminas, tesorería y declaraciones.<br>Todo en un solo lugar. Para autónomos, SL y empresas con trabajadores.</p>
+    <p class="lp-hero-sub">Facturas, clientes, IVA, IRPF, IS, libros oficiales, tesorería y declaraciones fiscales.<br>Todo en un solo lugar. Para autónomos y sociedades.</p>
     <div class="lp-hero-actions">
       <button id="ctaHeroBtn" class="lp-btn-primary">
         Empezar con Taurix
@@ -459,8 +459,7 @@
       <div class="lp-feat-icon lp-feat-icon--green">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
       </div>
-      <h3>Nóminas y RRHH</h3>
-      <p>Gestión completa de trabajadores, nóminas mensuales, partes de baja, vacaciones y cotizaciones a la Seguridad Social.</p>
+
     </div>
     <div class="lp-feat">
       <div class="lp-feat-icon lp-feat-icon--amber">
@@ -521,7 +520,6 @@
           <li><span class="lp-check lp-check--pro">✓</span> <strong>Tu gestor es la IA — pregunta cuándo presentar, cuánto debes y qué deducir</strong></li>
           <li><span class="lp-check lp-check--pro">✓</span> <strong>Gestión de clientes, proveedores y gastos</strong></li>
           <li><span class="lp-check lp-check--pro">✓</span> <strong>Dashboard fiscal en tiempo real</strong></li>
-          <li><span class="lp-check lp-check--pro">✓</span> <strong>Nóminas y gestión de equipo</strong></li>
           <li><span class="lp-check lp-check--pro">✓</span> <strong>Gestión de trabajos y técnicos en campo</strong></li>
           <li><span class="lp-check lp-check--pro">✓</span> <strong>Contabilidad completa — libro diario, mayor, balances</strong></li>
           <li><span class="lp-check lp-check--pro">✓</span> <strong>Tesorería, cobros y vencimientos</strong></li>
@@ -575,7 +573,7 @@
       </details>
       <details class="lp-faq-item">
         <summary>¿Qué incluye el plan? ¿Hay funciones de pago extra?</summary>
-        <p>Todo está incluido en el único plan de 25€/mes. Facturas y presupuestos sin límite, todos los modelos fiscales (303, 130, 111, 115, 200), nóminas, gestión de trabajos y técnicos, contabilidad completa, tesorería y el gestor IA. Sin sorpresas, sin módulos adicionales de pago.</p>
+        <p>Todo está incluido en el único plan de 25€/mes. Facturas y presupuestos sin límite, todos los modelos fiscales (303, 130, 111, 115, 200), gestión de trabajos y técnicos, contabilidad completa, tesorería y el gestor IA. Sin sorpresas, sin módulos adicionales de pago.</p>
       </details>
       <details class="lp-faq-item">
         <summary>¿Funciona para autónomos y también para Sociedades Limitadas?</summary>
@@ -992,7 +990,6 @@
                 <div class="trim-row"><span>Facturas emitidas</span><strong id="tCountEmit">—</strong></div>
                 <div class="trim-row"><span>Facturas recibidas</span><strong id="tCountRecib">—</strong></div>
                 <div class="trim-row"><span>Clientes activos</span><strong id="tCountClientes">—</strong></div>
-                <div class="trim-row"><span>Nóminas pendientes</span><strong id="tCountNominas">—</strong></div>
               </div>
             </div>
           </div>
@@ -3097,11 +3094,10 @@
           <div class="modelo-extra-card">
             <div class="me-header">
               <div class="me-num">111</div>
-              <div class="me-info"><h4>Retenciones IRPF trabajadores</h4><p>Trimestral · Rendimientos trabajo y profesionales</p></div>
+              <div class="me-info"><h4>Retenciones IRPF profesionales</h4><p>Trimestral · Actividades económicas (art. 95 RIRPF)</p></div>
             </div>
-            <div class="me-body"><p>Retenciones e ingresos a cuenta del IRPF sobre rendimientos del trabajo (nóminas) y actividades económicas (facturas con retención). Incluye resumen anual Modelo 190.</p></div>
+            <div class="me-body"><p>Retenciones e ingresos a cuenta del IRPF sobre facturas de profesionales (abogados, asesores, consultores…). Se calcula automáticamente desde facturas con retención IRPF. Incluye resumen anual Modelo 190.</p></div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-              <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px">Nóminas: <strong id="m111Nominas">—</strong></div>
               <div style="font-size:12px;background:var(--bg2);border-radius:8px;padding:6px 10px">Profesionales: <strong id="m111Prof">—</strong></div>
             </div>
             <div id="m111Estado" style="margin-bottom:8px"></div>
@@ -3462,180 +3458,6 @@
         </div>
       </div>
 
-      <!-- ═══ VIEW: EMPLEADOS ═══ -->
-      <div class="view" id="view-empleados">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">Empleados</h1>
-            <p class="view-sub" id="empleadosCount">— empleados activos</p>
-          </div>
-          <div class="view-actions">
-            <button class="btn-primary" id="nuevoEmpleadoBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Añadir empleado
-            </button>
-          </div>
-        </div>
-
-        <!-- KPIs empleados -->
-        <div class="kpi-row kpi-row--small" style="margin-bottom:20px">
-          <div class="kpi-card kpi-blue"><div class="kpi-top"><span class="kpi-lbl">Total empleados</span></div><div class="kpi-val" id="kpiEmpleados">—</div></div>
-          <div class="kpi-card kpi-red"><div class="kpi-top"><span class="kpi-lbl">Coste salarial mes</span></div><div class="kpi-val" id="kpiCosteSalarial">—</div><div class="kpi-sub">Incl. SS empresa</div></div>
-          <div class="kpi-card kpi-amber"><div class="kpi-top"><span class="kpi-lbl">Retención IRPF acum.</span></div><div class="kpi-val" id="kpiIrpfNom">—</div></div>
-          <div class="kpi-card kpi-green"><div class="kpi-top"><span class="kpi-lbl">SS trabajadores acum.</span></div><div class="kpi-val" id="kpiSSNom">—</div></div>
-        </div>
-
-        <div id="empleadosGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
-          <!-- Tarjetas de empleados se renderizan aquí -->
-          <div style="text-align:center;padding:40px;color:var(--t3);grid-column:1/-1">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 12px;display:block;opacity:.3"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.74"/></svg>
-            <p style="font-size:13px">No hay empleados registrados. Añade tu primer empleado.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══ VIEW: NÓMINAS ═══ -->
-      <div class="view" id="view-nominas">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">Nóminas</h1>
-            <p class="view-sub">Generación, cálculo de SS e IRPF · Exportación PDF · Modelos 111 y TC2</p>
-          </div>
-          <div class="view-actions">
-            <button class="btn-outline" id="exportNominasBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Exportar mes
-            </button>
-            <button class="btn-primary" id="generarNominaBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Generar nómina mes
-            </button>
-          </div>
-        </div>
-
-        <!-- Filtros nóminas -->
-        <div class="filter-bar" style="margin-bottom:16px">
-          <select id="nominasMes" class="filter-sel">
-            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
-            <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
-            <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
-            <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
-          </select>
-          <select id="nominasAnio" class="filter-sel">
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
-          </select>
-          <select id="nominasEstado" class="filter-sel">
-            <option value="">Todos los estados</option>
-            <option value="calculada">Calculada</option>
-            <option value="pagada">Pagada</option>
-            <option value="pendiente">Pendiente</option>
-          </select>
-        </div>
-
-        <!-- Tabla nóminas -->
-        <div class="section-card no-pad">
-          <!-- Cabecera -->
-          <div class="nomina-row" style="background:var(--bg2);font-size:11px;font-weight:700;text-transform:uppercase;color:var(--t3);letter-spacing:.04em;border-bottom:1px solid var(--brd)">
-            <div style="padding:10px 14px">Empleado</div>
-            <div style="padding:10px 14px">S. Bruto</div>
-            <div style="padding:10px 14px">SS Trab.</div>
-            <div style="padding:10px 14px">IRPF</div>
-            <div style="padding:10px 14px">SS Empresa</div>
-            <div style="padding:10px 14px">S. Neto</div>
-            <div style="padding:10px 14px">Acciones</div>
-          </div>
-          <div id="nominasBody">
-            <div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">
-              No hay nóminas generadas para este periodo. Usa "Generar nómina mes" para calcular automáticamente.
-            </div>
-          </div>
-          <!-- Totales -->
-          <div style="background:var(--bg2);padding:12px 14px;border-top:2px solid var(--brd);display:grid;grid-template-columns:1fr 100px 100px 100px 100px 100px 120px;gap:0;font-size:13px;font-weight:700">
-            <div>TOTALES</div>
-            <div id="nomTotalBruto">—</div>
-            <div id="nomTotalSSTrab">—</div>
-            <div id="nomTotalIRPF">—</div>
-            <div id="nomTotalSSEmp">—</div>
-            <div id="nomTotalNeto">—</div>
-            <div></div>
-          </div>
-        </div>
-
-        <!-- Generación de TC2 y documentos SS -->
-        <div class="section-card" style="margin-top:20px">
-          <div class="sc-header"><span class="sc-title">📄 Documentos Seguridad Social</span></div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:16px 0">
-            <div class="doc-card" id="exportTC1Btn">
-              <div class="doc-card-icon">📋</div>
-              <div class="doc-card-name">TC1 · Boletín de cotización</div>
-              <div class="doc-card-desc">Liquidación de cuotas mensuales a la SS empresa</div>
-            </div>
-            <div class="doc-card" id="exportTC2Btn">
-              <div class="doc-card-icon">👥</div>
-              <div class="doc-card-name">TC2 · Relación nominal</div>
-              <div class="doc-card-desc">Listado de trabajadores y bases de cotización</div>
-            </div>
-            <div class="doc-card" id="exportSEPANominasBtn">
-              <div class="doc-card-icon">🏦</div>
-              <div class="doc-card-name">SEPA · Fichero pagos</div>
-              <div class="doc-card-desc">Fichero XML para pagos masivos desde banca online</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══ VIEW: SEGURIDAD SOCIAL ═══ -->
-      <div class="view" id="view-ss">
-        <div class="view-header">
-          <div class="view-title-group">
-            <h1 class="view-title">Seguridad Social</h1>
-            <p class="view-sub">Cotizaciones, altas/bajas trabajadores, autónomos (RETA)</p>
-          </div>
-        </div>
-
-        <!-- Autónomos RETA -->
-        <div class="section-card" style="margin-bottom:20px">
-          <div class="sc-header"><span class="sc-title">💼 Cuota autónomo (RETA) — Sistema de cotización por ingresos reales</span></div>
-          <div style="padding:16px">
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
-              <div>
-                <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--t3);letter-spacing:.05em;margin-bottom:6px">Ingresos anuales estimados</div>
-                <input type="number" id="retaIngresos" class="ff-input" placeholder="25000" style="width:100%;"/>
-              </div>
-              <div>
-                <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--t3);letter-spacing:.05em;margin-bottom:6px">Tramo de cotización</div>
-                <select id="retaTramo" class="ff-select" style="width:100%">
-                  <option value="tramo1">Hasta 670€/mes → 230€/mes</option>
-                  <option value="tramo2">670–900€/mes → 260€/mes</option>
-                  <option value="tramo3">900–1.166€/mes → 275€/mes</option>
-                  <option value="tramo4">1.166–1.300€/mes → 291€/mes</option>
-                  <option value="tramo5">1.300–1.500€/mes → 294€/mes</option>
-                  <option value="tramo6">1.500–1.700€/mes → 294€/mes</option>
-                  <option value="tramo7">1.700–1.850€/mes → 350€/mes</option>
-                  <option value="tramo8">Más de 1.850€/mes → 530€/mes</option>
-                </select>
-              </div>
-              <div>
-                <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--t3);letter-spacing:.05em;margin-bottom:6px">Cuota mensual estimada</div>
-                <div style="font-size:32px;font-weight:800;font-family:monospace;color:var(--accent)" id="retaCuota">—</div>
-              </div>
-            </div>
-            <div style="font-size:12px;color:var(--t3);line-height:1.7">
-              Desde 2023, los autónomos cotizan según sus ingresos reales netos del año (rendimientos de la actividad económica). Al final del ejercicio, la TGSS regulariza la cuota según los ingresos declarados. Si has cotizado de menos, pagarás la diferencia; si has cotizado de más, recibirás la devolución.
-            </div>
-          </div>
-        </div>
-
-        <!-- Altas y bajas trabajadores -->
-        <div class="section-card no-pad">
-          <div class="sc-header" style="padding:16px"><span class="sc-title">👥 Altas y bajas en la Seguridad Social</span></div>
-          <table class="data-table" id="altasBajasTable">
-            <thead><tr><th>Trabajador</th><th>NAF / NAF seguridad</th><th>CCC empresa</th><th>Tipo contrato</th><th>Fecha alta</th><th>Fecha baja</th><th>Estado</th><th>Acciones</th></tr></thead>
-            <tbody id="altasBajasBody"><tr class="dt-empty"><td colspan="8">Sin movimientos de afiliación registrados</td></tr></tbody>
-          </table>
-        </div>
-      </div>
 
       <!-- ═══ VIEW: GASTOS (Proveedores + Recurrentes) ═══ -->
       <div class="view" id="view-gastos">
@@ -3827,12 +3649,6 @@
             <div class="informe-nombre">Declarantes Modelo 347</div>
             <div class="informe-desc">Listado de clientes y proveedores que superan el umbral de 3.005,06€ y deben incluirse en el 347.</div>
             <span class="informe-badge" style="background:#eff6ff;color:#1d4ed8">Listo</span>
-          </div>
-          <div class="informe-card" id="informe_coste_laboral">
-            <div class="informe-icon">👥</div>
-            <div class="informe-nombre">Coste laboral total</div>
-            <div class="informe-desc">Análisis completo del coste de personal: salario bruto, SS empresa, IRPF, pagas extra. Desglose por empleado.</div>
-            <span class="informe-badge" style="background:#eff6ff;color:#1d4ed8">Business</span>
           </div>
           <div class="informe-card" id="informe_comparativa_anual">
             <div class="informe-icon">📊</div>
