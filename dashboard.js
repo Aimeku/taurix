@@ -27,7 +27,7 @@ export async function refreshDashboard() {
     getFacturasTrim(year, trim),
     getFacturasYear(year),
     getFacturasYear(year - 1),
-    supabase.from("facturas").select("base,iva,fecha,fecha_vencimiento,cliente_nombre,concepto")
+    supabase.from("facturas").select("base,iva,irpf_retencion,fecha,fecha_vencimiento,cliente_nombre,concepto")
       .eq("user_id", uid).eq("tipo","emitida").eq("estado","emitida").eq("cobrada",false),
     supabase.from("gastos_recurrentes").select("importe,proxima_fecha,nombre")
       .eq("user_id", uid).eq("activo",true),
@@ -82,7 +82,7 @@ export async function refreshDashboard() {
   renderTendencia("kpiIngTendencia", ingresos, ingPrevTrim);
 
   // Cobro pendiente — calculado para health score y cashflow (card eliminada del dashboard)
-  const pendienteCobro = pendientes.reduce((a,f)=>a+f.base+f.base*(f.iva||0)/100, 0);
+  const pendienteCobro = pendientes.reduce((a,f)=>a+f.base+f.base*(f.iva||0)/100-f.base*(f.irpf_retencion||0)/100, 0);
   const hoy = new Date();
   const vencidas = pendientes.filter(f=>{
     const d = f.fecha_vencimiento || f.fecha;
@@ -263,7 +263,7 @@ async function refreshCashflowPreview(pendientes, recurrentes) {
     const hoy = new Date();
     const hoyStr  = hoy.toISOString().slice(0,10);
     const en30Str = new Date(hoy.getTime()+30*86400000).toISOString().slice(0,10);
-    const cobros = pendientes.filter(f=>{const d=f.fecha_vencimiento||f.fecha;return d&&d>=hoyStr&&d<=en30Str;}).reduce((a,f)=>a+f.base+f.base*(f.iva||0)/100,0);
+    const cobros = pendientes.filter(f=>{const d=f.fecha_vencimiento||f.fecha;return d&&d>=hoyStr&&d<=en30Str;}).reduce((a,f)=>a+f.base+f.base*(f.iva||0)/100-f.base*(f.irpf_retencion||0)/100,0);
     const pagos  = recurrentes.filter(g=>g.proxima_fecha&&g.proxima_fecha>=hoyStr&&g.proxima_fecha<=en30Str).reduce((a,g)=>a+g.importe,0);
     const saldo  = cobros - pagos;
     const s=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
@@ -276,7 +276,7 @@ async function refreshCashflowPreview(pendientes, recurrentes) {
       const semanas=[0,1,2,3].map(w=>{
         const i=new Date(hoy.getTime()+w*7*86400000).toISOString().slice(0,10);
         const f2=new Date(hoy.getTime()+(w+1)*7*86400000).toISOString().slice(0,10);
-        const c=pendientes.filter(p=>{const d=p.fecha_vencimiento||p.fecha;return d&&d>=i&&d<=f2;}).reduce((a,p)=>a+p.base+p.base*(p.iva||0)/100,0);
+        const c=pendientes.filter(p=>{const d=p.fecha_vencimiento||p.fecha;return d&&d>=i&&d<=f2;}).reduce((a,p)=>a+p.base+p.base*(p.iva||0)/100-p.base*(p.irpf_retencion||0)/100,0);
         const p2=recurrentes.filter(g=>g.proxima_fecha&&g.proxima_fecha>=i&&g.proxima_fecha<=f2).reduce((a,g)=>a+g.importe,0);
         return {c,p:p2};
       });
@@ -301,7 +301,7 @@ function renderTopClientes(facturas) {
   facturas.filter(f=>f.tipo==="emitida"&&f.estado==="emitida").forEach(f=>{
     const k=f.cliente_nombre||"Sin cliente";
     if(!by[k]) by[k]={nombre:k,total:0,n:0};
-    by[k].total+=f.base+f.base*(f.iva||0)/100; by[k].n++;
+    by[k].total+=f.base+f.base*(f.iva||0)/100-f.base*(f.irpf_retencion||0)/100; by[k].n++;
   });
   const sorted=Object.values(by).sort((a,b)=>b.total-a.total).slice(0,5);
   const maxV=sorted[0]?.total||1;
@@ -388,7 +388,7 @@ async function renderActividadReciente(facturasTrim) {
   if (!recent.length) { tbody.innerHTML=`<tr class="dt-empty"><td colspan="7">Sin actividad en este periodo</td></tr>`; return; }
   const hoy = new Date();
   tbody.innerHTML = recent.map(f=>{
-    const total=f.base+f.base*(f.iva||0)/100;
+    const total=f.base+f.base*(f.iva||0)/100-f.base*(f.irpf_retencion||0)/100;
     const dias=Math.floor((hoy-new Date(f.fecha+"T12:00:00"))/86400000);
     return `<tr>
       <td class="mono" style="font-size:12px">${fmtDate(f.fecha)}<div style="font-size:10px;color:var(--t4)">hace ${dias}d</div></td>
