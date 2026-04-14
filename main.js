@@ -5,7 +5,7 @@
    tesorería, pipeline, 347, 349...
    ═══════════════════════════════════════════════════════ */
 
-import { login, logout, getSession, handleRememberSession, showAuthModal, showResetPasswordModal, showAjustesModal } from "./auth.js";
+import { login, logout, getSession, handleRememberSession, showAuthModal, showResetPasswordModal, showAjustesModal, checkPendingDeletion, _showPendingDeletionBanner } from "./auth.js";
 import { supabase } from "./supabase.js";
 
 import {
@@ -490,6 +490,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Perfil fiscal ── */
   const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", session.user.id).maybeSingle();
+
+  // ── Comprobar eliminación pendiente (antes de cargar la app) ──
+  // Si han pasado los 7 días: ejecuta el borrado y detiene la carga.
+  // Si está en periodo de gracia: muestra el banner y continúa.
+  const _deletionExecuted = await checkPendingDeletion(session.user.id);
+  if (_deletionExecuted) return; // cuenta eliminada — no continuar
+
   // Guardar regime globalmente — modos.js lo lee para construir el sidebar correcto
   window.__TAURIX_REGIME__ = pf?.regime ?? "autonomo_ed";
   const sfr = document.getElementById("sfRegimeTxt");
