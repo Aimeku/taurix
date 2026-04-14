@@ -715,6 +715,10 @@ export function showAjustesModal() {
         style="flex:1;padding:12px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:700;color:var(--t3);cursor:pointer;transition:all .15s;font-family:var(--font)">
         🔑 Cambiar contraseña
       </button>
+      <button class="aj-tab" id="ajTabDel" data-tab="del"
+        style="flex:1;padding:12px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:700;color:var(--t3);cursor:pointer;transition:all .15s;font-family:var(--font)">
+        🗑️ Eliminar cuenta
+      </button>
     </div>
 
     <!-- Panel Email -->
@@ -778,6 +782,33 @@ export function showAjustesModal() {
       <button class="auth-submit" id="ajPwBtn" style="margin:0"><span>Guardar nueva contraseña</span></button>
     </div>
 
+    <!-- Panel Eliminar cuenta (oculto inicialmente) -->
+    <div id="ajPanelDel" style="padding:24px 28px 28px;display:none">
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 16px;margin-bottom:20px">
+        <p style="font-size:13px;font-weight:700;color:#991b1b;margin:0 0 6px">⚠️ Esta acción es irreversible</p>
+        <p style="font-size:12.5px;color:#7f1d1d;margin:0;line-height:1.6">Se iniciará un periodo de gracia de <strong>7 días</strong>. Durante ese tiempo puedes cancelar. Pasado ese plazo, todos tus datos y tu cuenta serán eliminados permanentemente.</p>
+      </div>
+      <div class="auth-error" id="ajDelErr" style="display:none;margin-bottom:14px"></div>
+      <div class="auth-success" id="ajDelOk" style="display:none;margin-bottom:14px"></div>
+      <div class="auth-field" style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:6px;font-size:12.5px;font-weight:700;color:var(--t2)">Escribe <strong style="color:#dc2626">ELIMINAR</strong> para confirmar</label>
+        <input type="text" id="ajDelText" class="ff-input" placeholder="ELIMINAR" autocomplete="off"
+          style="width:100%;box-sizing:border-box"/>
+      </div>
+      <div class="auth-field" style="margin-bottom:22px">
+        <label style="display:block;margin-bottom:6px;font-size:12.5px;font-weight:700;color:var(--t2)">Contraseña actual <span style="font-weight:400;color:var(--t4)">(para verificar tu identidad)</span></label>
+        <div class="auth-pw-wrap">
+          <input type="password" id="ajDelPw" class="ff-input" placeholder="••••••••" autocomplete="current-password"
+            style="width:100%;box-sizing:border-box"/>
+          <button type="button" class="auth-pw-toggle" data-target="ajDelPw">👁</button>
+        </div>
+      </div>
+      <button id="ajDelBtn" disabled
+        style="width:100%;padding:12px;background:#dc2626;color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;opacity:.5;transition:opacity .2s;font-family:var(--font)">
+        Solicitar eliminación de cuenta
+      </button>
+    </div>
+
   </div>
 </div>`;
 
@@ -810,11 +841,12 @@ export function showAjustesModal() {
       // Estilos activo/inactivo
       document.querySelectorAll(".aj-tab").forEach(t => {
         const active = t.dataset.tab === target;
-        t.style.borderBottomColor = active ? "var(--ox)" : "transparent";
-        t.style.color = active ? "var(--ox)" : "var(--t3)";
+        t.style.borderBottomColor = active ? (target === "del" ? "#dc2626" : "var(--ox)") : "transparent";
+        t.style.color = active ? (target === "del" ? "#dc2626" : "var(--ox)") : "var(--t3)";
       });
       document.getElementById("ajPanelEmail").style.display = target === "email" ? "" : "none";
       document.getElementById("ajPanelPw").style.display    = target === "pw"    ? "" : "none";
+      document.getElementById("ajPanelDel").style.display   = target === "del"   ? "" : "none";
     });
   });
 
@@ -971,6 +1003,217 @@ export function showAjustesModal() {
     }
   });
 
+  /* ── Eliminar cuenta: habilitar botón solo si texto + contraseña rellenos ── */
+  const _ajDelCheck = () => {
+    const txt = document.getElementById("ajDelText")?.value.trim();
+    const pw  = document.getElementById("ajDelPw")?.value;
+    const btn = document.getElementById("ajDelBtn");
+    if (!btn) return;
+    const ok = txt === "ELIMINAR" && pw.length > 0;
+    btn.disabled = !ok;
+    btn.style.opacity = ok ? "1" : ".5";
+    btn.style.cursor  = ok ? "pointer" : "not-allowed";
+  };
+  document.getElementById("ajDelText")?.addEventListener("input", _ajDelCheck);
+  document.getElementById("ajDelPw")?.addEventListener("input",   _ajDelCheck);
+
+  /* ── Solicitar eliminación ── */
+  document.getElementById("ajDelBtn")?.addEventListener("click", async () => {
+    const btn  = document.getElementById("ajDelBtn");
+    const txt  = document.getElementById("ajDelText")?.value.trim();
+    const pw   = document.getElementById("ajDelPw")?.value;
+    if (txt !== "ELIMINAR" || !pw) return;
+
+    btn.disabled = true;
+    btn.textContent = "Verificando…";
+    const showDelErr = (msg) => { const e = document.getElementById("ajDelErr"); if (e) { e.textContent = msg; e.style.display = msg ? "" : "none"; } };
+    showDelErr("");
+
+    try {
+      // 1. Verificar contraseña actual
+      const { data: sess } = await supabase.auth.getSession();
+      const email = sess?.session?.user?.email;
+      if (!email) throw new Error("No hay sesión activa.");
+      const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password: pw });
+      if (signInErr) throw new Error("Contraseña incorrecta.");
+
+      // 2. Marcar pending_deletion en perfil_fiscal
+      const uid = sess.session.user.id;
+      const now = new Date();
+      const scheduled = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const { error: updErr } = await supabase.from("perfil_fiscal").update({
+        pending_deletion:        true,
+        deletion_requested_at:   now.toISOString(),
+        deletion_scheduled_at:   scheduled.toISOString(),
+      }).eq("user_id", uid);
+      if (updErr) throw new Error("Error al programar eliminación: " + updErr.message);
+
+      // 3. Mostrar banner en la app y cerrar modal
+      modal.remove();
+      _showPendingDeletionBanner(scheduled);
+      toast("Eliminación programada para el " + scheduled.toLocaleDateString("es-ES") + ". Puedes cancelarla en Ajustes.", "warn", 8000);
+
+    } catch (err) {
+      showDelErr(err.message);
+      btn.disabled = false;
+      btn.textContent = "Solicitar eliminación de cuenta";
+      _ajDelCheck();
+    }
+  });
+
   // Foco inicial
   setTimeout(() => document.getElementById("ajNewEmail")?.focus(), 100);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PENDING DELETION — banner, cancelación y borrado definitivo
+   Lista completa de tablas con user_id en orden seguro
+══════════════════════════════════════════════════════════════ */
+
+const _DELETION_TABLES = [
+  // Documentos y movimientos (primero, son leaves)
+  "movimientos_bancarios",
+  "documentos",
+  "asientos_manuales",
+  // Fiscales
+  "facturas",
+  "facturas_recurrentes",
+  "proformas",
+  "presupuestos",
+  "bienes_inversion",
+  "cierres_trimestrales",
+  "factura_series",
+  // Clientes / proveedores
+  "clientes",
+  "proveedores",
+  "gastos_recurrentes",
+  // Trabajo
+  "agenda_eventos",
+  "trabajos",
+  "pipeline_oportunidades",
+  "pipeline_actividad",
+  // Bancario
+  "conexiones_bancarias",
+  "cuentas_bancarias",
+  // Productos y plantillas
+  "productos",
+  "plantillas_usuario",
+  "presupuesto_plantillas",
+  // Colaboradores y empresas
+  "colaboradores",
+  "empresas",
+  // RRHH (legacy — puede no existir)
+  "nominas",
+  "empleados",
+  // Perfil — siempre al final
+  "perfil_fiscal",
+];
+
+export function _showPendingDeletionBanner(scheduledDate) {
+  const banner = document.getElementById("pendingDeletionBanner");
+  if (!banner) return;
+  const fecha = scheduledDate instanceof Date
+    ? scheduledDate.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })
+    : new Date(scheduledDate).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
+  banner.style.display = "";
+  banner.innerHTML = `
+    <div style="background:#fef2f2;border-bottom:1px solid #fecaca;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span style="font-size:13px;font-weight:600;color:#991b1b">
+          Tu cuenta está programada para eliminarse el <strong>${fecha}</strong>. Todos tus datos serán borrados permanentemente.
+        </span>
+      </div>
+      <button id="cancelDeletionBtn"
+        style="flex-shrink:0;padding:7px 16px;background:#fff;border:1.5px solid #dc2626;border-radius:8px;font-size:12.5px;font-weight:700;color:#dc2626;cursor:pointer;font-family:var(--font)">
+        Cancelar eliminación
+      </button>
+    </div>`;
+  document.getElementById("cancelDeletionBtn")?.addEventListener("click", _cancelDeletion);
+}
+
+async function _cancelDeletion() {
+  try {
+    const { data: sess } = await supabase.auth.getSession();
+    if (!sess?.session) return;
+    const { error } = await supabase.from("perfil_fiscal").update({
+      pending_deletion:       false,
+      deletion_requested_at:  null,
+      deletion_scheduled_at:  null,
+    }).eq("user_id", sess.session.user.id);
+    if (error) throw error;
+    const banner = document.getElementById("pendingDeletionBanner");
+    if (banner) { banner.style.display = "none"; banner.innerHTML = ""; }
+    // Reset button in ajustes if open
+    const ajDelOk = document.getElementById("ajDelOk");
+    if (ajDelOk) { ajDelOk.textContent = ""; ajDelOk.style.display = "none"; }
+    toast("✅ Eliminación cancelada. Tu cuenta y datos están seguros.", "success", 5000);
+  } catch (e) {
+    toast("Error al cancelar eliminación: " + e.message, "error");
+  }
+}
+
+export async function checkPendingDeletion(uid) {
+  try {
+    const { data: pf } = await supabase.from("perfil_fiscal")
+      .select("pending_deletion, deletion_scheduled_at")
+      .eq("user_id", uid).maybeSingle();
+
+    if (!pf?.pending_deletion) return false;
+
+    const scheduled = new Date(pf.deletion_scheduled_at);
+    const now       = new Date();
+
+    if (scheduled <= now) {
+      // Periodo de gracia expirado — ejecutar borrado definitivo
+      await _executeDeletion(uid);
+      return true; // signal to caller: account deleted, stop loading
+    }
+
+    // Aún dentro del periodo de gracia — mostrar banner
+    _showPendingDeletionBanner(scheduled);
+    return false;
+  } catch (e) {
+    console.warn("[pendingDeletion] check error:", e.message);
+    return false;
+  }
+}
+
+async function _executeDeletion(uid) {
+  try {
+    // Borrar datos en orden seguro (leaves primero, perfil_fiscal al final)
+    for (const t of _DELETION_TABLES) {
+      try {
+        await supabase.from(t).delete().eq("user_id", uid);
+      } catch(e) {
+        // Tabla puede no existir — ignorar
+      }
+    }
+    // Eliminar usuario en Supabase Auth
+    const { error: rpcErr } = await supabase.rpc("delete_user");
+    if (rpcErr) console.warn("[deletionRPC]", rpcErr.message);
+
+    // Limpiar sesión local
+    await supabase.auth.signOut();
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // Redirigir a landing
+    document.getElementById("appShell")?.classList.add("hidden");
+    document.getElementById("landingPage")?.classList.remove("hidden");
+
+    // Mostrar aviso final
+    setTimeout(() => {
+      const landing = document.getElementById("landingPage");
+      if (landing) {
+        const notice = document.createElement("div");
+        notice.style.cssText = "position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:9999;background:#1a1a2e;color:#fff;padding:14px 24px;border-radius:10px;font-size:14px;font-weight:600;text-align:center;max-width:400px";
+        notice.textContent = "Tu cuenta ha sido eliminada. Hasta pronto.";
+        document.body.appendChild(notice);
+        setTimeout(() => notice.remove(), 6000);
+      }
+    }, 300);
+  } catch(e) {
+    console.error("[executeDeletion] error:", e.message);
+  }
 }
