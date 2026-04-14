@@ -2037,10 +2037,21 @@ window._editPres = async (id) => {
 };
 window._dupPres = async (id) => {
   const { data, error } = await supabase.from("presupuestos").select("*").eq("id", id).single();
-  if (error || !data) return;
+  if (error || !data) { toast("Error cargando presupuesto", "error"); return; }
   const lineas = data.lineas ? JSON.parse(data.lineas) : [];
-  const { id: _id, numero, fecha_aceptacion, ...rest } = data;
-  showNuevoPresupuestoModal({ ...rest, lineas, fecha: new Date().toISOString().slice(0, 10), estado: "borrador" });
+  // Excluir campos que no deben copiarse al duplicado
+  const { id: _id, numero, fecha_aceptacion, estado_facturacion,
+          fecha_facturacion, albaran_numero, token_firma, firma_estado,
+          firma_nombre, firma_fecha, ...rest } = data;
+  // Abrir la vista completa igual que al editar, pero sin id → modo creación
+  window._npEditData = {
+    ...rest,
+    lineas,
+    fecha:  new Date().toISOString().slice(0, 10),
+    estado: "borrador",
+    // id ausente → nuevo-presupuesto.js detecta modo creación
+  };
+  if (window._switchView) window._switchView("nuevo-presupuesto");
 };
 window._delPres = (id) => {
   openModal(`
