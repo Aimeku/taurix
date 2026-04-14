@@ -9,7 +9,7 @@ import {
   SESSION, CLIENTES, fmt, fmtDate, toast,
   openModal, closeModal, switchView, OP_INFO, OP_SIN_IVA, OP_IVA_NO_REPERCUTIDO
 } from "./utils.js";
-import { PRODUCTOS, buscarProductoPorCodigo } from "./productos.js";
+import { PRODUCTOS, buscarProductoPorCodigo, refreshProductos } from "./productos.js";
 import { PLANTILLAS, getPlantillaDefault } from "./plantillas-usuario.js";
 import { refreshPresupuestos } from "./presupuestos.js";
 import { refreshClientes, populateClienteSelect } from "./clientes.js";
@@ -19,6 +19,9 @@ let lineaIdCounter = 0;
 let clienteSeleccionadoId = null;
 let npPlantillaActual = null;
 let npOpTipoActual = "nacional";
+
+/* ── Descuento global sobre subtotal ── */
+let _dtoGlobal = { tipo: "pct", valor: 0 };
 
 /* ══════════════════════════
    TOTALES
@@ -48,21 +51,69 @@ function updateNpOpUI() {
 }
 
 function getLineasTotales() {
-  let baseTotal = 0;
+  let baseSinDtoGlobal = 0;
   const ivaMap = {};
   LINEAS.forEach(l => {
     const subtotalBruto = l.cantidad * l.precio;
     const descAmt       = _parseDescuento(l.descuento, subtotalBruto);
     const subtotal      = Math.max(0, subtotalBruto - descAmt);
-    baseTotal += subtotal;
-    const ivaAmt = subtotal * l.iva / 100;
+    baseSinDtoGlobal += subtotal;
+  });
+  // Descuento global
+  let dtoGlobalAmt = 0;
+  if (_dtoGlobal.valor > 0) {
+    dtoGlobalAmt = _dtoGlobal.tipo === "pct"
+      ? baseSinDtoGlobal * _dtoGlobal.valor / 100
+      : Math.min(_dtoGlobal.valor, baseSinDtoGlobal);
+    dtoGlobalAmt = Math.max(0, dtoGlobalAmt);
+  }
+  const baseTotal = Math.max(0, baseSinDtoGlobal - dtoGlobalAmt);
+  const ratio     = baseSinDtoGlobal > 0 ? baseTotal / baseSinDtoGlobal : 0;
+  LINEAS.forEach(l => {
+    const subtotalBruto = l.cantidad * l.precio;
+    const descAmt       = _parseDescuento(l.descuento, subtotalBruto);
+    const subtotalLinea = Math.max(0, subtotalBruto - descAmt);
+    const ivaAmt        = subtotalLinea * ratio * l.iva / 100;
     ivaMap[l.iva] = (ivaMap[l.iva] || 0) + ivaAmt;
   });
-  const ivaTotal = Object.values(ivaMap).reduce((a, b) => a + b, 0);
-  // Para inversión del sujeto pasivo: el IVA no se repercute en el total
+  const ivaTotal   = Object.values(ivaMap).reduce((a, b) => a + b, 0);
   const ivaEnTotal = OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual) ? 0 : ivaTotal;
-  const total = baseTotal + ivaEnTotal;
-  return { baseTotal, ivaMap, ivaTotal, total };
+  const npToggle   = document.getElementById("npIrpfToggle");
+  const irpfPct    = npToggle?.checked ? (parseInt(document.getElementById("npIrpfSel")?.value) || 0) : 0;
+  const irpfAmt    = baseTotal * irpfPct / 100;
+  const total      = baseTotal + ivaEnTotal - irpfAmt;
+  return { baseSinDtoGlobal, dtoGlobalAmt, baseTotal, ivaMap, ivaTotal, irpfPct, irpfAmt, total };
+}
+function updateTotalesUI() {
+  const { dtoGlobalAmt, baseTotal, ivaTotal, irpfPct, irpfAmt, total } = getLineasTotales();
+  const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  s("npBase", fmt(baseTotal));
+  s("npIva",  fmt(ivaTotal));
+  s("npTotal", fmt(total));
+  // Fila retención IRPF
+  const npIrpfRow = document.getElementById("npIrpfRow");
+  if (npIrpfRow) npIrpfRow.style.display = irpfPct > 0 ? "" : "none";
+  s("npIrpfLbl", `Retención IRPF (${irpfPct}%)`);
+  s("npIrpfVal", `−${fmt(irpfAmt)}`);
+  // Fila dto global
+  const npDtoRow = document.getElementById("npDtoGlobalRow");
+  if (npDtoRow) {
+    if (dtoGlobalAmt > 0) {
+      npDtoRow.style.display = "";
+      const lbl = document.getElementById("npDtoGlobalLbl");
+      const val = document.getElementById("npDtoGlobalVal");
+      if (lbl) lbl.textContent = _dtoGlobal.tipo === "pct" ? `Dto. global (−${_dtoGlobal.valor}%)` : "Dto. global";
+      if (val) val.textContent = `−${fmt(dtoGlobalAmt)}`;
+    } else {
+      npDtoRow.style.display = "none";
+    }
+  }
+  // Ocultar fila IVA cuando la operación no repercute IVA al total
+  const ivaRow = document.getElementById("npIvaRow");
+  if (ivaRow) {
+    const mostrarIva = !OP_SIN_IVA.includes(npOpTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual);
+    ivaRow.style.display = mostrarIva ? "" : "none";
+  }
 }
 
 /* ══════════════════════════
@@ -99,10 +150,10 @@ function _buildProdDropdown(descInput, onSelect) {
             <div style="flex:1;min-width:0">
               <div class="csd-name">${p.nombre}${stockBadge}</div>
               ${p.descripcion ? `<div class="csd-meta">${p.descripcion}</div>` : ""}
-              ${p.referencia  ? `<div class="csd-meta" style="font-family:monospace">Ref: ${p.referencia}</div>` : ""}
+              ${p.sku ? `<div class="csd-meta" style="font-family:monospace">SKU: ${p.sku}</div>` : ""}
             </div>
             <div style="text-align:right;flex-shrink:0">
-              <div style="font-size:13px;font-weight:800;color:var(--accent);font-family:monospace">${fmt(p.precio)}</div>
+              <div style="font-size:13px;font-weight:800;color:var(--accent);font-family:monospace">${fmt(p.precio_venta)}</div>
               <div class="csd-meta">IVA ${p.iva}%</div>
             </div>
           </div>
@@ -138,7 +189,7 @@ function _buildProdDropdown(descInput, onSelect) {
       p.activo !== false && (
         p.nombre.toLowerCase().includes(q) ||
         (p.descripcion || "").toLowerCase().includes(q) ||
-        (p.referencia  || "").toLowerCase().includes(q)
+        (p.sku || "").toLowerCase().includes(q)
       )
     ).slice(0, 10);
     if (!m.length) {
@@ -163,9 +214,8 @@ function _buildProdDropdown(descInput, onSelect) {
 const _COL_SCHEMA = {
   descripcion: { label:"Descripción",  fr:3.0, minW:120, align:"left",  inputType:"text",   dataField:"descripcion" },
   cantidad:    { label:"Cant.",        fr:0.7, minW:52,  align:"right", inputType:"number", dataField:"cantidad",   step:"0.01", min:"0.01" },
-  precio:      { label:"P. unit.",     fr:1.0, minW:72,  align:"right", inputType:"number", dataField:"precio",    step:"0.01", placeholder:"0.00" },
+  precio:      { label:"Subtotal",     fr:1.0, minW:72,  align:"right", inputType:"number", dataField:"precio",    step:"0.01", placeholder:"0.00" },
   descuento:   { label:"Dto.",         fr:0.8, minW:60,  align:"right", inputType:"text",   dataField:"descuento", placeholder:"10%/5€" },
-  subtotal:    { label:"Subtotal",     fr:1.0, minW:72,  align:"right", inputType:null,     dataField:null },
   codigo:      { label:"Código",       fr:0.7, minW:55,  align:"left",  inputType:"text",   dataField:"codigo" },
   coeficiente: { label:"Coef.",        fr:0.6, minW:50,  align:"right", inputType:"number", dataField:"coeficiente", step:"0.01" },
   iva:         { label:"IVA",          fr:0.6, minW:56,  align:"right", inputType:"select", dataField:"iva" },
@@ -280,20 +330,23 @@ function addLinea(prefill = {}) {
       const linea = LINEAS.find(l => l.id === id);
       if (!linea) return;
       linea.descripcion = p.descripcion || p.nombre;
-      linea.precio      = p.precio;
+      linea.precio      = p.precio_venta;
       linea.iva         = p.iva;
+      linea.producto_id = p.id;
       const f = (field, val) => { const el=row.querySelector(`[data-field="${field}"]`); if(el) el.value=val; };
       f("descripcion", linea.descripcion);
       f("precio", linea.precio);
       f("iva", linea.iva);
       document.getElementById(`npLtRow${id}`).textContent = fmt(linea.cantidad * linea.precio);
       updateTotalesUI(); updatePreview();
+      _actualizarVisibilidadReducirStock("npReducirStockWrap");
     });
   }
 
   container.appendChild(row);
   updateTotalesUI();
   updatePreview();
+  _actualizarVisibilidadReducirStock("npReducirStockWrap");
   // No auto-focus: el usuario elige por dónde empezar
 }
 
@@ -308,8 +361,11 @@ function onLineaChange(id, el) {
   else if (field === "descuento") linea.descuento   = el.value;
   const subtotalBruto = linea.cantidad * linea.precio;
   const descAmt       = _parseDescuento(linea.descuento, subtotalBruto);
-  const subtotal      = Math.max(0, subtotalBruto - descAmt);
-  document.getElementById(`npLtRow${id}`).textContent = fmt(subtotal);
+  const subtotalNeto  = Math.max(0, subtotalBruto - descAmt);
+  const rowTotal = document.getElementById(`npLtRow${id}`);
+  if (rowTotal) rowTotal.textContent = fmt(subtotalNeto);
+  const rowSub = document.querySelector(`.linea-row[data-linea-id="${id}"] [data-subtotal="${id}"]`);
+  if (rowSub) rowSub.textContent = fmt(subtotalBruto);
   updateTotalesUI(); updatePreview();
 }
 
@@ -319,20 +375,6 @@ window._npDelLinea = (id) => {
   updateTotalesUI(); updatePreview();
 };
 
-function updateTotalesUI() {
-  const { baseTotal, ivaTotal, total } = getLineasTotales();
-  const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  s("npBase", fmt(baseTotal));
-  s("npIva", fmt(ivaTotal));
-  s("npTotal", fmt(total));
-  // Ocultar fila IVA cuando la operación no repercute IVA al total
-  const ivaRow = document.getElementById("npIvaRow");
-  if (ivaRow) {
-    const mostrarIva = !OP_SIN_IVA.includes(npOpTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual);
-    ivaRow.style.display = mostrarIva ? "" : "none";
-  }
-}
-
 /* ══════════════════════════
    PREVIEW
 ══════════════════════════ */
@@ -341,7 +383,7 @@ function updatePreview() {
   const nif = document.getElementById("npClienteNif")?.value || "";
   const fecha = document.getElementById("npFecha")?.value || "—";
   const concepto = document.getElementById("npConcepto")?.value || "—";
-  const { baseTotal, ivaTotal, total } = getLineasTotales();
+  const { baseTotal, ivaTotal, irpfPct, irpfAmt, total } = getLineasTotales();
 
   const previewEl = document.getElementById("npPreviewContent");
   if (!previewEl) return;
@@ -373,8 +415,11 @@ function updatePreview() {
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t3);margin-bottom:4px">
         <span>Base</span><span>${fmt(baseTotal)}</span>
       </div>
-      ${(!OP_SIN_IVA.includes(npOpTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual)) ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t3);margin-bottom:8px">
+      ${(!OP_SIN_IVA.includes(npOpTipoActual) || OP_IVA_NO_REPERCUTIDO.includes(npOpTipoActual)) ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t3);margin-bottom:4px">
         <span>IVA</span><span>${fmt(ivaTotal)}</span>
+      </div>` : ""}
+      ${irpfPct > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:#dc2626;margin-bottom:4px">
+        <span>Retención IRPF (${irpfPct}%)</span><span>−${fmt(irpfAmt)}</span>
       </div>` : ""}
       <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:var(--t1);border-top:2px solid var(--brd);padding-top:8px">
         <span>TOTAL</span><span>${fmt(total)}</span>
@@ -385,9 +430,39 @@ function updatePreview() {
 /* ══════════════════════════
    GUARDAR PRESUPUESTO
 ══════════════════════════ */
+
+/* ── Descuento de stock al guardar (si el checkbox está marcado) ── */
+async function _descontarStockSiProcede(checkboxId) {
+  if (!document.getElementById(checkboxId)?.checked) return;
+  const lineasConProducto = LINEAS.filter(l => l.producto_id && l.cantidad > 0);
+  for (const linea of lineasConProducto) {
+    const prod = PRODUCTOS.find(p => p.id === linea.producto_id);
+    if (!prod || prod.tipo === "servicio" || prod.stock_actual == null) continue;
+    const nuevoStock = Math.max(0, prod.stock_actual - linea.cantidad);
+    const { error } = await supabase.from("productos")
+      .update({ stock_actual: nuevoStock })
+      .eq("id", linea.producto_id)
+      .eq("user_id", SESSION.user.id);
+    if (!error) prod.stock_actual = nuevoStock;
+  }
+  // Refrescar catálogo para que la vista se actualice sin recargar
+  refreshProductos().catch(() => {});
+}
+
+/* ── Mostrar/ocultar el checkbox según haya líneas con producto_id ── */
+function _actualizarVisibilidadReducirStock(wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const tieneProductos = LINEAS.some(l => l.producto_id);
+  wrap.style.display = tieneProductos ? "flex" : "none";
+}
+
 async function savePresupuesto() {
   const concepto = document.getElementById("npConcepto")?.value.trim();
   const fecha = document.getElementById("npFecha")?.value;
+  const condicionesPago  = document.getElementById("npCondicionesPago")?.value.trim() || null;
+  const iban             = document.getElementById("npIban")?.value.trim() || null;
+  const titularCuenta    = document.getElementById("npTitularCuenta")?.value.trim() || null;
   if (!concepto || !fecha) { toast("Concepto y fecha son obligatorios", "error"); return; }
   if (!LINEAS.length || LINEAS.every(l => !l.precio || l.precio <= 0)) { toast("Añade al menos una línea con precio", "error"); return; }
 
@@ -432,7 +507,12 @@ async function savePresupuesto() {
     descripcion: l.descripcion, cantidad: l.cantidad, precio: l.precio, iva: l.iva,
     descuento: l.descuento ?? "",
     subtotal: Math.max(0, l.cantidad*l.precio - _parseDescuento(l.descuento, l.cantidad*l.precio)),
+    producto_id: l.producto_id || null,
   })));
+
+  const npIrpfToggleEl = document.getElementById("npIrpfToggle");
+  const npIrpfSelEl    = document.getElementById("npIrpfSel");
+  const irpfRetencion  = npIrpfToggleEl?.checked ? (parseInt(npIrpfSelEl?.value) || null) : null;
 
   const payload = {
     concepto, fecha,
@@ -447,6 +527,10 @@ async function savePresupuesto() {
     cliente_ciudad:           clienteCiudad           || clienteObj?.ciudad          || null,
     cliente_provincia:        clienteProv             || clienteObj?.provincia        || null,
     cliente_cp:               clienteCp               || clienteObj?.codigo_postal    || null,
+    descuento_global: _dtoGlobal.valor > 0 ? JSON.stringify({ tipo: _dtoGlobal.tipo, valor: _dtoGlobal.valor }) : null,
+    condiciones_pago:  condicionesPago,
+    iban:              iban,
+    titular_cuenta:    titularCuenta,
     base: baseTotal,
     iva: ivaMain,
     lineas: lineasJson,
@@ -460,15 +544,16 @@ async function savePresupuesto() {
     })(),
     tipo_operacion: npOpTipoActual,
   };
-  const _npPlantillaId = document.getElementById("npPlantillaSel")?.value || null;
+  const _npPlantillaId = document.getElementById("npPlantillaSel")?.value || "none";
 
   // ── MODO EDICIÓN: UPDATE manteniendo el mismo número ──────
   const editingId = window._npEditingId || null;
   if (editingId) {
     const numero = window._npEditingNumero;
+    const _updateExtras = { plantilla_id: _npPlantillaId, ...(irpfRetencion != null ? { irpf_retencion: irpfRetencion } : {}) };
     let { error } = await supabase.from("presupuestos")
-      .update({ ...payload, plantilla_id: _npPlantillaId }).eq("id", editingId);
-    if (error && (error.message?.includes("plantilla_id") || error.message?.includes("schema cache"))) {
+      .update({ ...payload, ..._updateExtras }).eq("id", editingId);
+    if (error && (error.message?.includes("plantilla_id") || error.message?.includes("irpf_retencion") || error.message?.includes("schema cache"))) {
       ({ error } = await supabase.from("presupuestos").update(payload).eq("id", editingId));
     }
     if (error) {
@@ -477,6 +562,7 @@ async function savePresupuesto() {
     }
     window._npEditingId = null;
     window._npEditingNumero = null;
+    await _descontarStockSiProcede("npReducirStock");
     toast(`✅ Presupuesto ${numero} actualizado`, "success");
     resetForm();
     if (btn) { btn.disabled = false; btn.textContent = "Guardar presupuesto"; }
@@ -493,10 +579,11 @@ async function savePresupuesto() {
   const lastNum = last?.[0]?.numero ? parseInt((last[0].numero.match(/-(\d+)$/) || [])[1]) || 0 : 0;
   const numero = `P-${year}-${String(lastNum + 1).padStart(4, "0")}`;
 
+  const _insertExtras = { plantilla_id: _npPlantillaId, ...(irpfRetencion != null ? { irpf_retencion: irpfRetencion } : {}) };
   let { error: _npErr } = await supabase.from("presupuestos").insert({
-    user_id: SESSION.user.id, numero, estado: "borrador", ...payload, plantilla_id: _npPlantillaId,
+    user_id: SESSION.user.id, numero, estado: "borrador", ...payload, ..._insertExtras,
   });
-  if (_npErr && (_npErr.message?.includes("plantilla_id") || _npErr.message?.includes("schema cache"))) {
+  if (_npErr && (_npErr.message?.includes("plantilla_id") || _npErr.message?.includes("irpf_retencion") || _npErr.message?.includes("schema cache"))) {
     ({ error: _npErr } = await supabase.from("presupuestos").insert({
       user_id: SESSION.user.id, numero, estado: "borrador", ...payload,
     }));
@@ -508,6 +595,7 @@ async function savePresupuesto() {
     toast("Error: " + error.message, "error"); return;
   }
 
+  await _descontarStockSiProcede("npReducirStock");
   toast(`✅ Presupuesto ${numero} creado`, "success");
   resetForm();
   if (btn) { btn.disabled = false; btn.textContent = "Guardar presupuesto"; }
@@ -525,6 +613,16 @@ function resetForm() {
   });
   const csi = document.getElementById("npClienteSearch"); if (csi) csi.value = "";
   document.getElementById("npFecha").value = new Date().toISOString().slice(0, 10);
+  ["npIban","npTitularCuenta","npCondicionesPago"].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = "";
+  });
+  // Reset retención IRPF
+  const _rToggle = document.getElementById("npIrpfToggle");
+  const _rSel    = document.getElementById("npIrpfSel");
+  const _rRow    = document.getElementById("npIrpfRow");
+  if (_rToggle) _rToggle.checked = false;
+  if (_rSel)    { _rSel.value = "15"; _rSel.style.display = "none"; }
+  if (_rRow)    _rRow.style.display = "none";
   const paisEl = document.getElementById("npClientePais"); if (paisEl) paisEl.value = "ES";
   const tipoEl = document.getElementById("npClienteTipo"); if (tipoEl) tipoEl.value = "empresa";
   const tEmpEl = document.getElementById("npClienteTipoEmpresa"); if (tEmpEl) tEmpEl.value = "";
@@ -727,6 +825,46 @@ function _npRebuildAllRows() {
 ══════════════════════════ */
 const _npListenersAttached = { main: false, _opBtns: false };
 
+/* ── Descuento global UI (presupuesto) ── */
+function _showDtoGlobal() {
+  const wrap = document.getElementById("npDtoGlobalWrap");
+  if (!wrap) return;
+  wrap.style.display = "";
+  const input  = document.getElementById("npDtoGlobalInput");
+  const select = document.getElementById("npDtoGlobalTipo");
+  if (input)  input.value  = _dtoGlobal.valor || "";
+  if (select) select.value = _dtoGlobal.tipo  || "pct";
+  input?.focus();
+}
+function _hideDtoGlobal() {
+  const wrap = document.getElementById("npDtoGlobalWrap");
+  if (wrap) wrap.style.display = "none";
+  _dtoGlobal = { tipo: "pct", valor: 0 };
+  updateTotalesUI(); updatePreview();
+}
+function initDtoGlobal() {
+  const btn    = document.getElementById("npAddDtoGlobalBtn");
+  const wrap   = document.getElementById("npDtoGlobalWrap");
+  const input  = document.getElementById("npDtoGlobalInput");
+  const select = document.getElementById("npDtoGlobalTipo");
+  const remove = document.getElementById("npDtoGlobalRemove");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    if (!wrap || wrap.style.display === "none" || wrap.style.display === "") {
+      _showDtoGlobal();
+    } else { _hideDtoGlobal(); }
+  });
+  const _onChange = () => {
+    _dtoGlobal.tipo  = select?.value || "pct";
+    _dtoGlobal.valor = parseFloat(input?.value) || 0;
+    updateTotalesUI(); updatePreview();
+  };
+  input?.addEventListener("input",  _onChange);
+  input?.addEventListener("change", _onChange);
+  select?.addEventListener("change", _onChange);
+  remove?.addEventListener("click", () => _hideDtoGlobal());
+}
+
 export function initNuevoPresupuesto() {
   const editData = window._npEditData || null;
   window._npEditData = null; // consumir el dato — solo se usa una vez
@@ -738,6 +876,7 @@ export function initNuevoPresupuesto() {
   if (fechaEl && !fechaEl.value) fechaEl.value = new Date().toISOString().slice(0, 10);
 
   initClienteSearch();
+  initDtoGlobal();
 
   // ── Adjuntar listeners SOLO la primera vez (evita multiplicación de importes) ──
   if (!_npListenersAttached.main) {
@@ -750,6 +889,20 @@ export function initNuevoPresupuesto() {
 
     document.getElementById("npAddLineaBtn")?.addEventListener("click", () => addLinea());
     document.getElementById("npGuardarBtn")?.addEventListener("click", () => savePresupuesto());
+
+    // Retención IRPF — mismo comportamiento que en nueva factura
+    document.getElementById("npIrpfToggle")?.addEventListener("change", () => {
+      const toggle = document.getElementById("npIrpfToggle");
+      const sel    = document.getElementById("npIrpfSel");
+      if (sel) sel.style.display = toggle?.checked ? "" : "none";
+      if (!toggle?.checked && sel) sel.value = "15";
+      updateTotalesUI();
+      updatePreview();
+    });
+    document.getElementById("npIrpfSel")?.addEventListener("change", () => {
+      updateTotalesUI();
+      updatePreview();
+    });
   }
 
   // ── Tipo de operación ─────────────────────────────────────
@@ -803,6 +956,9 @@ export function initNuevoPresupuesto() {
     set("npClienteProvincia",        editData.cliente_provincia);
     set("npClienteCp",               editData.cliente_cp);
     set("npNotas",                   editData.notas);
+    set("npCondicionesPago",          editData.condiciones_pago);
+    set("npIban",                     editData.iban);
+    set("npTitularCuenta",            editData.titular_cuenta);
 
     // Cliente seleccionado
     clienteSeleccionadoId = editData.cliente_id || null;
@@ -819,8 +975,37 @@ export function initNuevoPresupuesto() {
     (editData.lineas || []).forEach(l => addLinea(l));
     if (LINEAS.length === 0) addLinea();
 
+    // Restaurar descuento global
+    if (editData.descuento_global) {
+      try {
+        const dg = typeof editData.descuento_global === "string"
+          ? JSON.parse(editData.descuento_global)
+          : editData.descuento_global;
+        if (dg?.valor > 0) {
+          _dtoGlobal = { tipo: dg.tipo || "pct", valor: dg.valor };
+          // Mostrar los controles del descuento global con los valores cargados
+          const wrap   = document.getElementById("npDtoGlobalWrap");
+          const input  = document.getElementById("npDtoGlobalInput");
+          const select = document.getElementById("npDtoGlobalTipo");
+          if (wrap)   wrap.style.display = "";
+          if (input)  input.value  = dg.valor;
+          if (select) select.value = dg.tipo || "pct";
+        }
+      } catch(e) { /* descuento_global malformado — ignorar */ }
+    }
+
     updateTotalesUI();
     updatePreview();
+
+    // Restaurar retención IRPF si el presupuesto la tenía
+    if (editData.irpf_retencion) {
+      const _eToggle = document.getElementById("npIrpfToggle");
+      const _eSel    = document.getElementById("npIrpfSel");
+      if (_eToggle) _eToggle.checked = true;
+      if (_eSel)    { _eSel.value = String(editData.irpf_retencion); _eSel.style.display = ""; }
+      updateTotalesUI();
+      updatePreview();
+    }
 
     // Restaurar tipo de operación guardado
     npOpTipoActual = editData.tipo_operacion || "nacional";
