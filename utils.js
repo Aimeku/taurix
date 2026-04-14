@@ -491,8 +491,7 @@ export async function showPerfilModal() {
 
 
 
-      <div class="modal-ft" style="justify-content:space-between">
-        <button class="btn-modal-danger" id="pf_delete_account" style="margin-right:auto">🗑️ Eliminar cuenta</button>
+      <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
         <button class="btn-modal-save" id="pf_save">Guardar perfil</button>
       </div>
@@ -520,51 +519,6 @@ export async function showPerfilModal() {
     toast("Logo eliminado — guarda para confirmar", "info");
   });
 
-  document.getElementById("pf_delete_account").onclick = () => {
-    closeModal();
-    openModal(`
-      <div class="modal">
-        <div class="modal-hd"><span class="modal-title">⚠️ Eliminar cuenta</span><button class="modal-x" onclick="window._cm()">×</button></div>
-        <div class="modal-bd">
-          <p style="font-size:14px;color:var(--t2);line-height:1.7;margin-bottom:12px">Esta acción es <strong>irreversible</strong>. Se eliminarán todos tus datos.</p>
-          <div class="modal-field"><label>Escribe <strong>ELIMINAR</strong> para confirmar</label><input autocomplete="off" id="deleteConfirmInput" class="ff-input" placeholder="ELIMINAR"/></div>
-        </div>
-        <div class="modal-ft">
-          <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
-          <button class="btn-modal-danger" id="deleteConfirmBtn" disabled>Eliminar mi cuenta</button>
-        </div>
-      </div>`);
-    const input = document.getElementById("deleteConfirmInput");
-    const btn   = document.getElementById("deleteConfirmBtn");
-    input?.addEventListener("input", () => { btn.disabled = input.value.trim() !== "ELIMINAR"; });
-    btn?.addEventListener("click", async () => {
-      btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Eliminando…`;
-      try {
-        const uid = SESSION.user.id;
-        const tables = ["facturas","clientes","perfil_fiscal","cierres_trimestrales","factura_series",
-                        "presupuestos","productos","proveedores","gastos_recurrentes",
-                        "nominas","empleados","empresas",
-                        "agenda_eventos","trabajos","pipeline_oportunidades","pipeline_actividad",
-                        "colaboradores","conexiones_bancarias","cuentas_bancarias",
-                        "movimientos_bancarios","documentos","bienes_inversion"];
-        for (const t of tables) {
-          try { await supabase.from(t).delete().eq("user_id", uid); } catch(e) {}
-        }
-        // Eliminar el usuario de auth.users completamente
-        const { error: delErr } = await supabase.rpc("delete_user");
-        if (delErr) console.warn("delete_user RPC:", delErr.message);
-        await supabase.auth.signOut();
-        localStorage.clear();
-        closeModal();
-        document.getElementById("appShell")?.classList.add("hidden");
-        document.getElementById("landingPage")?.classList.remove("hidden");
-        toast("Cuenta eliminada. Hasta pronto.", "success", 5000);
-      } catch (e) {
-        toast("Error al eliminar: " + e.message, "error");
-        btn.disabled = false; btn.textContent = "Eliminar mi cuenta";
-      }
-    });
-  };
 
   document.getElementById("pf_save").onclick = async () => {
     const n   = document.getElementById("pf_nombre").value.trim();
