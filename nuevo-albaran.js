@@ -21,6 +21,7 @@ import {
 } from './utils.js';
 import { PRODUCTOS, refreshProductos }     from './productos.js';
 import { refreshAlbaranes }                from './albaranes.js';
+import { getNextDocumentNumber }            from './numeracion-docs.js';
 
 /* ══════════════════════════════════════════════════════
    ESTADO INTERNO
@@ -495,19 +496,8 @@ function _initClienteSearch() {
 /* ══════════════════════════════════════════════════════
    NUMERACIÓN  A-YYYY-NNNN
 ══════════════════════════════════════════════════════ */
-async function _getNextNumero() {
-  const year = new Date().getFullYear();
-  const { data: last } = await supabase.from('presupuestos')
-    .select('albaran_numero')
-    .eq('user_id', SESSION.user.id)
-    .eq('estado', 'albaran')
-    .like('albaran_numero', `A-${year}-%`)
-    .order('albaran_numero', { ascending: false })
-    .limit(1);
-  const n = last?.[0]?.albaran_numero
-    ? parseInt(last[0].albaran_numero.split('-')[2]) || 0
-    : 0;
-  return `A-${year}-${String(n + 1).padStart(4, '0')}`;
+async function _getNextNumero(fecha = null) {
+  return getNextDocumentNumber('albaran', fecha);
 }
 
 /* ══════════════════════════════════════════════════════
@@ -586,7 +576,7 @@ async function _save() {
     /* ── Número ── */
     const albaran_numero = editandoId
       ? (document.getElementById('naNumeroDisplay')?.textContent || '')
-      : await _getNextNumero();
+      : await _getNextNumero(fecha);
 
     /* ── Payload principal ── */
     const payload = {
