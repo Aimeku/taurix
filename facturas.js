@@ -87,6 +87,7 @@ export async function emitirFacturaDB(facturaId) {
     .replace("{YEAR}", serie)
     .replace("{NUM4}", String(finalNum).padStart(4,"0"))
     .replace("{NUM3}", String(finalNum).padStart(3,"0"))
+    .replace("{NUM2}", String(finalNum).padStart(2,"0"))
     .replace("{NUM}",  String(finalNum));
 
   const { error: ue } = await supabase.from("facturas").update({
@@ -626,6 +627,7 @@ export async function showSerieConfigModal() {
           <code style="background:var(--srf);padding:1px 5px;border-radius:4px">{MONTH}</code> mes &nbsp;
           <code style="background:var(--srf);padding:1px 5px;border-radius:4px">{NUM4}</code> 4 dígitos &nbsp;
           <code style="background:var(--srf);padding:1px 5px;border-radius:4px">{NUM3}</code> 3 dígitos &nbsp;
+          <code style="background:var(--srf);padding:1px 5px;border-radius:4px">{NUM2}</code> 2 dígitos &nbsp;
           <code style="background:var(--srf);padding:1px 5px;border-radius:4px">{NUM}</code> sin relleno
         </p>
         ${Object.entries(configs).map(([tipo, cfg]) => renderTipo(tipo, cfg)).join('')}
