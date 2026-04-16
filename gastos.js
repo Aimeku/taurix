@@ -6,6 +6,7 @@
 
 import { supabase } from "./supabase.js";
 import { SESSION, fmt, fmtDate, toast, openModal, closeModal, getYear, getTrim, getFechaRango } from "./utils.js";
+import { _nextTiqueNum } from "./facturas.js";
 
 export let PROVEEDORES = [];
 export function setProveedores(p) { PROVEEDORES = p; }
@@ -275,12 +276,15 @@ window._registrarGastoRec = async (id) => {
   const { data: g, error } = await supabase.from("gastos_recurrentes").select("*").eq("id", id).single();
   if (error || !g) return;
 
+  const fecha = new Date().toISOString().slice(0, 10);
+  const numero_factura = await _nextTiqueNum(fecha);
+
   // Crear factura recibida
   const { error: fe } = await supabase.from("facturas").insert({
     user_id:        SESSION.user.id,
     tipo:           "recibida",
     estado:         "emitida",
-    fecha:          new Date().toISOString().slice(0, 10),
+    fecha,
     concepto:       g.nombre,
     cliente_nombre: g.proveedor_nombre || "",
     cliente_id:     g.proveedor_id || null,
@@ -288,6 +292,7 @@ window._registrarGastoRec = async (id) => {
     iva:            g.iva || 21,
     tipo_operacion: "nacional",
     cobrada:        false,
+    numero_factura,
   });
   if (fe) { toast("Error registrando gasto: " + fe.message, "error"); return; }
 
