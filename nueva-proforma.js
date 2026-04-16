@@ -11,6 +11,7 @@ import { supabase } from "./supabase.js";
 import { SESSION, CLIENTES, fmt, toast, switchView, OP_INFO, OP_SIN_IVA, OP_IVA_NO_REPERCUTIDO } from "./utils.js";
 import { PRODUCTOS, refreshProductos } from "./productos.js";
 import { refreshProforma } from "./proforma.js";
+import { getNextDocumentNumber } from "./numeracion-docs.js";
 
 /* ── Estado ── */
 let LINEAS        = [];
@@ -372,11 +373,7 @@ function _initClienteSearch(){
    NUMERACIÓN
 ══════════════════════════════════════════════════════ */
 async function _getNextNumero(){
-  const year=new Date().getFullYear();
-  const{data:last}=await supabase.from("proformas").select("numero").eq("user_id",SESSION.user.id)
-    .like("numero",`PRF-${year}-%`).order("numero",{ascending:false}).limit(1);
-  const n=last?.[0]?.numero?parseInt((last[0].numero.match(/-(\d+)$/)||[])[1])||0:0;
-  return`PRF-${year}-${String(n+1).padStart(3,"0")}`;
+  return getNextDocumentNumber('proforma');
 }
 
 /* ══════════════════════════════════════════════════════
