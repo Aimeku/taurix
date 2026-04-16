@@ -430,7 +430,7 @@ window._delFact = id => {
    Busca el último número del año en curso
    y devuelve el siguiente.
 ══════════════════════════════════════════ */
-async function _nextTiqueNum(fecha) {
+export async function _nextTiqueNum(fecha) {
   const year = (fecha || new Date().toISOString().slice(0,10)).slice(0, 4);
   const prefix = `TIQ-${year}-`;
 
