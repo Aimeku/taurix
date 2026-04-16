@@ -66,6 +66,7 @@ import { initPlantillasView, refreshPlantillas } from "./plantillas-usuario.js";
 import { initAlbaranesView, refreshAlbaranes } from "./albaranes.js";
 import { initProformaView, refreshProforma } from "./proforma.js";
 import { initNuevaProforma } from "./nueva-proforma.js";
+import { initNuevoAlbaran }  from "./nuevo-albaran.js";
 import { restaurarContextoSiExiste } from "./gestor-context.js";
 import { initTaxAsistente } from "./tax-asistente.js";
 
@@ -160,6 +161,9 @@ window._switchView = async (view) => {
   _switchViewBase(view);
   if (view === "nuevo-presupuesto") {
     initNuevoPresupuesto();
+  }
+  if (view === "nuevo-albaran") {
+    initNuevoAlbaran();
   }
 };
 
@@ -558,6 +562,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── Albaranes ── */
   initAlbaranesView();
+  initNuevoAlbaran();
 
   /* ── Proformas ── */
   initProformaView();
@@ -739,6 +744,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (view === "agenda")          await refreshAgenda();
         if (view === "informes")        initInformesView();
         if (view === "albaranes")       await refreshAlbaranes();
+        if (view === "nuevo-albaran")   initNuevoAlbaran();
         if (view === "proformas")        await refreshProforma();
         if (view === "nueva-proforma")   initNuevaProforma();
         if (view === "recurrentes")     await refreshRecurrentes();
