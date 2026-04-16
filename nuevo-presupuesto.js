@@ -13,6 +13,7 @@ import { PRODUCTOS, buscarProductoPorCodigo, refreshProductos } from "./producto
 import { PLANTILLAS, getPlantillaDefault } from "./plantillas-usuario.js";
 import { refreshPresupuestos } from "./presupuestos.js";
 import { refreshClientes, populateClienteSelect } from "./clientes.js";
+import { getNextDocumentNumber } from "./numeracion-docs.js";
 
 let LINEAS = [];
 let lineaIdCounter = 0;
@@ -572,12 +573,7 @@ async function savePresupuesto() {
   }
 
   // ── MODO CREACIÓN: INSERT con nuevo número ─────────────────
-  const year = new Date(fecha).getFullYear();
-  const { data: last } = await supabase.from("presupuestos")
-    .select("numero").eq("user_id", SESSION.user.id)
-    .like("numero", `P-${year}-%`).order("numero", { ascending: false }).limit(1);
-  const lastNum = last?.[0]?.numero ? parseInt((last[0].numero.match(/-(\d+)$/) || [])[1]) || 0 : 0;
-  const numero = `P-${year}-${String(lastNum + 1).padStart(4, "0")}`;
+  const numero = await getNextDocumentNumber('presupuesto', fecha);
 
   const _insertExtras = { plantilla_id: _npPlantillaId, ...(irpfRetencion != null ? { irpf_retencion: irpfRetencion } : {}) };
   let { error: _npErr } = await supabase.from("presupuestos").insert({
