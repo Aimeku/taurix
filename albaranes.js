@@ -80,7 +80,7 @@ export async function refreshAlbaranes() {
       <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${a.concepto || "—"}</td>
       <td style="font-size:12px;color:var(--t3)">${a.cliente_nombre || "—"}</td>
       <td class="mono fw7">${fmt(total)}</td>
-      <td style="font-size:12px;color:var(--t4)">Pres. ${a.numero || "—"}</td>
+      <td style="font-size:12px;color:var(--t4)">${a.numero ? `Pres. ${a.numero}` : `<span class="badge" style="background:var(--indigo-lt,#eef2ff);color:var(--indigo,#4f46e5);font-size:10px;padding:1px 7px;border-radius:5px;font-weight:700">Directo</span>`}</td>
       <td>
         ${facturado
           ? `<span class="badge b-cobrada">Facturado</span>`
@@ -88,6 +88,7 @@ export async function refreshAlbaranes() {
       </td>
       <td>
         <div class="tbl-act">
+          ${!facturado ? `<button class="ta-btn" onclick="window._editAlbaran('${a.id}')" title="Editar albarán">✏️ Editar</button>` : ""}
           ${!facturado ? `<button class="ta-btn ta-emit" onclick="window._albaranToFactura('${a.id}')" title="Convertir a factura">📤 Facturar</button>` : ""}
           <button class="ta-btn" onclick="window._verAlbaran('${a.id}')" title="Ver detalle">👁</button>
           <button class="ta-btn" onclick="window._albaranPDF('${a.id}')" title="Descargar PDF">📄</button>
@@ -276,9 +277,17 @@ window._delAlbaran = async (id, numero) => {
 /* ══════════════════════════
    INIT
 ══════════════════════════ */
+/* ══════════════════════════
+   EDITAR ALBARÁN
+══════════════════════════ */
+window._editAlbaran = async (id) => {
+  const { cargarAlbaranParaEditar } = await import("./nuevo-albaran.js");
+  await cargarAlbaranParaEditar(id);
+};
+
 export function initAlbaranesView() {
   document.getElementById("nuevoAlbaranBtn")?.addEventListener("click", () => {
-    toast("Para crear un albarán, acepta un presupuesto y conviértelo desde la vista de Presupuestos", "info", 5000);
+    if (window._switchView) window._switchView("nuevo-albaran");
   });
   ["albaranSearch","albaranFilterFacturado","albaranFilterCliente","albaranFilterDesde","albaranFilterHasta","albaranFilterMin","albaranFilterMax"]
     .forEach(id => {
