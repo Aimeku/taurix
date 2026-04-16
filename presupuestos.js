@@ -17,6 +17,7 @@ import {
 } from "./utils.js";
 import { PRODUCTOS, buscarProductoPorCodigo } from "./productos.js";
 import { exportPresupuestoPDFConPlantilla, exportAlbaranPDFConPlantilla } from "./pdf-plantilla.js";
+import { getNextDocumentNumber } from "./numeracion-docs.js";
 
 let paginaActual = 1;
 const POR_PAGINA = 30;
@@ -866,15 +867,9 @@ export function showNuevoPresupuestoModal(prefill = {}) {
       notas:          document.getElementById("pm_notas").value.trim(),
     };
 
-    // Numeración automática consecutiva
+    // Numeración automática consecutiva (gestionada por numeracion-docs.js)
     if (!isEdit) {
-      const year = new Date(fecha).getFullYear();
-      const { data: last } = await supabase.from("presupuestos")
-        .select("numero").eq("user_id", SESSION.user.id)
-        .like("numero", `P-${year}-%`).order("numero", { ascending: false }).limit(1);
-      const lastNum = last?.[0]?.numero
-        ? parseInt((last[0].numero.match(/-(\d+)$/) || [])[1]) || 0 : 0;
-      payload.numero = `P-${year}-${String(lastNum + 1).padStart(4, "0")}`;
+      payload.numero = await getNextDocumentNumber('presupuesto', fecha);
     }
 
     let err;
@@ -941,16 +936,8 @@ async function convertirAAlbaran(presId) {
     const fecha = document.getElementById("alb_fecha").value;
     if (!fecha) { toast("Introduce la fecha", "error"); return; }
 
-    // Generar número de albarán correlativo (formato A-YYYY-NNN)
-    const year = new Date(fecha).getFullYear();
-    const { data: lastAlb } = await supabase.from("presupuestos")
-      .select("albaran_numero").eq("user_id", SESSION.user.id)
-      .eq("estado", "albaran")
-      .like("albaran_numero", `A-${year}-%`)
-      .order("albaran_numero", { ascending: false }).limit(1);
-    const lastNum = lastAlb?.[0]?.albaran_numero
-      ? parseInt(lastAlb[0].albaran_numero.split("-")[2]) || 0 : 0;
-    const numeroAlbaran = `A-${year}-${String(lastNum + 1).padStart(4, "0")}`;
+    // Numeración de albarán (gestionada por numeracion-docs.js)
+    const numeroAlbaran = await getNextDocumentNumber('albaran', fecha);
 
     const refAlb = document.getElementById("alb_ref").value.trim();
     const { error: ue } = await supabase.from("presupuestos").update({
