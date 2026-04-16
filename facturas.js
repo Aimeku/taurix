@@ -55,10 +55,16 @@ export async function emitirFacturaDB(facturaId) {
         await supabase.from("factura_series")
           .update({ ultimo_numero: finalNum }).eq("id", serieData.id);
       } else {
-        // Crear la serie desde cero
+        // Crear la serie desde cero usando el numero_inicial configurado
+        let inicialNum = 1;
+        try {
+          const { getNumeroInicialFactura } = await import('./numeracion-docs.js');
+          inicialNum = await getNumeroInicialFactura(serie);
+        } catch (_) { /* tabla aún no existe — usar 1 */ }
+
         const { data: nuevaSerie, error: insertErr } = await supabase
           .from("factura_series")
-          .insert({ user_id: SESSION.user.id, serie, ultimo_numero: 1 })
+          .insert({ user_id: SESSION.user.id, serie, ultimo_numero: inicialNum })
           .select().maybeSingle();
         if (insertErr) {
           // Último fallback absoluto: timestamp para que nunca quede sin número
@@ -544,86 +550,136 @@ export function showGastoRapidoModal() {
 }
 
 /* ══════════════════════════════════════════
-   CONFIGURACIÓN DE SERIE / NUMERACIÓN
-   Permite al usuario personalizar el formato
-   Ej: "F-{YEAR}-{NUM4}"  → F-2025-0001
-       "{YEAR}/{NUM3}"     → 2025/001
+   CONFIGURACIÓN DE NUMERACIÓN — Unificada
+   Cubre facturas, presupuestos, albaranes y proformas.
+   Delega la persistencia a numeracion-docs.js.
 ══════════════════════════════════════════ */
 export async function showSerieConfigModal() {
-  const { data: pf } = await supabase.from("perfil_fiscal").select("serie_formato").eq("user_id", SESSION.user.id).single();
-  const formato = pf?.serie_formato || "F-{YEAR}-{NUM4}";
+  const { getAllSerieConfigs, updateCounter, previewNumero, TIPO_CONFIG } = await import('./numeracion-docs.js');
 
-  // Calcular preview con el número 1
-  const previewNum = (f) => f
-    .replace("{YEAR}", new Date().getFullYear())
-    .replace("{NUM4}", "0001")
-    .replace("{NUM3}", "001")
-    .replace("{NUM}",  "1");
+  // Cargar configs actuales de los 4 tipos
+  let configs = {};
+  try { configs = await getAllSerieConfigs(); } catch (e) { console.warn('showSerieConfigModal:', e.message); }
+
+  const year = new Date().getFullYear();
+
+  // Render de un bloque por tipo
+  const renderTipo = (tipo, cfg) => {
+    const def   = TIPO_CONFIG[tipo] || {};
+    const fmt   = cfg?.formato        || def.formato || 'F-{YEAR}-{NUM4}';
+    const ini   = cfg?.numero_inicial || 1;
+    const ult   = cfg?.ultimo_numero  || 0;
+    const prv   = previewNumero(fmt, ini);
+    const emoji = { factura:'🧾', presupuesto:'📋', albaran:'📦', proforma:'📄' }[tipo] || '📄';
+    return `
+    <div class="sn-tipo-block" id="sntb_${tipo}" style="border:1.5px solid var(--brd);border-radius:12px;padding:16px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <span style="font-size:16px">${emoji}</span>
+        <span style="font-size:14px;font-weight:700;color:var(--t1)">${def.label || tipo}</span>
+        ${cfg?._sinGuardar ? '<span style="font-size:10px;padding:2px 7px;border-radius:5px;background:var(--amber-lt);color:var(--amber);font-weight:700">Sin configurar</span>' : ''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div class="ff-field">
+          <label style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.04em">Formato</label>
+          <input id="snf_${tipo}" class="ff-input" value="${fmt}" placeholder="${def.formato}" style="font-family:monospace;font-size:13px"/>
+        </div>
+        <div class="ff-field">
+          <label style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.04em">Número inicial</label>
+          <input id="sni_${tipo}" type="number" min="1" class="ff-input" value="${ini}" style="font-size:13px"/>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--t3)">Vista previa:</span>
+          <code id="snp_${tipo}" style="font-size:14px;font-weight:800;color:var(--accent)">${prv}</code>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t4)">
+          Último emitido: <strong style="font-family:monospace">${ult}</strong>
+        </div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+        ${(['F-{YEAR}-{NUM4}','P-{YEAR}-{NUM4}','A-{YEAR}-{NUM4}','PRF-{YEAR}-{NUM3}','{YEAR}/{NUM3}'].filter(Boolean)).map(f =>
+          `<button type="button" onclick="
+            document.getElementById('snf_${tipo}').value='${f}';
+            document.getElementById('snp_${tipo}').textContent=window.__snPrev('${f}',parseInt(document.getElementById('sni_${tipo}').value)||1);
+          " style="font-size:11px;font-family:monospace;padding:3px 8px;border-radius:6px;border:1.5px solid var(--brd);background:var(--bg2);color:var(--t2);cursor:pointer">${previewNumero(f)}</button>`
+        ).join('')}
+      </div>
+      <div style="margin-top:10px;text-align:right">
+        <button id="snbtn_${tipo}" class="btn-modal-save" style="padding:6px 18px;font-size:12px" onclick="window.__snSave('${tipo}')">
+          Guardar ${def.label || tipo}
+        </button>
+      </div>
+    </div>`;
+  };
 
   openModal(`
-    <div class="modal">
+    <div class="modal" style="max-width:640px">
       <div class="modal-hd">
-        <span class="modal-title">🔢 Configurar numeración de facturas</span>
+        <span class="modal-title">🔢 Numeración de documentos</span>
         <button class="modal-x" onclick="window._cm()">×</button>
       </div>
-      <div class="modal-bd">
-        <p class="modal-note">
-          Personaliza el formato del número de factura. Variables disponibles:<br>
-          <code style="background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12px">{YEAR}</code> → año actual &nbsp;
-          <code style="background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12px">{NUM4}</code> → correlativo 4 dígitos &nbsp;
-          <code style="background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12px">{NUM3}</code> → 3 dígitos &nbsp;
-          <code style="background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12px">{NUM}</code> → sin relleno
+      <div class="modal-bd" style="max-height:70vh;overflow-y:auto">
+        <p style="font-size:12px;color:var(--t3);margin-bottom:16px;padding:8px 12px;background:var(--bg2);border-radius:8px;line-height:1.6">
+          Variables disponibles:
+          <code style="background:var(--srf);padding:1px 5px;border-radius:4px">{YEAR}</code> año &nbsp;
+          <code style="background:var(--srf);padding:1px 5px;border-radius:4px">{MONTH}</code> mes &nbsp;
+          <code style="background:var(--srf);padding:1px 5px;border-radius:4px">{NUM4}</code> 4 dígitos &nbsp;
+          <code style="background:var(--srf);padding:1px 5px;border-radius:4px">{NUM3}</code> 3 dígitos &nbsp;
+          <code style="background:var(--srf);padding:1px 5px;border-radius:4px">{NUM}</code> sin relleno
         </p>
-
-        <div class="modal-field">
-          <label>Formato del número de factura</label>
-          <input id="serie_formato" value="${formato}" placeholder="Ej: F-{YEAR}-{NUM4}"/>
-        </div>
-
-        <div style="background:var(--surface-2);border-radius:8px;padding:12px 14px;margin-top:4px;font-size:13px">
-          <span style="color:var(--t3);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Vista previa</span><br>
-          <span id="serie_preview" style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--brand)">${previewNum(formato)}</span>
-        </div>
-
-        <div style="margin-top:16px">
-          <p style="font-size:12px;color:var(--t3);margin-bottom:8px">Formatos habituales:</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            ${["F-{YEAR}-{NUM4}","F-{YEAR}/{NUM4}","{YEAR}/{NUM3}","F{NUM4}/{YEAR}"].map(f=>`
-              <button class="btn-outline" style="font-family:var(--font-mono);font-size:12px" onclick="
-                document.getElementById('serie_formato').value='${f}';
-                document.getElementById('serie_preview').textContent='${previewNum(f)}';
-              ">${previewNum(f)}</button>
-            `).join("")}
-          </div>
-        </div>
-
-        <p style="margin-top:16px;font-size:12px;color:var(--amber);background:var(--amber-lt);border-radius:7px;padding:9px 12px">
-          ⚠️ El cambio aplica a partir de la siguiente factura emitida. Las facturas ya emitidas mantienen su número.
+        ${Object.entries(configs).map(([tipo, cfg]) => renderTipo(tipo, cfg)).join('')}
+        <p style="font-size:11px;color:var(--t4);margin-top:4px;line-height:1.5">
+          ⚠️ El número inicial no puede ser inferior al último ya emitido. Los cambios aplican al siguiente documento creado.
         </p>
       </div>
       <div class="modal-ft">
-        <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
-        <button class="btn-modal-save" id="serie_save">Guardar formato</button>
+        <button class="btn-modal-cancel" onclick="window._cm()">Cerrar</button>
       </div>
     </div>
   `);
 
-  // Preview en tiempo real
-  document.getElementById("serie_formato")?.addEventListener("input", e => {
-    const el = document.getElementById("serie_preview");
-    if (el) el.textContent = previewNum(e.target.value || "F-{YEAR}-{NUM4}");
+  // Helper de preview accesible desde el HTML inline
+  window.__snPrev = (fmt, num) => {
+    const d = new Date();
+    return fmt
+      .replace('{YEAR}',  d.getFullYear())
+      .replace('{MONTH}', String(d.getMonth()+1).padStart(2,'0'))
+      .replace('{NUM4}',  String(num).padStart(4,'0'))
+      .replace('{NUM3}',  String(num).padStart(3,'0'))
+      .replace('{NUM2}',  String(num).padStart(2,'0'))
+      .replace('{NUM}',   String(num));
+  };
+
+  // Preview en tiempo real al escribir
+  Object.keys(TIPO_CONFIG).forEach(tipo => {
+    document.getElementById(`snf_${tipo}`)?.addEventListener('input', e => {
+      const num = parseInt(document.getElementById(`sni_${tipo}`)?.value) || 1;
+      const el  = document.getElementById(`snp_${tipo}`);
+      if (el) el.textContent = window.__snPrev(e.target.value || TIPO_CONFIG[tipo].formato, num);
+    });
+    document.getElementById(`sni_${tipo}`)?.addEventListener('input', e => {
+      const fmt = document.getElementById(`snf_${tipo}`)?.value || TIPO_CONFIG[tipo].formato;
+      const el  = document.getElementById(`snp_${tipo}`);
+      if (el) el.textContent = window.__snPrev(fmt, parseInt(e.target.value) || 1);
+    });
   });
 
-  document.getElementById("serie_save").onclick = async () => {
-    const nuevoFormato = document.getElementById("serie_formato").value.trim() || "F-{YEAR}-{NUM4}";
-    const { error } = await supabase.from("perfil_fiscal").upsert({
-      user_id: SESSION.user.id,
-      serie_formato: nuevoFormato,
-      updated_at: new Date().toISOString()
-    }, { onConflict:"user_id" });
-    if (error) { toast("Error guardando formato: "+error.message,"error"); return; }
-    closeModal();
-    toast(`Formato guardado: ${previewNum(nuevoFormato)}`,"success");
+  // Guardar por tipo
+  window.__snSave = async (tipo) => {
+    const formato       = document.getElementById(`snf_${tipo}`)?.value.trim() || TIPO_CONFIG[tipo]?.formato;
+    const numero_inicial = parseInt(document.getElementById(`sni_${tipo}`)?.value) || 1;
+    const btn           = document.getElementById(`snbtn_${tipo}`);
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+    try {
+      await updateCounter(tipo, { numero_inicial, formato });
+      toast(`${TIPO_CONFIG[tipo]?.label || tipo}: numeración guardada ✅`, 'success');
+      if (btn) { btn.disabled = false; btn.textContent = `Guardado ✅`; btn.style.background = 'var(--green)'; }
+    } catch (e) {
+      toast('Error: ' + e.message, 'error');
+      if (btn) { btn.disabled = false; btn.textContent = `Guardar ${TIPO_CONFIG[tipo]?.label || tipo}`; }
+    }
   };
 }
 window._showSerieConfig = showSerieConfigModal;
