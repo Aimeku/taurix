@@ -1270,8 +1270,8 @@
         <div class="alerta-fiscal alerta-fiscal--info" style="margin-bottom:20px">
           <div class="af-icon">📦</div>
           <div class="af-body">
-            <div class="af-title">Los albaranes se crean desde presupuestos aceptados</div>
-            <div class="af-desc">Un albarán documenta la entrega de mercancía o servicio. Cuando el cliente confirma, puedes convertirlo en factura con un clic.</div>
+            <div class="af-title">Crea albaranes directamente o desde presupuestos aceptados</div>
+            <div class="af-desc">Un albarán documenta la entrega de mercancía o servicio. Puedes crearlo directamente con «Nuevo albarán» o convirtiéndolo desde un presupuesto aceptado. Cuando el cliente confirme, conviértelo en factura con un clic.</div>
           </div>
         </div>
         <div class="filter-bar">
@@ -1282,6 +1282,218 @@
             <thead><tr><th>Fecha</th><th>Nº Albarán</th><th>Concepto</th><th>Cliente</th><th>Importe</th><th>Origen</th><th>Facturado</th><th>Acciones</th></tr></thead>
             <tbody id="albaranesBody"><tr class="dt-empty"><td colspan="8">Cargando albaranes…</td></tr></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ═══ VIEW: NUEVO ALBARÁN ═══ -->
+      <div class="view" id="view-nuevo-albaran">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 class="view-title" id="naTitulo">Nuevo albarán</h1>
+            <p class="view-sub">Numeración independiente A-AAAA-NNNN · Documento de entrega</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn-outline" id="naCancelarBtn">Cancelar</button>
+          </div>
+        </div>
+
+        <div class="nf-layout" style="grid-template-columns:1fr">
+          <div class="nf-form-col">
+
+            <!-- PLANTILLA -->
+            <div class="form-block" style="padding:12px 16px">
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                  <span style="font-size:12px;font-weight:700;color:var(--t2)">Plantilla</span>
+                </div>
+                <select id="naPlantillaSel" class="ff-select" style="flex:1;min-width:180px;max-width:320px">
+                  <option value="">— Sin plantilla —</option>
+                </select>
+                <span id="naPlantillaBadge" style="display:none;font-size:11px;padding:2px 9px;border-radius:20px;background:#fef9c3;color:#854d0e;font-weight:700">Predeterminada</span>
+              </div>
+            </div>
+
+            <!-- AVISO PRESUPUESTO (solo en edición de albaran generado desde pres.) -->
+            <div id="naAvisoPresupuesto" style="display:none;margin:0 0 12px;padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;font-size:12px;color:#1e40af;display:flex;gap:8px;align-items:center"></div>
+
+            <!-- TIPO OPERACIÓN -->
+            <div class="form-block">
+              <div class="fb-title">Tipo de operación</div>
+              <div class="op-type-grid" id="naOpTypeGrid">
+                <button class="op-type-btn na-op-btn active" data-op="nacional"><span class="op-flag">🇪🇸</span><span class="op-lbl">Nacional</span></button>
+                <button class="op-type-btn na-op-btn" data-op="intracomunitaria"><span class="op-flag">🇪🇺</span><span class="op-lbl">Intracomunitaria</span></button>
+                <button class="op-type-btn na-op-btn" data-op="exportacion"><span class="op-flag">🌍</span><span class="op-lbl">Exportación</span></button>
+                <button class="op-type-btn na-op-btn" data-op="importacion"><span class="op-flag">📦</span><span class="op-lbl">Importación</span></button>
+                <button class="op-type-btn na-op-btn" data-op="inversion_sujeto_pasivo"><span class="op-flag">🔄</span><span class="op-lbl">Inv. S. Pasivo</span></button>
+                <button class="op-type-btn na-op-btn" data-op="exento"><span class="op-flag">🚫</span><span class="op-lbl">Exento</span></button>
+              </div>
+              <div class="op-info-banner" id="naOpBanner"></div>
+              <div id="naExencionWrap" style="display:none;margin-top:8px">
+                <div class="ff-field">
+                  <label>Motivo de exención <span style="font-weight:400;color:var(--t3)">(opcional)</span></label>
+                  <input type="text" id="naMotivoExencion" class="ff-input" placeholder="Ej: Art. 20 LIVA — exención educativa"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- DATOS DEL ALBARÁN -->
+            <div class="form-block">
+              <div class="fb-title">Datos del albarán</div>
+              <div class="ff-grid3">
+                <div class="ff-field">
+                  <label>Fecha *</label>
+                  <input type="date" id="naFecha" class="ff-input"/>
+                </div>
+                <div class="ff-field">
+                  <label>Fecha de entrega</label>
+                  <input type="date" id="naFechaEntrega" class="ff-input" title="Fecha en que se entrega la mercancía o servicio"/>
+                </div>
+                <div class="ff-field">
+                  <label>Nº albarán <span style="font-size:11px;font-weight:400;color:var(--t3)">(auto)</span></label>
+                  <span id="naNumeroDisplay" style="display:block;font-size:13px;font-weight:700;font-family:monospace;color:var(--accent);padding:8px 12px;background:var(--bg2);border-radius:8px;min-height:36px;line-height:20px">Se asignará al guardar</span>
+                </div>
+              </div>
+              <div class="ff-field">
+                <label>Concepto *</label>
+                <input id="naConcepto" class="ff-input" placeholder="Descripción del servicio o producto entregado"/>
+              </div>
+              <div class="ff-field">
+                <label>Notas / Condiciones de entrega</label>
+                <textarea id="naNotas" class="ff-input ff-textarea" placeholder="Observaciones, condiciones de entrega, referencia del pedido…"></textarea>
+              </div>
+            </div>
+
+            <!-- CLIENTE -->
+            <div class="form-block">
+              <div class="fb-title">Cliente</div>
+              <div class="cliente-search-wrap">
+                <div class="csc-input-wrap">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input type="text" id="naClienteSearch" class="csc-input" placeholder="Buscar cliente guardado o escribe uno nuevo…" autocomplete="off"/>
+                  <button id="naClienteLimpiar" class="csc-clear" style="display:none">×</button>
+                </div>
+                <div class="csc-dropdown" id="naClienteDropdown" style="display:none"></div>
+              </div>
+              <div id="naClientePanel" class="cliente-panel">
+                <div class="ff-grid2">
+                  <div class="ff-field"><label>Nombre o razón social *</label><input id="naClienteNombre" class="ff-input" placeholder="Ej: Empresa XYZ S.L."/></div>
+                  <div class="ff-field"><label>Nombre comercial</label><input id="naClienteNombreComercial" class="ff-input" placeholder="Marca o nombre comercial"/></div>
+                </div>
+                <div class="ff-grid2">
+                  <div class="ff-field">
+                    <label>Tipo de cliente</label>
+                    <select id="naClienteTipo" class="ff-select">
+                      <option value="empresa">Empresa / Autónomo</option>
+                      <option value="particular">Particular</option>
+                    </select>
+                  </div>
+                  <div class="ff-field">
+                    <label>NIF / CIF / VAT <span id="naNifNote" class="ff-note"></span></label>
+                    <input id="naClienteNif" class="ff-input" placeholder="Ej: B12345678"/>
+                  </div>
+                </div>
+                <div class="ff-grid2">
+                  <div class="ff-field">
+                    <label>País</label>
+                    <select id="naClientePais" class="ff-select">
+                      <option value="ES">España</option>
+                      <option value="DE">Alemania</option>
+                      <option value="FR">Francia</option>
+                      <option value="IT">Italia</option>
+                      <option value="PT">Portugal</option>
+                      <option value="NL">Países Bajos</option>
+                      <option value="BE">Bélgica</option>
+                      <option value="US">EE.UU.</option>
+                      <option value="GB">Reino Unido</option>
+                      <option value="MX">México</option>
+                      <option value="OTHER">Otro</option>
+                    </select>
+                  </div>
+                  <div class="ff-field"><label>Email cliente</label><input type="email" id="naClienteEmail" class="ff-input" placeholder="cliente@empresa.com"/></div>
+                </div>
+                <div class="ff-field"><label>Dirección fiscal</label><input id="naClienteDireccion" class="ff-input" placeholder="Calle, número, CP, ciudad"/></div>
+                <div class="ff-grid3">
+                  <div class="ff-field"><label>Ciudad</label><input id="naClienteCiudad" class="ff-input" placeholder="Ej: Madrid"/></div>
+                  <div class="ff-field"><label>Provincia</label><input id="naClienteProvincia" class="ff-input" placeholder="Ej: Madrid"/></div>
+                  <div class="ff-field"><label>Código postal</label><input id="naClienteCp" class="ff-input" placeholder="Ej: 28001"/></div>
+                </div>
+                <div class="ff-grid2">
+                  <div class="ff-field"><label>Teléfono</label><input type="text" id="naClienteTel" class="ff-input" placeholder="+34 600 000 000"/></div>
+                </div>
+                <div style="margin-top:8px">
+                  <label style="flex-direction:row;align-items:center;gap:6px;cursor:pointer;display:flex">
+                    <input type="checkbox" id="naGuardarCliente"/>
+                    <span style="font-size:12px;font-weight:500">Guardar cliente en la agenda</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- LÍNEAS -->
+            <div class="form-block">
+              <div class="fb-title-row">
+                <div class="fb-title">Líneas del albarán</div>
+                <button id="naAddLineaBtn" class="btn-add-linea">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Añadir línea
+                </button>
+              </div>
+              <div id="naLineasHeader" style="display:grid;gap:4px;padding:4px 0;border-bottom:2px solid var(--brd)"></div>
+              <div id="naLineasContainer"></div>
+
+              <div style="display:flex;justify-content:flex-end;margin:8px 0 0 0">
+                <button id="naAddDtoGlobalBtn" type="button" title="Aplicar un descuento sobre el total de todas las líneas"
+                  style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--t2);background:transparent;border:1.5px dashed var(--brd);border-radius:7px;padding:5px 12px;cursor:pointer;transition:border-color .15s,color .15s"
+                  onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+                  onmouseout="this.style.borderColor='var(--brd)';this.style.color='var(--t2)'">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Dto. sobre subtotal
+                </button>
+              </div>
+
+              <div class="lineas-totales">
+                <div class="lt-row"><span>Base imponible</span><strong id="naBase">0,00 €</strong></div>
+
+                <div id="naDtoGlobalWrap" style="display:none;padding:6px 0 2px 0;border-top:1px solid var(--brd)">
+                  <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
+                    <span style="font-size:12px;color:var(--t2);white-space:nowrap">Descuento global</span>
+                    <select id="naDtoGlobalTipo" style="font-size:12px;padding:3px 6px;border:1.5px solid var(--brd);border-radius:6px;background:var(--bg2);color:var(--t1);cursor:pointer">
+                      <option value="pct">%</option>
+                      <option value="fixed">€</option>
+                    </select>
+                    <input id="naDtoGlobalInput" type="number" min="0" step="0.01" placeholder="0"
+                      style="width:72px;font-size:12px;padding:3px 7px;border:1.5px solid var(--brd);border-radius:6px;background:var(--bg2);color:var(--t1);text-align:right"/>
+                    <button id="naDtoGlobalRemove" type="button" title="Quitar descuento global"
+                      style="display:flex;align-items:center;justify-content:center;padding:3px;border:none;background:transparent;color:var(--t3);cursor:pointer;border-radius:4px"
+                      onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='var(--t3)'">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="lt-row" id="naDtoGlobalRow" style="display:none;color:#059669">
+                  <span id="naDtoGlobalLbl">Dto. global</span>
+                  <strong id="naDtoGlobalVal" style="color:#059669">−0,00 €</strong>
+                </div>
+                <div class="lt-row" id="naIvaRow"><span>IVA</span><strong id="naIva">0,00 €</strong></div>
+                <div class="lt-row lt-total"><span>TOTAL ALBARÁN</span><strong id="naTotal">0,00 €</strong></div>
+              </div>
+            </div>
+
+            <!-- GUARDAR -->
+            <div class="nf-actions-col">
+              <label id="naReducirStockWrap" style="display:none;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer;font-size:13px;color:var(--t2);padding:8px 12px;background:var(--ox-lt,#fff7ed);border:1px solid var(--ox-mid,#fed7aa);border-radius:9px">
+                <input type="checkbox" id="naReducirStock" style="width:15px;height:15px;accent-color:var(--ox);cursor:pointer"/>
+                <span>Reducir stock del catálogo al guardar</span>
+              </label>
+              <button class="btn-primary btn-lg-block" id="naGuardarBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg>
+                Guardar albarán
+              </button>
+            </div>
+
+          </div>
         </div>
       </div>
 
