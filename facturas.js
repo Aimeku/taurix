@@ -55,7 +55,10 @@ export async function emitirFacturaDB(facturaId) {
         await supabase.from("factura_series")
           .update({ ultimo_numero: finalNum }).eq("id", serieData.id);
       } else {
-        // Crear la serie desde cero usando el numero_inicial configurado
+        // Crear la serie desde cero usando el numero_inicial configurado.
+        // Usamos upsert en lugar de insert para que dos tabs simultáneas
+        // no colisionen: si alguien se adelanta, el upsert actualiza
+        // solo si el valor actual sigue siendo 0 (ninguna factura emitida aún).
         let inicialNum = 1;
         try {
           const { getNumeroInicialFactura } = await import('./numeracion-docs.js');
@@ -64,14 +67,24 @@ export async function emitirFacturaDB(facturaId) {
 
         const { data: nuevaSerie, error: insertErr } = await supabase
           .from("factura_series")
-          .insert({ user_id: SESSION.user.id, serie, ultimo_numero: inicialNum })
+          .upsert(
+            { user_id: SESSION.user.id, serie, ultimo_numero: inicialNum },
+            { onConflict: "user_id,serie", ignoreDuplicates: false }
+          )
           .select().maybeSingle();
         if (insertErr) {
-          // Último fallback absoluto: timestamp para que nunca quede sin número
-          console.error("No se pudo crear serie, usando timestamp:", insertErr.message);
-          finalNum = Date.now() % 100000; // número único de 5 dígitos
+          // Fallback: releer la fila que el proceso concurrente ya creó
+          const { data: existing } = await supabase.from("factura_series")
+            .select("ultimo_numero").eq("user_id", SESSION.user.id)
+            .eq("serie", serie).maybeSingle();
+          finalNum = existing ? (existing.ultimo_numero || 0) + 1 : inicialNum;
+          if (existing) {
+            await supabase.from("factura_series")
+              .update({ ultimo_numero: finalNum })
+              .eq("user_id", SESSION.user.id).eq("serie", serie);
+          }
         } else {
-          finalNum = nuevaSerie?.ultimo_numero || 1;
+          finalNum = nuevaSerie?.ultimo_numero || inicialNum;
         }
       }
     } catch(fallbackErr) {
