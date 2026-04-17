@@ -1853,3 +1853,26 @@ html.dark .lp-plan--gestor {
 html.dark #facturasTable tbody tr:hover td {
   background: rgba(249,115,22,.04);
 }
+
+/* ─── BANNER ELIMINACIÓN DE CUENTA ──────────────────────────
+   --deletion-banner-h se actualiza dinámicamente desde JS
+   cuando el banner aparece o desaparece.
+   .app-layout y .sidebar lo usan para desplazarse hacia abajo
+   y no solaparse con el banner.
+──────────────────────────────────────────────────────────── */
+:root { --deletion-banner-h: 0px; }
+
+#pendingDeletionBanner:not(:empty) {
+  display: block !important;
+}
+#pendingDeletionBanner:empty {
+  display: none !important;
+  height: 0 !important;
+}
+
+.app-layout {
+  padding-top: calc(var(--top-h) + var(--deletion-banner-h));
+}
+.sidebar {
+  top: calc(var(--top-h) + var(--deletion-banner-h));
+}
