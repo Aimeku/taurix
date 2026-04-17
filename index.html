@@ -854,9 +854,6 @@
 
   <div id="fiscalDeadlineBanner" style="display:none;height:0;overflow:hidden"></div>
   <div id="onboardingBanner" style="display:none;height:0;overflow:hidden"></div>
-  <!-- Banner eliminación de cuenta pendiente — fuera de app-layout, compensado con --deletion-banner-h -->
-  <div id="pendingDeletionBanner" style="display:none"></div>
-
   <div class="app-layout">
     <!-- ═══════════════════════════════════════
          SIDEBAR — COMPLETO
@@ -885,6 +882,9 @@
          VIEWS MAIN
     ═══════════════════════════════════════ -->
     <main class="app-main">
+
+      <!-- Banner eliminación de cuenta — aquí fluye con el contenido sin afectar el sidebar -->
+      <div id="pendingDeletionBanner" style="display:none;margin-bottom:0"></div>
 
       <!-- ═══ VIEW: DASHBOARD ═══ -->
       <div class="view active" id="view-dashboard">
