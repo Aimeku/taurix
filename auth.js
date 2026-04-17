@@ -1191,11 +1191,20 @@ export function _showPendingDeletionBanner(scheduledDate) {
 
   document.getElementById("cancelDeletionBtn")?.addEventListener("click", _cancelDeletion);
 
-  // Medir altura real del banner y actualizar la variable CSS
-  // para que el sidebar y app-layout se desplacen correctamente
+  // Compensar el layout: el banner empuja app-layout y sidebar hacia abajo.
+  // Usamos estilos inline directos para no interferir con ninguna regla CSS existente.
   requestAnimationFrame(() => {
-    const h = banner.offsetHeight;
-    document.documentElement.style.setProperty('--deletion-banner-h', h + 'px');
+    requestAnimationFrame(() => {   // doble rAF — garantiza que el DOM ya ha pintado
+      const h       = banner.offsetHeight;
+      const topH    = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue('--top-h')
+      ) || 68;
+      const newTop  = topH + h;
+      const layout  = document.querySelector('.app-layout');
+      const sidebar = document.querySelector('.sidebar');
+      if (layout)  layout.style.paddingTop = newTop + 'px';
+      if (sidebar) sidebar.style.top       = newTop + 'px';
+    });
   });
 }
 
@@ -1211,7 +1220,11 @@ async function _cancelDeletion() {
     if (error) throw error;
     const banner = document.getElementById("pendingDeletionBanner");
     if (banner) { banner.style.display = "none"; banner.innerHTML = ""; }
-    document.documentElement.style.setProperty('--deletion-banner-h', '0px');
+    // Restaurar padding/top originales eliminando los estilos inline
+    const layout  = document.querySelector('.app-layout');
+    const sidebar = document.querySelector('.sidebar');
+    if (layout)  layout.style.paddingTop = '';
+    if (sidebar) sidebar.style.top       = '';
     // Reset button in ajustes if open
     const ajDelOk = document.getElementById("ajDelOk");
     if (ajDelOk) { ajDelOk.textContent = ""; ajDelOk.style.display = "none"; }
