@@ -1112,24 +1112,91 @@ const _DELETION_TABLES = [
 export function _showPendingDeletionBanner(scheduledDate) {
   const banner = document.getElementById("pendingDeletionBanner");
   if (!banner) return;
-  const fecha = scheduledDate instanceof Date
-    ? scheduledDate.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })
-    : new Date(scheduledDate).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
+
+  const scheduled = scheduledDate instanceof Date ? scheduledDate : new Date(scheduledDate);
+  const now        = new Date();
+
+  // Días completos restantes (redondeado hacia arriba para ser generosos)
+  const msRestantes   = scheduled.getTime() - now.getTime();
+  const diasRestantes = Math.max(0, Math.ceil(msRestantes / (1000 * 60 * 60 * 24)));
+
+  const fechaFormateada = scheduled.toLocaleDateString("es-ES", {
+    day: "numeric", month: "long", year: "numeric"
+  });
+
+  const urgente     = diasRestantes <= 2;
+  const colorBorde  = urgente ? "#dc2626"  : "#b45309";
+  const colorTexto  = urgente ? "#7f1d1d"  : "#78350f";
+  const colorFondo  = urgente ? "#fef2f2"  : "#fffbeb";
+  const colorBg2    = urgente ? "#fee2e2"  : "#fef3c7";
+  const colorBtnBg  = urgente ? "#dc2626"  : "#d97706";
+
+  const diasLabel = diasRestantes === 0
+    ? "⚠️ Se elimina hoy"
+    : diasRestantes === 1
+      ? "⚠️ Se elimina mañana"
+      : `${diasRestantes} días restantes`;
+
   banner.style.display = "";
   banner.innerHTML = `
-    <div style="background:#fef2f2;border-bottom:1px solid #fecaca;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-      <div style="display:flex;align-items:center;gap:8px">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        <span style="font-size:13px;font-weight:600;color:#991b1b">
-          Tu cuenta está programada para eliminarse el <strong>${fecha}</strong>. Todos tus datos serán borrados permanentemente.
+    <div id="pendingDeletionBannerInner" style="
+      background:${colorFondo};
+      border-bottom: 2px solid ${colorBorde};
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-family: var(--font, system-ui);
+    ">
+      <!-- Icono + texto -->
+      <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+        <div style="
+          background:${colorBg2};
+          border: 1.5px solid ${colorBorde};
+          border-radius: 8px;
+          padding: 6px 10px;
+          font-size: 12px;
+          font-weight: 800;
+          color: ${colorBorde};
+          white-space: nowrap;
+          flex-shrink: 0;
+          letter-spacing: .01em;
+        ">${diasLabel}</div>
+        <span style="font-size:13px;font-weight:500;color:${colorTexto};line-height:1.45">
+          Tu cuenta está programada para <strong>eliminarse permanentemente</strong>
+          el <strong>${fechaFormateada}</strong>.
+          Todos tus datos, facturas y documentos serán borrados y no podrán recuperarse.
         </span>
       </div>
-      <button id="cancelDeletionBtn"
-        style="flex-shrink:0;padding:7px 16px;background:#fff;border:1.5px solid #dc2626;border-radius:8px;font-size:12.5px;font-weight:700;color:#dc2626;cursor:pointer;font-family:var(--font)">
+      <!-- Botón cancelar -->
+      <button id="cancelDeletionBtn" style="
+        flex-shrink: 0;
+        padding: 8px 18px;
+        background: ${colorBtnBg};
+        border: none;
+        border-radius: 8px;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #fff;
+        cursor: pointer;
+        font-family: var(--font, system-ui);
+        transition: opacity .15s;
+        white-space: nowrap;
+      " onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
         Cancelar eliminación
       </button>
     </div>`;
+
   document.getElementById("cancelDeletionBtn")?.addEventListener("click", _cancelDeletion);
+
+  // Medir altura real del banner y actualizar la variable CSS
+  // para que el sidebar y app-layout se desplacen correctamente
+  requestAnimationFrame(() => {
+    const h = banner.offsetHeight;
+    document.documentElement.style.setProperty('--deletion-banner-h', h + 'px');
+  });
 }
 
 async function _cancelDeletion() {
@@ -1144,6 +1211,7 @@ async function _cancelDeletion() {
     if (error) throw error;
     const banner = document.getElementById("pendingDeletionBanner");
     if (banner) { banner.style.display = "none"; banner.innerHTML = ""; }
+    document.documentElement.style.setProperty('--deletion-banner-h', '0px');
     // Reset button in ajustes if open
     const ajDelOk = document.getElementById("ajDelOk");
     if (ajDelOk) { ajDelOk.textContent = ""; ajDelOk.style.display = "none"; }
