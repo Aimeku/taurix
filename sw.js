@@ -4,8 +4,8 @@
    datos de Supabase. Soporte offline básico.
    ═══════════════════════════════════════════════════════ */
 
-const CACHE_NAME    = "taurix-v8";
-const CACHE_STATIC  = "taurix-static-v8";
+const CACHE_NAME    = "taurix-v9";
+const CACHE_STATIC  = "taurix-static-v9";
 
 // Assets que se cachean al instalar
 const STATIC_ASSETS = [
@@ -27,7 +27,7 @@ const STATIC_ASSETS = [
   "/gastos.js",
   "/exports.js",
   "/pipeline.js",
-  "/nominas.js",
+  // "/nominas.js" — Taurix es fiscal, no laboral. Módulo aislado, no se pre-cachea.
   "/tesoreria.js",
   "/informes.js",
   "/contabilidad.js",
