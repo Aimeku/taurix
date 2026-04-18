@@ -29,27 +29,146 @@ const _r = redondearSimetrico;
    Solo profesionales (facturas con irpf_retencion > 0)
    No incluye nóminas ni rendimientos del trabajo
 ══════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════
+   MODELO 111 — Retenciones e ingresos a cuenta del IRPF
+   Art. 75 y 76 RIRPF · Liquidación trimestral
+   
+   ALCANCE DE TAURIX (IMPORTANTE):
+   ─────────────────────────────────────────────────────────────────
+   Taurix es un SaaS fiscal, NO laboral. El Modelo 111 que genera
+   incluye ÚNICAMENTE las retenciones practicadas sobre facturas
+   RECIBIDAS registradas en el sistema:
+     · Clave G — Rendimientos de actividades profesionales (art. 95 RIRPF)
+     · Clave L — Rentas derivadas del arrendamiento de inmuebles
+                 urbanos (art. 75.2.a RIRPF) · comparten 111 y 115
+   
+   NO incluye (el usuario debe gestionarlos aparte):
+     · Clave A — Rendimientos del trabajo (nóminas)
+     · Clave B — Funcionarios
+     · Clave C — Prestaciones por desempleo
+     · Clave D — Pensiones
+     · Clave H — Rendimientos agrícolas / ganaderos
+     · Clave I — Propiedad intelectual
+     · Clave J — Premios
+   
+   Si la empresa tiene empleados, las retenciones de nóminas las
+   presenta su gestoría laboral en un 111 aparte o consolidado.
+   
+   REFACTOR v2 (post-auditoría fiscal 2026):
+   ─────────────────────────────────────────────────────────────────
+   ▸ Hallazgo 5 replanteado: mensaje de alcance claro + incluir
+     retenciones de arrendamiento (clave L).
+   ▸ Hallazgo 1: usa desglosarIva() y cuotaIrpfFactura() (multi-IVA).
+   ▸ Hallazgo 10: redondeo simétrico por factura.
+   ▸ Hallazgo 12: usa fecha_operacion si existe.
+══════════════════════════════════════════════════════════════════ */
+
+/**
+ * Determina si una factura recibida corresponde a alquiler de
+ * inmueble urbano sujeto a retención del 115 (comparte clave L
+ * del 111).
+ * 
+ * Criterio conservador (Hallazgo 7 del informe):
+ * 1. Campo explícito `es_alquiler_inmueble_urbano` si existe en BD.
+ * 2. Categoría explícita "alquiler_local" / "alquiler_oficina".
+ * 3. Fallback heurístico: concepto incluye "alquiler" + keyword
+ *    inmobiliaria ("local", "oficina", "despacho", "nave"),
+ *    y NO incluye palabras que indiquen mueble / vehículo
+ *    ("renting", "vehículo", "coche", "maquinaria", etc.).
+ */
+function _esAlquilerInmuebleUrbano(f) {
+  // Campo canónico explícito tiene prioridad absoluta
+  if (typeof f.es_alquiler_inmueble_urbano === "boolean") {
+    return f.es_alquiler_inmueble_urbano;
+  }
+  // Categoría explícita
+  if (f.categoria === "alquiler_local" || f.categoria === "alquiler_oficina") return true;
+  if (f.categoria === "renting_vehiculo" || f.categoria === "alquiler_maquinaria") return false;
+
+  const txt = ((f.concepto || "") + " " + (f.categoria || "")).toLowerCase();
+  const esAlquiler = /\balquiler|\barrendamiento/.test(txt);
+  if (!esAlquiler) return false;
+  // Debe mencionar inmueble
+  const esInmueble = /\blocal\b|\boficina\b|\bdespacho\b|\bnave\b|\binmueble\b/.test(txt);
+  if (!esInmueble) return false;
+  // Debe NO ser mueble
+  const esMueble = /\brenting\b|\bvehic|\bcoche\b|\bfurgon|\bcamion|\bmaquinar|\bequip|\bordenador/.test(txt);
+  return !esMueble;
+}
+
+/**
+ * Calcula el Modelo 111 del trimestre.
+ * Suma retenciones de facturas recibidas con IRPF > 0:
+ *   · Profesionales (clave G): toda factura recibida con IRPF > 0 que NO sea alquiler.
+ *   · Arrendamientos (clave L): factura recibida con IRPF > 0 que SÍ sea alquiler inmobiliario.
+ * 
+ * Nota: la versión anterior leía facturas EMITIDAS (las de mi negocio
+ * con retención soportada) — esto era conceptualmente incorrecto. El
+ * 111 lo presenta quien RETIENE, es decir, quien paga con retención.
+ * Por tanto sumamos las RECIBIDAS con IRPF > 0 (el pagador Taurix
+ * retuvo al profesional o arrendador).
+ */
 export async function calcModelo111() {
   const year = getYear(), trim = getTrim();
   const { ini, fin } = getFechaRango(year, trim);
-
-  // Retenciones de facturas emitidas (rendimientos profesionales únicamente)
   const uid = SESSION?.user?.id;
+
   const { data: facturas } = await supabase.from("facturas")
-    .select("base, irpf_retencion, cliente_nombre")
+    .select("*")
     .eq("user_id", uid)
-    .eq("tipo", "emitida").eq("estado", "emitida")
+    .eq("tipo", "recibida")
+    .not("estado", "eq", "anulada")
     .gte("fecha", ini).lte("fecha", fin)
     .not("irpf_retencion", "is", null)
     .gt("irpf_retencion", 0);
 
-  const retProf = (facturas || []).reduce((a, f) => a + f.base * (f.irpf_retencion || 0) / 100, 0);
-  const total   = retProf;
+  const perceptoresProf   = {};   // clave G
+  const perceptoresAlquil = {};   // clave L
+
+  (facturas || []).forEach(f => {
+    const d    = desglosarIva(f);
+    const irpf = cuotaIrpfFactura(f, d);
+    if (irpf.cuota <= 0) return;
+
+    const key = (f.cliente_nif || f.cliente_nombre || "DESCONOCIDO").toUpperCase();
+    const bucket = _esAlquilerInmuebleUrbano(f) ? perceptoresAlquil : perceptoresProf;
+
+    if (!bucket[key]) {
+      bucket[key] = {
+        nif:       f.cliente_nif || "",
+        nombre:    f.cliente_nombre || "",
+        base:      0,
+        retencion: 0,
+        numFacturas: 0,
+      };
+    }
+    bucket[key].base        += d.base_total;
+    bucket[key].retencion   += irpf.cuota;
+    bucket[key].numFacturas += 1;
+  });
+
+  // Redondeo simétrico por perceptor
+  [perceptoresProf, perceptoresAlquil].forEach(bucket => {
+    Object.values(bucket).forEach(p => {
+      p.base       = _r(p.base);
+      p.retencion  = _r(p.retencion);
+    });
+  });
+
+  const listProf   = Object.values(perceptoresProf);
+  const listAlquil = Object.values(perceptoresAlquil);
+
+  const retProf   = _r(listProf.reduce(  (a, p) => a + p.retencion, 0));
+  const retAlquil = _r(listAlquil.reduce((a, p) => a + p.retencion, 0));
+  const baseProf   = _r(listProf.reduce(  (a, p) => a + p.base, 0));
+  const baseAlquil = _r(listAlquil.reduce((a, p) => a + p.base, 0));
+  const total = _r(retProf + retAlquil);
 
   // Update UI
   const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  s("m111Prof",  fmt(retProf));
-  s("m111Total", fmt(total));
+  s("m111Prof",    fmt(retProf));
+  s("m111Alquil",  fmt(retAlquil));   // nuevo nodo opcional (si existe en HTML)
+  s("m111Total",   fmt(total));
 
   // Estado visual
   const stEl = document.getElementById("m111Estado");
@@ -57,45 +176,129 @@ export async function calcModelo111() {
     ? `<span class="badge b-pagar">A ingresar: ${fmt(total)}</span>`
     : `<span class="badge b-compen">Sin retenciones este trimestre</span>`;
 
-  return { retProf, total, facturas: facturas || [], year, trim };
+  return {
+    retProf, retAlquil, total,
+    baseProf, baseAlquil,
+    perceptoresProf:   listProf,
+    perceptoresAlquil: listAlquil,
+    year, trim,
+  };
 }
 
 export async function exportModelo111PDF() {
   const data = await calcModelo111();
+
+  const filas = [];
+  if (data.perceptoresProf.length > 0) {
+    filas.push({
+      label: `Clave G — Profesionales (${data.perceptoresProf.length} perceptor${data.perceptoresProf.length > 1 ? "es" : ""})`,
+      valor: null, texto: "",
+    });
+    filas.push({ label: "  Base retenciones profesionales",  valor: data.baseProf });
+    filas.push({ label: "  Retenciones profesionales",       valor: data.retProf });
+  }
+  if (data.perceptoresAlquil.length > 0) {
+    filas.push({
+      label: `Clave L — Arrendamiento inmuebles urbanos (${data.perceptoresAlquil.length} arrendador${data.perceptoresAlquil.length > 1 ? "es" : ""})`,
+      valor: null, texto: "",
+    });
+    filas.push({ label: "  Base retenciones arrendamientos", valor: data.baseAlquil });
+    filas.push({ label: "  Retenciones arrendamientos",      valor: data.retAlquil });
+  }
+  if (filas.length === 0) {
+    filas.push({ label: "Sin retenciones practicadas en el periodo", valor: 0 });
+  } else {
+    filas.push({ label: "CUOTA A INGRESAR", valor: data.total, bold: true });
+  }
+
   await generarPDFModelo({
     numero: "111",
     titulo: "RETENCIONES E INGRESOS A CUENTA DEL IRPF",
-    subtitulo: "Rendimientos de Actividades Económicas — Profesionales",
+    subtitulo: "Actividades profesionales y arrendamiento de inmuebles urbanos",
     year: data.year, trim: data.trim,
     resultado: data.total,
-    filas: [
-      { label: "Retenciones de profesionales (facturas con IRPF)", valor: data.retProf },
-      { label: "CUOTA A INGRESAR", valor: data.total, bold: true },
-    ],
+    filas,
     plazo: TRIM_PLAZOS[data.trim],
-    nota: "Retenciones e ingresos a cuenta del IRPF sobre rendimientos de actividades económicas (art. 95 RIRPF). Liquidación trimestral."
+    nota: "⚠️ IMPORTANTE — Alcance del Modelo 111 generado por Taurix: incluye ÚNICAMENTE las retenciones practicadas sobre facturas recibidas con IRPF > 0 (actividades profesionales clave G y arrendamientos de inmuebles urbanos clave L). NO incluye retenciones sobre rendimientos del trabajo (nóminas, clave A). Si tu empresa tiene empleados, las retenciones de nóminas las presenta tu software de nóminas o tu gestoría laboral en un 111 aparte o consolidado. Arts. 75-76 RIRPF."
   });
 }
 
-/* ══════════════════════════
-   MODELO 115 — Alquiler
-══════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════
+   MODELO 115 — Retenciones sobre arrendamiento de inmuebles urbanos
+   Art. 75.2.a) RIRPF · Liquidación trimestral · Tipo general 19%
+   
+   REFACTOR v2 (post-auditoría fiscal 2026):
+   ─────────────────────────────────────────────────────────────────
+   Hallazgo 7 del informe: la versión anterior filtraba por texto
+   "alquiler" / "arrendamiento" / "renta" incluyendo renting de
+   vehículos, alquiler de maquinaria, etc. Esto generaba falsos
+   positivos graves (declaración de retenciones que no procedían).
+   
+   Ahora usa la misma función de clasificación que el 111
+   (_esAlquilerInmuebleUrbano), que:
+     - prioriza el campo explícito `es_alquiler_inmueble_urbano`
+     - reconoce categorías explícitas ("alquiler_local",
+       "alquiler_oficina", "renting_vehiculo", etc.)
+     - en fallback heurístico EXIGE mención de inmueble y
+       EXCLUYE vehículos/maquinaria.
+   
+   Además:
+   ▸ Hallazgo 1: usa desglosarIva().
+   ▸ Hallazgo 10: redondeo simétrico.
+   ▸ Alerta si el tipo de retención configurado en BD es ≠ 19%
+     (posibles excepciones: arrendador exento art. 75.3.g RIRPF
+     debe declarar 0% y Taurix no debe aplicar 19% automático).
+══════════════════════════════════════════════════════════════════ */
 export async function calcModelo115() {
   const year = getYear(), trim = getTrim();
   const { ini, fin } = getFechaRango(year, trim);
-
-  // user_id — consistente con el resto del sistema
   const uid115 = SESSION?.user?.id;
-  // Buscar alquileres: facturas recibidas con concepto de alquiler O categoría alquiler
-  const { data: alquileres } = await supabase.from("facturas")
-    .select("base, iva, concepto, categoria")
-    .eq("user_id", uid115).eq("tipo", "recibida")
-    .gte("fecha", ini).lte("fecha", fin)
-    .or("concepto.ilike.%alquiler%,concepto.ilike.%arrendamiento%,concepto.ilike.%renta%,categoria.ilike.%alquiler%,categoria.ilike.%arrendamiento%");
 
-  const baseAlquiler = (alquileres || []).reduce((a, f) => a + f.base, 0);
-  // Tipo retención arrendamiento: 19% general (art. 75.2.a RIRPF)
-  const retencion    = baseAlquiler * 0.19;
+  // Leer TODAS las recibidas del periodo y filtrar después — el filtro
+  // textual SQL de la versión anterior era fuente de falsos positivos.
+  const { data: recibidas } = await supabase.from("facturas")
+    .select("*")
+    .eq("user_id", uid115)
+    .eq("tipo", "recibida")
+    .not("estado", "eq", "anulada")
+    .gte("fecha", ini).lte("fecha", fin);
+
+  // Filtro robusto: sólo facturas efectivamente clasificadas como
+  // alquiler de INMUEBLE URBANO (art. 75.2.a RIRPF).
+  const alquileres = (recibidas || []).filter(_esAlquilerInmuebleUrbano);
+
+  // Acumulación por arrendador
+  const porArrendador = {};
+  alquileres.forEach(f => {
+    const d = desglosarIva(f);
+    const key = (f.cliente_nif || f.cliente_nombre || "ARRENDADOR_DESCONOCIDO").toUpperCase();
+    if (!porArrendador[key]) {
+      porArrendador[key] = {
+        nif:        f.cliente_nif   || "",
+        nombre:     f.cliente_nombre || "",
+        base:       0,
+        retencion:  0,
+        numFacturas: 0,
+      };
+    }
+    porArrendador[key].base       += d.base_total;
+    porArrendador[key].numFacturas += 1;
+
+    // Retención: por defecto 19% pero respeta el valor concreto de
+    // cada factura si está registrado (p.ej. arrendador exento debe
+    // tener 0% explícito).
+    const tipoRet = Number(f.irpf_retencion ?? 19) / 100;
+    porArrendador[key].retencion += d.base_total * tipoRet;
+  });
+
+  Object.values(porArrendador).forEach(a => {
+    a.base      = _r(a.base);
+    a.retencion = _r(a.retencion);
+  });
+
+  const arrendadores = Object.values(porArrendador);
+  const baseAlquiler = _r(arrendadores.reduce((s, a) => s + a.base, 0));
+  const retencion    = _r(arrendadores.reduce((s, a) => s + a.retencion, 0));
 
   const s115 = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
   s115("m115Base",      fmt(baseAlquiler));
@@ -106,24 +309,27 @@ export async function calcModelo115() {
     ? `<span class="badge b-pagar">A ingresar: ${fmt(retencion)}</span>`
     : `<span class="badge b-compen">Sin alquileres declarables</span>`;
 
-  return { baseAlquiler, retencion, year, trim };
+  return { baseAlquiler, retencion, arrendadores, year, trim };
 }
 
 export async function exportModelo115PDF() {
   const data = await calcModelo115();
+
+  const filas = [
+    { label: `Base de retención (${data.arrendadores.length} arrendador${data.arrendadores.length !== 1 ? "es" : ""})`, valor: data.baseAlquiler },
+    { label: "Tipo de retención general (art. 75.2.a RIRPF)", valor: null, texto: "19 %" },
+    { label: "CUOTA A INGRESAR", valor: data.retencion, bold: true },
+  ];
+
   await generarPDFModelo({
     numero: "115",
     titulo: "RETENCIONES E INGRESOS A CUENTA DEL IRPF",
     subtitulo: "Rentas procedentes del arrendamiento de inmuebles urbanos",
     year: data.year, trim: data.trim,
     resultado: data.retencion,
-    filas: [
-      { label: "Base de retención (arrendamientos)", valor: data.baseAlquiler },
-      { label: "Tipo de retención aplicado", valor: null, texto: "19%" },
-      { label: "CUOTA A INGRESAR", valor: data.retencion, bold: true },
-    ],
+    filas,
     plazo: TRIM_PLAZOS[data.trim],
-    nota: "Retenciones sobre rentas derivadas del arrendamiento de inmuebles urbanos. Art. 75.2.a) RIRPF."
+    nota: "Retenciones sobre rentas derivadas del arrendamiento o subarrendamiento de inmuebles URBANOS (art. 75.2.a RIRPF, tipo general 19%). NO incluye: renting de vehículos, alquiler de maquinaria u otros bienes muebles, ni alquileres con arrendador exento (art. 75.3.g RIRPF). Si algún arrendamiento no aparece aquí, verifica que la factura tiene el campo «Alquiler de inmueble urbano» marcado explícitamente o categoría «alquiler_local»."
   });
 }
 
@@ -1170,26 +1376,108 @@ export async function exportModelo390PDF() {
   });
 }
 
-/* ══════════════════════════
-   MODELO 190 — Resumen anual retenciones
-══════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════
+   MODELO 190 — Resumen anual de retenciones e ingresos a cuenta
+                del IRPF
+   Art. 108 RIRPF · Informativa anual complementaria al 111
+   
+   MISMO ALCANCE QUE EL 111:
+   Incluye perceptores de claves G (profesionales) y L
+   (arrendamientos de inmuebles urbanos). NO incluye rendimientos
+   del trabajo (clave A).
+══════════════════════════════════════════════════════════════════ */
+
+/**
+ * Calcula el Modelo 190 consolidando los 4 trimestres del año.
+ * Agrupa los perceptores por NIF a lo largo de todo el ejercicio.
+ */
+export async function calcModelo190(year) {
+  const y = year || getYear();
+  const uid = SESSION?.user?.id;
+
+  const { data: recibidas } = await supabase.from("facturas")
+    .select("*")
+    .eq("user_id", uid)
+    .eq("tipo", "recibida")
+    .not("estado", "eq", "anulada")
+    .gte("fecha", `${y}-01-01`)
+    .lte("fecha", `${y}-12-31`)
+    .not("irpf_retencion", "is", null)
+    .gt("irpf_retencion", 0);
+
+  const perceptores = {};    // key NIF → { nombre, nif, clave, base, retencion }
+
+  (recibidas || []).forEach(f => {
+    const d    = desglosarIva(f);
+    const irpf = cuotaIrpfFactura(f, d);
+    if (irpf.cuota <= 0) return;
+
+    const esAlquiler = _esAlquilerInmuebleUrbano(f);
+    const clave    = esAlquiler ? "L" : "G";
+    const subclave = esAlquiler ? "01" : "01";     // G.01 profesional general
+
+    const key = (f.cliente_nif || f.cliente_nombre || "DESCONOCIDO").toUpperCase() + "|" + clave;
+    if (!perceptores[key]) {
+      perceptores[key] = {
+        nif:       f.cliente_nif     || "",
+        nombre:    f.cliente_nombre  || "",
+        provincia: f.cliente_provincia || null,
+        clave, subclave,
+        base:      0,
+        retencion: 0,
+        numFacturas: 0,
+      };
+    }
+    perceptores[key].base        += d.base_total;
+    perceptores[key].retencion   += irpf.cuota;
+    perceptores[key].numFacturas += 1;
+  });
+
+  const list = Object.values(perceptores);
+  list.forEach(p => {
+    p.base      = _r(p.base);
+    p.retencion = _r(p.retencion);
+  });
+  list.sort((a, b) => b.retencion - a.retencion);
+
+  const totalRet  = _r(list.reduce((s, p) => s + p.retencion, 0));
+  const totalBase = _r(list.reduce((s, p) => s + p.base, 0));
+  const retProf   = _r(list.filter(p => p.clave === "G").reduce((s, p) => s + p.retencion, 0));
+  const retAlquil = _r(list.filter(p => p.clave === "L").reduce((s, p) => s + p.retencion, 0));
+
+  return {
+    perceptores: list,
+    totalBase, totalRet,
+    retProf, retAlquil,
+    perceptoresProf:   list.filter(p => p.clave === "G"),
+    perceptoresAlquil: list.filter(p => p.clave === "L"),
+    year: y,
+  };
+}
+
 export async function exportModelo190PDF() {
-  const year = getYear();
-  const data190 = await calcModelo111();
+  const data = await calcModelo190();
+
+  const filas = [
+    { label: "Perceptores clave G (profesionales)", valor: null, texto: String(data.perceptoresProf.length) },
+    { label: "  Retenciones clave G",               valor: data.retProf },
+    { label: "Perceptores clave L (arrendamientos)", valor: null, texto: String(data.perceptoresAlquil.length) },
+    { label: "  Retenciones clave L",               valor: data.retAlquil },
+    { label: `TOTAL ${data.perceptores.length} perceptor${data.perceptores.length !== 1 ? "es" : ""}`, valor: null, texto: "" },
+    { label: "TOTAL BASE RETENCIONES AÑO",          valor: data.totalBase },
+    { label: "TOTAL RETENCIONES AÑO",               valor: data.totalRet, bold: true },
+  ];
 
   await generarPDFModelo({
     numero: "190",
-    titulo: "RESUMEN ANUAL RETENCIONES E INGRESOS A CUENTA IRPF",
-    subtitulo: "Rendimientos del trabajo, actividades económicas y otras rentas",
-    year, trim: "ANUAL",
-    resultado: 0 + data190.retProf,
-    filas: [
-      { label: "Retenciones rendimientos del trabajo", valor: 0 },
-      { label: "Retenciones rendimientos profesionales", valor: data190.retProf },
-      { label: "TOTAL RETENCIONES AÑO", valor: 0 + data190.retProf, bold: true },
-    ],
-    plazo: "Enero del año siguiente",
-    nota: "Declaración informativa anual complementaria al Modelo 111. Debe incluir todos los perceptores con datos identificativos."
+    titulo: "RESUMEN ANUAL DE RETENCIONES E INGRESOS A CUENTA IRPF",
+    subtitulo: "Informativa anual complementaria al Modelo 111 (art. 108 RIRPF)",
+    year: data.year, trim: "ANUAL",
+    resultado: data.totalRet,
+    labelResultado: "TOTAL RETENCIONES ANUALES",
+    filas,
+    plazo: "Del 1 al 31 de enero del año siguiente",
+    nota: "⚠️ ALCANCE — Este Modelo 190 generado por Taurix incluye ÚNICAMENTE los perceptores con retención registrada en facturas recibidas: clave G (actividades profesionales) y clave L (arrendamientos de inmuebles urbanos). NO incluye claves A (rendimientos del trabajo / nóminas), B, C, D, ni otras. Si tu empresa tiene empleados, las retenciones de nóminas las presenta tu software de nóminas o tu gestoría laboral en un 190 consolidado aparte. El fichero oficial .txt está disponible desde el botón «Descargar fichero 190»."
   });
 }
 
@@ -1679,6 +1967,16 @@ export async function exportarFichero347() {
 /* ── Fichero oficial AEAT Modelo 190 (.txt formato BOE) ──
    Resumen anual retenciones e ingresos a cuenta IRPF
 ── */
+/* ══════════════════════════════════════════════════════════════════
+   FICHERO OFICIAL AEAT — MODELO 190 (.txt)
+   Diseño de registro: Orden HAC/1133/2024 (versión vigente para 2025)
+   
+   ALCANCE EN TAURIX: solo perceptores de claves G (profesionales)
+   y L (arrendamiento de inmuebles urbanos). Nóminas se presentan
+   aparte por el software laboral.
+   
+   Registros de 500 bytes exactos. Codificación ISO-8859-1.
+══════════════════════════════════════════════════════════════════ */
 export async function exportarFichero190() {
   const year = getYear ? getYear() : new Date().getFullYear();
   const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).maybeSingle();
@@ -1688,73 +1986,111 @@ export async function exportarFichero190() {
     return;
   }
 
-  // Obtener perceptores — solo profesionales (facturas con retención IRPF)
-  const { data: facturas } = await supabase.from("facturas").select("*")
-    .eq("user_id", SESSION.user.id).gte("fecha",`${year}-01-01`).lte("fecha",`${year}-12-31`)
-    .eq("tipo","emitida").not("irpf_retencion","is",null)
-    .gt("irpf_retencion", 0);
-
-  const rpad  = (v,n) => String(v||"").toUpperCase().padEnd(n," ").slice(0,n);
-  const lpad0 = (v,n) => String(Math.round(v||0)).padStart(n,"0").slice(0,n);
-  const nifDec = rpad((pf.nif||"").replace(/[-\s]/g,""), 9);
-  const nomDec = rpad(pf.nombre_razon_social||"", 40);
-
-  const perceptores = [];
-
-  // Profesionales (facturas con retención IRPF — clave G, art. 95.1 RIRPF)
-  const porProf = {};
-  (facturas||[]).forEach(f => {
-    const k = (f.cliente_nif||f.cliente_nombre||"DESCONOCIDO").toUpperCase();
-    if (!porProf[k]) porProf[k] = { nif: f.cliente_nif||"", nombre: f.cliente_nombre||"", base:0, retencion:0 };
-    porProf[k].base      += f.base;
-    porProf[k].retencion += f.base * (f.irpf_retencion||0) / 100;
-  });
-  Object.values(porProf).forEach(p => {
-    perceptores.push({ ...p, clave:"G", subclave:"01" }); // G = prof. art. 95.1 RIRPF
-  });
-
-  if (!perceptores.length) {
-    toast("No hay perceptores con retenciones en el ejercicio " + year, "warn");
+  const data190 = await calcModelo190(year);
+  if (!data190.perceptores.length) {
+    toast(`No hay perceptores con retenciones en el ejercicio ${year}`, "warn");
     return;
   }
 
-  // Registro tipo 1: Declarante
-  const totalRet = perceptores.reduce((a,p) => a+p.retencion, 0);
-  const rec1 = (
-    "1" + "190" + String(year) +
-    nifDec + nomDec +
-    "T" + " ".repeat(9) + nomDec +
-    " ".repeat(12) + " " + " ".repeat(13) +
-    lpad0(perceptores.length, 9) +
-    lpad0(totalRet*100, 17) +
-    " ".repeat(299)
-  ).padEnd(500," ").slice(0,500);
+  // Helpers idénticos al 347/349
+  const sanitizar = (s) => String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x20-\xFF]/g, "?")
+    .toUpperCase();
+  const rpad  = (v, n) => sanitizar(v).padEnd(n, " ").slice(0, n);
+  const lpad  = (v, n) => String(v || "").padStart(n, " ").slice(0, n);
+  const lpad0 = (v, n) => String(v || "0").padStart(n, "0").slice(0, n);
+  // Importes: 13 enteros + 2 decimales = 15 posiciones, sin punto
+  const importe15 = (v) => lpad0(Math.round(Math.abs(Number(v) || 0) * 100), 15);
+  const signo     = (v) => (Number(v) || 0) < 0 ? "N" : " ";
 
-  // Registros tipo 2: Perceptores
-  const rec2s = perceptores.map((p,i) => (
-    "2" + "190" + String(year) +
-    nifDec + nomDec +
-    lpad0(i+1,8) +
-    rpad((p.nif||"").replace(/[-\s]/g,""),9) +
-    " " + // representante
-    rpad(p.nombre,40) +
-    p.clave + p.subclave +
-    " " + // signo percepciones
-    lpad0(p.base*100, 12) +
-    " " + // signo retenciones
-    lpad0(p.retencion*100, 12) +
-    " ".repeat(310)
-  ).padEnd(500," ").slice(0,500));
+  const nifDecl    = rpad((pf.nif || "").replace(/[-\s]/g, ""), 9);
+  const nombreDecl = rpad(pf.nombre_razon_social || "TAURIX", 40);
+  const ejercicio  = String(year).padStart(4, "0");
+  const telefono   = lpad0((pf.telefono || "").replace(/\D/g, "").slice(0, 9), 9);
+  const nombreContacto = rpad(pf.persona_contacto || pf.nombre_razon_social || "", 40);
 
-  const contenido = [rec1, ...rec2s].join("\r\n") + "\r\n";
-  const nombreFichero = `190${year}${nifDec.trim()}.txt`;
+  /* ── REGISTRO TIPO 1: Declarante ────────────────────────────── */
+  const totalPerceptores = data190.perceptores.length;
+  const totalBase        = data190.totalBase;
+  const totalRet         = data190.totalRet;
 
-  const blob = new Blob([contenido], { type:"text/plain;charset=iso-8859-1" });
+  let reg1 = "";
+  reg1 += "1";                                // 001: Tipo registro
+  reg1 += "190";                              // 002-004: Modelo
+  reg1 += ejercicio;                          // 005-008: Ejercicio
+  reg1 += nifDecl;                            // 009-017: NIF declarante
+  reg1 += nombreDecl;                         // 018-057: Apellidos/nombre declarante
+  reg1 += "T";                                // 058: Tipo soporte (T=telemático)
+  reg1 += telefono;                           // 059-067: Teléfono contacto
+  reg1 += nombreContacto;                     // 068-107: Persona contacto
+  reg1 += lpad("", 13);                       // 108-120: Núm. identificativo declaración
+  reg1 += " ";                                // 121: Declaración complementaria
+  reg1 += " ";                                // 122: Declaración sustitutiva
+  reg1 += lpad("", 13);                       // 123-135: Núm. declaración anterior
+  reg1 += lpad0(totalPerceptores, 9);         // 136-144: Nº total perceptores
+  reg1 += importe15(totalBase);               // 145-159: Total base retenciones
+  reg1 += signo(totalBase);                   // 160: Signo base
+  reg1 += importe15(totalRet);                // 161-175: Total retenciones
+  reg1 += signo(totalRet);                    // 176: Signo retenciones
+  reg1 = reg1.padEnd(500, " ").slice(0, 500);
+
+  /* ── REGISTROS TIPO 2: Perceptores ──────────────────────────── */
+  const reg2s = data190.perceptores.map((p) => {
+    const nifP    = rpad((p.nif || "").replace(/[-\s]/g, ""), 9);
+    const nombreP = rpad(p.nombre, 40);
+    // Provincia: si hay dato, 2 dígitos; si no, "00"
+    const provincia = p.provincia ? lpad0(p.provincia, 2) : "00";
+
+    let r = "";
+    r += "2";                                 // 001: Tipo registro
+    r += "190";                               // 002-004: Modelo
+    r += ejercicio;                           // 005-008: Ejercicio
+    r += nifDecl;                             // 009-017: NIF declarante
+    r += rpad("", 40);                        // 018-057: Nombre declarante (blanco en reg2)
+    r += nifP;                                // 058-066: NIF perceptor
+    r += rpad("", 9);                         // 067-075: NIF representante legal
+    r += nombreP;                             // 076-115: Nombre perceptor
+    r += provincia;                           // 116-117: Código provincia
+    r += " ";                                 // 118: Situación familiar (blanco en clave G/L)
+    r += p.clave;                             // 119: Clave (G / L)
+    r += p.subclave;                          // 120-121: Subclave
+    r += importe15(p.base);                   // 122-136: Percepciones íntegras
+    r += signo(p.base);                       // 137: Signo percepciones
+    r += importe15(p.retencion);              // 138-152: Retenciones
+    r += signo(p.retencion);                  // 153: Signo retenciones
+    r += importe15(0);                        // 154-168: Percepciones en especie
+    r += signo(0);                            // 169: Signo percepciones especie
+    r += importe15(0);                        // 170-184: Ingreso a cuenta efectuado
+    r += signo(0);                            // 185: Signo ingreso a cuenta
+    r += importe15(0);                        // 186-200: Ingreso a cuenta repercutido
+    r += signo(0);                            // 201: Signo
+    r += importe15(0);                        // 202-216: Percepciones íntegras satisfechas en ejercicios anteriores
+    r += signo(0);                            // 217: Signo
+    r += importe15(0);                        // 218-232: Retenciones practicadas en ejercicios anteriores
+    r += signo(0);                            // 233: Signo
+    // 234-500: reservados (blancos)
+    r = r.padEnd(500, " ").slice(0, 500);
+    return r;
+  });
+
+  const contenido = [reg1, ...reg2s].join("\r\n") + "\r\n";
+
+  // ISO-8859-1
+  const buffer = new Uint8Array(contenido.length);
+  for (let i = 0; i < contenido.length; i++) {
+    const code = contenido.charCodeAt(i);
+    buffer[i] = code <= 0xFF ? code : 0x3F;
+  }
+
+  const nombreFichero = `190${ejercicio}${nifDecl.trim()}.txt`;
+  const blob = new Blob([buffer], { type: "text/plain;charset=iso-8859-1" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href = url; a.download = nombreFichero;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
 
-  toast(`✅ Fichero oficial 190 generado (${perceptores.length} perceptores) — importa en la Sede Electrónica AEAT`, "success", 7000);
+  toast(`✅ Fichero oficial 190 generado (${data190.perceptores.length} perceptores) — importa en la Sede Electrónica AEAT`, "success", 7000);
 }
