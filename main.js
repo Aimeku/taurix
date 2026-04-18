@@ -468,10 +468,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Limpiar sesión si el usuario cerró el navegador sin marcar "recordar"
   await handleRememberSession();
   const session = await getSession();
-  if (!session) return;
+  if (!session) {
+    document.getElementById("landingPage")?.classList.remove("hidden");
+    return;
+  }
   // Bloquear acceso si el email no está verificado — por si Supabase crea sesión sin confirmación
   if (session.user && !session.user.email_confirmed_at) {
     await supabase.auth.signOut();
+    document.getElementById("landingPage")?.classList.remove("hidden");
     return;
   }
   setSession(session);
@@ -479,12 +483,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Exponer sesión globalmente — necesario para query-context.js y gestor/store.js
   window.__TAURIX_SESSION__ = session;
 
-  // Restaurar contexto gestor si estaba activo (sessionStorage persiste la sesión)
-  restaurarContextoSiExiste();
-  initTaxAsistente();
-
+  // Cambiar de landing a app ANTES de inicializar nada más.
+  // Si algo falla después, al menos la UI de la app ya está visible.
   document.getElementById("landingPage")?.classList.add("hidden");
   document.getElementById("appShell")?.classList.remove("hidden");
+
+  // Restaurar contexto gestor si estaba activo (sessionStorage persiste la sesión)
+  try { restaurarContextoSiExiste(); } catch(e) { console.error("[restaurarContextoSiExiste]", e); }
+  try { initTaxAsistente(); } catch(e) { console.error("[initTaxAsistente]", e); }
 
   const email = session.user.email;
   const initials = email[0].toUpperCase();
