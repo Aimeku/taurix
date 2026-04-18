@@ -18,19 +18,41 @@
  * @property {string}  id               - UUID del documento en Supabase
  * @property {'emitida'|'recibida'} tipo - Tipo de factura
  * @property {string}  fecha            - Fecha ISO: "2025-03-15"
- * @property {number}  base             - Base imponible en €
- * @property {number}  iva_pct          - Tipo de IVA aplicado (0, 4, 10, 21)
- * @property {number}  cuota_iva        - Importe IVA calculado (base × iva_pct / 100)
+ * @property {string}  [fecha_operacion] - Fecha de devengo si es distinta de la fecha de emisión (art. 6.1.f RD 1619/2012)
+ * @property {string}  [fecha_emision]   - Fecha de expedición
+ * @property {number}  base             - Base imponible total en € (suma de todas las líneas)
+ * @property {number}  iva_pct          - Tipo de IVA principal (mayor importe) — legacy
+ * @property {number}  cuota_iva        - Importe IVA total (suma real de cuotas por tipo)
+ * @property {DesgloseIVA} desglose_iva - Desglose multi-IVA por tipo (21/10/4/0) con base y cuota de cada uno. FUENTE DE VERDAD.
  * @property {number}  irpf_pct         - % retención IRPF aplicada (0, 7, 15...)
- * @property {number}  cuota_irpf       - Importe retención IRPF
+ * @property {number}  cuota_irpf       - Importe retención IRPF (redondeo simétrico)
  * @property {number}  total            - Total factura (base + cuota_iva - cuota_irpf)
  * @property {string}  tipo_operacion   - "nacional"|"intracomunitaria"|"exportacion"|"importacion"|"inversion_sujeto_pasivo"|"exento"
  * @property {'emitida'|'borrador'|'anulada'} estado - Estado de la factura
  * @property {string}  [contraparte_nif]  - NIF del cliente o proveedor (para 347/349)
  * @property {string}  [contraparte_nombre] - Nombre del cliente o proveedor
+ * @property {string}  [contraparte_pais]  - ISO2 del país de la contraparte (ES, DE, FR, ...)
  * @property {boolean} [es_rectificativa]  - true si es factura rectificativa
+ * @property {string}  [rectif_tipo_motivo] - R1|R2|R3|R4|R5 (art. 80 LIVA)
+ * @property {string}  [rectif_factura_original] - Número de la factura rectificada
  * @property {boolean} [deducible_iva]     - false si el IVA no es deducible
+ * @property {string}  [tipo_documento]    - "factura_completa"|"factura_simplificada"|"ticket_no_deducible"
  * @property {number}  [pct_deduccion_iva] - % de deducción IVA (100 por defecto, < 100 en prorrata)
+ * @property {boolean} [clasifica_actividad_sujeta_con_derecho] - true para emitidas con derecho a deducir IVA soportado (nacional/IC/export/ISP), false para exento art. 20
+ */
+
+/**
+ * Desglose multi-IVA de una factura.
+ * Clave: tipo de IVA (21/10/4/0). Valor: { base, cuota } redondeados.
+ * 
+ * @typedef {Object} DesgloseIVA
+ * @property {{base:number, cuota:number}} 21
+ * @property {{base:number, cuota:number}} 10
+ * @property {{base:number, cuota:number}} 4
+ * @property {{base:number, cuota:number}} 0
+ * @property {number} base_total
+ * @property {number} cuota_total
+ * @property {number} dto_global_amt
  */
 
 /**
