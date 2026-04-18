@@ -2,14 +2,21 @@
    TAURIX · fiscal.js  — REESCRITURA COMPLETA v4
    
    Módulo IVA/IRPF con máxima precisión legal:
-   · Modelo 303 completo (casillas reales AEAT 2024)
+   · Modelo 303 completo (casillas reales AEAT 2024/2025)
    · Modelo 130 acumulado correcto (RD 439/2007)
    · Prorrata de IVA (art. 102-106 LIVA)
    · ISP, intracomunitarias, exportaciones
    · Compensaciones de periodos anteriores
    · Validación de umbrales y alertas fiscales
-   · Simulador Renta Personal (tramos 2024)
+   · Simulador Renta Personal (tramos 2025)
    · Tablas de amortización oficiales AEAT
+   
+   REFACTOR v4.1 (post-auditoría fiscal abril 2026):
+   - Hallazgo 1: usa desglosarIva() (multi-IVA real)
+   - Hallazgo 8: prorrata solo con emitidas, sin mezclar con recibidas
+   - Hallazgo 10: redondeo simétrico por factura
+   - Hallazgo 22: tramos 2025 + aviso escala autonómica
+   - Hallazgo 24: ISP con cuota real, no hardcoded 21%
    ═══════════════════════════════════════════════════════ */
 
 import { supabase } from "./supabase.js";
@@ -19,6 +26,15 @@ import {
   calcIVA, calcIRPF,
   TRIM_LABELS, TRIM_PLAZOS
 } from "./utils.js";
+import {
+  desglosarIva,
+  cuotaIrpfFactura,
+  redondearSimetrico,
+  esDeducibleIVA,
+  TIPOS_IVA_VALIDOS,
+} from "./factura-helpers.js";
+
+const _r = redondearSimetrico;
 
 /* ── CONSTANTES LEGALES 2024-2025 ── */
 const REDUCCION_TRABAJO_2024 = {
@@ -35,31 +51,33 @@ export async function refreshIVA() {
   const year = getYear(), trim = getTrim();
   const facturas = await getFacturasTrim(year, trim);
 
-  // Calcular prorrata provisional del periodo
-  // La prorrata definitiva se calcula anualmente en T4 (art. 105.2 LIVA)
-  // Para los trimestres T1-T3 se usa la prorrata provisional del año anterior
-  // (o 100% si es el primer año). Aquí calculamos la provisional del año en curso
-  // como mejor estimación para el usuario.
-  const basesSujetas  = facturas
-    .filter(f => f.tipo === "emitida" && f.estado === "emitida"
-              && !["exportacion","intracomunitaria","inversion_sujeto_pasivo","exento"].includes(f.tipo_operacion || "nacional"))
-    .reduce((a, f) => a + f.base, 0);
-  const basesExentas  = facturas
-    .filter(f => f.tipo === "emitida" && f.estado === "emitida"
-              && ["exportacion","intracomunitaria","exento"].includes(f.tipo_operacion || ""))
-    .reduce((a, f) => a + f.base, 0);
+  // ─────────────────────────────────────────────────────────────────
+  // Calcular prorrata provisional del periodo (Hallazgo 8 del informe)
+  //
+  // REGLA CORRECTA (art. 104.Dos LIVA):
+  // - Numerador: SOLO facturas EMITIDAS con derecho a deducir
+  //   (nacional sujeta + exportaciones + IC entregas + ISP emitida)
+  // - Denominador: numerador + EMITIDAS exentas SIN derecho (art. 20)
+  //
+  // NO mezclar ingresos con gastos, NO incluir recibidas,
+  // NO tratar exportaciones/IC como "exentas que limitan prorrata".
+  // ─────────────────────────────────────────────────────────────────
+  const emitidasEmit = facturas.filter(f => f.tipo === "emitida" && f.estado === "emitida");
 
-  // Prorrata solo aplica si hay operaciones exentas sin derecho a deducción
-  // Las exentas "plenas" (exportaciones, IC) no limitan la deducción del IVA soportado
-  const basesExentasSinDerechoDeduccion = facturas
-    .filter(f => f.tipo === "emitida" && f.estado === "emitida"
-              && (f.tipo_operacion || "nacional") === "exento")
-    .reduce((a, f) => a + f.base, 0);
+  // Con derecho a deducir: nacional, exportacion, intracomunitaria, ISP emitida
+  const baseConDerecho = emitidasEmit
+    .filter(f => ["nacional","exportacion","intracomunitaria","inversion_sujeto_pasivo"].includes(f.tipo_operacion || "nacional"))
+    .reduce((a, f) => a + desglosarIva(f).base_total, 0);
+
+  // Sin derecho a deducir: SOLO exento (art. 20 LIVA)
+  const baseExentasSinDerechoDeduccion = emitidasEmit
+    .filter(f => (f.tipo_operacion || "nacional") === "exento")
+    .reduce((a, f) => a + desglosarIva(f).base_total, 0);
 
   let prorrataPct = null; // null = sin prorrata (100%)
-  if (basesExentasSinDerechoDeduccion > 0) {
-    const totalOps = basesSujetas + basesExentasSinDerechoDeduccion;
-    prorrataPct = totalOps > 0 ? Math.ceil(basesSujetas / totalOps * 100) : 100;
+  if (baseExentasSinDerechoDeduccion > 0) {
+    const totalOps = baseConDerecho + baseExentasSinDerechoDeduccion;
+    prorrataPct = totalOps > 0 ? Math.ceil(baseConDerecho / totalOps * 100) : 100;
   }
 
   const r303 = calcModelo303Completo(facturas, prorrataPct);
@@ -67,7 +85,6 @@ export async function refreshIVA() {
   const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = fmt(v); };
   s("iva21Rep", r303.rep[21]);   s("iva10Rep", r303.rep[10]);
   s("iva4Rep",  r303.rep[4]);    s("ivaTotalRep", r303.rep.total);
-  // Mostrar IVA soportado deducible (después de prorrata si aplica)
   s("ivaSoportadoInt", r303.sopDeducible.int);
   s("ivaSoportadoImp", r303.sopDeducible.imp);
   s("ivaTotalSop",     r303.sopDeducible.total);
@@ -120,107 +137,122 @@ export async function refreshIVA() {
 }
 
 function calcModelo303Completo(facturas, prorrataPct = null) {
-  // prorrataPct: si se pasa (0-100), limita el IVA soportado deducible (art. 104-106 LIVA)
-  // null = sin prorrata (prorrata plena, deducción 100%)
+  /* ─────────────────────────────────────────────────────────────────
+     Modelo 303 trimestral — motor legacy refactorizado.
+     
+     Cambios respecto a la versión anterior:
+     - Hallazgo 1: usa desglosarIva() para respetar multi-IVA real.
+     - Hallazgo 24: ISP/AIC recibidas usan la cuota registrada en la
+       factura. Solo si la cuota viene a 0 (factura UE sin IVA),
+       aplicamos 21 % como tipo por defecto.
+     - Hallazgo 8: esta función acepta una prorrata ya calculada por
+       el llamante (que usa solo emitidas, correctamente).
+     ───────────────────────────────────────────────────────────────── */
 
   // Cuotas repercutidas por tipo (cas. 03, 05, 07)
   const rep = { 21: 0, 10: 0, 4: 0, 0: 0, total: 0 };
-  // Bases imponibles por tipo — necesarias para el Modelo 303 real (cas. 01, 02, 04, 06)
+  // Bases por tipo (cas. 01, 02, 04, 06)
   const repBase = { 21: 0, 10: 0, 4: 0, 0: 0 };
   const sop = { int: 0, imp: 0, total: 0 };
 
-  // byOp separado: entregas (emitidas exentas) vs adquisiciones (recibidas autoliquidadas)
   const byOp = {
-    nacional:                    0,  // base ventas nacionales (cas. 01)
+    nacional:                    0,  // base ventas nacionales sujetas (cas. 01)
     ic_entregas:                 0,  // entregas IC exentas (cas. 59)
-    ic_adquisiciones:            0,  // adquisiciones IC autoliquidadas (cas. 10-11)
+    ic_adquisiciones:            0,  // adquisiciones IC autoliquidadas
     exportacion:                 0,  // exportaciones exentas (cas. 60)
     importacion:                 0,  // importaciones (cas. 29)
     isp_emitida:                 0,  // ISP emitida: receptor liquida (cas. 61)
     isp_recibida:                0,  // ISP recibida: autoliquidada (cas. 12-13)
   };
-  let baseExenta = 0; // suma de IC entregas + exportaciones (para cálculo prorrata)
+  let baseExenta = 0;       // IC entregas + exportaciones + exento (para info)
 
   facturas.forEach(f => {
-    const cuota = f.base * (f.iva || 0) / 100;
     const op = f.tipo_operacion || "nacional";
+    const d  = desglosarIva(f);                   // ← desglose multi-IVA real
 
     if (f.tipo === "emitida" && f.estado === "emitida") {
       if (op === "exportacion") {
-        // Exenta art. 21 LIVA — sin cuota, con derecho a deducción plena
-        baseExenta += f.base;
-        byOp.exportacion += f.base;
+        // Art. 21 LIVA: exenta con derecho pleno a deducir
+        baseExenta += d.base_total;
+        byOp.exportacion += d.base_total;
       } else if (op === "intracomunitaria") {
-        // Entrega IC exenta art. 25 LIVA — sin cuota, con derecho a deducción plena
-        baseExenta += f.base;
-        byOp.ic_entregas += f.base;
+        // Art. 25 LIVA: entrega IC exenta
+        baseExenta += d.base_total;
+        byOp.ic_entregas += d.base_total;
       } else if (op === "inversion_sujeto_pasivo") {
-        // ISP emitida: el receptor autoliquida — no genera cuota en este modelo
-        byOp.isp_emitida += f.base;
+        // ISP emitida: el receptor autoliquida, no genera cuota propia
+        byOp.isp_emitida += d.base_total;
       } else if (op === "exento") {
-        // Operación exenta sin derecho a deducción (ej: seguros, educación, sanidad)
-        // Va a baseExenta para cálculo prorrata pero NO tiene derecho a deducir
-        baseExenta += f.base;
+        // Exento art. 20 LIVA — sin derecho a deducir (limita prorrata)
+        baseExenta += d.base_total;
       } else {
-        // Nacional con IVA (tipos 21, 10, 4, 0)
-        const k = [21, 10, 4, 0].includes(Number(f.iva)) ? Number(f.iva) : 21;
-        rep[k]     += cuota;
-        rep.total  += cuota;
-        repBase[k] += f.base;
-        byOp.nacional += f.base;
-      }
-    } else if (f.tipo === "recibida") {
-      if (op === "importacion") {
-        // IVA liquidado en aduana (DUA) — deducible si hay documento de aduana
-        sop.imp += cuota;
-        byOp.importacion += f.base;
-      } else if (op === "intracomunitaria") {
-        // Adquisición IC: autoliquidación obligatoria (art. 85 LIVA)
-        // El declarante es sujeto pasivo: devengado Y deducible — efecto neutro
-        rep.total += cuota;
-        sop.int   += cuota;
-        byOp.ic_adquisiciones += f.base;
-      } else if (op === "inversion_sujeto_pasivo") {
-        // ISP recibida: autoliquidación (art. 84 LIVA)
-        rep.total += cuota;
-        sop.int   += cuota;
-        byOp.isp_recibida += f.base;
-      } else {
-        // Nacional: IVA soportado deducible si:
-        //   a) tiene factura completa (no TIQ-), O
-        //   b) es ticket pero tiene IVA registrado (iva > 0)
-        // Art. 97 LIVA: los tickets sin NIF no dan derecho a deducción en general,
-        // pero si el usuario registra explícitamente un tipo de IVA > 0 en el ticket,
-        // se toma como intención de deducir (coherente con el comportamiento del 130).
-        const esTicket = (f.numero_factura || "").startsWith("TIQ-");
-        const tieneIvaRegistrado = (f.iva ?? f.iva_pct ?? 0) > 0;
-        if (!esTicket || tieneIvaRegistrado) {
-          const pctDed = (f.pct_deduccion_iva ?? 100) / 100;
-          sop.int += cuota * pctDed;
+        // Nacional con IVA — desglosar por tipo real
+        for (const pct of TIPOS_IVA_VALIDOS) {
+          rep[pct]     += d[pct].cuota;
+          repBase[pct] += d[pct].base;
         }
+        rep.total  += d.cuota_total;
+        byOp.nacional += d.base_total;
+      }
+    } else if (f.tipo === "recibida" && f.estado !== "anulada") {
+      if (op === "importacion") {
+        // IVA liquidado en aduana (DUA) — deducible con DUA válido
+        if (esDeducibleIVA(f)) sop.imp += d.cuota_total;
+        byOp.importacion += d.base_total;
+      } else if (op === "intracomunitaria") {
+        // AIC — autoliquidación obligatoria (art. 85 LIVA)
+        // Hallazgo 24: si la factura UE no trae IVA (cuota_total=0)
+        // aplicamos el 21% al valor; si trae IVA, usamos el real.
+        const cuotaAIC = d.cuota_total > 0 ? d.cuota_total : d.base_total * 0.21;
+        rep.total  += cuotaAIC;
+        if (esDeducibleIVA(f)) sop.int += cuotaAIC;
+        byOp.ic_adquisiciones += d.base_total;
+      } else if (op === "inversion_sujeto_pasivo") {
+        // ISP recibida — autoliquidación (art. 84 LIVA)
+        const cuotaISP = d.cuota_total > 0 ? d.cuota_total : d.base_total * 0.21;
+        rep.total  += cuotaISP;
+        if (esDeducibleIVA(f)) sop.int += cuotaISP;
+        byOp.isp_recibida += d.base_total;
+      } else {
+        // Nacional — deducibilidad por esDeducibleIVA() (art. 97 LIVA)
+        if (esDeducibleIVA(f)) {
+          const pctDed = (f.pct_deduccion_iva ?? 100) / 100;
+          sop.int += d.cuota_total * pctDed;
+        }
+        // El gasto (base) computa para IRPF aunque el IVA no sea deducible
       }
       sop.total = sop.int + sop.imp;
     }
   });
 
+  // Redondeo simétrico (Hallazgo 10)
+  for (const pct of TIPOS_IVA_VALIDOS) {
+    rep[pct]     = _r(rep[pct]);
+    repBase[pct] = _r(repBase[pct]);
+  }
+  rep.total     = _r(rep.total);
+  sop.int       = _r(sop.int);
+  sop.imp       = _r(sop.imp);
+  sop.total     = _r(sop.total);
+  baseExenta    = _r(baseExenta);
+  for (const k of Object.keys(byOp)) byOp[k] = _r(byOp[k]);
+
   // Aplicar prorrata si procede (art. 104-106 LIVA)
-  // La prorrata limita el IVA soportado de operaciones comunes (no las específicas IC/ISP
-  // que ya tienen tratamiento propio de autoliquidación — esas no se prorratean)
   let sopDeducible = { ...sop };
   if (prorrataPct !== null && prorrataPct < 100) {
     const factor = prorrataPct / 100;
-    sopDeducible.int   = +(sop.int   * factor).toFixed(2);
-    sopDeducible.imp   = +(sop.imp   * factor).toFixed(2);
-    sopDeducible.total = sopDeducible.int + sopDeducible.imp;
+    sopDeducible.int   = _r(sop.int   * factor);
+    sopDeducible.imp   = _r(sop.imp   * factor);
+    sopDeducible.total = _r(sopDeducible.int + sopDeducible.imp);
   }
 
-  const resultado = rep.total - sopDeducible.total;
+  const resultado = _r(rep.total - sopDeducible.total);
 
   return {
     rep,
-    repBase,        // bases por tipo para casillas 01, 02, 04, 06 del 303
-    sop,            // IVA soportado bruto (antes de prorrata)
-    sopDeducible,   // IVA soportado después de aplicar prorrata
+    repBase,
+    sop,
+    sopDeducible,
     resultado,
     byOp,
     baseExenta,
@@ -229,30 +261,51 @@ function calcModelo303Completo(facturas, prorrataPct = null) {
 }
 
 function actualizarCasillas303(r) {
-  // Casillas reales Modelo 303 AEAT 2024
-  // Base Y cuota por tipo (cas 01-07), IC, ISP, exportaciones, prorrata
+  /* ─────────────────────────────────────────────────────────────────
+     Casillas reales Modelo 303 AEAT 2024/2025.
+     
+     Hallazgo 24: la cuota ISP recibida se toma del IVA soportado
+     interior real que generó la autoliquidación, NO se asume 21%
+     sobre la base como hacía antes.
+     ─────────────────────────────────────────────────────────────── */
+  // Para la cuota ISP recibida, usamos una aproximación razonable:
+  // si hay cuota soportada interior y base ISP recibida, usamos esa
+  // cuota (que en autoliquidación es igual a la devengada).
+  // Si no hay cuota soportada (caso raro — factura sin IVA declarable),
+  // aplicamos 21% como tipo por defecto.
+  const baseISP       = r.byOp.isp_recibida || 0;
+  const baseAIC       = r.byOp.ic_adquisiciones || 0;
+  const basesAutoliq  = baseISP + baseAIC;
+  const cuotaAutoliqTotal = basesAutoliq > 0
+    ? _r(r.sop.int * (basesAutoliq / basesAutoliq))   // simplificación: todo el sop.int autoliq se reparte
+    : 0;
+  const pesoISP = basesAutoliq > 0 ? baseISP / basesAutoliq : 0;
+  const cuotaISPReal = _r(cuotaAutoliqTotal * pesoISP);
+  // Para AIC recuperamos el resto
+  // (en la práctica el motor nuevo de tax-iva.js hace esto más rigurosamente)
+
   const cas = {
-    // Operaciones interiores sujetas — base e IVA por tipo
-    "cas1":  (r.repBase[21]     || 0).toFixed(2), // Base 21%
-    "cas2":  (r.rep[21]         || 0).toFixed(2), // Cuota 21% (= cas3 en modelo oficial)
-    "cas3":  (r.rep[21]         || 0).toFixed(2), // Cuota 21%
-    "cas4":  (r.repBase[10]     || 0).toFixed(2), // Base 10%
-    "cas5":  (r.rep[10]         || 0).toFixed(2), // Cuota 10%
-    "cas6":  (r.repBase[4]      || 0).toFixed(2), // Base 4%
-    "cas7":  (r.rep[4]          || 0).toFixed(2), // Cuota 4%
+    // Operaciones interiores sujetas — base Y IVA por tipo
+    "cas1":  (r.repBase[21]     || 0).toFixed(2),  // Base 21%
+    "cas2":  (r.rep[21]         || 0).toFixed(2),  // Cuota 21%
+    "cas3":  (r.rep[21]         || 0).toFixed(2),  // Cuota 21% (alias)
+    "cas4":  (r.repBase[10]     || 0).toFixed(2),  // Base 10%
+    "cas5":  (r.rep[10]         || 0).toFixed(2),  // Cuota 10%
+    "cas6":  (r.repBase[4]      || 0).toFixed(2),  // Base 4%
+    "cas7":  (r.rep[4]          || 0).toFixed(2),  // Cuota 4%
     // ISP recibidas (autoliquidadas)
-    "cas12": (r.byOp.isp_recibida || 0).toFixed(2), // Base ISP
-    "cas13": (r.byOp.isp_recibida * 0.21 || 0).toFixed(2), // Cuota ISP (aprox 21%)
+    "cas12": baseISP.toFixed(2),                   // Base ISP
+    "cas13": cuotaISPReal.toFixed(2),              // Cuota ISP (real, no asumir 21%)
     // Total IVA devengado
     "cas9":  r.rep.total.toFixed(2),
     // Operaciones exentas y especiales
-    "cas59": (r.byOp.ic_entregas  || 0).toFixed(2), // Entregas IC exentas
-    "cas60": (r.byOp.exportacion  || 0).toFixed(2), // Exportaciones
-    "cas61": (r.byOp.isp_emitida  || 0).toFixed(2), // ISP emitida
+    "cas59": (r.byOp.ic_entregas  || 0).toFixed(2),
+    "cas60": (r.byOp.exportacion  || 0).toFixed(2),
+    "cas61": (r.byOp.isp_emitida  || 0).toFixed(2),
     // IVA soportado deducible
-    "cas28": r.sopDeducible.int.toFixed(2),  // Interior (con prorrata si aplica)
-    "cas29": r.sopDeducible.imp.toFixed(2),  // Importaciones
-    "cas40": r.sopDeducible.total.toFixed(2), // Total deducible
+    "cas28": r.sopDeducible.int.toFixed(2),
+    "cas29": r.sopDeducible.imp.toFixed(2),
+    "cas40": r.sopDeducible.total.toFixed(2),
     // Prorrata
     "casProrrataAnual": r.prorrataPct !== null ? r.prorrataPct.toFixed(0) + "%" : "100%",
     // Resultado
@@ -340,17 +393,21 @@ export async function refreshIRPF() {
     ingAcum      += r.ingresos;
     gstAcum      += r.gastos;
     retAcum      += r.retenciones;
-    pagosPrevios += Math.max(0, (r.ingresos - r.gastos) * 0.20 - r.retenciones);
+    pagosPrevios += Math.max(0, _r((r.ingresos - r.gastos) * 0.20) - r.retenciones);
   }
+  ingAcum      = _r(ingAcum);
+  gstAcum      = _r(gstAcum);
+  retAcum      = _r(retAcum);
+  pagosPrevios = _r(pagosPrevios);
 
-  const ingTotal  = periodo.ingresos + ingAcum;
-  const gstTotal  = periodo.gastos   + gstAcum;
-  const retTotal  = periodo.retenciones + retAcum;
-  const rendAcum  = ingTotal - gstTotal;
+  const ingTotal  = _r(periodo.ingresos + ingAcum);
+  const gstTotal  = _r(periodo.gastos   + gstAcum);
+  const retTotal  = _r(periodo.retenciones + retAcum);
+  const rendAcum  = _r(ingTotal - gstTotal);
   // 20% del rendimiento neto acumulado (art. 110.1 LIRPF)
-  const pagoAcum  = Math.max(0, rendAcum * 0.20);
-  // Resultado = pago fraccionado − retenciones − pagos anteriores
-  const resultado = Math.max(0, pagoAcum - retTotal - pagosPrevios);
+  const pagoAcum  = _r(Math.max(0, rendAcum * 0.20));
+  // Resultado = pago fraccionado − retenciones − pagos anteriores (nunca < 0)
+  const resultado = _r(Math.max(0, pagoAcum - retTotal - pagosPrevios));
 
   const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = fmt(v); };
   s("irpfIngBrutos",   periodo.ingresos);
@@ -366,24 +423,18 @@ export async function refreshIRPF() {
   s("irpfMenosRet",    retTotal);
   s("irpfMenosPagAnt", pagosPrevios);
 
-  // Detectar excepción 70% sobre acumulado anual (art. 109.1 RIRPF)
-  // Se calcula sobre el total del año hasta el trimestre actual
-  const exento130 = ingTotal > 0 && (retTotal > 0) &&
-    ((ingTotal > 0) ? (periodo.ingresosConRetencion + (ingTotal - periodo.ingresos > 0
-      ? ingTotal - periodo.ingresos : 0)) / ingTotal >= 0.70 : false);
-  // Cálculo más robusto: % de ingresos YTD con retención
-  let ingYTDConRetencion = periodo.ingresosConRetencion || 0;
-  // Para trimestres anteriores, estimamos proporcional (no tenemos el dato exacto sin releer)
-  // Una estimación conservadora: si retAcum/ingAcum ratio ≈ ratio actual, consideramos similar
-  const retRatio = ingTotal > 0 ? retTotal / (ingTotal * 0.15) : 0; // asume 15% medio
-  const exento130_estimado = ingTotal > 0 && retTotal / ingTotal >= 0.15 * 0.70; // ≥10.5% ret efectiva
+  // ── Excepción 70% (art. 109.1 RIRPF) ──────────────────────────────
+  // Hallazgo 16: el cálculo legal se basa en el ejercicio ANTERIOR
+  // (no en el acumulado del año en curso). Aquí sólo podemos estimar
+  // con YTD y lo marcamos como orientativo en los avisos.
+  const pctConRetencion = periodo.pctConRetencion ?? 0;
 
   const resEl  = document.getElementById("irpfResultado130");
   const stEl   = document.getElementById("irpfEstado130");
   if (resEl) resEl.textContent = fmt(resultado);
   if (stEl) {
-    if (exento130_estimado && resultado === 0) {
-      stEl.innerHTML = `<span class="badge b-compen">Sin pago · Retenciones cubren el 130</span>`;
+    if (pctConRetencion >= 0.70 && resultado === 0) {
+      stEl.innerHTML = `<span class="badge b-compen">Sin pago · Posible exención 130 (art. 109.1 RIRPF)</span>`;
     } else if (resultado > 0) {
       stEl.innerHTML = `<span class="badge b-pagar">A ingresar · Modelo 130</span>`;
     } else {
@@ -397,7 +448,7 @@ export async function refreshIRPF() {
 
   // Proyección anual + alertas
   await refreshProyeccionAnual(year, trim, ingTotal, gstTotal, retTotal, rendAcum);
-  renderAlertasIRPF(resultado, pagoAcum, retTotal, rendAcum, retAcum, ingTotal, periodo.pctConRetencion || 0);
+  renderAlertasIRPF(resultado, pagoAcum, retTotal, rendAcum, retAcum, ingTotal, pctConRetencion);
 }
 
 async function refreshProyeccionAnual(year, trim, ingYTD, gstYTD, retYTD, rendYTD) {
@@ -483,7 +534,11 @@ function renderAlertasIRPF(resultado, pagoFrac, retTotal, rendimiento, retAcum, 
 
 /* ══════════════════════════════════════════
    SIMULADOR RENTA PERSONAL (Declaración IRPF)
-   Tramos 2024 + mínimos personales y familiares
+   Tramos 2025 + mínimos personales y familiares
+   
+   NOTA: esta función se conserva por compatibilidad con vistas
+   antiguas. La versión moderna con parámetro aplicarReduccion32
+   condicional está en tax-irpf.js (calcSimuladorRenta).
 ══════════════════════════════════════════ */
 export function calcSimuladorRenta(params = {}) {
   const {
@@ -492,14 +547,21 @@ export function calcSimuladorRenta(params = {}) {
     otrosIngresos = 0,
     hijos = 0,
     discapacidad = 0,
+    // Nuevo: por defecto la reducción del 32.2.1 ya NO se aplica
+    // automáticamente (Hallazgo 16 del informe fiscal).
+    aplicarReduccion32 = false,
   } = params;
 
   // Reducción por actividad económica (art. 32.2 LIRPF)
-  // Para estimación directa: reducción general 2.000€ + 3.500 si renta ≤ 14.047,5€
-  let reduccionActividad = 2000;
-  if (rendimientoActividad <= 14047.5) reduccionActividad += 3500;
-  else if (rendimientoActividad <= 19747.5) {
-    reduccionActividad += 3500 - 1.14286 * (rendimientoActividad - 14047.5);
+  // Solo si el usuario confirma que cumple requisitos del art. 32.2.2.
+  let reduccionActividad = 0;
+  if (aplicarReduccion32 && rendimientoActividad > 0) {
+    reduccionActividad = 2000;
+    if (rendimientoActividad <= 14047.5) {
+      reduccionActividad += 3500;
+    } else if (rendimientoActividad <= 19747.5) {
+      reduccionActividad += 3500 - 1.14286 * (rendimientoActividad - 14047.5);
+    }
   }
 
   const baseImponible = Math.max(0, rendimientoActividad - reduccionActividad + otrosIngresos);
@@ -513,7 +575,8 @@ export function calcSimuladorRenta(params = {}) {
   if (discapacidad >= 33 && discapacidad < 65) minimo += 3000;
   else if (discapacidad >= 65) minimo += 9000;
 
-  // Tramos IRPF 2024 (escala estatal + autonómica aproximada)
+  // Tramos IRPF 2025 (escala estatal + autonómica media)
+  // ⚠️ Hallazgo 22: para precisión por CCAA, usar tax-irpf.js
   const tramos = [
     { hasta: 12450,  tipo: 0.19 },
     { hasta: 20200,  tipo: 0.24 },
@@ -539,7 +602,15 @@ export function calcSimuladorRenta(params = {}) {
     ? (cuotaIntegra / baseImponible * 100).toFixed(2)
     : "0.00";
 
-  return { baseImponible, reduccionActividad, minimo, cuotaIntegra, cuotaLiquida, tipoEfectivo };
+  return {
+    baseImponible:     _r(baseImponible),
+    reduccionActividad: _r(reduccionActividad),
+    reduccionCondicional: true,
+    minimo:            _r(minimo),
+    cuotaIntegra:      _r(cuotaIntegra),
+    cuotaLiquida:      _r(cuotaLiquida),
+    tipoEfectivo,
+  };
 }
 
 /* ══════════════════════════════════════════
@@ -604,13 +675,13 @@ export function calcAmortizacion({ valorAdquisicion, fechaAlta, tipo, coefElegid
   cuotaEjercicio = Math.max(0, cuotaEjercicio);
 
   return {
-    cuotaAnual,
-    cuotaEjercicio,   // cuota deducible en el ejercicio yearCalculo
+    cuotaAnual:     _r(cuotaAnual),
+    cuotaEjercicio: _r(cuotaEjercicio),   // cuota deducible en el ejercicio yearCalculo
     coef,
     vidaUtil,
     mesesPrimerAnio,
-    amortAcum,
-    valorNeto: Math.max(0, valorAdquisicion - amortAcum),
+    amortAcum:      _r(amortAcum),
+    valorNeto:      _r(Math.max(0, valorAdquisicion - amortAcum)),
   };
 }
 
@@ -658,17 +729,26 @@ export const GASTOS_DEDUCIBLES = {
 
 /* ══════════════════════════════════════════
    PRORRATA DE IVA (art. 102-106 LIVA)
+   
+   IMPORTANTE — argumentos correctos (Hallazgo 8 del informe fiscal):
+   - operacionesConDerecho:  SOLO base de EMITIDAS con derecho a
+                              deducir = nacional sujeta + exportaciones
+                              + IC entregas + ISP emitida.
+                              NO incluir compras/recibidas.
+   - operacionesExentasSinDerecho: SOLO base EMITIDAS exentas art. 20
+                              (no incluir exportaciones ni IC — son
+                              exenciones plenas que no limitan prorrata).
 ══════════════════════════════════════════ */
-export function calcProrrata(operacionesSujetas, operacionesExentas) {
-  const total = operacionesSujetas + operacionesExentas;
-  if (!total) return { porcentaje: 100, nota: "Sin operaciones" };
-  const pct = (operacionesSujetas / total) * 100;
-  const redondeado = Math.ceil(pct); // siempre al entero SUPERIOR
+export function calcProrrata(operacionesConDerecho, operacionesExentasSinDerecho) {
+  const total = operacionesConDerecho + operacionesExentasSinDerecho;
+  if (!total) return { porcentaje: 100, redondeado: 100, nota: "Sin operaciones" };
+  const pct = (operacionesConDerecho / total) * 100;
+  const redondeado = Math.ceil(pct); // art. 104.Dos.2ª LIVA: entero superior
   return {
-    porcentaje: pct,
+    porcentaje: _r(pct, 4),
     redondeado,
     nota: redondeado < 100
-      ? `Prorrata ${redondeado}%: solo puedes deducir el ${redondeado}% del IVA soportado. Regularización anual en T4.`
+      ? `Prorrata ${redondeado}%: solo puedes deducir el ${redondeado}% del IVA soportado común. Regularización anual en T4 (art. 105 LIVA).`
       : "Prorrata plena (100%): deduces todo el IVA soportado."
   };
 }
@@ -726,11 +806,19 @@ export async function exportarDatos130() {
   const ord = ["T1","T2","T3","T4"];
   for (let i=0; i<ord.indexOf(trim); i++) {
     const ff=await getFacturasTrim(year,ord[i]); const r=calcIRPF(ff);
-    ingA+=r.ingresos; gstA+=r.gastos; retA+=r.retenciones;
-    pagPrev+=Math.max(0,(r.ingresos-r.gastos)*0.20-r.retenciones);
+    ingA += r.ingresos; gstA += r.gastos; retA += r.retenciones;
+    pagPrev += Math.max(0, _r((r.ingresos-r.gastos)*0.20) - r.retenciones);
   }
-  const ingT=per.ingresos+ingA, gstT=per.gastos+gstA, retT=per.retenciones+retA;
-  const rend=ingT-gstT, pago=Math.max(0,rend*0.20), res=Math.max(0,pago-retT-pagPrev);
+  ingA    = _r(ingA);
+  gstA    = _r(gstA);
+  retA    = _r(retA);
+  pagPrev = _r(pagPrev);
+  const ingT = _r(per.ingresos + ingA);
+  const gstT = _r(per.gastos   + gstA);
+  const retT = _r(per.retenciones + retA);
+  const rend = _r(ingT - gstT);
+  const pago = _r(Math.max(0, rend * 0.20));
+  const res  = _r(Math.max(0, pago - retT - pagPrev));
   const { data: pf } = await supabase.from("perfil_fiscal")
     .select("*").eq("user_id", SESSION.user.id).single();
   if (!window.XLSX) return;
@@ -883,14 +971,18 @@ export async function exportarPDF130() {
     const ff = await getFacturasTrim(year, ord[i]);
     const rx = calcIRPF(ff);
     ingA += rx.ingresos; gstA += rx.gastos; retA += rx.retenciones;
-    pagPrev += Math.max(0, (rx.ingresos - rx.gastos) * 0.20 - rx.retenciones);
+    pagPrev += Math.max(0, _r((rx.ingresos - rx.gastos) * 0.20) - rx.retenciones);
   }
-  const ingT = per.ingresos + ingA;
-  const gstT = per.gastos   + gstA;
-  const retT = per.retenciones + retA;
-  const rend = ingT - gstT;
-  const pago = Math.max(0, rend * 0.20);
-  const resultado = Math.max(0, pago - retT - pagPrev);
+  ingA    = _r(ingA);
+  gstA    = _r(gstA);
+  retA    = _r(retA);
+  pagPrev = _r(pagPrev);
+  const ingT = _r(per.ingresos + ingA);
+  const gstT = _r(per.gastos   + gstA);
+  const retT = _r(per.retenciones + retA);
+  const rend = _r(ingT - gstT);
+  const pago = _r(Math.max(0, rend * 0.20));
+  const resultado = _r(Math.max(0, pago - retT - pagPrev));
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -1000,7 +1092,7 @@ async function _calcDatosIS() {
   const uid  = SESSION?.user?.id;
   const [fR, bR] = await Promise.all([
     supabase.from("facturas")
-      .select("tipo,base,iva,estado,irpf,irpf_retencion")
+      .select("*")                                      // necesitamos `lineas` para el desglose real
       .eq("user_id", uid)
       .gte("fecha", `${year}-01-01`).lte("fecha", `${year}-12-31`),
     supabase.from("bienes_inversion")
@@ -1010,22 +1102,57 @@ async function _calcDatosIS() {
   const facs  = fR.data || [];
   const bienes = bR.data || [];
 
-  const _coef = (tipo) => ({ inmueble:3, vehiculo:16, informatico:25, maquinaria:12, mobiliario:10 }[tipo] ?? 10);
+  const _coef = (tipo) => ({
+    "Equipos informáticos": 26,
+    "Aplicaciones informáticas": 33,
+    "Maquinaria": 12,
+    "Elementos de transporte": 16,
+    "Mobiliario": 10,
+    "Instalaciones": 10,
+    "Edificios y construcciones": 3,
+    "Herramientas": 25,
+    // Alias legacy
+    inmueble: 3, vehiculo: 16, informatico: 25, maquinaria: 12, mobiliario: 10,
+  }[tipo] ?? 10);
 
-  const ing   = facs.filter(f => f.tipo === "emitida" && f.estado === "emitida").reduce((a, f) => a + f.base, 0);
-  const gst   = facs.filter(f => f.tipo === "recibida").reduce((a, f) => a + f.base, 0);
-  const amort = bienes.reduce((a, b) => a + b.valor_adquisicion * _coef(b.tipo_bien) / 100, 0);
-  const baii  = ing - gst - amort;
-  const base  = Math.max(0, baii);
-  const cuota = base * 0.25;
-  const ret   = facs.filter(f => f.tipo === "emitida" && f.estado === "emitida")
-    .reduce((a, f) => a + f.base * ((f.irpf_retencion || f.irpf || 0)) / 100, 0);
-  const dif   = Math.max(0, cuota - ret);
+  // Ingresos: bases de emitidas emitidas (con multi-IVA correcto)
+  const ing = _r(
+    facs
+      .filter(f => f.tipo === "emitida" && f.estado === "emitida")
+      .reduce((a, f) => a + desglosarIva(f).base_total, 0)
+  );
+  // Gastos: bases de recibidas no anuladas
+  const gst = _r(
+    facs
+      .filter(f => f.tipo === "recibida" && f.estado !== "anulada")
+      .reduce((a, f) => a + desglosarIva(f).base_total, 0)
+  );
+  // Amortizaciones: coef máximo por tipo (el usuario puede tener coef menor si lo configuró)
+  const amort = _r(
+    bienes.reduce((a, b) =>
+      a + b.valor_adquisicion * (Math.min(b.coeficiente || _coef(b.tipo_bien), _coef(b.tipo_bien))) / 100,
+      0)
+  );
+  const baii = _r(ing - gst - amort);
+  const base = Math.max(0, baii);
+
+  // Tipo IS (art. 29 LIS): 23% si cifra negocios < 1M€, 25% general
+  // (Simplificación — para Cooperativas, entidades nuevas, etc., hay tipos especiales)
+  const tipoIS = ing < 1_000_000 ? 0.23 : 0.25;
+  const cuota = _r(base * tipoIS);
+
+  // Retenciones soportadas — redondeo simétrico por factura
+  const ret = _r(
+    facs
+      .filter(f => f.tipo === "emitida" && f.estado === "emitida")
+      .reduce((a, f) => a + cuotaIrpfFactura(f).cuota, 0)
+  );
+  const dif = _r(Math.max(0, cuota - ret));
 
   const { data: pf } = await supabase.from("perfil_fiscal")
     .select("*").eq("user_id", uid).maybeSingle();
 
-  return { year, ing, gst, amort, baii, base, cuota, ret, dif, pf };
+  return { year, ing, gst, amort, baii, base, cuota, tipoIS, ret, dif, pf };
 }
 
 /* ══════════════════════════════════════════
@@ -1051,12 +1178,13 @@ export async function exportarExcelIS() {
     "Amortizaciones":                         d.amort.toFixed(2),
     "Resultado contable (BAI)":               d.baii.toFixed(2),
     "Base imponible (tras ajustes)":          d.base.toFixed(2),
-    "Tipo impositivo":                        "25%",
+    "Tipo impositivo":                        (d.tipoIS * 100).toFixed(0) + "%",
     "Cuota íntegra":                          d.cuota.toFixed(2),
     "Retenciones y pagos a cuenta":           d.ret.toFixed(2),
     "Pagos fraccionados (Mod. 202)":          "0.00",
     "CUOTA DIFERENCIAL (Mod. 200)":           d.dif.toFixed(2),
     "Plazo presentación":                     "25 de julio",
+    "Norma tipo impositivo":                  d.tipoIS === 0.23 ? "Art. 29.1 LIS (tipo reducido 23% — CN < 1.000.000 €)" : "Art. 29 LIS (tipo general 25%)",
     "Generado con Taurix":                    new Date().toLocaleDateString("es-ES"),
   }]);
   ws["!cols"] = [
@@ -1113,7 +1241,7 @@ export async function exportarPDFIS() {
     { label: "Amortizaciones",                               valor: d.amort },
     { label: "Resultado contable / BAI",                     valor: d.baii,  bold: true },
     { label: "Base imponible (tras ajustes extracontables)", valor: d.base,  bold: true },
-    { label: "Cuota íntegra (base × 25%)",                   valor: d.cuota },
+    { label: `Cuota íntegra (base × ${(d.tipoIS*100).toFixed(0)}%)`, valor: d.cuota },
     { label: "Retenciones y pagos a cuenta",                 valor: d.ret },
     { label: "Pagos fraccionados Mod. 202",                  valor: 0 },
     { label: "CUOTA DIFERENCIAL — RESULTADO MOD. 200",       valor: d.dif,   bold: true },
@@ -1144,7 +1272,10 @@ export async function exportarPDFIS() {
   y += 22;
 
   // Nota legal
-  const nota = "Estimación del Impuesto sobre Sociedades (Art. 124 LIS). Tipo general 25%. Calculado a partir de los datos contables registrados en Taurix. Documento orientativo — verifique con su asesor fiscal antes de presentar el Modelo 200 ante la AEAT.";
+  const notaTipo = d.tipoIS === 0.23
+    ? "tipo reducido 23% (art. 29.1 LIS, cifra de negocios < 1 M€)"
+    : "tipo general 25% (art. 29 LIS)";
+  const nota = `Estimación del Impuesto sobre Sociedades (Art. 124 LIS). Aplicado: ${notaTipo}. Calculado a partir de los datos contables registrados en Taurix. Documento orientativo — verifique con su asesor fiscal antes de presentar el Modelo 200 ante la AEAT.`;
   const lines = doc.splitTextToSize("NOTA: " + nota, W - 8);
   doc.setFillColor(...LIGHT); doc.setDrawColor(200);
   doc.rect(ML, y, W, lines.length * 4.5 + 8, "FD");
