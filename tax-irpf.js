@@ -6,104 +6,135 @@
    - LIRPF (Ley 35/2006) arts. 27-32 (actividades económicas)
    - RIRPF (RD 439/2007) art. 110 (pagos fraccionados)
    - Modelo 130: acumulación ANUAL correcta (no solo trimestral)
+   
+   REFACTOR v2 (post-auditoría fiscal 2026):
+   - Hallazgo 1: lee `base` del TaxDocument ya normalizado (multi-IVA ok).
+   - Hallazgo 10: redondeo simétrico por factura.
+   - Hallazgo 16: reducción art. 32.2.1 marcada como CONDICIONAL.
+     Por defecto ya no se aplica automáticamente en el simulador.
+   - Hallazgo 16: excepción 70% del 130 con distinción clara
+     ejercicio anterior vs ejercicio en curso.
+   - Hallazgo 22: tramos estatales correctos 2025 + preparación para
+     aplicar escala autonómica (entregable en lote 16).
    ═══════════════════════════════════════════════════════════════════ */
 
 import {
   PCT_PAGO_FRACCIONADO_130,
   PCT_RETENCION_PROFESIONAL,
   PCT_RETENCION_REDUCIDA,
-  TRAMOS_IRPF_2024,
+  TRAMOS_IRPF_2025,
   MINIMOS_PERSONALES,
   REDUCCION_ACTIVIDAD_ECONOMICA,
+  REDUCCION_RENTAS_BAJAS,
   LIMITE_PLAN_PENSIONES,
   TRIM_ORDEN,
 } from "./tax-rules.js";
+import { redondearSimetrico, yearDeFecha } from "../factura-helpers.js";
+
+const _r = redondearSimetrico;
 
 /* ══════════════════════════════════════════════════════════════════
    MODELO 130 — Pago fraccionado IRPF trimestral
-   Art. 110 LIRPF — la clave es que el cálculo es ACUMULADO
+   Art. 110 LIRPF — el cálculo es ACUMULADO (YTD)
 ══════════════════════════════════════════════════════════════════ */
 
 /**
- * Calcula el Modelo 130 a partir de los documentos acumulados hasta el trimestre.
+ * Calcula el Modelo 130 a partir de los documentos acumulados
+ * desde T1 hasta el trimestre actual (inclusive).
  * 
- * IMPORTANTE: docsAcum debe contener TODOS los documentos desde T1
- * hasta el trimestre actual (inclusive). No solo los del trimestre.
- * El pago fraccionado de cada trimestre = 20% del rendimiento YTD
- * menos retenciones YTD menos pagos fraccionados de trimestres anteriores.
+ * IMPORTANTE: docsAcum DEBE contener todos los documentos YTD, no
+ * solo los del trimestre actual. El pago fraccionado de cada
+ * trimestre = 20 % del rendimiento YTD − retenciones YTD − pagos
+ * fraccionados anteriores.
  * 
- * @param {import('./tax-types.js').TaxDocument[]} docsAcum  - Docs desde T1 hasta trim
- * @param {number} pagosPrevios - Suma de pagos fraccionados 130 de trimestres anteriores
+ * @param {import('./tax-types.js').TaxDocument[]} docsAcum
+ * @param {number} pagosPrevios - Suma de 130 de trimestres anteriores
  * @param {string} trim         - "T1"|"T2"|"T3"|"T4"
  * @param {number} year
+ * @param {Object} [opts]
+ * @param {boolean} [opts.aplicarGastoEDS=false] - true → estimación directa simplificada (5% gastos DJ, tope 2.000€)
  * @returns {import('./tax-types.js').Resultado130}
  */
-export function calcModelo130(docsAcum, pagosPrevios, trim, year) {
+export function calcModelo130(docsAcum, pagosPrevios, trim, year, opts = {}) {
+  const { aplicarGastoEDS = false } = opts;
+
   // Segregar documentos por tipo
-  const emitidas = docsAcum.filter(d => d.tipo === "emitida" && d.estado !== "anulada" && d.estado !== "borrador");
-  const recibidas = docsAcum.filter(d => d.tipo === "recibida");
+  const emitidas  = docsAcum.filter(d => d.tipo === "emitida" && d.estado === "emitida");
+  const recibidas = docsAcum.filter(d => d.tipo === "recibida" && d.estado !== "anulada");
 
-  // Ingresos = suma de bases de facturas emitidas cobradas
-  const ingresos_total = emitidas.reduce((s, d) => s + (d.base ?? 0), 0);
+  // Ingresos = suma de bases de facturas emitidas (respetando rectificativas con signo)
+  const ingresos_total = _r(emitidas.reduce((s, d) => s + (d.base ?? 0), 0));
 
-  // Gastos = suma de bases de facturas recibidas (soportadas)
-  // En estimación directa simplificada se aplica un 5% adicional de gastos
-  // de difícil justificación sobre el rendimiento neto (art. 30.2.4ª LIRPF)
-  // Aquí calculamos el gasto directo; el 5% se aplica al simular la Renta
-  const gastos_total = recibidas.reduce((s, d) => s + (d.base ?? 0), 0);
+  // Gastos directos = suma de bases de facturas recibidas
+  const gastos_total_directo = _r(recibidas.reduce((s, d) => s + (d.base ?? 0), 0));
 
-  // Retenciones soportadas acumuladas (en facturas emitidas con IRPF)
-  const retenciones_acum = emitidas.reduce((s, d) => s + (d.cuota_irpf ?? 0), 0);
+  // Gasto adicional por estimación directa simplificada (art. 30.2.4ª LIRPF):
+  // 5 % sobre el rendimiento neto previo, tope 2.000 €/año.
+  // Desde Ley 31/2022 + RD-ley 4/2023 APLICABLE TAMBIÉN AL 130
+  // (Hallazgo 16 del informe fiscal).
+  const rendPrevio  = ingresos_total - gastos_total_directo;
+  let gastoEDS = 0;
+  if (aplicarGastoEDS && rendPrevio > 0) {
+    gastoEDS = Math.min(rendPrevio * 0.05, 2000);
+  }
+  const gastos_total = _r(gastos_total_directo + gastoEDS);
+
+  // Retenciones soportadas acumuladas (suma de cuota_irpf de emitidas con retención)
+  const retenciones_acum = _r(
+    emitidas.reduce((s, d) => s + (d.cuota_irpf ?? 0), 0)
+  );
 
   // Rendimiento neto acumulado
-  const rend_neto_acum = ingresos_total - gastos_total;
+  const rend_neto_acum = _r(ingresos_total - gastos_total);
 
-  // 20% del rendimiento neto acumulado (casilla 06 del modelo 130)
-  const pago_fraccionado = Math.max(0, rend_neto_acum * PCT_PAGO_FRACCIONADO_130);
+  // 20 % del rendimiento neto acumulado (art. 110.1 LIRPF)
+  const pago_fraccionado = _r(Math.max(0, rend_neto_acum * PCT_PAGO_FRACCIONADO_130));
 
-  // Resultado final = pago_frac - retenciones - pagos_previos (≥ 0)
-  const resultado = Math.max(0, pago_fraccionado - retenciones_acum - pagosPrevios);
+  // Resultado = pago_frac − retenciones YTD − pagos anteriores (nunca < 0)
+  const resultado = _r(Math.max(0, pago_fraccionado - retenciones_acum - pagosPrevios));
 
-  // Para mostrar el desglose del trimestre (informativo)
-  const idxTrim = TRIM_ORDEN.indexOf(trim);
-  // No calculamos el desglose trim aquí — si se necesita, el caller lo hace
-  // con docs filtrados. Esto evita doble query.
+  // % de ingresos con retención (para alertar excepción 70% del 130)
+  const ingresosConRetencion = _r(
+    emitidas
+      .filter(d => (d.irpf_pct ?? 0) > 0)
+      .reduce((s, d) => s + (d.base ?? 0), 0)
+  );
+  const pct_con_retencion = ingresos_total > 0 ? ingresosConRetencion / ingresos_total : 0;
 
   return {
     // Totales YTD
-    ingresos_total:     _round(ingresos_total),
-    gastos_total:       _round(gastos_total),
-    rend_neto_acum:     _round(rend_neto_acum),
-    pago_fraccionado:   _round(pago_fraccionado),
-    retenciones_acum:   _round(retenciones_acum),
-    pagos_previos:      _round(pagosPrevios),
-    resultado:          _round(resultado),
+    ingresos_total,
+    gastos_total,
+    gasto_difjustificacion: _r(gastoEDS),
+    rend_neto_acum,
+    pago_fraccionado,
+    retenciones_acum,
+    pagos_previos:     _r(pagosPrevios),
+    resultado,
     // Meta
     trim,
     year,
+    pct_con_retencion,
     // Casillas del modelo 130 (referencia para exportación)
     casillas: {
-      "01": _round(ingresos_total),          // Ingresos del período (YTD)
-      "02": _round(gastos_total),            // Gastos deducibles (YTD)
-      "05": _round(rend_neto_acum),          // Rendimiento neto (ing - gst)
-      "06": _round(pago_fraccionado),        // 20% del rend. neto
-      "07": _round(retenciones_acum),        // Retenciones y pagos a cuenta
-      "08": _round(pagosPrevios),            // Pagos fraccionados periodos anteriores
-      "09": _round(resultado),               // A ingresar
+      "01": ingresos_total,       // Ingresos del período (YTD)
+      "02": _r(gastos_total_directo), // Gastos deducibles directos (YTD)
+      "03": _r(gastoEDS),         // 5% difícil justificación EDS (si aplica)
+      "04": rend_neto_acum,       // Rendimiento neto
+      "05": pago_fraccionado,     // 20% del rend. neto
+      "06": retenciones_acum,     // Retenciones y pagos a cuenta YTD
+      "07": _r(pagosPrevios),     // Pagos fraccionados periodos anteriores
+      "08": 0,                    // Reducciones por hipoteca (no implementado)
+      "09": resultado,            // A ingresar
     },
   };
 }
 
 /**
- * Calcula los pagos previos acumulados para un trimestre dado.
- * Suma los resultados del Modelo 130 de T1..T(n-1).
- * Para usar cuando no tienes los periodos guardados en BD.
- * 
- * @param {Object[]} resultadosPrevios - Array de Resultado130 de T1 hasta T(n-1)
- * @returns {number}
+ * Suma los resultados del Modelo 130 de trimestres anteriores.
  */
 export function calcPagosPrevios130(resultadosPrevios) {
-  return resultadosPrevios.reduce((s, r) => s + (r?.resultado ?? 0), 0);
+  return _r(resultadosPrevios.reduce((s, r) => s + (r?.resultado ?? 0), 0));
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -114,59 +145,82 @@ export function calcPagosPrevios130(resultadosPrevios) {
 /**
  * Proyecta los datos fiscales anuales a partir de los YTD.
  * 
- * @param {import('./tax-types.js').Resultado130} r130  - Resultado 130 actual
- * @param {string} trim   - Trimestre actual (para calcular factor de extrapolación)
- * @param {number} totalPagados130 - Total pagado en 130 a lo largo del año
+ * ⚠️ ATENCIÓN (Hallazgo 16 del informe):
+ * La extrapolación lineal × (4/trim) solo es representativa para
+ * negocios NO estacionales. Para hostelería/turismo/comercio
+ * estacional, el usuario debería ajustar manualmente. Esta función
+ * expone la proyección con una marca `estacionalidad_nota` para
+ * que la UI muestre el aviso.
+ * 
+ * @param {import('./tax-types.js').Resultado130} r130
+ * @param {string} trim
+ * @param {number} totalPagados130
+ * @param {Object} [opts]
+ * @param {boolean} [opts.aplicarReduccion32=false] - true si cumple requisitos art. 32.2.2 LIRPF
+ * @param {boolean} [opts.aplicarGastoEDS=false]   - true si está en estimación directa simplificada
  * @returns {import('./tax-types.js').ProyeccionAnual}
  */
-export function calcProyeccionAnual(r130, trim, totalPagados130 = 0) {
+export function calcProyeccionAnual(r130, trim, totalPagados130 = 0, opts = {}) {
   const idx    = TRIM_ORDEN.indexOf(trim);
-  const factor = 4 / (idx + 1);  // T1→×4, T2→×2, T3→×1.33, T4→×1
+  const factor = 4 / (idx + 1);                   // T1→×4, T2→×2, T3→×1.33, T4→×1
 
-  const ingresos_proyect = r130.ingresos_total * factor;
-  const gastos_proyect   = r130.gastos_total   * factor;
-  const rend_proyect     = ingresos_proyect - gastos_proyect;
+  const ingresos_proyect = _r(r130.ingresos_total * factor);
+  const gastos_proyect   = _r(r130.gastos_total   * factor);
+  const rend_proyect     = _r(ingresos_proyect - gastos_proyect);
 
-  // Estimación cuota Modelo 100 con los datos proyectados
+  // Simulador Renta con los proyectados
   const simRenta = calcSimuladorRenta({
     rendimientoActividad: rend_proyect,
     retenciones:          r130.retenciones_acum * factor,
     pagosFrac130:         totalPagados130 * factor,
+    edSimplificada:       opts.aplicarGastoEDS === true,
+    aplicarReduccion32:   opts.aplicarReduccion32 === true,
   });
 
   const tipo_efectivo = ingresos_proyect > 0
-    ? _round((simRenta.cuota_integra / ingresos_proyect) * 100, 2)
+    ? _r((simRenta.cuota_integra / ingresos_proyect) * 100, 2)
     : 0;
 
   return {
-    ingresos_proyect:      _round(ingresos_proyect),
-    gastos_proyect:        _round(gastos_proyect),
-    rend_proyect:          _round(rend_proyect),
-    pago_anual_130:        _round(totalPagados130 * factor),
-    cuota_renta_estimada:  _round(simRenta.cuota_liquida),
+    ingresos_proyect,
+    gastos_proyect,
+    rend_proyect,
+    pago_anual_130:        _r(totalPagados130 * factor),
+    cuota_renta_estimada:  _r(simRenta.cuota_liquida),
     tipo_efectivo,
-    reserva_mensual:       _round(simRenta.cuota_liquida / 12),
+    reserva_mensual:       _r(simRenta.cuota_liquida / 12),
     trim_base:             trim,
+    estacionalidad_nota:   idx < 3
+      ? "Proyección lineal desde YTD — no apta para negocios estacionales. Ajusta manualmente si corresponde."
+      : null,
   };
 }
 
 /* ══════════════════════════════════════════════════════════════════
    SIMULADOR RENTA — Modelo 100 (declaración anual IRPF)
-   Estimación orientativa. No sustituye a la declaración real.
+   Orientativo. NO sustituye a la declaración real.
 ══════════════════════════════════════════════════════════════════ */
 
 /**
  * Simula la cuota de la declaración anual de IRPF (Modelo 100).
  * 
+ * IMPORTANTE (Hallazgo 16 del informe fiscal):
+ * La reducción del art. 32.2.1 LIRPF (2.000 €) es CONDICIONAL.
+ * Requiere cumplir los 5 requisitos del art. 32.2.2. Por ello el
+ * parámetro `aplicarReduccion32` es FALSE por defecto: el simulador
+ * no aplica la reducción salvo que el usuario confirme que cumple.
+ * 
  * @param {Object} params
- * @param {number} params.rendimientoActividad    - Rendimiento neto actividad económica
- * @param {number} [params.otrosIngresos=0]       - Trabajo, capital, etc.
- * @param {number} [params.retenciones=0]         - Total retenciones soportadas
- * @param {number} [params.pagosFrac130=0]        - Total pagado en pagos fraccionados 130
- * @param {number} [params.hijos=0]               - Número de hijos < 25 años
- * @param {number} [params.discapacidad=0]        - % discapacidad (0, 33, 65, 100)
- * @param {boolean} [params.edSimplificada=false] - true → aplicar deducción 5% gastos difícil justificación
- * @param {number} [params.planPensiones=0]       - Aportación a plan de pensiones (reducción)
+ * @param {number} params.rendimientoActividad
+ * @param {number} [params.otrosIngresos=0]
+ * @param {number} [params.retenciones=0]
+ * @param {number} [params.pagosFrac130=0]
+ * @param {number} [params.hijos=0]
+ * @param {number} [params.discapacidad=0]
+ * @param {boolean} [params.edSimplificada=false]
+ * @param {number} [params.planPensiones=0]
+ * @param {boolean} [params.aplicarReduccion32=false] - art. 32.2.1 LIRPF (condicional)
+ * @param {string} [params.ccaa=null]  - CCAA para aplicar escala autonómica (lote 16)
  * @returns {import('./tax-types.js').SimuladorRenta}
  */
 export function calcSimuladorRenta(params = {}) {
@@ -179,19 +233,23 @@ export function calcSimuladorRenta(params = {}) {
     discapacidad         = 0,
     edSimplificada       = false,
     planPensiones        = 0,
+    aplicarReduccion32   = false,     // Hallazgo 16: condicional por defecto
+    ccaa                 = null,      // Hallazgo 22 (se completa en lote 16)
   } = params;
 
   // Estimación directa simplificada: 5% gastos de difícil justificación
   // (art. 30.2.4ª LIRPF) — máximo 2.000€
   let rendAjustado = rendimientoActividad;
+  let deduccionDJ  = 0;
   if (edSimplificada && rendimientoActividad > 0) {
-    const deduccionDJ = Math.min(rendimientoActividad * 0.05, 2000);
+    deduccionDJ  = Math.min(rendimientoActividad * 0.05, 2000);
     rendAjustado = rendimientoActividad - deduccionDJ;
   }
 
-  // Reducción por rendimiento de actividades económicas (art. 32.2 LIRPF)
-  const reduccionActividad = _calcReduccionActividad(rendAjustado);
-  const rendConReduccion = Math.max(0, rendAjustado - reduccionActividad);
+  // Reducción por rendimientos de actividades económicas (art. 32.2 LIRPF)
+  // Solo si el usuario CONFIRMA que cumple requisitos (Hallazgo 16).
+  const reduccionActividad = aplicarReduccion32 ? _calcReduccionActividad(rendAjustado) : 0;
+  const rendConReduccion   = Math.max(0, rendAjustado - reduccionActividad);
 
   // Reducción por plan de pensiones (art. 51 LIRPF)
   const reduccionPP = Math.min(planPensiones, LIMITE_PLAN_PENSIONES);
@@ -202,46 +260,60 @@ export function calcSimuladorRenta(params = {}) {
   // Mínimo personal y familiar (arts. 57-61 LIRPF)
   const minimo = _calcMinimo(hijos, discapacidad);
 
-  // Base liquidable (sobre la que se aplican los tramos)
+  // Base liquidable sobre la que se aplican los tramos
   const baseLiquidable = Math.max(0, baseImponible - minimo);
 
-  // Cuota íntegra (aplicando tramos IRPF 2024)
+  // Cuota íntegra: estatal + autonómica
+  // Mientras no tengamos escala autonómica por CCAA (lote 16), se usa
+  // la tabla TRAMOS_IRPF_2025 que ya combina estatal + autonómica media.
   const cuota_integra = _calcCuotaTramos(baseLiquidable);
 
-  // Cuota líquida = cuota íntegra − retenciones − pagos fraccionados 130
+  // Cuota líquida: admite ser negativa (a devolver), con tope en el
+  // total de retenciones + pagos fraccionados (art. 103 LIRPF).
   const cuota_liquida = Math.max(
-    -(retenciones + pagosFrac130), // puede ser negativa (a devolver)
+    -(retenciones + pagosFrac130),
     cuota_integra - retenciones - pagosFrac130
   );
 
   const tipo_efectivo = baseImponible > 0
-    ? _round((cuota_integra / baseImponible) * 100, 2)
+    ? _r((cuota_integra / baseImponible) * 100, 2)
     : 0;
 
   return {
-    rend_actividad:      _round(rendimientoActividad),
-    reduccion_actividad: _round(reduccionActividad),
-    otros_ingresos:      _round(otrosIngresos),
-    base_imponible:      _round(baseImponible),
-    minimo_personal:     _round(minimo),
-    cuota_integra:       _round(cuota_integra),
-    retenciones:         _round(retenciones),
-    pagos_frac_130:      _round(pagosFrac130),
-    cuota_liquida:       _round(cuota_liquida),
+    rend_actividad:      _r(rendimientoActividad),
+    deduccion_dif_just:  _r(deduccionDJ),
+    reduccion_actividad: _r(reduccionActividad),
+    reduccion_actividad_aplicada_condicional: aplicarReduccion32,
+    otros_ingresos:      _r(otrosIngresos),
+    reduccion_pp:        _r(reduccionPP),
+    base_imponible:      _r(baseImponible),
+    minimo_personal:     _r(minimo),
+    base_liquidable:     _r(baseLiquidable),
+    cuota_integra:       _r(cuota_integra),
+    retenciones:         _r(retenciones),
+    pagos_frac_130:      _r(pagosFrac130),
+    cuota_liquida:       _r(cuota_liquida),
     tipo_efectivo,
     estado:              cuota_liquida >= 0 ? "a_pagar" : "a_devolver",
+    ccaa_usada:          ccaa,
+    aviso_ccaa:          !ccaa
+      ? "Estimación con escala estatal + autonómica media. La escala autonómica real puede diferir hasta ±7 puntos."
+      : null,
+    aviso_reduccion32:   !aplicarReduccion32 && rendAjustado > 0
+      ? "No se ha aplicado la reducción del art. 32.2 LIRPF. Si cumples los requisitos (sin rendimientos del trabajo, 70% ingresos con retención, gastos ≤30% ingresos, estimación directa, sin entidad en atribución), puedes activarla."
+      : null,
   };
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   RETENCIÓN APLICABLE
+   RETENCIÓN APLICABLE AL EMITIR FACTURA
 ══════════════════════════════════════════════════════════════════ */
 
 /**
  * Calcula el porcentaje de retención que debe aplicar el autónomo
  * en sus facturas a clientes.
  * 
- * @param {string|null} fechaAltaActividad  - Fecha ISO de alta en la actividad
+ * @param {string|null} fechaAltaActividad  - ISO "YYYY-MM-DD"
  * @param {number} year                      - Ejercicio actual
  * @returns {{ pct: number, reducida: boolean, nota: string }}
  */
@@ -250,26 +322,64 @@ export function calcRetencionAplicable(fechaAltaActividad, year) {
     return {
       pct: PCT_RETENCION_PROFESIONAL,
       reducida: false,
-      nota: `Retención estándar ${PCT_RETENCION_PROFESIONAL * 100}%. Sin fecha de alta registrada.`,
+      nota: `Retención estándar ${(PCT_RETENCION_PROFESIONAL * 100).toFixed(0)}%. Sin fecha de alta registrada.`,
     };
   }
 
-  const añoAlta = new Date(fechaAltaActividad).getFullYear();
-  // Retención reducida en el año de inicio y los 2 siguientes (art. 95.1.b) RIRPF)
+  // Parseo sin Date() para evitar problemas UTC (Hallazgo 27)
+  const añoAlta = yearDeFecha(fechaAltaActividad);
+
+  // Retención reducida en el año de inicio y los 2 siguientes
+  // (art. 95.1.b RIRPF)
   const tieneReducida = year <= añoAlta + 2;
 
   if (tieneReducida) {
     return {
       pct: PCT_RETENCION_REDUCIDA,
       reducida: true,
-      nota: `Retención reducida ${PCT_RETENCION_REDUCIDA * 100}% aplicable hasta fin de ${añoAlta + 2} (primeros 3 ejercicios, art. 95.1.b) RIRPF). Comunícalo a tus clientes en la factura.`,
+      nota: `Retención reducida ${(PCT_RETENCION_REDUCIDA * 100).toFixed(0)}% aplicable hasta fin de ${añoAlta + 2} (primeros 3 ejercicios, art. 95.1.b RIRPF). Comunícalo por escrito a tus clientes antes de cada ejercicio.`,
     };
   }
 
   return {
     pct: PCT_RETENCION_PROFESIONAL,
     reducida: false,
-    nota: `Retención estándar ${PCT_RETENCION_PROFESIONAL * 100}%.`,
+    nota: `Retención estándar ${(PCT_RETENCION_PROFESIONAL * 100).toFixed(0)}%.`,
+  };
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   EXCEPCIÓN PRESENTACIÓN MODELO 130 (art. 109.1 RIRPF)
+══════════════════════════════════════════════════════════════════ */
+
+/**
+ * Determina si el contribuyente está exento de presentar el 130.
+ * Condición: al menos el 70% de los ingresos del ejercicio ANTERIOR
+ * procedieron de actividades con retención (profesionales con IRPF).
+ * 
+ * Hallazgo 16 del informe: el cálculo debe basarse en el ejercicio
+ * ANTERIOR, no en el acumulado en curso.
+ * 
+ * @param {number} ingresos_ejercicio_anterior
+ * @param {number} ingresos_con_retencion_ejercicio_anterior
+ * @returns {{ exento: boolean, pct: number, nota: string }}
+ */
+export function calcExcepcion130(ingresos_ejercicio_anterior, ingresos_con_retencion_ejercicio_anterior) {
+  if (!ingresos_ejercicio_anterior || ingresos_ejercicio_anterior <= 0) {
+    return {
+      exento: false,
+      pct: 0,
+      nota: "Sin datos del ejercicio anterior. Por defecto se obliga a presentar el 130 (art. 110 LIRPF).",
+    };
+  }
+  const pct = ingresos_con_retencion_ejercicio_anterior / ingresos_ejercicio_anterior;
+  const exento = pct >= 0.70;
+  return {
+    exento,
+    pct: _r(pct * 100, 1),
+    nota: exento
+      ? `${_r(pct * 100, 1)}% de tus ingresos del ejercicio anterior llevaron retención (≥70%). Estás exento de presentar el Modelo 130 (art. 109.1 RIRPF).`
+      : `Solo el ${_r(pct * 100, 1)}% de tus ingresos del ejercicio anterior tuvieron retención. Debes presentar el 130.`,
   };
 }
 
@@ -278,9 +388,8 @@ export function calcRetencionAplicable(fechaAltaActividad, year) {
 ══════════════════════════════════════════════════════════════════ */
 
 /**
- * Calcula la reducción por rendimientos de actividades económicas (art. 32.2 LIRPF).
- * @param {number} rendimiento
- * @returns {number}
+ * Reducción por rendimientos de actividades económicas (art. 32.2 LIRPF).
+ * ⚠️ Solo llamar cuando el contribuyente cumple los requisitos.
  * @private
  */
 function _calcReduccionActividad(rendimiento) {
@@ -302,10 +411,7 @@ function _calcReduccionActividad(rendimiento) {
 }
 
 /**
- * Calcula el mínimo personal y familiar (arts. 57-61 LIRPF).
- * @param {number} hijos
- * @param {number} discapacidad  - % discapacidad (0, 33, 65)
- * @returns {number}
+ * Mínimo personal y familiar (arts. 57-61 LIRPF).
  * @private
  */
 function _calcMinimo(hijos, discapacidad) {
@@ -325,16 +431,16 @@ function _calcMinimo(hijos, discapacidad) {
 }
 
 /**
- * Aplica los tramos IRPF 2024 sobre la base liquidable.
- * @param {number} base
- * @returns {number}
+ * Aplica los tramos IRPF 2025 sobre la base liquidable.
+ * Los tramos de tax-rules.js combinan estatal + autonómica media.
+ * Para la escala autonómica real por CCAA, ver lote 16 de la auditoría.
  * @private
  */
 function _calcCuotaTramos(base) {
   let cuota = 0;
   let baseRestante = base;
 
-  for (const tramo of TRAMOS_IRPF_2024) {
+  for (const tramo of TRAMOS_IRPF_2025) {
     if (baseRestante <= 0) break;
     const enTramo = Math.min(baseRestante, tramo.hasta - tramo.desde);
     cuota += enTramo * tramo.tipo;
@@ -342,10 +448,4 @@ function _calcCuotaTramos(base) {
   }
 
   return cuota;
-}
-
-/** Redondea a N decimales */
-function _round(n, dec = 2) {
-  const factor = Math.pow(10, dec);
-  return Math.round((n || 0) * factor) / factor;
 }
