@@ -2,10 +2,27 @@
    TAURIX · otros-modelos.js
    Modelos fiscales 111, 115, 123, 190, 347, 349, 390
    Cálculos reales + exportación PDF
+   
+   REFACTORIZACIÓN por lotes (post-auditoría fiscal 2026):
+   · Lote 4 (este): Modelo 390 completo y correcto
+   · Lote 5 (próximo): Modelo 347 con exclusiones y BOE oficial
+   · Lote 6 (próximo): Modelo 349 con claves E/A/S/I/T/H/R
+   · Lote 7 (próximo): Modelos 111/190 con nóminas + 115 sin falsos positivos
+   · Lote 8 (próximo): A3 y ContaPlus con asientos cuadrados
    ═══════════════════════════════════════════════════════ */
 
 import { supabase } from "./supabase.js";
 import { SESSION, fmt, fmtDate, toast, getYear, getTrim, getFechaRango, getFacturasTrim, TRIM_LABELS, TRIM_PLAZOS } from "./utils.js";
+import {
+  desglosarIva,
+  cuotaIrpfFactura,
+  totalFactura,
+  esDeducibleIVA,
+  redondearSimetrico,
+  TIPOS_IVA_VALIDOS,
+} from "./factura-helpers.js";
+
+const _r = redondearSimetrico;
 
 /* ══════════════════════════
    MODELO 111 — Retenciones IRPF
@@ -229,53 +246,285 @@ export async function exportModelo349PDF() {
   });
 }
 
-/* ══════════════════════════
-   MODELO 390 — Resumen anual IVA
-══════════════════════════ */
-export async function calcModelo390(year) {
-  // Usa getFacturasTrim (context-aware) para respetar contexto gestor
-  const y = year || getYear();
-  let repTotal = 0, sopTotal = 0;
+/* ══════════════════════════════════════════════════════════════════
+   MODELO 390 — Declaración-resumen anual del IVA
+   Orden HAC/819/2024 (versión 2024 — vigente para ejercicio 2025)
+   Art. 71.4 RIVA · Informativa (no liquidatoria)
+   
+   REFACTORIZACIÓN v2 (post-auditoría fiscal 2026):
+   ─────────────────────────────────────────────────────────────────
+   ▸ Hallazgo 1 del informe: multi-IVA real mediante desglosarIva()
+     en lugar de la fórmula ingenua base × iva_pct / 100.
+   ▸ Hallazgo 10: redondeo simétrico por factura y por tipo de IVA.
+   ▸ Hallazgo 11: deducibilidad vía esDeducibleIVA() centralizado
+     (sustituye la heurística TIQ- inline).
+   ▸ Hallazgo 17 (CLAVE): el 390 DEBE incluir también operaciones
+     exentas sin cuota (exportaciones, entregas IC, ISP emitida,
+     exento art. 20 LIVA), adquisiciones IC y ISP recibida.
+     Antes el early-return `if (cuota <= 0) return` las descartaba
+     todas, produciendo discrepancias inmediatas con el Modelo 349
+     del mismo declarante.
+   ▸ Hallazgo 24: ISP recibida usa la cuota real del documento; si
+     la factura UE viene sin IVA se aplica 21% como tipo por defecto.
+   ▸ Hallazgo 28: las etiquetas de casillas corresponden al diseño
+     vigente publicado en BOE.
+══════════════════════════════════════════════════════════════════ */
 
+/**
+ * Calcula el Modelo 390 completo agregando los 4 trimestres.
+ *
+ * @param {number} [year] - Ejercicio (defecto: año en curso).
+ * @returns {Promise<Object>} Objeto con todas las casillas relevantes.
+ */
+export async function calcModelo390(year) {
+  const y = year || getYear();
+
+  /* ── Acumuladores por casilla ────────────────────────────────── */
+  // IVA devengado interior — base y cuota por tipo
+  const devBase = { 21: 0, 10: 0, 4: 0, 0: 0 };
+  const devCuota = { 21: 0, 10: 0, 4: 0, 0: 0 };
+  // Recargo de equivalencia (bases y cuotas) — soportado solo si el
+  // declarante factura a sujetos en recargo. Taurix aún no modela
+  // régimen REQ; se deja a 0 para no confundir.
+  // Adquisiciones intracomunitarias y ISP — base y cuota autoliquidadas
+  let baseIcAdq = 0, cuotaIcAdq = 0;
+  let baseIspRec = 0, cuotaIspRec = 0;
+  // Operaciones EXENTAS y especiales (todas las bases, aunque cuota = 0)
+  let baseExportacion     = 0;  // art. 21 LIVA (cas. 103)
+  let baseIcEntrega       = 0;  // art. 25 LIVA (cas. 99)
+  let baseExentoInterior  = 0;  // art. 20 LIVA (cas. 105) — sin derecho
+  let baseIspEmitida      = 0;  // art. 84 LIVA (cas. 122)
+  // IVA soportado (interior, importaciones, bienes inversión)
+  let sopInteriorBase = 0, sopInteriorCuota = 0;
+  let sopImportBase   = 0, sopImportCuota   = 0;
+  let sopInversionBase = 0, sopInversionCuota = 0; // bienes inversión (cas. 35-36)
+  // Rectificaciones (bases de facturas rectificativas — signo negativo)
+  let rectifRep = 0, rectifSop = 0;
+  // Operaciones no sujetas (art. 7 LIVA) — p. ej. muestras gratuitas
+  // Taurix no las modela explícitamente; se deja 0 por ahora.
+
+  /* ── Recorrer los 4 trimestres ──────────────────────────────── */
   for (const trim of ["T1", "T2", "T3", "T4"]) {
     const facs = await getFacturasTrim(y, trim);
-    (facs || []).forEach(f => {
-      const cuota = f.base * (f.iva || 0) / 100;
-      if (cuota <= 0) return; // sin IVA no aplica al 390
+    for (const f of (facs || [])) {
+      const op = f.tipo_operacion || "nacional";
+      const d  = desglosarIva(f);                     // ← multi-IVA real
+
+      /* ── Facturas EMITIDAS ──────────────────────────────────── */
       if (f.tipo === "emitida" && f.estado === "emitida") {
-        repTotal += cuota;
-      } else if (f.tipo === "recibida" && f.estado !== "anulada") {
-        // Tickets TIQ no deducibles (coherente con 303)
-        if (!(f.numero_factura || "").startsWith("TIQ-")) {
-          sopTotal += cuota;
+        // Rectificativas: signo ya viene negativo en las bases
+        if (f.es_rectificativa || (f.base < 0)) {
+          rectifRep += d.base_total + d.cuota_total;
+        }
+
+        switch (op) {
+          case "exportacion":
+            baseExportacion += d.base_total;
+            break;
+
+          case "intracomunitaria":
+            baseIcEntrega += d.base_total;
+            break;
+
+          case "inversion_sujeto_pasivo":
+            baseIspEmitida += d.base_total;
+            break;
+
+          case "exento":
+            baseExentoInterior += d.base_total;      // sin derecho a deducir
+            break;
+
+          default:
+            // Nacional sujeta — desglosar por tipo de IVA
+            for (const pct of TIPOS_IVA_VALIDOS) {
+              devBase[pct]  += d[pct].base;
+              devCuota[pct] += d[pct].cuota;
+            }
         }
       }
-    });
+
+      /* ── Facturas RECIBIDAS ─────────────────────────────────── */
+      else if (f.tipo === "recibida" && f.estado !== "anulada") {
+        // Rectificativas recibidas
+        if (f.es_rectificativa || (f.base < 0)) {
+          rectifSop += d.cuota_total;
+        }
+
+        const deducible = esDeducibleIVA(f);
+        const pctDed    = (f.pct_deduccion_iva ?? 100) / 100;
+
+        switch (op) {
+          case "importacion":
+            sopImportBase  += d.base_total;
+            if (deducible) sopImportCuota += d.cuota_total * pctDed;
+            break;
+
+          case "intracomunitaria": {
+            // Art. 85 LIVA — si factura UE sin IVA, aplicar 21% por defecto
+            const cuotaAIC = d.cuota_total > 0
+              ? d.cuota_total
+              : d.base_total * 0.21;
+            baseIcAdq  += d.base_total;
+            cuotaIcAdq += cuotaAIC;                 // devengado
+            // Deducible en la misma declaración (efecto neutro si deducible)
+            if (deducible) sopInteriorCuota += cuotaAIC * pctDed;
+            break;
+          }
+
+          case "inversion_sujeto_pasivo": {
+            // Art. 84 LIVA — usar cuota real; fallback 21% solo si viene a 0
+            const cuotaISP = d.cuota_total > 0
+              ? d.cuota_total
+              : d.base_total * 0.21;
+            baseIspRec  += d.base_total;
+            cuotaIspRec += cuotaISP;
+            if (deducible) sopInteriorCuota += cuotaISP * pctDed;
+            break;
+          }
+
+          default:
+            // Nacional: separar bienes inversión del resto
+            // Taurix identifica bienes inversión por tabla `bienes_inversion`.
+            // Como aquí no tenemos esa info cruzada por factura, acumulamos
+            // en soportado interior (el ajuste fino se hace en tax-iva.js).
+            sopInteriorBase += d.base_total;
+            if (deducible) sopInteriorCuota += d.cuota_total * pctDed;
+        }
+      }
+    }
   }
 
-  const s390 = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  s390("m390Rep", fmt(repTotal));
-  s390("m390Sop", fmt(sopTotal));
-  s390("m390Res", fmt(repTotal - sopTotal));
+  /* ── Redondeo simétrico por bloque ─────────────────────────── */
+  for (const pct of TIPOS_IVA_VALIDOS) {
+    devBase[pct]  = _r(devBase[pct]);
+    devCuota[pct] = _r(devCuota[pct]);
+  }
+  baseIcAdq         = _r(baseIcAdq);
+  cuotaIcAdq        = _r(cuotaIcAdq);
+  baseIspRec        = _r(baseIspRec);
+  cuotaIspRec       = _r(cuotaIspRec);
+  baseExportacion   = _r(baseExportacion);
+  baseIcEntrega     = _r(baseIcEntrega);
+  baseExentoInterior = _r(baseExentoInterior);
+  baseIspEmitida    = _r(baseIspEmitida);
+  sopInteriorBase   = _r(sopInteriorBase);
+  sopInteriorCuota  = _r(sopInteriorCuota);
+  sopImportBase     = _r(sopImportBase);
+  sopImportCuota    = _r(sopImportCuota);
+  rectifRep         = _r(rectifRep);
+  rectifSop         = _r(rectifSop);
 
-  return { repTotal, sopTotal, resultado: repTotal - sopTotal, year: y };
+  /* ── Totales ─────────────────────────────────────────────── */
+  const totalBaseDevengado = _r(
+    devBase[21] + devBase[10] + devBase[4] + devBase[0] +
+    baseIcAdq + baseIspRec
+  );
+  const repTotal = _r(
+    devCuota[21] + devCuota[10] + devCuota[4] + devCuota[0] +
+    cuotaIcAdq + cuotaIspRec
+  );
+  const sopTotal = _r(sopInteriorCuota + sopImportCuota);
+  const resultado = _r(repTotal - sopTotal);
+
+  /* ── Total operaciones realizadas (cas. 108 — informativa) ── */
+  const volumenOperaciones = _r(
+    devBase[21] + devBase[10] + devBase[4] + devBase[0] +
+    baseExportacion + baseIcEntrega + baseExentoInterior +
+    baseIspEmitida + baseIcAdq + baseIspRec
+  );
+
+  /* ── Pintar en el UI del dashboard si existen los nodos ─── */
+  const s390 = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = fmt(v); };
+  s390("m390Rep", repTotal);
+  s390("m390Sop", sopTotal);
+  s390("m390Res", resultado);
+
+  return {
+    year: y,
+    // Totales agregados (compat con código legacy — NO cambiar nombres)
+    repTotal,
+    sopTotal,
+    resultado,
+    // Desglose IVA devengado interior
+    devBase,                                  // bases por tipo {21,10,4,0}
+    devCuota,                                 // cuotas por tipo {21,10,4,0}
+    // Autoliquidaciones (AIC + ISP recibida)
+    baseIcAdq,   cuotaIcAdq,
+    baseIspRec,  cuotaIspRec,
+    // Operaciones exentas / especiales (base sin cuota)
+    baseExportacion,                          // cas. 103
+    baseIcEntrega,                            // cas. 99
+    baseExentoInterior,                       // cas. 105
+    baseIspEmitida,                           // cas. 122
+    // IVA soportado
+    sopInteriorBase,  sopInteriorCuota,
+    sopImportBase,    sopImportCuota,
+    // Rectificaciones
+    rectifRep,  rectifSop,
+    // Totales informativos
+    totalBaseDevengado,
+    volumenOperaciones,                       // cas. 108
+  };
 }
 
+/**
+ * Exporta el Modelo 390 como PDF con desglose completo por casillas.
+ * Ahora incluye las bases de operaciones exentas y especiales
+ * (Hallazgo 17: antes solo se veían las que tenían cuota).
+ */
 export async function exportModelo390PDF() {
   const data = await calcModelo390();
+
+  // Solo incluimos filas con valor distinto de 0 para no saturar el PDF
+  const _row = (label, valor, opts = {}) =>
+    (Math.abs(valor) > 0.005 || opts.siempre) ? { label, valor, ...opts } : null;
+
+  const filas = [
+    // ── IVA devengado interior
+    _row("Cas. 01 · Base 21% — Régimen general", data.devBase[21]),
+    _row("Cas. 03 · Cuota IVA 21%",              data.devCuota[21]),
+    _row("Cas. 04 · Base 10%",                   data.devBase[10]),
+    _row("Cas. 06 · Cuota IVA 10%",              data.devCuota[10]),
+    _row("Cas. 07 · Base 4%",                    data.devBase[4]),
+    _row("Cas. 09 · Cuota IVA 4%",               data.devCuota[4]),
+    // ── Adquisiciones intracomunitarias e ISP
+    _row("Cas. 22 · Base adquisiciones IC",      data.baseIcAdq),
+    _row("Cas. 24 · Cuota IVA adq. IC",          data.cuotaIcAdq),
+    _row("Cas. 25 · Base ISP recibida",          data.baseIspRec),
+    _row("Cas. 27 · Cuota IVA ISP recibida",     data.cuotaIspRec),
+    // ── Operaciones exentas y especiales
+    _row("Cas. 99 · Entregas IC exentas (art. 25 LIVA)", data.baseIcEntrega),
+    _row("Cas. 103 · Exportaciones (art. 21 LIVA)",      data.baseExportacion),
+    _row("Cas. 105 · Operaciones exentas interior (art. 20 LIVA, sin derecho)", data.baseExentoInterior),
+    _row("Cas. 122 · ISP emitida (art. 84 LIVA)",        data.baseIspEmitida),
+    // ── Totales devengado
+    _row("TOTAL BASE IMPONIBLE DEVENGADO",       data.totalBaseDevengado,  { bold: true, siempre: true }),
+    _row("TOTAL IVA DEVENGADO",                  data.repTotal,            { bold: true, siempre: true }),
+    // ── IVA soportado
+    _row("Cas. 28 · Base operaciones interiores deducibles",  data.sopInteriorBase),
+    _row("Cas. 29 · Cuota IVA soportado interior",            data.sopInteriorCuota),
+    _row("Cas. 32 · Base importaciones",                      data.sopImportBase),
+    _row("Cas. 33 · Cuota IVA soportado importaciones",       data.sopImportCuota),
+    _row("TOTAL IVA SOPORTADO DEDUCIBLE",        data.sopTotal,            { bold: true, siempre: true }),
+    // ── Rectificaciones
+    _row("Rectificaciones IVA repercutido",      data.rectifRep),
+    _row("Rectificaciones IVA soportado",        data.rectifSop),
+    // ── Volumen total (cas. 108)
+    _row("Cas. 108 · VOLUMEN DE OPERACIONES",    data.volumenOperaciones,  { bold: true, siempre: true }),
+    // ── Resultado final
+    _row("RESULTADO LIQUIDACIONES AÑO",          data.resultado,           { bold: true, siempre: true }),
+  ].filter(Boolean);
+
   await generarPDFModelo({
     numero: "390",
     titulo: "DECLARACIÓN-RESUMEN ANUAL DEL IVA",
-    subtitulo: "Resumen de las declaraciones-liquidaciones periódicas (Modelo 303)",
+    subtitulo: "Resumen consolidado de las declaraciones-liquidaciones periódicas del IVA (Modelo 303)",
     year: data.year, trim: "ANUAL",
     resultado: data.resultado,
-    filas: [
-      { label: "IVA repercutido total año", valor: data.repTotal },
-      { label: "IVA soportado deducible total año", valor: data.sopTotal },
-      { label: "RESULTADO ANUAL IVA", valor: data.resultado, bold: true },
-    ],
-    plazo: "Enero del año siguiente",
-    nota: "Declaración informativa anual complementaria al Modelo 303. Art. 71.4 RIVA."
+    labelResultado: data.resultado >= 0 ? "RESULTADO ANUAL (IVA DEVENGADO − SOPORTADO)" : "RESULTADO ANUAL (SALDO NEGATIVO)",
+    filas,
+    plazo: "Del 1 al 30 de enero del año siguiente",
+    nota: "Declaración informativa anual (Art. 71.4 RIVA / Orden HAC/819/2024). Debe presentarse aunque el resultado neto anual sea cero o negativo. Documento orientativo generado por Taurix — verifique cada casilla con su asesor antes de presentar ante la AEAT."
   });
 }
 
@@ -305,16 +554,30 @@ export async function exportModelo190PDF() {
 /* ══════════════════════════
    GENERADOR PDF GENÉRICO MODELOS
 ══════════════════════════ */
-async function generarPDFModelo({ numero, titulo, subtitulo, year, trim, resultado, filas, plazo, nota }) {
+async function generarPDFModelo({ numero, titulo, subtitulo, year, trim, resultado, filas, plazo, nota, labelResultado }) {
   await _cargarJsPDF();
   const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).maybeSingle();
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const PW = 210, ML = 18, W = PW - ML * 2;
+  const PW = 210, PH = 297, ML = 18, MR = 18, MB = 22, W = PW - ML - MR;
   const BLUE = [26, 86, 219], INK = [15, 23, 42], MUTED = [100, 116, 139], LIGHT = [248, 250, 252];
 
-  // Cabecera
+  let y = 42;
+
+  // ── Helper: asegurar que queda espacio en la página; si no, nueva página
+  const _needSpace = (h) => {
+    if (y + h > PH - MB) {
+      doc.addPage();
+      y = 22;
+      // Cabecera compacta en páginas siguientes
+      doc.setTextColor(...MUTED); doc.setFontSize(8);
+      doc.text(`Modelo ${numero} · ${pf?.nombre_razon_social || ""} · ${year}`, ML, y);
+      y += 8;
+    }
+  };
+
+  // Cabecera (solo en la primera página)
   doc.setFillColor(...BLUE); doc.rect(0, 0, PW, 32, "F");
   doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
   doc.text(`MODELO ${numero}`, ML, 13);
@@ -323,9 +586,8 @@ async function generarPDFModelo({ numero, titulo, subtitulo, year, trim, resulta
   doc.setFontSize(8);
   doc.text(subtitulo, ML, 27);
   doc.setFont("helvetica", "bold"); doc.setFontSize(14);
-  doc.text(`M-${numero}`, PW - ML, 20, { align: "right" });
+  doc.text(`M-${numero}`, PW - MR, 20, { align: "right" });
 
-  let y = 42;
   doc.setTextColor(...INK);
 
   // Datos contribuyente
@@ -336,58 +598,73 @@ async function generarPDFModelo({ numero, titulo, subtitulo, year, trim, resulta
   doc.text(`${pf?.nombre_razon_social || "—"}`, ML + 4, y + 11);
   doc.text(`NIF: ${pf?.nif || "—"}`, ML + 4, y + 16);
   doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
-  doc.text(`Periodo: ${trim} · ${year}`, PW - ML, y + 11, { align: "right" });
-  doc.text(`Plazo: ${plazo}`, PW - ML, y + 16, { align: "right" });
+  doc.text(`Periodo: ${trim} · ${year}`, PW - MR, y + 11, { align: "right" });
+  doc.text(`Plazo: ${plazo}`, PW - MR, y + 16, { align: "right" });
   y += 26;
 
   // Cuerpo del modelo
   doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...INK);
   doc.text("LIQUIDACIÓN", ML, y); y += 6;
-  doc.setDrawColor(...BLUE); doc.setLineWidth(0.5); doc.line(ML, y, PW - ML, y); y += 6;
+  doc.setDrawColor(...BLUE); doc.setLineWidth(0.5); doc.line(ML, y, PW - MR, y); y += 6;
 
   filas.forEach((f, i) => {
+    _needSpace(8);
     if (i % 2 === 0) doc.setFillColor(248, 250, 255); else doc.setFillColor(255, 255, 255);
     doc.rect(ML, y, W, 8, "F");
     doc.setFont("helvetica", f.bold ? "bold" : "normal");
     doc.setFontSize(f.bold ? 10 : 9);
     if (f.bold) { doc.setTextColor(...BLUE); } else { doc.setTextColor(...INK); }
-    doc.text(f.label, ML + 3, y + 5.5);
+    // El label puede ser más largo que la columna; lo recortamos si hace falta
+    const labelMaxWidth = W - 55;
+    const labelLines = doc.splitTextToSize(f.label, labelMaxWidth);
+    doc.text(labelLines[0], ML + 3, y + 5.5);
     if (f.valor !== null && f.valor !== undefined) {
-      doc.text(fmt(f.valor), PW - ML - 2, y + 5.5, { align: "right" });
+      doc.text(fmt(f.valor), PW - MR - 2, y + 5.5, { align: "right" });
     } else if (f.texto) {
-      doc.text(f.texto, PW - ML - 2, y + 5.5, { align: "right" });
+      doc.text(f.texto, PW - MR - 2, y + 5.5, { align: "right" });
     }
     y += 8;
   });
 
-  y += 8;
+  y += 4;
 
   // Resultado final
+  _needSpace(18);
   doc.setFillColor(...BLUE); doc.rect(ML, y, W, 14, "F");
   doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(255, 255, 255);
-  doc.text("RESULTADO A INGRESAR", ML + 4, y + 9);
-  doc.text(fmt(resultado), PW - ML - 2, y + 9, { align: "right" });
+  doc.text(labelResultado || "RESULTADO A INGRESAR", ML + 4, y + 9);
+  doc.text(fmt(resultado), PW - MR - 2, y + 9, { align: "right" });
   y += 22;
 
   // Nota legal
   if (nota) {
-    doc.setFillColor(...LIGHT); doc.setDrawColor(200);
     const lines = doc.splitTextToSize("NOTA LEGAL: " + nota, W - 8);
-    doc.rect(ML, y, W, lines.length * 4.5 + 8, "FD");
+    const notaH = lines.length * 4.5 + 8;
+    _needSpace(notaH);
+    doc.setFillColor(...LIGHT); doc.setDrawColor(200);
+    doc.rect(ML, y, W, notaH, "FD");
     doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
     doc.text(lines, ML + 4, y + 6);
-    y += lines.length * 4.5 + 14;
+    y += notaH + 6;
   }
 
   // Firma / sello
-  doc.setDrawColor(200); doc.line(ML, y, ML + 70, y); doc.line(PW - ML - 70, y, PW - ML, y);
+  _needSpace(12);
+  doc.setDrawColor(200); doc.line(ML, y, ML + 70, y); doc.line(PW - MR - 70, y, PW - MR, y);
   doc.setFontSize(8); doc.setTextColor(...MUTED);
   doc.text("Firma del obligado tributario", ML + 10, y + 5);
-  doc.text("Fecha y sello AEAT", PW - ML - 50, y + 5);
+  doc.text("Fecha y sello AEAT", PW - MR - 50, y + 5);
 
-  // Footer
-  doc.setFontSize(7);
-  doc.text(`Generado con Taurix · ${new Date().toLocaleDateString("es-ES")} · Este documento es orientativo. Verifique con la AEAT antes de presentar.`, PW / 2, 290, { align: "center" });
+  // Footer (en cada página)
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFontSize(7); doc.setTextColor(...MUTED);
+    doc.text(
+      `Generado con Taurix · ${new Date().toLocaleDateString("es-ES")} · Página ${p}/${totalPages} · Documento orientativo. Verifique con la AEAT antes de presentar.`,
+      PW / 2, 290, { align: "center" }
+    );
+  }
 
   doc.save(`modelo_${numero}_${year}_${trim}.pdf`);
   toast(`Modelo ${numero} exportado ✅`, "success");
