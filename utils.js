@@ -4,6 +4,28 @@
 
 import { supabase } from "./supabase.js";
 import { logout } from "./auth.js";
+import {
+  desglosarIva,
+  cuotaIrpfFactura,
+  totalFactura,
+  esDeducibleIVA,
+  redondearSimetrico,
+  TIPOS_IVA_VALIDOS,
+  trimestreDeFecha,
+  yearDeFecha,
+} from "./factura-helpers.js";
+
+// Re-exportar los helpers para que otros módulos puedan importarlos
+// desde utils.js también (compatibilidad hacia adelante).
+export {
+  desglosarIva,
+  cuotaIrpfFactura,
+  totalFactura,
+  esDeducibleIVA,
+  redondearSimetrico,
+  trimestreDeFecha,
+  yearDeFecha,
+};
 
 /* ─── Contexto de query (gestor/empresa activa/usuario) ─── */
 function _getCtx() {
@@ -221,10 +243,20 @@ export function isCerrado(year, trim) {
 }
 
 export function calcIVA(facturas) {
-  // Función de cálculo IVA coherente con calcModelo303Completo:
-  // - Entregas IC y exportaciones: exentas, base va a byOp, no generan rep.total
-  // - Adquisiciones IC e ISP recibidas: autoliquidación (rep + sop, efecto neutro)
-  // - Tickets TIQ (numero_factura starts with "TIQ-"): IVA soportado NO deducible (art. 97 LIVA)
+  /* ─────────────────────────────────────────────────────────────────
+     Cálculo IVA coherente con calcModelo303Completo.
+     
+     REFACTOR (Hallazgo 1 del informe fiscal):
+     Usa el helper `desglosarIva()` para respetar el desglose real
+     por tipo de IVA de cada factura (cuando la factura tiene `lineas`
+     serializadas). Antes usaba `f.base × f.iva / 100` ingenuo que
+     daba resultados incorrectos en facturas multi-IVA.
+     
+     REGLAS:
+     - Entregas IC y exportaciones: exentas, base va a byOp, no generan rep.total
+     - Adquisiciones IC e ISP recibidas: autoliquidación (rep + sop, efecto neutro)
+     - Deducibilidad de facturas recibidas: vía `esDeducibleIVA()`.
+     ───────────────────────────────────────────────────────────────── */
   const rep = { 21: 0, 10: 0, 4: 0, 0: 0, total: 0 };
   const sop = { int: 0, imp: 0, total: 0 };
   const byOp = {
@@ -234,47 +266,53 @@ export function calcIVA(facturas) {
   let baseExenta = 0;
 
   facturas.forEach(f => {
-    const cuota = f.base * (f.iva || 0) / 100;
     const op = f.tipo_operacion || "nacional";
+    const d  = desglosarIva(f);                 // ← desglose multi-IVA real
 
     if (f.tipo === "emitida" && f.estado === "emitida") {
       if (op === "exportacion") {
         // Exenta art. 21 LIVA — base va a exenta, no genera rep
-        baseExenta += f.base;
-        byOp.exportacion = (byOp.exportacion || 0) + f.base;
+        baseExenta += d.base_total;
+        byOp.exportacion = (byOp.exportacion || 0) + d.base_total;
       } else if (op === "intracomunitaria") {
         // Entrega IC exenta art. 25 LIVA
-        baseExenta += f.base;
-        byOp.intracomunitaria_entrega = (byOp.intracomunitaria_entrega || 0) + f.base;
+        baseExenta += d.base_total;
+        byOp.intracomunitaria_entrega = (byOp.intracomunitaria_entrega || 0) + d.base_total;
       } else if (op === "inversion_sujeto_pasivo") {
         // ISP emitida: el receptor liquida, no genera cuota propia
-        byOp.inversion_sujeto_pasivo = (byOp.inversion_sujeto_pasivo || 0) + f.base;
+        byOp.inversion_sujeto_pasivo = (byOp.inversion_sujeto_pasivo || 0) + d.base_total;
+      } else if (op === "exento") {
+        // Exento sin derecho (art. 20 LIVA)
+        baseExenta += d.base_total;
       } else {
-        // Nacional con IVA
-        const k = [21, 10, 4, 0].includes(Number(f.iva)) ? Number(f.iva) : 21;
-        rep[k] = (rep[k] || 0) + cuota;
-        rep.total += cuota;
-        byOp.nacional = (byOp.nacional || 0) + f.base;
+        // Nacional con IVA — acumular por cada tipo de IVA real
+        for (const pct of TIPOS_IVA_VALIDOS) {
+          rep[pct]   = (rep[pct]   || 0) + d[pct].cuota;
+        }
+        rep.total     += d.cuota_total;
+        byOp.nacional  = (byOp.nacional || 0) + d.base_total;
       }
     } else if (f.tipo === "recibida") {
       if (op === "importacion") {
-        sop.imp += cuota;
+        sop.imp += d.cuota_total;
       } else if (op === "intracomunitaria" || op === "inversion_sujeto_pasivo") {
         // Autoliquidación: devengado Y deducible — efecto neutro (art. 84 y 85 LIVA)
+        // La cuota "devengada" se calcula aunque la factura no la lleve
+        // porque el declarante auto-repercute (art. 75 LIVA).
+        const cuotaAutoliq = d[21].base * 0.21 + d[10].base * 0.10 + d[4].base * 0.04 + (d.cuota_total || 0);
+        // Si la factura ya registra cuota (receptor registró el IVA), usarla;
+        // si no, aplicar 21 % por defecto sobre la base total.
+        const cuota = d.cuota_total > 0 ? d.cuota_total : d.base_total * 0.21;
         rep.total += cuota;
-        sop.int   += cuota;
+        sop.int   += esDeducibleIVA(f) ? cuota : 0;
         if (op === "intracomunitaria") {
-          byOp.intracomunitaria_adquisicion = (byOp.intracomunitaria_adquisicion || 0) + f.base;
+          byOp.intracomunitaria_adquisicion = (byOp.intracomunitaria_adquisicion || 0) + d.base_total;
         }
       } else {
-        // Nacional — deducible si tiene factura completa (no TIQ-) O si
-        // el ticket tiene IVA registrado (iva > 0)
-        // Los tickets TIQ sin IVA no dan derecho a deducir (art. 97 LIVA)
-        const esTicket = (f.numero_factura || "").startsWith("TIQ-");
-        const tieneIvaRegistrado = (f.iva ?? f.iva_pct ?? 0) > 0;
-        if (!esTicket || tieneIvaRegistrado) {
+        // Nacional — deducible según criterio centralizado (art. 97 LIVA)
+        if (esDeducibleIVA(f)) {
           const pctDed = (f.pct_deduccion_iva ?? 100) / 100;
-          sop.int += cuota * pctDed;
+          sop.int += d.cuota_total * pctDed;
         }
         // El gasto (base) siempre computa para IRPF aunque sea ticket
       }
@@ -282,38 +320,66 @@ export function calcIVA(facturas) {
     }
   });
 
-  return { rep, sop, resultado: rep.total - sop.total, byOp, baseExenta };
+  // Redondeo final simétrico a 2 decimales
+  for (const pct of TIPOS_IVA_VALIDOS) rep[pct] = redondearSimetrico(rep[pct]);
+  rep.total   = redondearSimetrico(rep.total);
+  sop.int     = redondearSimetrico(sop.int);
+  sop.imp     = redondearSimetrico(sop.imp);
+  sop.total   = redondearSimetrico(sop.total);
+  baseExenta  = redondearSimetrico(baseExenta);
+  for (const k of Object.keys(byOp)) byOp[k] = redondearSimetrico(byOp[k]);
+
+  return {
+    rep, sop,
+    resultado: redondearSimetrico(rep.total - sop.total),
+    byOp,
+    baseExenta,
+  };
 }
 
 export function calcIRPF(facturas) {
-  // Usa irpf_retencion como campo primario (campo real de la BD desde nueva-factura.js)
-  // con fallback a irpf para compatibilidad con registros legacy
+  /* ─────────────────────────────────────────────────────────────────
+     Cálculo IRPF (Modelo 130) con redondeo simétrico por factura.
+     
+     REFACTOR (Hallazgos 1 y 10):
+     - Usa `desglosarIva()` para obtener la base_total real
+       (respetando descuentos de línea y descuento global).
+     - Aplica retención con redondeo simétrico por factura
+       (`cuotaIrpfFactura()`) para que la suma entre facturas sea
+       estable y no se acumule error de redondeo.
+     - Contempla base negativa de rectificativas correctamente.
+     ───────────────────────────────────────────────────────────────── */
   let ingresos = 0, gastos = 0, retenciones = 0;
-  let ingresosConRetencion = 0; // para detectar excepción 70% art. 109.1 RIRPF
+  let ingresosConRetencion = 0;     // para detectar excepción 70% art. 109.1 RIRPF
 
   facturas.forEach(f => {
     if (f.tipo === "emitida" && f.estado === "emitida") {
-      ingresos += f.base;
-      // irpf_retencion es el campo canónico; irpf es legacy
-      const pctRet = f.irpf_retencion ?? f.irpf ?? 0;
-      if (pctRet > 0) {
-        retenciones += f.base * pctRet / 100;
-        ingresosConRetencion += f.base;
+      const d = desglosarIva(f);                         // base_total real
+      ingresos += d.base_total;
+      const irpf = cuotaIrpfFactura(f, d);
+      if (irpf.pct > 0) {
+        retenciones += irpf.cuota;
+        ingresosConRetencion += d.base_total;
       }
     } else if (f.tipo === "recibida") {
-      gastos += f.base;
+      const d = desglosarIva(f);
+      gastos += d.base_total;
     }
   });
 
-  const rendimiento = ingresos - gastos;
-  const pagoFrac    = Math.max(0, rendimiento * 0.20);
-  // Excepción presentación 130: si ≥70% ingresos tienen retención (art. 109.1 RIRPF)
+  ingresos             = redondearSimetrico(ingresos);
+  gastos               = redondearSimetrico(gastos);
+  retenciones          = redondearSimetrico(retenciones);
+  ingresosConRetencion = redondearSimetrico(ingresosConRetencion);
+
+  const rendimiento = redondearSimetrico(ingresos - gastos);
+  const pagoFrac    = redondearSimetrico(Math.max(0, rendimiento * 0.20));
   const pctConRetencion = ingresos > 0 ? ingresosConRetencion / ingresos : 0;
   const exentoModelo130 = pctConRetencion >= 0.70;
 
   return {
     ingresos, gastos, rendimiento, retenciones, pagoFrac,
-    resultado: Math.max(0, pagoFrac - retenciones),
+    resultado: redondearSimetrico(Math.max(0, pagoFrac - retenciones)),
     ingresosConRetencion, pctConRetencion, exentoModelo130,
   };
 }
@@ -321,10 +387,21 @@ export function calcIRPF(facturas) {
 
 
 export async function calcModelo347(year) {
+  /* ─────────────────────────────────────────────────────────────────
+     Modelo 347 — versión mínima desde utils.js.
+     
+     Nota: el motor completo del 347 (con exclusiones IC/ISP y
+     desglose trimestral) está en otros-modelos.js. Esta función
+     se mantiene como utilidad rápida, pero ya usa el desglose
+     multi-IVA correcto (Hallazgo 1).
+     
+     Las exclusiones (Hallazgo 6) y el desglose trimestral se
+     aplicarán en otros-modelos.js en el lote 5 de la auditoría.
+     ───────────────────────────────────────────────────────────────── */
   if (!SESSION) return [];
   const ctx = _getCtx();
   const { data: facturas } = await supabase.from("facturas")
-    .select("cliente_nombre, cliente_nif, tipo, base, iva, estado, numero_factura")
+    .select("*")    // necesitamos `lineas` también para el desglose
     .eq(ctx.field, ctx.value)
     .gte("fecha", `${year}-01-01`).lte("fecha", `${year}-12-31`);
   const UMBRAL = 3005.06;
@@ -334,14 +411,23 @@ export async function calcModelo347(year) {
     if ((f.numero_factura || "").startsWith("TIQ-")) return;
     // Solo facturas emitidas en estado emitida, o recibidas
     if (f.tipo === "emitida" && f.estado !== "emitida") return;
+    // Exclusiones legales del 347 (art. 33 RD 1065/2007):
+    // - Intracomunitarias → van al 349
+    // - ISP → van a casillas 303 pero no al 347
+    // - Importaciones → el DUA ya identifica, no al 347
+    const op = f.tipo_operacion || "nacional";
+    if (["intracomunitaria","inversion_sujeto_pasivo","importacion"].includes(op)) return;
+
     const key = (f.cliente_nif || f.cliente_nombre || "SIN_NIF") + "_" + f.tipo;
     if (!acumulados[key]) acumulados[key] = {
       nombre: f.cliente_nombre, nif: f.cliente_nif, total: 0, tipo: f.tipo, ops: 0
     };
-    acumulados[key].total += f.base + f.base * (f.iva || 0) / 100;
+    // Total CON IVA (cuota real, no base × iva principal)
+    const t = totalFactura(f);
+    acumulados[key].total += t.base_total + t.cuota_iva;
     acumulados[key].ops++;
   });
-  return Object.values(acumulados).filter(a => a.total >= UMBRAL);
+  return Object.values(acumulados).filter(a => Math.abs(a.total) >= UMBRAL);
 }
 
 export async function loadEmpresas() {
