@@ -10,6 +10,7 @@ import {
   openModal, closeModal, isCerrado, getYear, getTrim, getFechaRango,
   TRIM_LABELS, TRIM_PLAZOS, OP_INFO
 } from "./utils.js";
+import { totalFactura, desglosarIva } from "./factura-helpers.js";
 import { refreshClientes, populateClienteSelect } from "./clientes.js";
 
 let paginaActual = 1;
@@ -208,8 +209,14 @@ export async function refreshFacturas() {
 
   facturas.sort((a,b) => (b.fecha||"").localeCompare(a.fecha||""));
   tbody.innerHTML = facturas.map(f => {
-    const total  = f.base + f.base*(f.iva||0)/100 - f.base*(f.irpf_retencion||0)/100;
-    const ivaAmt = f.base*(f.iva||0)/100;
+    // Hallazgo 1 del informe fiscal — multi-IVA:
+    // Antes: const total = f.base + f.base*(f.iva||0)/100 − f.base*(f.irpf_retencion||0)/100;
+    // Eso usaba un único tipo de IVA principal sobre toda la base, lo que para
+    // facturas con varios tipos (p.ej. 21% + 10%) daba un total incorrecto.
+    // Ahora leemos el desglose real por línea con totalFactura().
+    const t      = totalFactura(f);
+    const total  = t.total;
+    const ivaAmt = t.cuota_iva;
     const opKey  = f.tipo_operacion||"nacional";
 
     /* ── Columna acciones ── */
@@ -265,6 +272,9 @@ export async function refreshFacturas() {
 window._duplicarFact = async (id) => {
   const { data: f } = await supabase.from("facturas").select("*").eq("id", id).single();
   if (!f) { toast("Factura no encontrada","error"); return; }
+  // Copiar TODOS los campos relevantes (Hallazgo del informe):
+  // antes se perdían descuento_global, forma_pago, condiciones_pago, iban,
+  // titular_cuenta y fecha_vencimiento al duplicar, lo que rompía el total.
   const { error } = await supabase.from("facturas").insert({
     user_id: SESSION.user.id,
     concepto: f.concepto,
@@ -275,7 +285,14 @@ window._duplicarFact = async (id) => {
     cliente_id: f.cliente_id, cliente_nombre: f.cliente_nombre,
     cliente_nif: f.cliente_nif, cliente_direccion: f.cliente_direccion,
     cliente_pais: f.cliente_pais, notas: f.notas, lineas: f.lineas,
-    forma_pago: f.forma_pago,
+    forma_pago:        f.forma_pago,
+    condiciones_pago:  f.condiciones_pago,
+    iban:              f.iban,
+    titular_cuenta:    f.titular_cuenta,
+    descuento_global:  f.descuento_global,
+    // NO se copia numero_factura (serie/correlativo se asigna al emitir)
+    // NO se copia factura_rectif_de ni es_rectificativa
+    // NO se copia fecha_cobro ni cobrada (la duplicada nace como pendiente)
   });
   if (error) { toast("Error duplicando: "+error.message,"error"); return; }
   toast("Factura duplicada como borrador ✅","success");
@@ -290,6 +307,7 @@ window._notaCredito = async (id) => {
   const { data: f } = await supabase.from("facturas").select("*").eq("id", id).single();
   if (!f) { toast("Factura no encontrada","error"); return; }
 
+  const _totFmt = fmt(totalFactura(f).total);
   openModal(`
     <div class="modal">
       <div class="modal-hd">
@@ -298,7 +316,7 @@ window._notaCredito = async (id) => {
       </div>
       <div class="modal-bd">
         <div style="background:#fef9c3;border:1px solid #fde047;border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:16px">
-          ⚠️ La nota de crédito anulará total o parcialmente la factura <strong>${f.numero_factura}</strong> (${fmt(f.base + f.base*(f.iva||0)/100)}).
+          ⚠️ La nota de crédito anulará total o parcialmente la factura <strong>${f.numero_factura}</strong> (${_totFmt}).
         </div>
         <div class="modal-field"><label>Causa de la rectificación</label>
           <select id="nc_causa" class="ff-select">
