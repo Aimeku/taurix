@@ -31,8 +31,9 @@ export async function refreshDashboard() {
       .eq("user_id", uid).eq("tipo","emitida").eq("estado","emitida").eq("cobrada",false),
     supabase.from("gastos_recurrentes").select("importe,proxima_fecha,nombre")
       .eq("user_id", uid).eq("activo",true),
-    supabase.from("nominas").select("salario_bruto,ss_empresa")
-      .eq("user_id", uid).gte("fecha",`${year}-01-01`),
+    // NÓMINAS DESACTIVADAS — Taurix es fiscal, no laboral.
+    // Mantenemos la forma del array para no romper el destructuring ni código downstream.
+    Promise.resolve({ data: [], error: null }),
     supabase.from("pipeline_oportunidades").select("etapa,valor")
       .eq("user_id", uid).neq("etapa","perdida"),
     supabase.from("bienes_inversion").select("valor_adquisicion,coeficiente,tipo_bien")
@@ -116,8 +117,9 @@ export async function refreshDashboard() {
   st("tCountEmit",    facturasTrim.filter(f=>f.tipo==="emitida").length);
   st("tCountRecib",   facturasTrim.filter(f=>f.tipo==="recibida").length);
   st("tCountClientes",CLIENTES.length);
-  const nomN = nominasRes.data?.length||0;
-  st("tCountNominas", nomN||"—");
+  // Nóminas desactivadas (Taurix = fiscal, no laboral). Mantenemos
+  // el contador por si el HTML lo referencia, poniendo "—".
+  st("tCountNominas", "—");
 
   // Widgets secundarios
   renderHealthScore({ ingresos, gastos, rendimiento, margen, pendienteCobro, vencidas:vencidas.length, pipelineValor });
@@ -440,12 +442,16 @@ export async function refreshIS() {
   const _ctx = { field: 'user_id', value: SESSION?.user?.id ?? null };
   const [fR,nR,bR]=await Promise.all([
     supabase.from("facturas").select("tipo,base,iva,estado,irpf,irpf_retencion").eq(_ctx.field,_ctx.value).gte("fecha",`${year}-01-01`).lte("fecha",`${year}-12-31`),
-    supabase.from("nominas").select("salario_bruto,ss_empresa").eq(_ctx.field,_ctx.value).gte("fecha",`${year}-01-01`),
+    // Taurix no gestiona nóminas — devolvemos array vacío para mantener la shape del destructuring.
+    // Si la sociedad tiene empleados, el cálculo del IS lo hace su asesor con los datos
+    // laborales reales (no deberían venir de este software).
+    Promise.resolve({ data: [], error: null }),
     supabase.from("bienes_inversion").select("valor_adquisicion,coeficiente,tipo_bien").eq(_ctx.field,_ctx.value),
   ]);
   const facs=fR.data||[]; const noms=nR.data||[]; const bienes=bR.data||[];
   const ing=facs.filter(f=>f.tipo==="emitida"&&f.estado==="emitida").reduce((a,f)=>a+f.base,0);
   const gst=facs.filter(f=>f.tipo==="recibida").reduce((a,f)=>a+f.base,0);
+  // gstP (gasto personal de nóminas) queda en 0 — ver comentario arriba.
   const gstP=noms.reduce((a,n)=>a+(n.salario_bruto||0)+(n.ss_empresa||0),0);
   const amort=bienes.reduce((a,b)=>a+b.valor_adquisicion*(_coefDefault(b.tipo_bien))/100,0);
   const baii=ing-gst-gstP-amort;
