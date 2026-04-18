@@ -187,10 +187,9 @@ async function _calcIS(year, ctx) {
         .eq(ctx.field, ctx.value)
         .gte("fecha", `${year}-01-01`)
         .lte("fecha", `${year}-12-31`),
-      supabase.from("nominas")
-        .select("salario_bruto,ss_empresa")
-        .eq(ctx.field, ctx.value)
-        .gte("fecha", `${year}-01-01`),
+      // Taurix no gestiona nóminas (SaaS fiscal, no laboral).
+      // Devolvemos array vacío para preservar la shape del destructuring.
+      Promise.resolve({ data: [], error: null }),
       supabase.from("bienes_inversion")
         .select("valor_adquisicion,coeficiente,tipo_bien")
         .eq(ctx.field, ctx.value),
@@ -208,6 +207,9 @@ async function _calcIS(year, ctx) {
       .filter(f => f.tipo === "recibida")
       .reduce((a, f) => a + (f.base || 0), 0);
 
+    // gastos_personal queda en 0 porque Taurix no registra nóminas.
+    // Si el usuario tiene empleados y quiere estimar el IS, debe
+    // darlos de alta como facturas recibidas con concepto "nóminas".
     const gastos_personal = noms
       .reduce((a, n) => a + (n.salario_bruto || 0) + (n.ss_empresa || 0), 0);
 
