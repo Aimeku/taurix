@@ -506,35 +506,38 @@ async function showInformeMargenBruto() {
 
 /* ══════════════════════════
    8. COSTE LABORAL
+   ─────────────────────────
+   Taurix = SaaS fiscal, NO laboral. Este informe se deja
+   accesible (para que no se rompa el handler que lo referencia)
+   pero muestra un aviso claro de alcance en lugar de leer datos
+   de la tabla `nominas`.
 ══════════════════════════ */
 async function showInformeCosteLab() {
-  const { data: nominas } = await supabase.from("nominas")
-    .select("*").eq("user_id", SESSION.user.id)
-    .gte("fecha", `${new Date().getFullYear()}-01-01`);
-
-  const total = (nominas || []).reduce((a, n) => ({
-    bruto: a.bruto + (n.salario_bruto || 0),
-    neto:  a.neto  + (n.salario_neto  || 0),
-    ss:    a.ss    + (n.ss_empresa    || 0),
-    irpf:  a.irpf  + (n.irpf         || 0),
-  }), { bruto: 0, neto: 0, ss: 0, irpf: 0 });
-
   openModal(`
-    <div class="modal" style="max-width:560px">
+    <div class="modal" style="max-width:520px">
       <div class="modal-hd">
-        <span class="modal-title">👥 Coste laboral — ${new Date().getFullYear()}</span>
+        <span class="modal-title">👥 Coste laboral</span>
         <button class="modal-x" onclick="window._cm()">×</button>
       </div>
       <div class="modal-bd">
-        ${!nominas?.length ? `<p style="text-align:center;color:var(--t3);padding:24px">Sin nóminas generadas en este ejercicio. Añade empleados y genera nóminas para ver este informe.</p>` : `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div style="background:var(--bg2);padding:14px;border-radius:10px"><div style="font-size:11px;color:var(--t3);font-weight:700;text-transform:uppercase">Coste empresa total</div><div style="font-size:24px;font-weight:800;font-family:monospace;color:#dc2626">${fmt(total.bruto + total.ss)}</div></div>
-          <div style="background:var(--bg2);padding:14px;border-radius:10px"><div style="font-size:11px;color:var(--t3);font-weight:700;text-transform:uppercase">Neto pagado trabajadores</div><div style="font-size:24px;font-weight:800;font-family:monospace;color:#059669">${fmt(total.neto)}</div></div>
-          <div style="background:var(--bg2);padding:14px;border-radius:10px"><div style="font-size:11px;color:var(--t3);font-weight:700;text-transform:uppercase">SS empresa (retener)</div><div style="font-size:20px;font-weight:800;font-family:monospace">${fmt(total.ss)}</div></div>
-          <div style="background:var(--bg2);padding:14px;border-radius:10px"><div style="font-size:11px;color:var(--t3);font-weight:700;text-transform:uppercase">IRPF retenciones (Mod.111)</div><div style="font-size:20px;font-weight:800;font-family:monospace">${fmt(total.irpf)}</div></div>
-        </div>`}
+        <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:16px;margin-bottom:12px">
+          <div style="font-weight:700;font-size:14px;color:#92400e;margin-bottom:6px">Taurix no gestiona nóminas</div>
+          <div style="font-size:13px;color:#78350f;line-height:1.5">
+            Taurix está enfocado en <strong>gestión fiscal y facturación</strong>, no en administración laboral.
+            Si tu empresa tiene empleados, la información de coste laboral (salarios, Seguridad Social, retenciones de trabajo) debe venir
+            de tu software de nóminas o de tu asesor laboral.
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--t3);line-height:1.6">
+          Si quieres registrar gastos salariales en Taurix para el cálculo aproximado del IS de una sociedad,
+          puedes darlos de alta manualmente como <strong>facturas recibidas</strong> con el concepto adecuado
+          (por ejemplo, «Nóminas mes» como proveedor «Personal»). De este modo se reflejan como gasto deducible
+          sin necesidad de gestionar trabajadores individuales.
+        </p>
       </div>
-      <div class="modal-ft"><button class="btn-modal-cancel" onclick="window._cm()">Cerrar</button></div>
+      <div class="modal-ft">
+        <button class="btn-modal-cancel" onclick="window._cm()">Cerrar</button>
+      </div>
     </div>`);
 }
 
