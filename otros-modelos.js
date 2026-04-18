@@ -127,78 +127,356 @@ export async function exportModelo115PDF() {
   });
 }
 
-/* ══════════════════════════
-   MODELO 347 — Operaciones >3.005,06€
-══════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════
+   MODELO 347 — Declaración anual de operaciones con terceros
+   Art. 33 RD 1065/2007 · Orden HAC/1148/2024
+   
+   REFACTORIZACIÓN v2 (post-auditoría fiscal 2026):
+   ─────────────────────────────────────────────────────────────────
+   ▸ Hallazgo 1: total con IVA correcto vía desglosarIva() (multi-IVA).
+   ▸ Hallazgo 6 (MÚLTIPLES ERRORES EN UNA FUNCIÓN):
+     · Exclusión de operaciones que van en otros modelos:
+       - Intracomunitarias  → van al 349
+       - Inversión sujeto pasivo → en casillas 303 pero NO al 347
+       - Importaciones/exportaciones → DUA las identifica
+       - Facturas con retención IRPF practicada → van al 180/190
+     · Filtrado de recibidas anuladas / borrador (antes solo
+       filtraba emitidas no-emitidas).
+     · Desglose trimestral obligatorio por cada declarado
+       (exigido desde 2014).
+     · Marca operaciones de "arrendamiento de local de negocio"
+       para el campo específico del BOE.
+     · Marca operaciones en metálico > 6.000 €/año (requisito
+       adicional del 347).
+     · Agrupa por contraparte sumando todas sus operaciones.
+   ▸ Hallazgo 10: redondeo simétrico por factura.
+   ▸ Hallazgo 11: tickets TIQ excluidos sistemáticamente.
+══════════════════════════════════════════════════════════════════ */
+
+const UMBRAL_347 = 3005.06;       // art. 33.1.a RD 1065/2007
+const UMBRAL_METALICO_347 = 6000; // art. 33.1.h RD 1065/2007
+const OPS_EXCLUIDAS_347 = new Set([
+  "intracomunitaria",        // van al 349
+  "inversion_sujeto_pasivo", // casillas 303, NO 347
+  "exportacion",             // DUA identifica
+  "importacion",             // DUA identifica
+]);
+
+/**
+ * Detecta si una factura recibida es de arrendamiento de local de negocio.
+ * El 347 requiere marcar específicamente estas operaciones
+ * (campo "operaciones arrendamiento local de negocio" del registro).
+ * 
+ * Criterios:
+ * 1. Campo explícito `es_alquiler_local` si existe en BD.
+ * 2. Fallback: concepto o categoría contiene palabras clave de alquiler
+ *    INMOBILIARIO (no renting de vehículos ni alquiler de maquinaria).
+ *    Esto es una heurística débil — idealmente el usuario marca el
+ *    campo explícito (Lote 7 del plan de refactor).
+ */
+function _esArrendamientoLocalNegocio(f) {
+  // Campo explícito tiene prioridad absoluta
+  if (typeof f.es_alquiler_local === "boolean") return f.es_alquiler_local;
+  if (f.categoria === "alquiler_local" || f.categoria === "alquiler_oficina") return true;
+  // Heurística conservadora: solo si hay palabra "local" u "oficina" cerca
+  const txt = ((f.concepto || "") + " " + (f.categoria || "")).toLowerCase();
+  const esAlquiler   = /\balquiler|\barrendamiento|\brenta\b/.test(txt);
+  const esInmueble   = /\blocal\b|\boficina\b|\bdespacho\b|\bnave\b|\blocal comercial/.test(txt);
+  const noEsVehiculo = !/\brenting\b|\bvehic|\bcoche\b|\bfurgoneta\b|\bcamion/.test(txt);
+  return esAlquiler && esInmueble && noEsVehiculo;
+}
+
+/**
+ * Determina si una factura se excluye del 347.
+ * Devuelve {excluir: boolean, motivo: string|null}.
+ */
+function _excluirDel347(f) {
+  // 1. Tickets simplificados TIQ — sin NIF del destinatario, no declarable
+  if ((f.numero_factura || "").startsWith("TIQ-")) {
+    return { excluir: true, motivo: "ticket_simplificado" };
+  }
+  // 2. Facturas anuladas o borradores no se declaran
+  if (f.tipo === "emitida" && f.estado !== "emitida") {
+    return { excluir: true, motivo: "estado_no_emitida" };
+  }
+  if (f.tipo === "recibida" && f.estado === "anulada") {
+    return { excluir: true, motivo: "recibida_anulada" };
+  }
+  // 3. Operaciones en otros modelos (art. 33 RD 1065/2007)
+  const op = f.tipo_operacion || "nacional";
+  if (OPS_EXCLUIDAS_347.has(op)) {
+    return { excluir: true, motivo: `operacion_${op}` };
+  }
+  // 4. Operaciones con retención IRPF practicada al receptor:
+  //    van al 180 (alquileres) o 190 (profesionales), no al 347.
+  //    CONDICIÓN: facturas recibidas con irpf > 0.
+  if (f.tipo === "recibida" && (f.irpf_retencion ?? f.irpf ?? 0) > 0) {
+    return { excluir: true, motivo: "retencion_practicada_180_190" };
+  }
+  // 5. Operaciones exentas sin contraparte identificable
+  if (op === "exento" && !f.cliente_nif) {
+    return { excluir: true, motivo: "exenta_sin_nif" };
+  }
+  return { excluir: false, motivo: null };
+}
+
+/**
+ * Determina el trimestre de una factura a partir de su fecha.
+ * Soporta fecha_operacion si existe (Hallazgo 12).
+ */
+function _trim347(f) {
+  const fecha = f.fecha_operacion || f.fecha;
+  if (!fecha) return "T1";
+  const mes = parseInt(String(fecha).slice(5, 7), 10);
+  if (mes <= 3)  return "T1";
+  if (mes <= 6)  return "T2";
+  if (mes <= 9)  return "T3";
+  return "T4";
+}
+
+/**
+ * Calcula el Modelo 347 agrupado por contraparte, con desglose trimestral.
+ * 
+ * @param {number} [year] - Ejercicio (defecto: año en curso).
+ * @returns {Promise<{declarables:Array,excluidos:Object,year:number}>}
+ */
 export async function calcModelo347(year) {
   const y = year || getYear();
   const { data: facturas } = await supabase.from("facturas")
-    .select("cliente_nombre, cliente_nif, tipo, base, iva, estado")
+    .select("*")                                  // necesitamos `lineas` para el desglose
     .eq("user_id", SESSION.user.id)
     .gte("fecha", `${y}-01-01`).lte("fecha", `${y}-12-31`);
 
-  const UMBRAL = 3005.06;
+  // Contador de exclusiones para diagnóstico
+  const excluidos = {
+    ticket_simplificado: 0,
+    estado_no_emitida: 0,
+    recibida_anulada: 0,
+    operacion_intracomunitaria: 0,
+    operacion_inversion_sujeto_pasivo: 0,
+    operacion_exportacion: 0,
+    operacion_importacion: 0,
+    retencion_practicada_180_190: 0,
+    exenta_sin_nif: 0,
+  };
+
+  // Acumulador: key = NIF(o nombre)+"_"+tipo → agregación por contraparte
   const acum = {};
+
   (facturas || []).forEach(f => {
-    if (f.tipo === "emitida" && f.estado !== "emitida") return;
+    const { excluir, motivo } = _excluirDel347(f);
+    if (excluir) {
+      if (excluidos[motivo] !== undefined) excluidos[motivo]++;
+      return;
+    }
+
     const key = (f.cliente_nif || f.cliente_nombre || "SIN_ID") + "_" + f.tipo;
-    if (!acum[key]) acum[key] = { nombre: f.cliente_nombre, nif: f.cliente_nif, total: 0, tipo: f.tipo, ops: 0 };
-    acum[key].total += f.base + f.base * (f.iva || 0) / 100;
-    acum[key].ops++;
+    if (!acum[key]) {
+      acum[key] = {
+        nombre:       f.cliente_nombre || "—",
+        nif:          f.cliente_nif    || null,
+        pais:         f.cliente_pais   || "ES",
+        provincia:    f.cliente_provincia || null,
+        tipo:         f.tipo,             // "emitida" | "recibida"
+        total:        0,
+        ops:          0,
+        // Desglose trimestral obligatorio (art. 33 RD 1065/2007 modificado 2013)
+        trim_T1: 0, trim_T2: 0, trim_T3: 0, trim_T4: 0,
+        // Marcadores especiales
+        es_alquiler_local_negocio: false,
+        total_metalico:             0,
+      };
+    }
+    const a = acum[key];
+
+    // Desglose con multi-IVA correcto
+    const t = totalFactura(f);
+    const importeConIVA = _r(t.base_total + t.cuota_iva);  // art. 33.3 RD 1065/2007
+    a.total                += importeConIVA;
+    a.ops                  += 1;
+    a["trim_" + _trim347(f)] += importeConIVA;
+
+    // Marcar arrendamiento local de negocio (solo en recibidas)
+    if (f.tipo === "recibida" && _esArrendamientoLocalNegocio(f)) {
+      a.es_alquiler_local_negocio = true;
+    }
+
+    // Pagos en metálico (si la factura los registra explícitamente)
+    if (f.pago_metalico_importe && f.pago_metalico_importe > 0) {
+      a.total_metalico += Number(f.pago_metalico_importe);
+    }
   });
 
-  const declarables = Object.values(acum).filter(a => a.total >= UMBRAL).sort((a, b) => b.total - a.total);
+  // Redondeo y filtrado por umbrales
+  Object.values(acum).forEach(a => {
+    a.total         = _r(a.total);
+    a.trim_T1       = _r(a.trim_T1);
+    a.trim_T2       = _r(a.trim_T2);
+    a.trim_T3       = _r(a.trim_T3);
+    a.trim_T4       = _r(a.trim_T4);
+    a.total_metalico = _r(a.total_metalico);
+  });
+
+  // Un declarado aparece en el 347 si:
+  //  - su total supera el umbral 3.005,06 € (en valor absoluto, por rectificativas)
+  //  - O si hay pagos en metálico que superen 6.000 €/año
+  const declarables = Object.values(acum)
+    .filter(a => Math.abs(a.total) >= UMBRAL_347 || a.total_metalico > UMBRAL_METALICO_347)
+    .sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
+
+  // Actualizar contador del dashboard
   const el = document.getElementById("m347Count");
   if (el) el.textContent = declarables.length;
-  return { declarables, year: y };
+
+  return { declarables, excluidos, year: y, umbral: UMBRAL_347, umbral_metalico: UMBRAL_METALICO_347 };
 }
 
 export async function exportModelo347PDF() {
   const data = await calcModelo347();
   await _cargarJsPDF();
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const PW = 210, ML = 18, W = PW - ML * 2;
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" }); // horizontal: necesitamos ancho para T1-T4
+  const PW = 297, PH = 210, ML = 14, MR = 14, MB = 18, W = PW - ML - MR;
   const BLUE = [26, 86, 219], INK = [15, 23, 42], MUTED = [100, 116, 139];
+  const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).maybeSingle();
 
+  // Cabecera
   doc.setFillColor(...BLUE); doc.rect(0, 0, PW, 28, "F");
   doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(13);
   doc.text("MODELO 347 — DECLARACIÓN ANUAL DE OPERACIONES CON TERCEROS", PW / 2, 12, { align: "center" });
   doc.setFontSize(9); doc.setFont("helvetica", "normal");
-  doc.text(`Ejercicio ${data.year} · Generado: ${new Date().toLocaleDateString("es-ES")}`, PW / 2, 21, { align: "center" });
+  doc.text(`Ejercicio ${data.year} · ${pf?.nombre_razon_social || "—"} (${pf?.nif || "—"}) · Generado: ${new Date().toLocaleDateString("es-ES")}`, PW / 2, 21, { align: "center" });
 
-  let y = 38;
+  let y = 36;
   doc.setTextColor(...INK); doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-  doc.text(`Operaciones declarables (>3.005,06€): ${data.declarables.length}`, ML, y); y += 10;
 
-  // Tabla
-  const cols = [20, 60, 35, 30, 30];
-  const heads = ["Tipo", "Nombre / Razón social", "NIF/CIF", "Total (€)", "Nº Ops."];
+  // Resumen
+  const totalDeclarado = data.declarables.reduce((s, d) => s + Math.abs(d.total), 0);
+  doc.setFont("helvetica", "bold");
+  doc.text(`Declarados: ${data.declarables.length}`, ML, y);
+  doc.text(`Total declarado: ${fmt(_r(totalDeclarado))}`, ML + 70, y);
+  doc.text(`Umbral: ≥ 3.005,06 € / año`, ML + 160, y);
+  y += 8;
+
+  // Tabla con desglose trimestral (orientación apaisada nos da espacio)
+  const cols = {
+    tipo:   14,
+    nombre: 65,
+    nif:    25,
+    t1:     24,
+    t2:     24,
+    t3:     24,
+    t4:     24,
+    total:  28,
+    marca:  12,
+    ops:    12,
+  };
+  const heads = ["Tipo", "Nombre / Razón social", "NIF/CIF", "T1", "T2", "T3", "T4", "TOTAL (€)", "A.L.", "Ops."];
+  const widths = [cols.tipo, cols.nombre, cols.nif, cols.t1, cols.t2, cols.t3, cols.t4, cols.total, cols.marca, cols.ops];
+
   doc.setFillColor(...BLUE); doc.rect(ML, y, W, 9, "F");
   doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(8);
   let x = ML;
-  heads.forEach((h, i) => { doc.text(h, x + 1, y + 6); x += cols[i]; }); y += 9;
+  heads.forEach((h, i) => {
+    // Importes alineados a la derecha
+    const align = (i >= 3 && i <= 7) ? "right" : "left";
+    const offX = align === "right" ? widths[i] - 2 : 2;
+    doc.text(h, x + offX, y + 6, { align });
+    x += widths[i];
+  });
+  y += 9;
+
   doc.setTextColor(...INK); doc.setFont("helvetica", "normal");
 
   data.declarables.forEach((d, ri) => {
     if (ri % 2 === 0) doc.setFillColor(245, 248, 255); else doc.setFillColor(255, 255, 255);
     doc.rect(ML, y, W, 7.5, "F");
     x = ML;
-    const row = [
-      d.tipo === "emitida" ? "Cliente" : "Proveedor",
-      (d.nombre || "—").substring(0, 30),
-      d.nif || "SIN NIF",
-      fmt(d.total),
-      String(d.ops)
+    const tipo = d.tipo === "emitida" ? "Cliente" : "Prov.";
+    const nombre = (d.nombre || "—").substring(0, 34);
+    const nif = d.nif || "SIN NIF";
+    const marca = d.es_alquiler_local_negocio ? "Local" : "";
+
+    const cells = [
+      { v: tipo,            align: "left"  },
+      { v: nombre,          align: "left"  },
+      { v: nif,             align: "left"  },
+      { v: fmt(d.trim_T1),  align: "right" },
+      { v: fmt(d.trim_T2),  align: "right" },
+      { v: fmt(d.trim_T3),  align: "right" },
+      { v: fmt(d.trim_T4),  align: "right" },
+      { v: fmt(d.total),    align: "right" },
+      { v: marca,           align: "left"  },
+      { v: String(d.ops),   align: "right" },
     ];
-    row.forEach((v, i) => { doc.setFontSize(8); doc.text(v, x + 1, y + 5.5); x += cols[i]; });
+
+    cells.forEach((c, i) => {
+      doc.setFontSize(7.5);
+      const offX = c.align === "right" ? widths[i] - 2 : 2;
+      doc.text(c.v, x + offX, y + 5.5, { align: c.align });
+      x += widths[i];
+    });
     y += 7.5;
-    if (y > 265) { doc.addPage(); y = 18; }
+    if (y > PH - MB - 10) { doc.addPage(); y = 18; }
   });
 
-  y += 10;
-  doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...MUTED);
-  doc.text("NOTA LEGAL: Plazo de presentación — Febrero del año siguiente al ejercicio declarado.", ML, y);
+  // Leyenda marcadores
+  y += 6;
+  if (y > PH - MB) { doc.addPage(); y = 18; }
+  doc.setFont("helvetica", "italic"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+  doc.text("A.L. = Arrendamiento de local de negocio (casilla específica del 347).", ML, y);
+  y += 4;
+  doc.text("Tipo: «Cliente» = operaciones emitidas (ventas). «Prov.» = operaciones recibidas (compras).", ML, y);
+  y += 8;
+
+  // Exclusiones (diagnóstico de auditoría)
+  const totalExcluidos = Object.values(data.excluidos).reduce((s, n) => s + n, 0);
+  if (totalExcluidos > 0) {
+    if (y > PH - MB - 30) { doc.addPage(); y = 18; }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...INK);
+    doc.text("FACTURAS EXCLUIDAS DEL 347 (declaradas en otros modelos)", ML, y); y += 6;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...MUTED);
+    const motivos = {
+      ticket_simplificado:               "Tickets simplificados (sin NIF)",
+      estado_no_emitida:                 "Emitidas en borrador o anuladas",
+      recibida_anulada:                  "Recibidas anuladas",
+      operacion_intracomunitaria:        "Intracomunitarias → Modelo 349",
+      operacion_inversion_sujeto_pasivo: "Inversión sujeto pasivo (no al 347)",
+      operacion_exportacion:             "Exportaciones (DUA)",
+      operacion_importacion:             "Importaciones (DUA)",
+      retencion_practicada_180_190:      "Recibidas con retención IRPF → Modelos 180/190",
+      exenta_sin_nif:                    "Exentas sin NIF contraparte",
+    };
+    Object.entries(data.excluidos).forEach(([motivo, n]) => {
+      if (n > 0) {
+        doc.text(`· ${motivos[motivo]}: ${n} factura${n > 1 ? "s" : ""}`, ML + 4, y);
+        y += 4;
+      }
+    });
+    y += 4;
+  }
+
+  // Nota legal
+  if (y > PH - MB - 20) { doc.addPage(); y = 18; }
+  doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(...MUTED);
+  doc.text("NOTA LEGAL:", ML, y); y += 4;
+  doc.setFont("helvetica", "normal");
+  const notas = doc.splitTextToSize(
+    "Plazo de presentación: 1 al 28 de febrero del año siguiente (Orden HAC/1148/2024). El fichero oficial .txt está disponible desde el botón «Descargar fichero 347» para importar directamente en la Sede Electrónica AEAT. Documento orientativo — verifique cada declarado con su asesor antes de presentar.",
+    W
+  );
+  doc.text(notas, ML, y);
+
+  // Footer
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFontSize(7); doc.setTextColor(...MUTED);
+    doc.text(
+      `Generado con Taurix · ${new Date().toLocaleDateString("es-ES")} · Página ${p}/${totalPages}`,
+      PW / 2, PH - 6, { align: "center" }
+    );
+  }
 
   doc.save(`modelo_347_${data.year}.pdf`);
   toast("Modelo 347 exportado ✅", "success");
@@ -853,6 +1131,42 @@ export async function exportarParaContaPlus() {
    Tipo 1: Registro de declarante
    Tipo 2: Registro de declarado (uno por operación >3.005,06€)
 ── */
+/* ══════════════════════════════════════════════════════════════════
+   FICHERO OFICIAL AEAT — MODELO 347 (.txt)
+   Diseño de registro: Orden HAC/1148/2024 (en vigor para 2025)
+   Continúa la estructura de BOE-A-2013-12322 actualizada.
+   
+   IMPORTANTE (Hallazgo 20 del informe fiscal):
+   · Cada registro tiene EXACTAMENTE 500 bytes.
+   · Codificación: ISO-8859-1 (Windows-1252 compatible).
+   · Importes: 15 enteros + 2 decimales, con punto decimal "N" si negativo.
+   · Desglose trimestral OBLIGATORIO por cada declarado (desde 2014).
+   · Registro 1 = declarante · Registro 2 = declarado.
+   
+   Posiciones clave del registro 2 (declarado):
+     001       Tipo registro "2"
+     002-004   Modelo "347"
+     005-008   Ejercicio (ej. "2025")
+     009-017   NIF declarante
+     018-057   Apellidos/nombre declarante
+     058-066   NIF declarado
+     067-075   NIF representante (blanco normalmente)
+     076-115   Apellidos/nombre declarado
+     116       Código provincia (2 dígitos)
+     117-118   Código país ISO 3166 alpha-2 (solo no residentes)
+     119       Clave operación (A=compras, B=ventas, ...)
+     120-134   Importe anual (15 posiciones, 13 enteros + 2 decimales)
+     135       Signo (N=negativo, espacio=positivo)
+     136-150   Importe percibido en metálico (15)
+     151       Signo metálico
+     152       Operación seguros (X/" ")
+     153       Arrendamiento local de negocio (X/" ")
+     154-168   Importe 1T
+     169-183   Importe 2T
+     184-198   Importe 3T
+     199-213   Importe 4T
+     214-500   Reservados (blancos)
+══════════════════════════════════════════════════════════════════ */
 export async function exportarFichero347() {
   const year = getYear ? getYear() : new Date().getFullYear();
   const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).maybeSingle();
@@ -866,91 +1180,128 @@ export async function exportarFichero347() {
   const { declarables } = data347;
 
   if (!declarables.length) {
-    toast("No hay operaciones declarables (>3.005,06€) en el ejercicio " + year, "warn");
+    toast(`No hay operaciones declarables (≥3.005,06 €) en el ejercicio ${year}`, "warn");
     return;
   }
 
-  // Helpers formato AEAT (campos de longitud fija)
-  const rpad = (v,n)   => String(v||"").toUpperCase().padEnd(n," ").slice(0,n);
-  const lpad = (v,n)   => String(v||"").padStart(n," ").slice(0,n);
-  const lpad0 = (v,n)  => String(v||"0").padStart(n,"0").slice(0,n);
-  const importe = (v)  => {
-    // Formato AEAT: 16 posiciones, sin decimales (en céntimos), sin signo
-    const cents = Math.round(Math.abs(v||0)*100);
-    return lpad0(cents, 16);
+  /* ── Helpers formato AEAT (longitud fija) ──────────────────────── */
+  // Elimina acentos y caracteres no ISO-8859-1 compatibles
+  const sanitizar = (s) => String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")   // quitar marcas de acento
+    .replace(/[^\x20-\xFF]/g, "?")     // cualquier carácter fuera del rango ISO-8859-1
+    .toUpperCase();
+
+  const rpad = (v, n) => sanitizar(v).padEnd(n, " ").slice(0, n);
+  const lpad = (v, n) => String(v || "").padStart(n, " ").slice(0, n);
+  const lpad0 = (v, n) => String(v || "0").padStart(n, "0").slice(0, n);
+
+  /**
+   * Formato importe AEAT 15 posiciones: 13 enteros + 2 decimales, sin punto.
+   * Ej: 1234.56 → "00000000123456"
+   */
+  const importe15 = (v) => {
+    const cents = Math.round(Math.abs(Number(v) || 0) * 100);
+    return lpad0(cents, 15);
   };
-  const signo = (v) => v >= 0 ? " " : "N";
+  const signoImporte = (v) => (Number(v) || 0) < 0 ? "N" : " ";
 
-  const nifDeclarante  = rpad((pf.nif||"").replace(/[-\s]/g,""), 9);
-  const nomDeclarante  = rpad(pf.nombre_razon_social||"TAURIX", 40);
-  const ejercicio      = String(year);
-  const telContacto    = lpad0((pf.telefono||"").replace(/\D/g,"").slice(0,9), 9);
-  const nomContacto    = rpad(pf.nombre_razon_social||"", 40);
+  /* ── Datos del declarante ──────────────────────────────────────── */
+  const nifDecl     = rpad((pf.nif || "").replace(/[-\s]/g, ""), 9);
+  const nombreDecl  = rpad(pf.nombre_razon_social || "TAURIX", 40);
+  const ejercicio   = String(year).padStart(4, "0");
+  const telefono    = lpad0((pf.telefono || "").replace(/\D/g, "").slice(0, 9), 9);
+  const nombreConct = rpad(pf.persona_contacto || pf.nombre_razon_social || "", 40);
 
-  // ── REGISTRO TIPO 1: Declarante ──
+  /* ── REGISTRO TIPO 1 (Declarante) ─────────────────────────────── */
   const totalRegistros = declarables.length;
-  const totalImportes  = declarables.reduce((a,d) => a + Math.abs(d.total), 0);
+  const totalImportes  = declarables.reduce((s, d) => s + Math.abs(d.total), 0);
+  const totalMetalico  = declarables.reduce((s, d) => s + (d.total_metalico || 0), 0);
 
-  const reg1 =
-    "1" +                           // tipo registro
-    "347" +                          // modelo
-    ejercicio +                      // ejercicio (4)
-    nifDeclarante +                  // NIF (9)
-    nomDeclarante +                  // nombre (40)
-    "T" +                            // tipo soporte (T=telematico)
-    " ".repeat(13) +                 // teléfono contacto (fijo vacío aquí) (13)
-    nomContacto +                    // nombre contacto (40)
-    " ".repeat(12) +                 // núm declaración (12)
-    lpad0(totalRegistros, 9) +       // total registros tipo 2 (9)
-    " " +                            // indicador complementaria
-    " " +                            // indicador sustitutiva
-    " ".repeat(13) +                 // núm declaración anterior (13)
-    importe(totalImportes) +         // importe total (16)
-    " ".repeat(16) +                 // importe total (metálico) (16)
-    " ".repeat(204) +                // blancos hasta 500
-    " ".repeat(19);                  // blancos
+  let reg1 = "";
+  reg1 += "1";                                // 001: Tipo registro
+  reg1 += "347";                              // 002-004: Modelo
+  reg1 += ejercicio;                          // 005-008: Ejercicio
+  reg1 += nifDecl;                            // 009-017: NIF declarante
+  reg1 += nombreDecl;                         // 018-057: Apellidos/nombre declarante
+  reg1 += "T";                                // 058: Tipo soporte (T=telemático)
+  reg1 += telefono;                           // 059-067: Teléfono contacto (9)
+  reg1 += nombreConct;                        // 068-107: Persona contacto (40)
+  reg1 += lpad("", 13);                       // 108-120: Núm. declaración (se rellena al presentar)
+  reg1 += " ";                                // 121: Declaración complementaria ("C" / " ")
+  reg1 += " ";                                // 122: Declaración sustitutiva ("S" / " ")
+  reg1 += lpad("", 13);                       // 123-135: Núm. declaración anterior
+  reg1 += lpad0(totalRegistros, 9);           // 136-144: Total registros tipo 2
+  reg1 += importe15(totalImportes);           // 145-159: Importe total operaciones
+  reg1 += signoImporte(totalImportes);        // 160: Signo
+  reg1 += importe15(totalMetalico);           // 161-175: Importe total metálico
+  reg1 += signoImporte(totalMetalico);        // 176: Signo metálico
+  reg1 += lpad("", 9);                        // 177-185: NIF representante legal
+  // 186-500: Reservados (blancos)
+  reg1 = reg1.padEnd(500, " ").slice(0, 500);
 
-  // Padding a 500 caracteres
-  const rec1 = reg1.padEnd(500," ").slice(0,500);
+  /* ── REGISTROS TIPO 2 (Declarados) ────────────────────────────── */
+  const reg2s = declarables.map((d, i) => {
+    const nifDecd    = rpad((d.nif || "").replace(/[-\s]/g, ""), 9);
+    const nombreDecd = rpad(d.nombre || "DESCONOCIDO", 40);
+    // Clave de operación (art. 33 RD 1065/2007):
+    //   A = Adquisiciones (compras)   — factura recibida → "A"
+    //   B = Entregas (ventas)         — factura emitida  → "B"
+    //   C, D, E, F, G, H... otros casos (no aplicables a Taurix básico)
+    const clave = d.tipo === "emitida" ? "B" : "A";
+    // Provincia: si no tenemos el dato del usuario, dejamos "00" (desconocido)
+    const provincia = d.provincia ? lpad0(d.provincia, 2) : "00";
+    // País (solo no residentes — para ES va en blanco)
+    const codPais = (d.pais && d.pais !== "ES") ? rpad(d.pais, 2) : "  ";
 
-  // ── REGISTROS TIPO 2: Declarados ──
-  const rec2s = declarables.map((d, i) => {
-    const nifDec = rpad((d.nif||"").replace(/[-\s]/g,""), 9);
-    const nomDec = rpad(d.nombre||"DESCONOCIDO", 40);
-    const claveOp = d.tipo === "emitida" ? "B" : "A"; // B=ventas A=compras
-    const pais    = "ES"; // España
+    let r = "";
+    r += "2";                                 // 001: Tipo registro
+    r += "347";                               // 002-004: Modelo
+    r += ejercicio;                           // 005-008: Ejercicio
+    r += nifDecl;                             // 009-017: NIF declarante
+    r += rpad("", 40);                        // 018-057: Apellidos declarante (blanco en reg2)
+    r += nifDecd;                             // 058-066: NIF declarado
+    r += rpad("", 9);                         // 067-075: NIF representante
+    r += nombreDecd;                          // 076-115: Nombre declarado
+    r += provincia;                           // 116-117: Código provincia (2)
+    r += codPais;                             // 118-119: Código país (2)
+    r += clave;                               // 120: Clave operación
+    r += importe15(d.total);                  // 121-135: Importe anual total (15)
+    r += signoImporte(d.total);               // 136: Signo importe
+    r += importe15(d.total_metalico || 0);    // 137-151: Importe percibido en metálico
+    r += signoImporte(d.total_metalico || 0); // 152: Signo metálico
+    r += " ";                                 // 153: Operación seguros (N/A aquí)
+    r += d.es_alquiler_local_negocio ? "X" : " "; // 154: Arrendamiento local de negocio ✓
+    r += importe15(d.trim_T1);                // 155-169: Importe 1T
+    r += signoImporte(d.trim_T1);             // 170: Signo 1T
+    r += importe15(d.trim_T2);                // 171-185: Importe 2T
+    r += signoImporte(d.trim_T2);             // 186: Signo 2T
+    r += importe15(d.trim_T3);                // 187-201: Importe 3T
+    r += signoImporte(d.trim_T3);             // 202: Signo 3T
+    r += importe15(d.trim_T4);                // 203-217: Importe 4T
+    r += signoImporte(d.trim_T4);             // 218: Signo 4T
+    // 219-500: Reservados (blancos)
+    r = r.padEnd(500, " ").slice(0, 500);
 
-    const reg2 =
-      "2" +                         // tipo registro
-      "347" +                        // modelo
-      ejercicio +                    // ejercicio
-      nifDeclarante +                // NIF declarante (9)
-      nomDeclarante +                // nombre declarante (40)
-      lpad0(i+1, 8) +                // núm registro (8)
-      nifDec +                       // NIF declarado (9)
-      rpad(pais, 2) +                // código país (2) — vacío si ES
-      nomDec +                       // nombre declarado (40)
-      claveOp +                      // clave operación (1)
-      ejercicio +                    // ejercicio operación (4)
-      signo(d.total) +               // signo importe (1)
-      importe(d.total) +             // importe (16)
-      " " +                          // operación seguro (1)
-      " " +                          // arrendamiento local (1)
-      " ".repeat(16) +               // importe percibido en metálico (16)
-      " " +                          // signo metálico (1)
-      " ".repeat(4) +                // ejercicio metálico (4)
-      " ".repeat(350);               // blancos
-
-    return reg2.padEnd(500," ").slice(0,500);
+    return r;
   });
 
-  // Unir todos los registros
-  const contenido = [rec1, ...rec2s].join("\r\n") + "\r\n";
+  /* ── Unir todos los registros ──────────────────────────────────── */
+  const contenido = [reg1, ...reg2s].join("\r\n") + "\r\n";
 
-  // Nombre del fichero según AEAT: 347AAAANNNNNNNNNC.txt
-  const nombreFichero = `347${year}${nifDeclarante.trim()}.txt`;
+  /* ── Convertir a ISO-8859-1 (Windows-1252) ─────────────────────── */
+  // JavaScript nativo no tiene TextEncoder ISO-8859-1, lo hacemos manual.
+  // Después de sanitizar(), toda la cadena tiene solo chars en el rango 0x20-0xFF.
+  const buffer = new Uint8Array(contenido.length);
+  for (let i = 0; i < contenido.length; i++) {
+    const code = contenido.charCodeAt(i);
+    // Saltos \r\n también caben en el byte de 8 bits
+    buffer[i] = code <= 0xFF ? code : 0x3F;    // '?' si algo raro se colara
+  }
 
-  const blob = new Blob([contenido], { type:"text/plain;charset=iso-8859-1" });
+  /* ── Descargar ─────────────────────────────────────────────────── */
+  const nombreFichero = `347${year}${nifDecl.trim()}.txt`;
+  const blob = new Blob([buffer], { type: "text/plain;charset=iso-8859-1" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href = url; a.download = nombreFichero;
