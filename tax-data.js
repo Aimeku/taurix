@@ -14,6 +14,12 @@
 import { supabase } from "../supabase.js";
 import { SESSION } from "../utils.js";
 import { getFechaRangoTrim, getFechaRangoAnual } from "./tax-rules.js";
+import {
+  desglosarIva,
+  cuotaIrpfFactura,
+  esDeducibleIVA,
+  redondearSimetrico,
+} from "../factura-helpers.js";
 
 /* ── Contexto de query — SIEMPRE user_id ──────────────────────────
    Las facturas se guardan con user_id, igual que utils.js/_getCtx().
@@ -39,35 +45,82 @@ function _getCtx() {
 
 /**
  * Normaliza una fila raw de Supabase a TaxDocument.
- * Calcula cuota_iva y cuota_irpf si no vienen precalculadas.
+ * 
+ * REFACTOR (Hallazgo 1 del informe fiscal):
+ * Antes calculaba `cuota_iva = base × iva_pct / 100`, que es incorrecto
+ * en facturas multi-IVA. Ahora usa `desglosarIva()` sobre `lineas`
+ * para obtener el desglose real por tipo de IVA, y el `cuota_iva`
+ * agregado pasa a ser la suma de las cuotas reales.
+ * 
+ * El campo canónico a partir de aquí es `doc.desglose_iva`. Los otros
+ * módulos (tax-iva.js, tax-irpf.js) deben leer de ahí.
+ * 
  * @param {Object} row - Fila de la tabla facturas
  * @returns {import('./tax-types.js').TaxDocument}
  */
 function normalizarFactura(row) {
-  const iva_pct  = Number(row.iva  ?? row.iva_pct  ?? 0);
-  const irpf_pct = Number(row.irpf ?? row.irpf_pct ?? row.irpf_retencion ?? 0);
-  const base     = Number(row.base ?? 0);
+  const base  = Number(row.base ?? 0);
+  const op    = row.tipo_operacion ?? "nacional";
 
-  const cuota_iva  = base * iva_pct  / 100;
-  const cuota_irpf = base * irpf_pct / 100;
+  // Desglose real por tipo de IVA (leyendo `lineas` JSON con fallback)
+  const desglose = desglosarIva(row);
+
+  // Cuota IVA total ya redondeada simétricamente por tipo y sumada
+  const cuota_iva = desglose.cuota_total;
+
+  // IRPF con redondeo simétrico
+  const irpf = cuotaIrpfFactura(row, desglose);
+
+  // Tipo de IVA "principal" para compatibilidad con código legacy
+  // (el que tiene mayor base en el desglose)
+  let iva_pct_principal = Number(row.iva ?? row.iva_pct ?? 0);
+  let maxBase = 0;
+  for (const pct of [21, 10, 4, 0]) {
+    if (desglose[pct].base > maxBase) {
+      maxBase = desglose[pct].base;
+      iva_pct_principal = pct;
+    }
+  }
+
+  // Flag semántico que determina si la operación tiene derecho a deducir
+  // IVA soportado (nacional / IC / exportacion / ISP emitida SÍ; exento art. 20 NO).
+  // Clave para el cálculo correcto de prorrata (Hallazgo 8).
+  const claseSujetaConDerecho =
+    row.tipo === "emitida" &&
+    row.estado === "emitida" &&
+    ["nacional", "intracomunitaria", "exportacion", "inversion_sujeto_pasivo"].includes(op);
+  const claseExentaSinDerecho =
+    row.tipo === "emitida" &&
+    row.estado === "emitida" &&
+    op === "exento";
 
   return {
     id:                  row.id,
     tipo:                row.tipo,                          // "emitida" | "recibida"
-    fecha:               row.fecha,
-    base,
-    iva_pct,
+    fecha:               row.fecha_operacion ?? row.fecha,  // fecha de devengo
+    fecha_operacion:     row.fecha_operacion ?? row.fecha,
+    fecha_emision:       row.fecha_emision ?? row.fecha,
+    base:                redondearSimetrico(desglose.base_total || base),
+    iva_pct:             iva_pct_principal,
     cuota_iva,
-    irpf_pct,
-    cuota_irpf,
-    total:               base + cuota_iva - cuota_irpf,
-    tipo_operacion:      row.tipo_operacion  ?? "nacional",
-    estado:              row.estado          ?? "emitida",
-    contraparte_nif:     row.cliente_nif     ?? row.proveedor_nif ?? null,
-    contraparte_nombre:  row.cliente_nombre  ?? row.proveedor_nombre ?? null,
-    es_rectificativa:    row.es_rectificativa ?? false,
-    deducible_iva:       row.deducible_iva   ?? true,
+    desglose_iva:        desglose,                          // ← FUENTE DE VERDAD
+    irpf_pct:            irpf.pct,
+    cuota_irpf:          irpf.cuota,
+    total:               redondearSimetrico(desglose.base_total + cuota_iva - irpf.cuota),
+    tipo_operacion:      op,
+    estado:              row.estado ?? "emitida",
+    contraparte_nif:     row.cliente_nif ?? row.proveedor_nif ?? null,
+    contraparte_nombre:  row.cliente_nombre ?? row.proveedor_nombre ?? null,
+    contraparte_pais:    row.cliente_pais ?? row.proveedor_pais ?? "ES",
+    es_rectificativa:    !!(row.es_rectificativa ?? row.factura_rectif_de),
+    rectif_tipo_motivo:  row.rectif_tipo_motivo ?? null,
+    rectif_factura_original: row.rectif_factura_original ?? null,
+    numero_factura:      row.numero_factura ?? null,
+    deducible_iva:       row.deducible_iva ?? esDeducibleIVA(row),
+    tipo_documento:      row.tipo_documento ?? null,
     pct_deduccion_iva:   row.pct_deduccion_iva ?? 100,
+    clasifica_actividad_sujeta_con_derecho: claseSujetaConDerecho,
+    clasifica_actividad_exenta_sin_derecho: claseExentaSinDerecho,
   };
 }
 
@@ -101,7 +154,17 @@ export async function getTaxDocumentsTrim(year, trim) {
     return [];
   }
 
-  return (data || []).map(normalizarFactura);
+  // Post-filtro por fecha de devengo (art. 75 LIVA): si la factura tiene
+  // fecha_operacion distinta de fecha_emision, se usa fecha_operacion para
+  // decidir el trimestre (Hallazgo 12 del informe fiscal).
+  // Si la columna fecha_operacion no existe aún en la BD, normalizarFactura
+  // cae a fecha y este filtro no rechaza nada.
+  return (data || [])
+    .map(normalizarFactura)
+    .filter(d => {
+      const f = d.fecha_operacion || d.fecha;
+      return f >= ini && f <= fin;
+    });
 }
 
 /**
