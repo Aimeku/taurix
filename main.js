@@ -407,7 +407,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ── CTA / landing ── */
   ["ctaNavBtn", "ctaHeroBtn", "ctaHeroSecBtn", "ctaPlanGratisBtn",
-   "ctaPlanUnicoBtn", "ctaFinalBtn"].forEach(id => {
+   "ctaPlanUnicoBtn", "ctaFinalBtn",
+   "ctaPlanAutonomoBtn", "ctaPlanSociedadBtn"].forEach(id => {
     document.getElementById(id)?.addEventListener("click", showAuthModal);
   });
 
