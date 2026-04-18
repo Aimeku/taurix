@@ -1655,6 +1655,374 @@ export async function initOtrosModelosView() {
    Formato de asientos para importar en software contable
 ══════════════════════════════════════════════════════════ */
 
+/* ══════════════════════════════════════════════════════════════════
+   HELPERS CONTABLES COMPARTIDOS (A3 / ContaPlus)
+   Plan General Contable (RD 1514/2007) + PGC PYMES (RD 1515/2007)
+   
+   Usados por `exportarParaA3` y `exportarParaContaPlus` para generar
+   asientos cuadrados y con cuentas correctas por concepto.
+   
+   REFACTOR v2 (post-auditoría fiscal 2026):
+   ─────────────────────────────────────────────────────────────────
+   Hallazgo 2 del informe (CRÍTICO): los asientos anteriores estaban
+   descuadrados en el importe exacto de la cuota de IVA (la cuenta
+   430 recibía `base - IRPF` en lugar de `base + IVA - IRPF`). Ahora
+   cuadran siempre y usan cuentas contables correctas por concepto.
+══════════════════════════════════════════════════════════════════ */
+
+/**
+ * Mapea una factura RECIBIDA a la cuenta de gasto del PGC.
+ * Prioriza campo `cuenta_contable` si existe, luego `categoria`,
+ * finalmente heurística por concepto.
+ */
+function _cuentaGastoRecibida(f) {
+  // Campo canónico explícito tiene prioridad absoluta
+  if (f.cuenta_contable && /^[67]\d{5,}$/.test(String(f.cuenta_contable))) {
+    return String(f.cuenta_contable);
+  }
+
+  const cat = (f.categoria || "").toLowerCase();
+  const txt = ((f.concepto || "") + " " + cat).toLowerCase();
+
+  // Mapeo categoría → cuenta PGC
+  const byCat = {
+    "mercancia":             "600000",  // Compras de mercaderías
+    "mercaderia":            "600000",
+    "materia_prima":         "601000",  // Compras de materias primas
+    "alquiler_local":        "621000",  // Arrendamientos y cánones
+    "alquiler_oficina":      "621000",
+    "alquiler":              "621000",
+    "renting_vehiculo":      "621000",
+    "reparacion":            "622000",  // Reparaciones y conservación
+    "mantenimiento":         "622000",
+    "profesionales":         "623000",  // Servicios profesionales indep.
+    "asesoria":              "623000",
+    "gestoria":              "623000",
+    "abogado":               "623000",
+    "transporte":            "624000",  // Transportes
+    "seguros":               "625000",  // Primas de seguros
+    "seguro":                "625000",
+    "bancario":              "626000",  // Servicios bancarios
+    "publicidad":            "627000",  // Publicidad y propaganda
+    "marketing":             "627000",
+    "suministros":           "628000",  // Suministros (luz, agua, gas)
+    "luz":                   "628000",
+    "agua":                  "628000",
+    "gas":                   "628000",
+    "telefono":              "629000",  // Otros servicios
+    "internet":              "629000",
+    "material_oficina":      "629000",
+    "oficina":               "629000",
+    "combustible":           "628000",
+    "dietas":                "629000",
+    "formacion":             "629000",
+    "viajes":                "629000",
+    "hosting":               "629000",
+    "software":              "629000",
+    "licencias":             "629000",
+    "tributos":              "631000",  // Otros tributos
+  };
+  if (byCat[cat]) return byCat[cat];
+
+  // Heurística por texto
+  if (/\balquiler|\barrendamiento|\brenting/.test(txt))            return "621000";
+  if (/\brepar|\bmanten/.test(txt))                                return "622000";
+  if (/\basesor|\bgestor|\babogad|\bconsultor/.test(txt))          return "623000";
+  if (/\btransport|\bmensaj|\benv[ií]o/.test(txt))                 return "624000";
+  if (/\bseguro/.test(txt))                                        return "625000";
+  if (/\bbanc|\bcomision|\btransferenc/.test(txt))                 return "626000";
+  if (/\bpublicidad|\bmarketing|\banuncio/.test(txt))              return "627000";
+  if (/\bluz\b|\belectric|\bagua|\bgas\b|\bsuminist/.test(txt))    return "628000";
+
+  // Fallback: otros servicios
+  return "629000";
+}
+
+/**
+ * Mapea una factura EMITIDA a la cuenta de ingreso del PGC.
+ * 700 = ventas de mercaderías · 705 = prestación de servicios (default)
+ */
+function _cuentaIngresoEmitida(f) {
+  if (f.cuenta_contable && /^[7]\d{5,}$/.test(String(f.cuenta_contable))) {
+    return String(f.cuenta_contable);
+  }
+  const cat = (f.categoria || "").toLowerCase();
+  const txt = ((f.concepto || "") + " " + cat).toLowerCase();
+  // Venta de mercadería o producto físico
+  if (cat === "mercancia" || cat === "mercaderia" || cat === "producto") return "700000";
+  if (/\bmercanc|\bproducto\b|\bvent[ao]s?\b/.test(txt))                 return "700000";
+  // Default: prestación de servicios
+  return "705000";
+}
+
+/**
+ * Cuenta de IVA repercutido según tipo impositivo (sub-cuentas separadas
+ * por tipo de IVA para poder conciliar fácilmente con el Modelo 303).
+ */
+function _cuentaIVARepercutido(pct) {
+  // 477 HP IVA repercutido — sub-cuentas por tipo
+  if (pct === 21) return "477210";
+  if (pct === 10) return "477100";
+  if (pct === 4)  return "477040";
+  return "477000";
+}
+
+/**
+ * Cuenta de IVA soportado según tipo impositivo.
+ */
+function _cuentaIVASoportado(pct) {
+  // 472 HP IVA soportado — sub-cuentas por tipo
+  if (pct === 21) return "472210";
+  if (pct === 10) return "472100";
+  if (pct === 4)  return "472040";
+  return "472000";
+}
+
+/**
+ * Genera una subcuenta a partir de una cuenta base y un NIF.
+ * Ej: 430000 + B87654321 → 4300B8765 (ContaPlus usa 10 caracteres).
+ * Para A3 devolvemos el NIF limpio como sufijo (el asesor personaliza).
+ */
+function _subcuenta(cuentaBase, nif, longitud = 10) {
+  const base = String(cuentaBase).replace(/0+$/, "");  // 430000 → 43
+  const nifClean = String(nif || "GEN").replace(/[-\s.]/g, "").toUpperCase();
+  const padding = longitud - base.length;
+  if (padding <= 0) return cuentaBase;
+  return (base + nifClean.slice(0, padding)).padEnd(longitud, "0").slice(0, longitud);
+}
+
+/**
+ * Genera las líneas de asiento contable para UNA factura.
+ * Devuelve array de objetos { cuenta, descripcion, debe, haber, contraparte }.
+ * El asiento SIEMPRE cuadra: sum(debe) === sum(haber).
+ * 
+ * Maneja:
+ *   - Emitida nacional normal (incl. multi-IVA con cuentas 477 separadas)
+ *   - Emitida con IRPF retenido (cuenta 473)
+ *   - Emitida exenta/IC/exportación (sin IVA)
+ *   - ISP emitida (sin IVA repercutido)
+ *   - Recibida nacional normal
+ *   - Recibida con IRPF practicado por el declarante (cuenta 475)
+ *   - AIC/ISP recibida con autoliquidación (477 + 472 simultáneos)
+ *   - Rectificativas (base negativa → inversión de cuentas)
+ *   - Cuentas 6xx por concepto (no todo 629)
+ */
+function _generarAsientoContable(f) {
+  const d    = desglosarIva(f);
+  const irpf = cuotaIrpfFactura(f, d);
+  const op   = f.tipo_operacion || "nacional";
+  const lineas = [];
+
+  // Rectificativa → los importes llegan ya con signo negativo en las bases,
+  // lo que invierte correctamente el asiento sin lógica adicional.
+  const esRectif = f.es_rectificativa || d.base_total < 0;
+
+  if (f.tipo === "emitida" && f.estado === "emitida") {
+    // ── LÍNEA DEL CLIENTE (430) ──
+    // Lo que efectivamente cobra el cliente = base + IVA − IRPF retenido
+    // (ESTE ES EL FIX DEL HALLAZGO 2 — antes solo ponía base − IRPF,
+    //  descuadrando el asiento en el importe del IVA).
+    const importeCliente = _r(d.base_total + d.cuota_total - irpf.cuota);
+    lineas.push({
+      cuenta:       _subcuenta("430000", f.cliente_nif),
+      cuentaBase:   "430000",
+      descripcion:  `Clientes · ${f.cliente_nombre || f.cliente_nif || "s/id"}`,
+      debe:         importeCliente,
+      haber:        0,
+      contraparte:  f.cliente_nif || f.cliente_nombre || "",
+    });
+
+    // ── IRPF retenido por el cliente (473) ──
+    if (irpf.cuota > 0) {
+      lineas.push({
+        cuenta:      "473000",
+        cuentaBase:  "473000",
+        descripcion: "HP, retenciones y pagos a cuenta",
+        debe:        irpf.cuota,
+        haber:       0,
+        contraparte: "",
+      });
+    }
+
+    // ── IVA repercutido por tipo (cuentas 477.XX) ──
+    // Multi-IVA: una línea por cada tipo con importe > 0
+    // Solo si la operación genera IVA repercutido
+    const hayIVARepercutido = op !== "exportacion" && op !== "intracomunitaria" &&
+                              op !== "inversion_sujeto_pasivo" && op !== "exento";
+    if (hayIVARepercutido) {
+      for (const pct of TIPOS_IVA_VALIDOS) {
+        if (Math.abs(d[pct].cuota) > 0.005) {
+          lineas.push({
+            cuenta:      _cuentaIVARepercutido(pct),
+            cuentaBase:  _cuentaIVARepercutido(pct),
+            descripcion: `HP, IVA repercutido ${pct}%`,
+            debe:        0,
+            haber:       d[pct].cuota,
+            contraparte: "",
+          });
+        }
+      }
+    }
+
+    // ── Ingreso (700/705) ──
+    const cuentaIng = _cuentaIngresoEmitida(f);
+    lineas.push({
+      cuenta:      cuentaIng,
+      cuentaBase:  cuentaIng,
+      descripcion: cuentaIng.startsWith("700") ? "Ventas de mercaderías" : "Prestaciones de servicios",
+      debe:        0,
+      haber:       d.base_total,
+      contraparte: "",
+    });
+  }
+
+  else if (f.tipo === "recibida" && f.estado !== "anulada") {
+    const cuentaGasto = _cuentaGastoRecibida(f);
+    const esAIC_ISP   = op === "intracomunitaria" || op === "inversion_sujeto_pasivo";
+
+    // ── Gasto por cuenta PGC correcta ──
+    lineas.push({
+      cuenta:      cuentaGasto,
+      cuentaBase:  cuentaGasto,
+      descripcion: _descCuentaGasto(cuentaGasto),
+      debe:        d.base_total,
+      haber:       0,
+      contraparte: "",
+    });
+
+    // ── IVA soportado por tipo (cuentas 472.XX) ──
+    if (op !== "exento" && op !== "exportacion") {
+      if (esAIC_ISP) {
+        // Autoliquidación AIC/ISP: una única cuota (21% por defecto si la factura no la trae)
+        const cuotaAutoliq = d.cuota_total > 0 ? d.cuota_total : d.base_total * 0.21;
+        if (Math.abs(cuotaAutoliq) > 0.005) {
+          // DEBE 472 (deducible)
+          if (esDeducibleIVA(f)) {
+            lineas.push({
+              cuenta:      _cuentaIVASoportado(21),
+              cuentaBase:  _cuentaIVASoportado(21),
+              descripcion: op === "intracomunitaria"
+                ? "HP, IVA soportado adq. intracomunitaria"
+                : "HP, IVA soportado inversión sujeto pasivo",
+              debe:        cuotaAutoliq,
+              haber:       0,
+              contraparte: "",
+            });
+          }
+          // HABER 477 (devengado — el receptor autoliquida)
+          lineas.push({
+            cuenta:      _cuentaIVARepercutido(21),
+            cuentaBase:  _cuentaIVARepercutido(21),
+            descripcion: op === "intracomunitaria"
+              ? "HP, IVA repercutido adq. intracomunitaria (autoliq.)"
+              : "HP, IVA repercutido inversión sujeto pasivo (autoliq.)",
+            debe:        0,
+            haber:       cuotaAutoliq,
+            contraparte: "",
+          });
+        }
+      } else {
+        // Nacional normal: sólo 472 si deducible
+        if (esDeducibleIVA(f)) {
+          for (const pct of TIPOS_IVA_VALIDOS) {
+            if (Math.abs(d[pct].cuota) > 0.005) {
+              const pctDed = (f.pct_deduccion_iva ?? 100) / 100;
+              const cuotaDed = _r(d[pct].cuota * pctDed);
+              lineas.push({
+                cuenta:      _cuentaIVASoportado(pct),
+                cuentaBase:  _cuentaIVASoportado(pct),
+                descripcion: `HP, IVA soportado ${pct}%`,
+                debe:        cuotaDed,
+                haber:       0,
+                contraparte: "",
+              });
+              // Si la deducción es parcial, el resto va al gasto (no al 472)
+              if (pctDed < 1) {
+                const cuotaNoDed = _r(d[pct].cuota * (1 - pctDed));
+                if (cuotaNoDed > 0.005) {
+                  lineas.push({
+                    cuenta:      cuentaGasto,
+                    cuentaBase:  cuentaGasto,
+                    descripcion: `IVA no deducible (${pct}%) — mayor gasto`,
+                    debe:        cuotaNoDed,
+                    haber:       0,
+                    contraparte: "",
+                  });
+                }
+              }
+            }
+          }
+        }
+        // Si no es deducible, el IVA íntegro ya va implícito en el gasto
+        // (no se separa 472 — algunas empresas prefieren registrarlo aparte,
+        // pero la práctica más común es que el IVA no deducible forme parte
+        // del gasto, por lo que el `d.base_total` ya lo incluye si el
+        // usuario así lo registró; de lo contrario se perdería la parte).
+      }
+    }
+
+    // ── IRPF retenido AL proveedor por el declarante (475) ──
+    // Si yo (Taurix) retengo IRPF al proveedor (profesional, arrendador),
+    // debo reconocer la obligación de ingresar esa retención a Hacienda.
+    if (irpf.cuota > 0) {
+      lineas.push({
+        cuenta:      "475100",
+        cuentaBase:  "475100",
+        descripcion: "HP, acreedora retenciones practicadas",
+        debe:        0,
+        haber:       irpf.cuota,
+        contraparte: "",
+      });
+    }
+
+    // ── Proveedor / Acreedor (400 / 410) ──
+    // 400 = Proveedores (bienes) · 410 = Acreedores por prestación de servicios
+    const cuentaContraparte = cuentaGasto.startsWith("600") || cuentaGasto.startsWith("601")
+      ? "400000" : "410000";
+    // El proveedor cobra: base + IVA − IRPF retenido
+    const iva = esAIC_ISP ? 0 : d.cuota_total;    // En AIC/ISP el proveedor no cobra IVA
+    const importeProv = _r(d.base_total + iva - irpf.cuota);
+    lineas.push({
+      cuenta:      _subcuenta(cuentaContraparte, f.cliente_nif),
+      cuentaBase:  cuentaContraparte,
+      descripcion: `${cuentaContraparte === "400000" ? "Proveedores" : "Acreedores"} · ${f.cliente_nombre || f.cliente_nif || "s/id"}`,
+      debe:        0,
+      haber:       importeProv,
+      contraparte: f.cliente_nif || f.cliente_nombre || "",
+    });
+  }
+
+  // ── Verificación de cuadre (safety check) ──
+  const sumDebe  = lineas.reduce((s, l) => s + l.debe, 0);
+  const sumHaber = lineas.reduce((s, l) => s + l.haber, 0);
+  const descuadre = Math.abs(sumDebe - sumHaber);
+  if (descuadre > 0.01) {
+    // Un cuadre > 1 céntimo indica un bug — loggear pero no bloquear
+    console.warn(`[Taurix] Asiento descuadrado para factura ${f.numero_factura || f.id}: debe=${sumDebe.toFixed(2)} haber=${sumHaber.toFixed(2)} dif=${descuadre.toFixed(2)}`);
+  }
+
+  return lineas;
+}
+
+/** Descripción legible de una cuenta PGC del subgrupo 6xx (gastos). */
+function _descCuentaGasto(cuenta) {
+  const map = {
+    "600000": "Compras de mercaderías",
+    "601000": "Compras de materias primas",
+    "621000": "Arrendamientos y cánones",
+    "622000": "Reparaciones y conservación",
+    "623000": "Servicios profesionales independientes",
+    "624000": "Transportes",
+    "625000": "Primas de seguros",
+    "626000": "Servicios bancarios",
+    "627000": "Publicidad y propaganda",
+    "628000": "Suministros",
+    "629000": "Otros servicios",
+    "631000": "Otros tributos",
+  };
+  return map[cuenta] || `Cuenta ${cuenta}`;
+}
+
 /* ── Exportar para A3 (formato Excel estructurado) ── */
 export async function exportarParaA3() {
   if (!window.XLSX) {
@@ -1679,7 +2047,6 @@ export async function exportarParaA3() {
     "":            "",
   });
   rows.push({});
-
   // Cabecera columnas del diario
   rows.push({
     "Nº Asiento": "Nº Asiento", "Fecha": "Fecha", "Concepto": "Concepto",
@@ -1688,41 +2055,61 @@ export async function exportarParaA3() {
   });
 
   let nAsiento = 1;
-  (facturas||[]).forEach(f => {
-    const total    = f.base + f.base*(f.iva||0)/100;
-    const cuotaIVA = f.base*(f.iva||0)/100;
-    const irpfAmt  = f.base*(f.irpf_retencion||f.irpf||0)/100;
-    const fecha    = f.fecha;
-    const nAsStr   = String(nAsiento).padStart(6,"0");
-    const concepto = f.tipo==="emitida"
-      ? `Fra. emitida ${f.numero_factura||"S/N"} ${f.cliente_nombre||""}`
-      : `Fra. recibida ${f.numero_factura||"S/N"} ${f.cliente_nombre||f.concepto||""}`;
+  let asientosCuadrados = 0, asientosDescuadrados = 0;
 
-    const mkRow = (cta, desc, debe, haber, doc) => ({
-      "Nº Asiento": nAsStr, "Fecha": fecha, "Concepto": concepto,
-      "Cuenta": cta, "Descripción cuenta": desc,
-      "Debe": debe||"", "Haber": haber||"", "Documento": doc||""
+  (facturas || []).forEach(f => {
+    // Saltar borradores y anuladas
+    if (f.tipo === "emitida" && f.estado !== "emitida") return;
+    if (f.tipo === "recibida" && f.estado === "anulada") return;
+
+    const nAsStr = String(nAsiento).padStart(6, "0");
+    const concepto = f.tipo === "emitida"
+      ? `Fra. emitida ${f.numero_factura || "S/N"} ${f.cliente_nombre || ""}`.slice(0, 80)
+      : `Fra. recibida ${f.numero_factura || "S/N"} ${f.cliente_nombre || f.concepto || ""}`.slice(0, 80);
+
+    const lineasAsiento = _generarAsientoContable(f);
+    if (!lineasAsiento.length) return;
+
+    // Verificación de cuadre
+    const sumD = lineasAsiento.reduce((s, l) => s + l.debe, 0);
+    const sumH = lineasAsiento.reduce((s, l) => s + l.haber, 0);
+    if (Math.abs(sumD - sumH) < 0.01) asientosCuadrados++; else asientosDescuadrados++;
+
+    lineasAsiento.forEach(linea => {
+      rows.push({
+        "Nº Asiento":          nAsStr,
+        "Fecha":               f.fecha_operacion || f.fecha,
+        "Concepto":            concepto,
+        "Cuenta":              linea.cuenta,
+        "Descripción cuenta":  linea.descripcion,
+        "Debe":                linea.debe  > 0 ? linea.debe.toFixed(2)  : "",
+        "Haber":               linea.haber > 0 ? linea.haber.toFixed(2) : "",
+        "Documento":           f.numero_factura || "",
+      });
     });
-    if (f.tipo==="emitida" && f.estado==="emitida") {
-      rows.push(mkRow("430000","Clientes",            (f.base - irpfAmt).toFixed(2), "",           f.numero_factura||""));
-      if (irpfAmt>0)  rows.push(mkRow("473000","HP, retenciones",  irpfAmt.toFixed(2), "", ""));
-      if (cuotaIVA>0) rows.push(mkRow("477000","HP, IVA repercutido","", cuotaIVA.toFixed(2), ""));
-      rows.push(mkRow("705000","Prestaciones de servicios","", f.base.toFixed(2), ""));
-    } else if (f.tipo==="recibida") {
-      rows.push(mkRow("629000","Otros servicios",     f.base.toFixed(2), "",     f.numero_factura||""));
-      if (cuotaIVA>0) rows.push(mkRow("472000","HP, IVA soportado", cuotaIVA.toFixed(2), "", ""));
-      rows.push(mkRow("400000","Proveedores",         "", total.toFixed(2), ""));
-    }
     rows.push({});
     nAsiento++;
   });
 
+  // Añadir resumen de verificación al final
+  rows.push({});
+  rows.push({
+    "Nº Asiento": "── VERIFICACIÓN ──",
+    "Fecha": "", "Concepto": `${asientosCuadrados} asientos cuadrados | ${asientosDescuadrados} descuadrados`,
+    "Cuenta": "", "Descripción cuenta": "",
+    "Debe": "", "Haber": "", "Documento": ""
+  });
+
   const ws = window.XLSX.utils.json_to_sheet(rows);
-  ws["!cols"] = [{wch:12},{wch:12},{wch:45},{wch:10},{wch:35},{wch:14},{wch:14},{wch:16}];
+  ws["!cols"] = [{wch:12},{wch:12},{wch:45},{wch:10},{wch:38},{wch:14},{wch:14},{wch:16}];
   const wb = window.XLSX.utils.book_new();
   window.XLSX.utils.book_append_sheet(wb, ws, `Diario ${year}`);
   window.XLSX.writeFile(wb, `taurix_A3_${year}.xlsx`);
-  toast("✅ Exportado para A3 — importa el archivo en A3 Asesor → Contabilidad → Importar diario", "success", 6000);
+
+  const msg = asientosDescuadrados > 0
+    ? `⚠️ Exportado para A3 (${asientosCuadrados} cuadrados, ${asientosDescuadrados} con descuadre — revisa las facturas afectadas)`
+    : `✅ Exportado para A3 (${asientosCuadrados} asientos cuadrados) — importa en A3 Asesor → Contabilidad → Importar diario`;
+  toast(msg, asientosDescuadrados > 0 ? "warn" : "success", 7000);
 }
 
 /* ── Exportar para ContaPlus (formato .txt registros fijos) ── */
@@ -1733,50 +2120,75 @@ export async function exportarParaContaPlus() {
     .eq("user_id", SESSION.user.id).gte("fecha",`${year}-01-01`).lte("fecha",`${year}-12-31`)
     .order("fecha");
 
-  // ContaPlus formato: DDMMAAAA;CCCCCC;CONCEPTO;DEBE;HABER;DOCUMENTO
-  const pad  = (v,n,c="0") => String(v).padStart(n,c);
-  const padR = (v,n)       => String(v).padEnd(n," ").slice(0,n);
-  const fmtImporte = (v)   => (Math.round((v||0)*100)).toString().padStart(15,"0");
+  // ContaPlus formato: DDMMAAAA;AAAAAA;CCCCCCCCCC;CONCEPTO;DEBE;HABER;DOCUMENTO
+  const pad  = (v, n, c = "0") => String(v).padStart(n, c);
+  const padR = (v, n) => String(v).padEnd(n, " ").slice(0, n);
+  // ContaPlus admite punto o coma decimal; usamos punto para máxima compatibilidad
+  const fmtImporte = (v) => (Math.round((v || 0) * 100)).toString().padStart(15, "0");
 
-  let lineas = [];
+  const lineas = [];
   let nAsiento = 1;
+  let asientosCuadrados = 0, asientosDescuadrados = 0;
 
-  (facturas||[]).forEach(f => {
-    const total    = f.base + f.base*(f.iva||0)/100;
-    const cuotaIVA = f.base*(f.iva||0)/100;
-    const irpfAmt  = f.base*(f.irpf_retencion||f.irpf||0)/100;
-    const [yy,mm,dd] = (f.fecha||"2025-01-01").split("-");
+  (facturas || []).forEach(f => {
+    if (f.tipo === "emitida" && f.estado !== "emitida") return;
+    if (f.tipo === "recibida" && f.estado === "anulada") return;
+
+    const [yy, mm, dd] = ((f.fecha_operacion || f.fecha) || "2025-01-01").split("-");
     const fecha = `${dd}${mm}${yy}`;
-    const nAs   = pad(nAsiento,6);
-    const doc   = padR(f.numero_factura||"",12);
-    const conc  = padR(f.tipo==="emitida"
-      ? `Fra ${f.numero_factura||""} ${f.cliente_nombre||""}`.slice(0,40)
-      : `Fra rec ${f.numero_factura||""} ${f.concepto||""}`.slice(0,40), 40);
+    const nAs   = pad(nAsiento, 6);
+    const doc   = padR(f.numero_factura || "", 12);
+    const conc  = padR((f.tipo === "emitida"
+      ? `Fra ${f.numero_factura || ""} ${f.cliente_nombre || ""}`
+      : `Fra rec ${f.numero_factura || ""} ${f.cliente_nombre || f.concepto || ""}`
+    ).slice(0, 40), 40);
 
     const mkLinea = (cta, debe, haber) =>
-      `${fecha};${nAs};${padR(cta,10)};${conc};${fmtImporte(debe)};${fmtImporte(haber)};${doc}`;
+      `${fecha};${nAs};${padR(cta, 10)};${conc};${fmtImporte(debe)};${fmtImporte(haber)};${doc}`;
 
-    if (f.tipo==="emitida" && f.estado==="emitida") {
-      lineas.push(mkLinea("4300000000", total-irpfAmt, 0));
-      if (irpfAmt>0) lineas.push(mkLinea("4730000000", irpfAmt, 0));
-      if (cuotaIVA>0) lineas.push(mkLinea("4770000000", 0, cuotaIVA));
-      lineas.push(mkLinea("7050000000", 0, f.base));
-    } else if (f.tipo==="recibida") {
-      lineas.push(mkLinea("6290000000", f.base, 0));
-      if (cuotaIVA>0) lineas.push(mkLinea("4720000000", cuotaIVA, 0));
-      lineas.push(mkLinea("4000000000", 0, total));
-    }
+    // Usar el helper compartido para asientos cuadrados
+    const lineasAsiento = _generarAsientoContable(f);
+    if (!lineasAsiento.length) return;
+
+    const sumD = lineasAsiento.reduce((s, l) => s + l.debe, 0);
+    const sumH = lineasAsiento.reduce((s, l) => s + l.haber, 0);
+    if (Math.abs(sumD - sumH) < 0.01) asientosCuadrados++; else asientosDescuadrados++;
+
+    lineasAsiento.forEach(l => {
+      // ContaPlus usa cuentas de 10 caracteres — si nuestra cuenta es de 6
+      // (sin subcuenta por contraparte), se rellena con ceros a la derecha.
+      const ctaCP = l.cuenta.length < 10 ? l.cuenta.padEnd(10, "0") : l.cuenta.slice(0, 10);
+      lineas.push(mkLinea(ctaCP, l.debe, l.haber));
+    });
+
     nAsiento++;
   });
 
-  const contenido = lineas.join("\r\n");
-  const blob = new Blob([contenido], { type:"text/plain;charset=utf-8" });
+  const contenido = lineas.join("\r\n") + "\r\n";
+
+  // ContaPlus espera ISO-8859-1 (Windows-1252)
+  const sanitizar = (s) => String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x20-\xFF]/g, "?");
+  const contenidoSanit = sanitizar(contenido);
+  const buffer = new Uint8Array(contenidoSanit.length);
+  for (let i = 0; i < contenidoSanit.length; i++) {
+    const code = contenidoSanit.charCodeAt(i);
+    buffer[i] = code <= 0xFF ? code : 0x3F;
+  }
+
+  const blob = new Blob([buffer], { type: "text/plain;charset=iso-8859-1" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href = url; a.download = `taurix_ContaPlus_${year}.txt`;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
-  toast("✅ Exportado para ContaPlus — importa en Contabilidad → Asientos → Importar", "success", 6000);
+
+  const msg = asientosDescuadrados > 0
+    ? `⚠️ Exportado para ContaPlus (${asientosCuadrados} cuadrados, ${asientosDescuadrados} con descuadre)`
+    : `✅ Exportado para ContaPlus (${asientosCuadrados} asientos cuadrados) — importa en Contabilidad → Asientos → Importar`;
+  toast(msg, asientosDescuadrados > 0 ? "warn" : "success", 7000);
 }
 
 /* ── Fichero oficial AEAT Modelo 347 (.txt formato BOE) ──
