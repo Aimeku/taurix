@@ -482,46 +482,410 @@ export async function exportModelo347PDF() {
   toast("Modelo 347 exportado ✅", "success");
 }
 
-/* ══════════════════════════
-   MODELO 349 — Intracomunitarias
-══════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════
+   MODELO 349 — Declaración recapitulativa de operaciones
+                intracomunitarias
+   Arts. 78-81 RIVA · Orden EHA/769/2010 modificada · versión 2024
+   
+   REFACTORIZACIÓN v2 (post-auditoría fiscal 2026):
+   ─────────────────────────────────────────────────────────────────
+   Hallazgo 4 del informe (CRÍTICO): el 349 anterior era plano
+   (una única suma de bases sin clasificar). El 349 real exige:
+   
+   ▸ CLAVES DE OPERACIÓN:
+     E  — Entregas intracomunitarias de BIENES
+     A  — Adquisiciones intracomunitarias de BIENES
+     T  — Operaciones triangulares (op. subsiguiente tras AIC)
+     S  — Prestaciones de SERVICIOS (emisor presta a empresario UE)
+     I  — Adquisiciones de SERVICIOS (receptor recibe de UE)
+     M  — Entregas posteriores al transporte desde España
+     H  — Entregas posteriores a AIC que operador intermedio hizo
+     R  — Rectificaciones de periodos anteriores (signo ±)
+   ▸ AGRUPACIÓN por clave + NIF-VAT del cliente/proveedor.
+   ▸ VALIDACIÓN del VAT: sin VAT comunitario válido, la
+     operación pierde la exención del art. 25 LIVA.
+   ▸ FICHERO OFICIAL .txt (.349) compatible con sede AEAT.
+══════════════════════════════════════════════════════════════════ */
+
+/**
+ * Determina la naturaleza de una factura intracomunitaria: bien o servicio.
+ * Campo canónico: `naturaleza ∈ {'bien', 'servicio'}`.
+ * Fallback: heurística por categoría o concepto (muy tentativa).
+ */
+function _naturalezaIC(f) {
+  if (f.naturaleza === "bien" || f.naturaleza === "servicio") return f.naturaleza;
+  // Heurística: la mayoría de autónomos IC hacen servicios (software, consultoría,
+  // diseño, ...). Lo más seguro por defecto es "servicio" porque:
+  //  - si facturan bienes físicos a UE suelen saber que necesitan marcarlo,
+  //  - si facturan servicios no suelen rellenar el campo y es lo correcto.
+  const txt = ((f.concepto || "") + " " + (f.categoria || "")).toLowerCase();
+  // Keywords fuertes de bien físico
+  if (/\bmercanc|\bproducto\b|\benvío\b|\benvio\b|\btransporte de bienes\b|\bexpedici/.test(txt)) {
+    return "bien";
+  }
+  return "servicio";
+}
+
+/**
+ * Calcula la clave AEAT del 349 a partir del tipo de factura y naturaleza.
+ * @returns {'E'|'A'|'S'|'I'|'T'|'M'|'H'|'R'}
+ */
+function _claveOperacion349(f) {
+  // Rectificativas: van a clave R en el 349 (regularización)
+  if (f.es_rectificativa || (f.base < 0)) return "R";
+  // Triangular (requiere campo explícito porque no hay forma fiable de inferir)
+  if (f.tipo_operacion_349 === "triangular" || f.es_triangular) return "T";
+  // Campo explícito puede forzar H o M
+  if (f.clave_349_forzada && "EASITMHR".includes(f.clave_349_forzada)) return f.clave_349_forzada;
+
+  const nat = _naturalezaIC(f);
+  if (f.tipo === "emitida") {
+    return nat === "bien" ? "E" : "S";
+  } else {
+    return nat === "bien" ? "A" : "I";
+  }
+}
+
+/**
+ * Validación básica de VAT intracomunitario.
+ * Formato: 2 letras país + 8-12 caracteres alfanuméricos.
+ * (La validación VIES real está en validaciones.js — Lote 12.)
+ */
+function _tieneVATValido(nif) {
+  if (!nif) return false;
+  const clean = String(nif).replace(/[-\s]/g, "").toUpperCase();
+  return /^[A-Z]{2}[A-Z0-9]{8,12}$/.test(clean);
+}
+
+/**
+ * Calcula el Modelo 349 del trimestre/mes actual agrupado por clave + NIF.
+ * El 349 puede ser trimestral, mensual o bimensual según el volumen
+ * (art. 81.1 RIVA). Aquí lo calculamos por trimestre; la periodicidad
+ * real la decide el perfil del declarante.
+ */
 export async function calcModelo349() {
   const year = getYear(), trim = getTrim();
   const { ini, fin } = getFechaRango(year, trim);
-
-  // user_id — consistente con el resto del sistema
   const uid349 = SESSION?.user?.id;
+
+  // Leer TODOS los campos — necesitamos `lineas` para el desglose y
+  // `naturaleza`, `es_rectificativa`, `cliente_pais` para clasificar.
   const { data: ops } = await supabase.from("facturas")
-    .select("cliente_nombre, cliente_nif, base, iva, tipo, estado")
+    .select("*")
     .eq("user_id", uid349)
     .eq("tipo_operacion", "intracomunitaria")
-    .gte("fecha", ini).lte("fecha", fin);
+    .gte("fecha", ini).lte("fecha", fin)
+    .not("estado", "eq", "anulada");
 
-  const totalBase349 = (ops || []).reduce((a, f) => a + (f.base || 0), 0);
+  // Acumulador: key = clave + "|" + NIF-VAT
+  const grupos = {};
+
+  // Operaciones sin VAT válido (no son declarables en el 349 pero se
+  // avisan como error en el PDF — el usuario debería corregirlas
+  // antes de presentar o perder la exención IC).
+  const errores = [];
+
+  (ops || []).forEach(f => {
+    // Emitidas sólo si están "emitida"
+    if (f.tipo === "emitida" && f.estado !== "emitida") return;
+
+    const clave = _claveOperacion349(f);
+    const nifClean = String(f.cliente_nif || "").replace(/[-\s]/g, "").toUpperCase();
+
+    // Validar VAT
+    if (!_tieneVATValido(nifClean)) {
+      errores.push({
+        factura:  f.numero_factura || "(sin número)",
+        nombre:   f.cliente_nombre || "(sin nombre)",
+        nif:      f.cliente_nif    || "(vacío)",
+        motivo:   "VAT comunitario no válido o ausente. Sin VAT válido, la operación no puede acogerse a la exención del art. 25 LIVA."
+      });
+      return;
+    }
+
+    // Agrupación por (clave, NIF-VAT)
+    const key = clave + "|" + nifClean;
+    if (!grupos[key]) {
+      grupos[key] = {
+        clave,
+        nif:           nifClean,
+        nombre:        f.cliente_nombre || "—",
+        pais:          f.cliente_pais   || nifClean.slice(0, 2),
+        importe:       0,
+        numOperaciones: 0,
+        // Para rectificativas necesitamos saber a qué periodo anterior afectan
+        periodo_rectificado: null,
+        base_rectificada:    null,
+      };
+    }
+
+    const d = desglosarIva(f);
+    grupos[key].importe += d.base_total;
+    grupos[key].numOperaciones += 1;
+
+    // Si es rectificativa, guardar el periodo original si lo conocemos
+    if (clave === "R" && f.rectif_factura_original) {
+      grupos[key].periodo_rectificado = f.rectif_factura_original;
+      grupos[key].base_rectificada     = Math.abs(d.base_total);
+    }
+  });
+
+  // Redondeo
+  Object.values(grupos).forEach(g => {
+    g.importe = _r(g.importe);
+  });
+
+  // Array final ordenado: primero las claves "normales", luego R
+  const declarables = Object.values(grupos)
+    .filter(g => Math.abs(g.importe) > 0)
+    .sort((a, b) => {
+      if (a.clave === "R" && b.clave !== "R") return 1;
+      if (b.clave === "R" && a.clave !== "R") return -1;
+      return Math.abs(b.importe) - Math.abs(a.importe);
+    });
+
+  // Totales por clave para el resumen
+  const totalesPorClave = {};
+  for (const c of ["E", "A", "T", "S", "I", "M", "H", "R"]) {
+    totalesPorClave[c] = {
+      operaciones: declarables.filter(d => d.clave === c).length,
+      base:        _r(declarables.filter(d => d.clave === c).reduce((s, d) => s + d.importe, 0)),
+    };
+  }
+  const totalBase349 = _r(declarables.reduce((s, d) => s + d.importe, 0));
+
+  // Actualizar UI del dashboard
   const s349 = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  s349("m349Count", (ops || []).length);
+  s349("m349Count", declarables.length);
   s349("m349Base",  fmt(totalBase349));
 
-  return { ops: ops || [], totalBase: totalBase349, year, trim };
+  return {
+    declarables,
+    totalesPorClave,
+    totalBase: totalBase349,
+    errores,
+    year, trim,
+  };
 }
 
+/**
+ * PDF del 349 con desglose por claves y tabla de declarados.
+ */
 export async function exportModelo349PDF() {
   const data = await calcModelo349();
-  const totalBase = data.ops.reduce((a, f) => a + f.base, 0);
+  const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).maybeSingle();
+
+  // Construir filas del resumen por clave
+  const CLAVE_DESCRIP = {
+    E: "Entregas intracomunitarias de bienes",
+    A: "Adquisiciones intracomunitarias de bienes",
+    T: "Operaciones triangulares",
+    S: "Prestaciones intracomunitarias de servicios",
+    I: "Adquisiciones intracomunitarias de servicios",
+    M: "Entregas posteriores a transporte desde ES",
+    H: "Entregas posteriores a AIC (operador intermedio)",
+    R: "Rectificaciones de periodos anteriores",
+  };
+
+  const filas = [];
+  for (const c of ["E", "A", "T", "S", "I", "M", "H", "R"]) {
+    const t = data.totalesPorClave[c];
+    if (t.operaciones > 0) {
+      filas.push({ label: `Clave ${c} — ${CLAVE_DESCRIP[c]} (${t.operaciones} decl.)`, valor: t.base });
+    }
+  }
+  filas.push({ label: "TOTAL BASE DECLARADA", valor: data.totalBase, bold: true });
+
+  if (data.errores.length > 0) {
+    filas.push({ label: `⚠️ Operaciones con VAT inválido (NO declarables): ${data.errores.length}`, valor: null, texto: "Ver detalle en PDF" });
+  }
 
   await generarPDFModelo({
     numero: "349",
     titulo: "DECLARACIÓN RECAPITULATIVA DE OPERACIONES INTRACOMUNITARIAS",
-    subtitulo: "Entregas y adquisiciones intracomunitarias de bienes y servicios",
+    subtitulo: `Entregas y adquisiciones intracomunitarias de bienes y servicios (Orden EHA/769/2010)`,
     year: data.year, trim: data.trim,
-    resultado: totalBase,
-    filas: [
-      { label: "Operaciones intracomunitarias del periodo", valor: data.ops.length, texto: `${data.ops.length} operaciones` },
-      { label: "Base total declarada", valor: totalBase },
-    ],
+    resultado: data.totalBase,
+    labelResultado: "TOTAL BASE INTRACOMUNITARIA",
+    filas,
     plazo: TRIM_PLAZOS[data.trim],
-    nota: "Declaración informativa sin cuota a ingresar. Art. 79 RIVA. Se presenta aunque el importe sea cero si hay operaciones."
+    nota: "Declaración informativa sin cuota a ingresar (Art. 78-81 RIVA). El fichero oficial .349 está disponible desde el botón «Descargar fichero 349» para importar en la Sede Electrónica AEAT. Periodicidad: trimestral por defecto; mensual si superan 50.000 €/trim en entregas intracomunitarias (art. 81.1 RIVA)."
   });
+
+  // Si hay errores de VAT, ayudamos al usuario generando un PDF adicional
+  // con el detalle (sólo si hay errores).
+  if (data.errores.length > 0) {
+    await _generarPDFErrores349(data, pf);
+  }
+}
+
+/**
+ * PDF complementario listando las operaciones con VAT inválido
+ * que NO se han declarado en el 349. Ayuda al usuario a corregirlas.
+ * @private
+ */
+async function _generarPDFErrores349(data, pf) {
+  await _cargarJsPDF();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const PW = 210, ML = 18, MR = 18, W = PW - ML - MR;
+  const RED = [220, 38, 38], INK = [15, 23, 42], MUTED = [100, 116, 139];
+
+  doc.setFillColor(...RED); doc.rect(0, 0, PW, 24, "F");
+  doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(12);
+  doc.text("MODELO 349 — ERRORES DE VALIDACIÓN", PW / 2, 11, { align: "center" });
+  doc.setFontSize(8); doc.setFont("helvetica", "normal");
+  doc.text(`Operaciones con VAT inválido — Ejercicio ${data.year} · ${data.trim}`, PW / 2, 18, { align: "center" });
+
+  let y = 32;
+  doc.setTextColor(...INK); doc.setFontSize(9);
+  doc.text(`${data.errores.length} operación${data.errores.length > 1 ? "es" : ""} intracomunitaria${data.errores.length > 1 ? "s" : ""} detectada${data.errores.length > 1 ? "s" : ""} sin VAT válido.`, ML, y); y += 6;
+  doc.setFontSize(8); doc.setTextColor(...MUTED);
+  doc.text("Sin VAT comunitario válido no se puede aplicar la exención del art. 25 LIVA.", ML, y); y += 4;
+  doc.text("Corrige estos NIF-VAT o repercute IVA español antes de presentar el 349.", ML, y); y += 10;
+
+  doc.setFillColor(...RED);
+  doc.rect(ML, y, W, 8, "F");
+  doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+  doc.text("Nº factura",         ML + 2,  y + 5.5);
+  doc.text("Cliente/Proveedor",  ML + 34, y + 5.5);
+  doc.text("NIF registrado",     ML + 94, y + 5.5);
+  doc.text("Motivo",             ML + 128, y + 5.5);
+  y += 8;
+  doc.setTextColor(...INK); doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
+
+  data.errores.forEach((e, i) => {
+    if (y > 270) { doc.addPage(); y = 18; }
+    if (i % 2 === 0) doc.setFillColor(254, 242, 242); else doc.setFillColor(255, 255, 255);
+    doc.rect(ML, y, W, 10, "F");
+    doc.text(e.factura.substring(0, 18),        ML + 2,   y + 4);
+    doc.text((e.nombre || "").substring(0, 28), ML + 34,  y + 4);
+    doc.text(e.nif.substring(0, 15),            ML + 94,  y + 4);
+    const motivoLines = doc.splitTextToSize(e.motivo, W - 132);
+    doc.text(motivoLines, ML + 128, y + 4);
+    y += 10;
+  });
+
+  y += 10;
+  doc.setFont("helvetica", "italic"); doc.setFontSize(7); doc.setTextColor(...MUTED);
+  doc.text("Valida estos NIF-VAT en la base VIES: https://ec.europa.eu/taxation_customs/vies/", ML, y);
+
+  doc.save(`modelo_349_errores_${data.year}_${data.trim}.pdf`);
+  toast(`⚠️ Generado informe de errores 349 (${data.errores.length} operaciones con VAT inválido)`, "warn", 6000);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   FICHERO OFICIAL AEAT — MODELO 349 (.txt / .349)
+   Diseño de registro según Orden EHA/769/2010 modificada
+   
+   Estructura:
+     - Registro tipo 1: Declarante (500 bytes)
+     - Registros tipo 2: Un registro por cada declarado (500 bytes c/u)
+══════════════════════════════════════════════════════════════════ */
+export async function exportarFichero349() {
+  const { data: pf } = await supabase.from("perfil_fiscal").select("*").eq("user_id", SESSION.user.id).maybeSingle();
+  if (!pf?.nif) {
+    toast("⚠️ Necesitas configurar tu NIF en Perfil fiscal antes de exportar el fichero oficial", "warn", 5000);
+    return;
+  }
+
+  const data349 = await calcModelo349();
+  if (!data349.declarables.length) {
+    toast(`No hay operaciones intracomunitarias declarables en ${data349.trim} ${data349.year}`, "warn");
+    return;
+  }
+
+  // Helpers idénticos al 347
+  const sanitizar = (s) => String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x20-\xFF]/g, "?")
+    .toUpperCase();
+  const rpad  = (v, n) => sanitizar(v).padEnd(n, " ").slice(0, n);
+  const lpad  = (v, n) => String(v || "").padStart(n, " ").slice(0, n);
+  const lpad0 = (v, n) => String(v || "0").padStart(n, "0").slice(0, n);
+  const importe13 = (v) => lpad0(Math.round(Math.abs(Number(v) || 0) * 100), 13);
+  const signo     = (v) => (Number(v) || 0) < 0 ? "N" : " ";
+
+  const nifDecl     = rpad((pf.nif || "").replace(/[-\s]/g, ""), 9);
+  const nombreDecl  = rpad(pf.nombre_razon_social || "TAURIX", 40);
+  const ejercicio   = String(data349.year).padStart(4, "0");
+  const trim349     = data349.trim.replace("T", "");    // "1","2","3","4"
+  const periodo     = trim349 + "T";                    // "1T","2T",...
+  const telefono    = lpad0((pf.telefono || "").replace(/\D/g, "").slice(0, 9), 9);
+  const nombreContacto = rpad(pf.persona_contacto || pf.nombre_razon_social || "", 40);
+
+  /* ── REGISTRO TIPO 1: Declarante ────────────────────────────── */
+  const totalDeclarados = data349.declarables.length;
+  const totalImportes   = data349.declarables.reduce((s, d) => s + Math.abs(d.importe), 0);
+  const totalRectif     = data349.totalesPorClave.R.operaciones;
+
+  let reg1 = "";
+  reg1 += "1";                              // 001: Tipo registro
+  reg1 += "349";                            // 002-004: Modelo
+  reg1 += ejercicio;                        // 005-008: Ejercicio
+  reg1 += nifDecl;                          // 009-017: NIF declarante
+  reg1 += nombreDecl;                       // 018-057: Apellidos/nombre declarante
+  reg1 += "T";                              // 058: Tipo soporte (T=telemático)
+  reg1 += telefono;                         // 059-067: Teléfono contacto
+  reg1 += nombreContacto;                   // 068-107: Persona contacto
+  reg1 += lpad("", 13);                     // 108-120: Núm. identificativo declaración
+  reg1 += " ";                              // 121: Declaración complementaria (C / " ")
+  reg1 += " ";                              // 122: Declaración sustitutiva  (S / " ")
+  reg1 += lpad("", 13);                     // 123-135: Núm. declaración anterior
+  reg1 += periodo;                          // 136-137: Periodo (1T, 2T, 3T, 4T, 01-12 para mensual)
+  reg1 += lpad0(totalDeclarados, 5);        // 138-142: Total declarados (tipo 2 excluyendo rectif)
+  reg1 += importe13(totalImportes);         // 143-155: Total importes
+  reg1 += lpad0(totalRectif, 5);            // 156-160: Total registros rectificativos
+  reg1 += importe13(data349.totalesPorClave.R.base);  // 161-173: Total importe rectificaciones
+  reg1 = reg1.padEnd(500, " ").slice(0, 500);
+
+  /* ── REGISTROS TIPO 2: Declarados ───────────────────────────── */
+  const reg2s = data349.declarables.map((d) => {
+    const nifDecd = rpad(d.nif, 17);        // NIF-VAT con prefijo país (ej. "DE123456789")
+    const nombreDecd = rpad(d.nombre, 40);
+
+    let r = "";
+    r += "2";                               // 001: Tipo registro
+    r += "349";                             // 002-004: Modelo
+    r += ejercicio;                         // 005-008: Ejercicio
+    r += nifDecl;                           // 009-017: NIF declarante
+    r += rpad("", 40);                      // 018-057: Apellidos declarante (blanco en reg2)
+    r += nifDecd;                           // 058-074: NIF-VAT del declarado (17)
+    r += nombreDecd;                        // 075-114: Nombre declarado
+    r += d.clave;                           // 115: Clave de operación (E, A, S, I, T, M, H, R)
+    r += importe13(d.importe);              // 116-128: Base imponible (13)
+    r += signo(d.importe);                  // 129: Signo
+    // Rectificaciones: campos adicionales sólo para clave R
+    if (d.clave === "R") {
+      r += lpad0(d.periodo_rectificado ? (d.year || data349.year) : "", 4); // 130-133: Ejercicio periodo rectificado
+      r += rpad(d.periodo_rectificado ? periodo : "", 2);                   // 134-135: Periodo rectificado
+      r += importe13(d.base_rectificada || 0);                              // 136-148: Base rectificada
+      r += signo(d.base_rectificada || 0);                                  // 149: Signo
+    }
+    r = r.padEnd(500, " ").slice(0, 500);
+    return r;
+  });
+
+  const contenido = [reg1, ...reg2s].join("\r\n") + "\r\n";
+
+  // Convertir a ISO-8859-1
+  const buffer = new Uint8Array(contenido.length);
+  for (let i = 0; i < contenido.length; i++) {
+    const code = contenido.charCodeAt(i);
+    buffer[i] = code <= 0xFF ? code : 0x3F;
+  }
+
+  // Nombre fichero oficial AEAT
+  const nombreFichero = `349${ejercicio}${trim349}T${nifDecl.trim()}.349`;
+  const blob = new Blob([buffer], { type: "text/plain;charset=iso-8859-1" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = nombreFichero;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+
+  toast(`✅ Fichero oficial 349 generado (${data349.declarables.length} declarados) — importa en la Sede Electrónica AEAT`, "success", 7000);
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -991,6 +1355,7 @@ export async function initOtrosModelosView() {
   document.getElementById("exportA3Btn")?.addEventListener("click", exportarParaA3);
   document.getElementById("exportContaPlusBtn")?.addEventListener("click", exportarParaContaPlus);
   document.getElementById("exportFichero347Btn")?.addEventListener("click", exportarFichero347);
+  document.getElementById("exportFichero349Btn")?.addEventListener("click", exportarFichero349);
   document.getElementById("exportFichero190Btn")?.addEventListener("click", exportarFichero190);
   document.getElementById("export349Btn")?.addEventListener("click", exportModelo349PDF);
   document.getElementById("export190Btn")?.addEventListener("click", exportModelo190PDF);
