@@ -8,6 +8,7 @@
 
 import { supabase } from "./supabase.js";
 import { SESSION, CLIENTES, fmt, fmtDate, toast, openModal, closeModal } from "./utils.js";
+import { readSedeIdFromForm, applySedeFilter } from "./sedes.js";
 
 const ESTADOS = [
   { id: "pendiente",  label: "⏳ Pendiente",  color: "#d97706", bg: "#fef9c3" },
@@ -31,10 +32,12 @@ let VISTA_TRB = "kanban"; // "kanban" | "lista"
 ══════════════════════════ */
 async function loadTrabajos() {
   if (!SESSION) return [];
+  let qTr = supabase.from("trabajos").select("*")
+    .eq("user_id", SESSION.user.id)
+    .order("created_at", { ascending: false });
+  qTr = applySedeFilter(qTr);
   const [trRes, tecRes] = await Promise.all([
-    supabase.from("trabajos").select("*")
-      .eq("user_id", SESSION.user.id)
-      .order("created_at", { ascending: false }),
+    qTr,
     supabase.from("empleados").select("id,nombre")
       .eq("user_id", SESSION.user.id).eq("activo", true),
   ]);
@@ -279,6 +282,7 @@ async function showNuevoTrabajoModal(prefill = {}) {
     const clienteSel = document.getElementById("trb_cliente");
     const payload = {
       user_id:        SESSION.user.id,
+      sede_id:        prefill.sede_id !== undefined ? prefill.sede_id : (readSedeIdFromForm("trb_sede_id") || null),
       titulo,
       estado:         document.getElementById("trb_estado").value,
       prioridad:      document.getElementById("trb_prioridad").value,
