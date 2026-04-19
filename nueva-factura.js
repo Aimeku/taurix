@@ -15,6 +15,7 @@ import { refreshDashboard } from "./dashboard.js";
 import { refreshFacturas } from "./facturas.js";
 import { PRODUCTOS, buscarProductoPorCodigo, refreshProductos } from "./productos.js";
 import { PLANTILLAS, getPlantillaDefault } from "./plantillas-usuario.js";
+import { renderSedeSelector, readSedeIdFromForm } from "./sedes.js";
 
 /* ── Estado interno del formulario ── */
 let LINEAS = [];
@@ -794,6 +795,7 @@ async function saveFactura() {
     cliente_nombre: resolvedNombre, cliente_nif: resolvedNif,
     cliente_direccion: resolvedDir,
     cliente_pais: pais,
+    sede_id: readSedeIdFromForm("nfSedeId"),
     descuento_global: _dtoGlobalPayload,
     notas: (() => {
       const motivoExencion = document.getElementById("nfMotivoExencion")?.value.trim();
@@ -1037,6 +1039,16 @@ export function initNuevaFactura() {
   const fechaEl = document.getElementById("nfFecha");
   if (fechaEl && !fechaEl.value) fechaEl.value=new Date().toISOString().slice(0,10);
   loadPerfilForPreview();
+
+  // Inyectar selector de sede si la feature está activa. Lo colocamos
+  // tras el campo "Referencia / Pedido" en la misma fila de metadatos.
+  try {
+    const refField = document.getElementById("nfReferencia")?.closest(".ff-field");
+    const sedeHTML = renderSedeSelector({ inputId: "nfSedeId", wrapperClass: "ff-field" });
+    if (refField && sedeHTML && !document.getElementById("nfSedeId")) {
+      refField.insertAdjacentHTML("afterend", sedeHTML);
+    }
+  } catch (e) { console.warn("[nueva-factura sede]", e); }
 
   document.querySelectorAll(".op-type-btn").forEach(btn => {
     btn.addEventListener("click", () => {
