@@ -14,6 +14,7 @@ import { PLANTILLAS, getPlantillaDefault } from "./plantillas-usuario.js";
 import { refreshPresupuestos } from "./presupuestos.js";
 import { refreshClientes, populateClienteSelect } from "./clientes.js";
 import { getNextDocumentNumber } from "./numeracion-docs.js";
+import { renderSedeSelector, readSedeIdFromForm } from "./sedes.js";
 
 let LINEAS = [];
 let lineaIdCounter = 0;
@@ -518,6 +519,7 @@ async function savePresupuesto() {
   const payload = {
     concepto, fecha,
     fecha_validez: document.getElementById("npValidez")?.value || null,
+    sede_id: readSedeIdFromForm("npSedeId"),
     cliente_id: cId || null,
     cliente_nombre:           clienteNombre           || clienteObj?.nombre           || "",
     cliente_nombre_comercial: clienteNombreComercial  || clienteObj?.nombre_comercial || null,
@@ -871,6 +873,15 @@ export function initNuevoPresupuesto() {
   const fechaEl = document.getElementById("npFecha");
   if (fechaEl && !fechaEl.value) fechaEl.value = new Date().toISOString().slice(0, 10);
 
+  // Inyectar selector de sede tras el campo "Válido hasta"
+  try {
+    const validezField = document.getElementById("npValidez")?.closest(".ff-field");
+    const sedeHTML = renderSedeSelector({ inputId: "npSedeId", wrapperClass: "ff-field" });
+    if (validezField && sedeHTML && !document.getElementById("npSedeId")) {
+      validezField.insertAdjacentHTML("afterend", sedeHTML);
+    }
+  } catch (e) { console.warn("[nuevo-presupuesto sede]", e); }
+
   initClienteSearch();
   initDtoGlobal();
 
@@ -942,6 +953,7 @@ export function initNuevoPresupuesto() {
     set("npConcepto",                editData.concepto);
     set("npFecha",                   editData.fecha);
     set("npValidez",                 editData.fecha_validez);
+    set("npSedeId",                  editData.sede_id);
     set("npClienteNombre",           editData.cliente_nombre);
     set("npClienteNombreComercial",  editData.cliente_nombre_comercial);
     set("npClienteNif",              editData.cliente_nif);
