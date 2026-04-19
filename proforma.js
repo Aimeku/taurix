@@ -10,7 +10,7 @@ import { supabase } from "./supabase.js";
 import { SESSION, fmt, fmtDate, toast, openModal, closeModal, switchView, getYear, getTrim, getFechaRango } from "./utils.js";
 import { refreshFacturas } from "./facturas.js";
 import { cargarProformaParaEditar } from "./nueva-proforma.js";
-import { applySedeFilter } from "./sedes.js";
+import { applySedeFilter, renderSedeChip } from "./sedes.js";
 
 /* ══════════════════════════
    REFRESH / LISTADO
@@ -74,7 +74,7 @@ export async function refreshProforma() {
     return `<tr>
       <td class="mono" style="font-size:12px">${fmtDate(p.fecha)}</td>
       <td><span class="badge b-income mono" style="font-size:11px;cursor:pointer" onclick="window._editProforma('${p.id}')">${p.numero||"PREL"}</span></td>
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${p.concepto||"—"}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${p.concepto||"—"}${renderSedeChip(p.sede_id)}</td>
       <td style="font-size:12px;color:var(--t3)">${p.cliente_nombre||"—"}</td>
       <td class="mono fw7">${fmt(total)}</td>
       <td>${estadoBadge[estado]||estadoBadge.borrador}</td>
@@ -117,6 +117,7 @@ window._proformaToFactura = async (id) => {
   document.getElementById("_pf2fOk").addEventListener("click", async()=>{
     const {data:factura, error:fe} = await supabase.from("facturas").insert({
       user_id:        SESSION.user.id,
+      sede_id:        p.sede_id || null,
       concepto:       p.concepto,
       base:           p.base,
       iva:            p.iva||21,
