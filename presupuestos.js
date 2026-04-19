@@ -18,7 +18,7 @@ import {
 import { PRODUCTOS, buscarProductoPorCodigo } from "./productos.js";
 import { exportPresupuestoPDFConPlantilla, exportAlbaranPDFConPlantilla } from "./pdf-plantilla.js";
 import { getNextDocumentNumber } from "./numeracion-docs.js";
-import { applySedeFilter } from "./sedes.js";
+import { applySedeFilter, renderSedeChip } from "./sedes.js";
 
 let paginaActual = 1;
 const POR_PAGINA = 30;
@@ -197,7 +197,7 @@ export async function refreshPresupuestos() {
             ${p.numero || "S/N"}
           </span>
         </td>
-        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${p.concepto || "—"}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${p.concepto || "—"}${renderSedeChip(p.sede_id)}</td>
         <td style="font-size:12px;color:var(--t3)">${p.cliente_nombre || "—"}</td>
         <td class="mono fw7">${fmt(total)}</td>
         <td>${badgeOp}</td>
@@ -857,6 +857,7 @@ export function showNuevoPresupuestoModal(prefill = {}) {
 
     const payload = {
       user_id:        SESSION.user.id,
+      sede_id:        prefill.sede_id || null,
       concepto, fecha,
       fecha_validez:  document.getElementById("pm_validez").value  || null,
       estado:         document.getElementById("pm_estado").value,
@@ -998,6 +999,7 @@ async function convertirAFactura(presId) {
 
     const { data: facturaNew1, error: fe } = await supabase.from("facturas").insert({
       user_id:            SESSION.user.id,
+      sede_id:            p.sede_id || null,
       tipo:               "emitida",
       estado:             "borrador",
       fecha,
@@ -1235,6 +1237,7 @@ async function albaranAFactura(presId) {
 
     const { data: facturaNew2, error: fe } = await supabase.from("facturas").insert({
       user_id:            SESSION.user.id,
+      sede_id:            p.sede_id || null,
       tipo:               "emitida",
       estado:             "borrador",
       fecha,
