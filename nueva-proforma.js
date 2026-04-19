@@ -12,6 +12,7 @@ import { SESSION, CLIENTES, fmt, toast, switchView, OP_INFO, OP_SIN_IVA, OP_IVA_
 import { PRODUCTOS, refreshProductos } from "./productos.js";
 import { refreshProforma } from "./proforma.js";
 import { getNextDocumentNumber } from "./numeracion-docs.js";
+import { renderSedeSelector, readSedeIdFromForm } from "./sedes.js";
 
 /* ── Estado ── */
 let LINEAS        = [];
@@ -444,6 +445,7 @@ async function _save(){
 
   const payload={
     user_id:SESSION.user.id,numero,concepto,fecha,
+    sede_id: readSedeIdFromForm("npfSedeId"),
     fecha_validez:document.getElementById("npfValidez")?.value||null,
     estado:document.getElementById("npfEstado")?.value||"borrador",
     cliente_id:cId||null,
@@ -498,7 +500,7 @@ export async function cargarProformaParaEditar(id){
   const btnEl=document.getElementById("npfGuardarBtn"); if(btnEl)btnEl.textContent="Actualizar proforma";
   const f=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||"";};
   f("npfConcepto",p.concepto);f("npfFecha",p.fecha);f("npfValidez",p.fecha_validez||"");
-  f("npfEstado",p.estado||"borrador");f("npfClienteNombre",p.cliente_nombre||"");
+  f("npfEstado",p.estado||"borrador");f("npfSedeId",p.sede_id||"");f("npfClienteNombre",p.cliente_nombre||"");
   f("npfClienteNif",p.cliente_nif||"");f("npfClienteEmail",p.cliente_email||"");
   f("npfClienteDireccion",p.cliente_direccion||"");
   if(p.cliente_pais){const ps=document.getElementById("npfClientePais");if(ps)ps.value=p.cliente_pais;}
@@ -586,6 +588,15 @@ function initDtoGlobal(){
 export function initNuevaProforma(){
   const fe=document.getElementById("npfFecha");
   if(fe&&!fe.value)fe.value=new Date().toISOString().slice(0,10);
+
+  // Inyectar selector de sede tras el campo "Estado"
+  try {
+    const estadoField = document.getElementById("npfEstado")?.closest(".ff-field");
+    const sedeHTML = renderSedeSelector({ inputId: "npfSedeId", wrapperClass: "ff-field" });
+    if (estadoField && sedeHTML && !document.getElementById("npfSedeId")) {
+      estadoField.insertAdjacentHTML("afterend", sedeHTML);
+    }
+  } catch (e) { console.warn("[nueva-proforma sede]", e); }
 
   if(!_initDone){
     _initDone = true;
