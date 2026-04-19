@@ -697,6 +697,75 @@ export async function activarSedesFlow() {
    UTILIDADES
 ═══════════════════════════════════════════════════════════════════ */
 
+/**
+ * Devuelve el HTML de un selector de sede listo para inyectar en un
+ * formulario de creación/edición de documento.
+ *
+ * Si la feature no está activa, devuelve "" (el formulario queda igual
+ * que antes, como si la feature no existiera).
+ *
+ * Si no hay sedes creadas, también devuelve "" — no tiene sentido
+ * mostrar un select vacío.
+ *
+ * @param {object}  opts
+ * @param {string}  opts.inputId    · id del <select>. Debe ser único.
+ * @param {string?} opts.selectedId · UUID preseleccionado; si se omite,
+ *                                    usa la sede activa del topbar,
+ *                                    y si tampoco hay, la principal.
+ * @param {string?} opts.label      · Label encima del select. Default "Sede".
+ * @param {boolean?} opts.required  · Si true, NO incluye opción "Sin sede".
+ * @param {string?}  opts.wrapperClass · Clase del div contenedor. Default "modal-field".
+ * @returns {string} HTML o ""
+ */
+export function renderSedeSelector({ inputId, selectedId, label = "Sede", required = false, wrapperClass = "modal-field" }) {
+  if (!_sedesActivo) return "";
+  if (_sedes.length === 0) return "";
+
+  // Si no se pasó selectedId explícito, usamos la sede activa del topbar
+  // o, en su defecto, la principal.
+  let sel = selectedId;
+  if (sel === undefined) {
+    sel = getSedeActivaId() || getSedePrincipal()?.id || null;
+  }
+
+  const opcionVacia = required
+    ? ""
+    : `<option value="" ${!sel ? "selected" : ""}>— Sin sede asignada —</option>`;
+
+  const opciones = _sedes.map(s => `
+    <option value="${s.id}" ${s.id === sel ? "selected" : ""}>
+      ${_esc(s.codigo)} · ${_esc(s.nombre)}${s.es_principal ? " ★" : ""}
+    </option>
+  `).join("");
+
+  return `
+    <div class="${wrapperClass}">
+      <label>${_esc(label)}${required ? " *" : ""}</label>
+      <select id="${_esc(inputId)}" class="ff-input">
+        ${opcionVacia}
+        ${opciones}
+      </select>
+    </div>
+  `;
+}
+
+/**
+ * Lee el valor de un selector renderizado con renderSedeSelector.
+ * Devuelve null si la feature no está activa, si el select no existe
+ * o si el usuario seleccionó "Sin sede asignada".
+ *
+ * Seguro de llamar siempre: en formularios donde no se inyectó el
+ * selector (porque la feature está inactiva), devolverá null y se
+ * guardará sede_id = null, que es el comportamiento correcto.
+ */
+export function readSedeIdFromForm(inputId) {
+  if (!_sedesActivo) return null;
+  const el = document.getElementById(inputId);
+  if (!el) return null;
+  const v = el.value;
+  return v && v !== "" ? v : null;
+}
+
 function _esc(str) {
   if (str == null) return "";
   return String(str)
