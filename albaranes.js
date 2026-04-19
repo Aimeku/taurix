@@ -7,6 +7,7 @@
 import { supabase } from "./supabase.js";
 import { SESSION, fmt, fmtDate, toast, openModal, closeModal, getYear, getTrim, getFechaRango } from "./utils.js";
 import { getNextDocumentNumber } from "./numeracion-docs.js";
+import { applySedeFilter } from "./sedes.js";
 
 /* ══════════════════════════
    REFRESH ALBARANES
@@ -22,13 +23,15 @@ export async function refreshAlbaranes() {
   const minF       = parseFloat(document.getElementById("albaranFilterMin")?.value) || 0;
   const maxF       = parseFloat(document.getElementById("albaranFilterMax")?.value) || 0;
 
-  const { data, error } = await supabase.from("presupuestos")
+  let q = supabase.from("presupuestos")
     .select("*")
     .eq("user_id", SESSION.user.id)
     .eq("estado", "albaran")
     .gte("fecha", desdeF || ini).lte("fecha", hastaF || fin)
     .order("fecha", { ascending: false, nullsFirst: false })
     .order("id", { ascending: false, nullsFirst: false });
+  q = applySedeFilter(q);
+  const { data, error } = await q;
 
   if (error) { console.error("albaranes:", error.message); return; }
 
