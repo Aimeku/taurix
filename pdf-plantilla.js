@@ -185,7 +185,31 @@ export async function generarPDFConPlantilla({ doc: docData, tipo, plantillaId =
   await _loadJsPDF();
   const { jsPDF } = window.jspdf;
 
-  const perfil   = await _loadPerfil();
+  const perfilBase = await _loadPerfil();
+  // Si el documento está asignado a una sede, sustituimos la dirección
+  // del emisor por la de la sede (manteniendo razón social y NIF del
+  // perfil fiscal, que legalmente son del NIF). Todo lo demás del
+  // perfil (logo, teléfono, IBAN…) queda intacto.
+  let perfil = perfilBase;
+  if (docData?.sede_id) {
+    try {
+      const { data: sede } = await supabase
+        .from("sedes").select("*").eq("id", docData.sede_id).maybeSingle();
+      if (sede) {
+        const partes = [
+          sede.direccion,
+          [sede.codigo_postal, sede.ciudad].filter(Boolean).join(" ").trim(),
+          sede.provincia
+        ].filter(v => v && v.trim());
+        if (partes.length) {
+          perfil = { ...perfilBase, domicilio_fiscal: partes.join(", ") };
+        }
+      }
+    } catch (e) {
+      console.warn("[pdf/sede] no se pudo cargar sede, fallback a perfil_fiscal:", e);
+    }
+  }
+
   // Cascada: plantillaId explícito → plantilla_id del doc en BD → es_default → sin plantilla
   const resolvedPlantillaId = plantillaId || docData?.plantilla_id || null;
   const plantilla = await _loadPlantilla(resolvedPlantillaId);
