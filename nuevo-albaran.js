@@ -22,6 +22,7 @@ import {
 import { PRODUCTOS, refreshProductos }     from './productos.js';
 import { refreshAlbaranes }                from './albaranes.js';
 import { getNextDocumentNumber }            from './numeracion-docs.js';
+import { renderSedeSelector, readSedeIdFromForm } from './sedes.js';
 
 /* ══════════════════════════════════════════════════════
    ESTADO INTERNO
@@ -581,6 +582,7 @@ async function _save() {
     /* ── Payload principal ── */
     const payload = {
       user_id:            SESSION.user.id,
+      sede_id:            readSedeIdFromForm("naSedeId"),
       numero:             null,            // albarán directo — no proviene de presupuesto
       concepto,
       base,
@@ -846,6 +848,15 @@ export function initNuevoAlbaran() {
   /* Fecha por defecto */
   const fe = document.getElementById('naFecha');
   if (fe && !fe.value) fe.value = new Date().toISOString().slice(0, 10);
+
+  // Inyectar selector de sede tras el campo "Nº albarán (auto)"
+  try {
+    const numField = document.getElementById("naNumeroDisplay")?.closest(".ff-field");
+    const sedeHTML = renderSedeSelector({ inputId: "naSedeId", wrapperClass: "ff-field" });
+    if (numField && sedeHTML && !document.getElementById("naSedeId")) {
+      numField.insertAdjacentHTML("afterend", sedeHTML);
+    }
+  } catch (e) { console.warn("[nuevo-albaran sede]", e); }
 
   if (!_initDone) {
     _initDone = true;
