@@ -494,6 +494,43 @@ document.addEventListener("DOMContentLoaded", async () => {
   try { initTaxAsistente(); } catch(e) { console.error("[initTaxAsistente]", e); }
   try { await initSedes(); } catch(e) { console.error("[initSedes]", e); }
 
+  // Al cambiar la sede activa en el topbar, refrescar la vista visible.
+  // Registro una sola vez por sesión; los listeners no se duplican porque
+  // este bloque vive dentro del DOMContentLoaded-tras-sesión-válida que
+  // solo se ejecuta una vez.
+  if (!window.__TAURIX_SEDE_LISTENER__) {
+    window.__TAURIX_SEDE_LISTENER__ = true;
+    document.addEventListener("sedes:selected", () => {
+      const activeView = document.querySelector(".view.active")?.id || "";
+      const refreshMap = {
+        "view-dashboard":    refreshDashboard,
+        "view-facturas":     refreshFacturas,
+        "view-presupuestos": refreshPresupuestos,
+        "view-albaranes":    refreshAlbaranes,
+        "view-proforma":     refreshProforma,
+      };
+      const fn = refreshMap[activeView];
+      if (typeof fn === "function") {
+        Promise.resolve(fn()).catch(e => console.error("[sede-switch refresh]", e));
+      }
+    });
+    // La creación/borrado/desactivación también requiere re-render porque
+    // puede afectar a qué filas son visibles bajo "Todas las sedes".
+    document.addEventListener("sedes:changed", () => {
+      const activeView = document.querySelector(".view.active")?.id || "";
+      const refreshMap = {
+        "view-facturas":     refreshFacturas,
+        "view-presupuestos": refreshPresupuestos,
+        "view-albaranes":    refreshAlbaranes,
+        "view-proforma":     refreshProforma,
+      };
+      const fn = refreshMap[activeView];
+      if (typeof fn === "function") {
+        Promise.resolve(fn()).catch(e => console.error("[sedes:changed refresh]", e));
+      }
+    });
+  }
+
   const email = session.user.email;
   const initials = email[0].toUpperCase();
   ["sfAvatar", "topbarAvatar"].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = initials; });
