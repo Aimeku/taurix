@@ -18,6 +18,7 @@ import {
 import { PRODUCTOS, buscarProductoPorCodigo } from "./productos.js";
 import { exportPresupuestoPDFConPlantilla, exportAlbaranPDFConPlantilla } from "./pdf-plantilla.js";
 import { getNextDocumentNumber } from "./numeracion-docs.js";
+import { applySedeFilter } from "./sedes.js";
 
 let paginaActual = 1;
 const POR_PAGINA = 30;
@@ -114,6 +115,7 @@ export async function refreshPresupuestos() {
     .order("fecha", { ascending: false, nullsFirst: false })
     .order("id", { ascending: false, nullsFirst: false })
     .range(desde, desde + POR_PAGINA - 1);
+  q = applySedeFilter(q);
 
   if (estadof) {
     q = q.eq("estado", estadof);
