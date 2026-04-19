@@ -6,6 +6,7 @@
 
 import { supabase } from "./supabase.js";
 import { SESSION, fmt, fmtDate, toast, openModal, closeModal } from "./utils.js";
+import { getSedeActivaId, getSedePrincipal, isSedesActivo } from "./sedes.js";
 
 export let EMPLEADOS = [];
 export function setEmpleados(e) { EMPLEADOS = e; }
@@ -252,6 +253,7 @@ export async function generarNominasMes() {
 
       await supabase.from("nominas").insert({
         user_id: SESSION.user.id,
+        sede_id: e.sede_id || null,
         empleado_id: e.id,
         nombre_empleado: e.nombre,
         mes, anio,
@@ -540,6 +542,7 @@ export function showEmpleadoModal(prefill = {}) {
 
     const payload = {
       user_id:              SESSION.user.id,
+      sede_id:              prefill.sede_id !== undefined ? prefill.sede_id : ((isSedesActivo() ? (getSedeActivaId() || getSedePrincipal()?.id) : null) || null),
       nombre,
       nif:                  document.getElementById("em_nif").value.trim(),
       email:                document.getElementById("em_email").value.trim(),
