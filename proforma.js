@@ -10,6 +10,7 @@ import { supabase } from "./supabase.js";
 import { SESSION, fmt, fmtDate, toast, openModal, closeModal, switchView, getYear, getTrim, getFechaRango } from "./utils.js";
 import { refreshFacturas } from "./facturas.js";
 import { cargarProformaParaEditar } from "./nueva-proforma.js";
+import { applySedeFilter } from "./sedes.js";
 
 /* ══════════════════════════
    REFRESH / LISTADO
@@ -22,11 +23,13 @@ export async function refreshProforma() {
   const desdef   = document.getElementById("proformaFilterDesde")?.value || "";
   const hastaf   = document.getElementById("proformaFilterHasta")?.value || "";
 
-  const { data, error } = await supabase.from("proformas")
+  let q = supabase.from("proformas")
     .select("*")
     .eq("user_id", SESSION.user.id)
     .gte("fecha", desdef || ini).lte("fecha", hastaf || fin)
     .order("fecha", { ascending: false });
+  q = applySedeFilter(q);
+  const { data, error } = await q;
 
   if (error) { console.error("proforma:", error.message); return; }
 
