@@ -12,7 +12,7 @@ import {
 } from "./utils.js";
 import { totalFactura, desglosarIva } from "./factura-helpers.js";
 import { refreshClientes, populateClienteSelect } from "./clientes.js";
-import { renderSedeSelector, readSedeIdFromForm, applySedeFilter } from "./sedes.js";
+import { renderSedeSelector, readSedeIdFromForm, applySedeFilter, renderSedeChip } from "./sedes.js";
 
 let paginaActual = 1;
 const POR_PAGINA  = 30;
@@ -242,7 +242,7 @@ export async function refreshFacturas() {
       <tr>
         <td class="mono" style="font-size:12px">${fmtDate(f.fecha)}</td>
         <td>${f.estado==="emitida"?`<span class="badge b-income mono" style="font-size:11px">${f.numero_factura}</span>`:`<span style="color:var(--t4);font-size:11px">—</span>`}</td>
-        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${f.concepto||"—"}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${f.concepto||"—"}${renderSedeChip(f.sede_id)}</td>
         <td style="font-size:12px;color:var(--t3)">${f.cliente_nombre||"—"}</td>
         <td><span class="badge ${opBadges[opKey]||"b-nac"}" style="font-size:10px">${opLabels[opKey]||"—"}</span></td>
         <td class="mono fw7">${fmt(f.base)}</td>
@@ -279,6 +279,7 @@ window._duplicarFact = async (id) => {
   // titular_cuenta y fecha_vencimiento al duplicar, lo que rompía el total.
   const { error } = await supabase.from("facturas").insert({
     user_id: SESSION.user.id,
+    sede_id: f.sede_id || null,
     concepto: f.concepto,
     base: f.base, iva: f.iva, irpf_retencion: f.irpf_retencion,
     tipo: f.tipo, tipo_operacion: f.tipo_operacion,
@@ -353,6 +354,7 @@ window._notaCredito = async (id) => {
 
     const { data: nc, error } = await supabase.from("facturas").insert({
       user_id:           SESSION.user.id,
+      sede_id:           f.sede_id || null,
       concepto:          `Nota de crédito — ${f.numero_factura}`,
       base:              baseRect,
       iva:               f.iva,
