@@ -478,13 +478,25 @@ async function _borrarSede(id) {
   if (!sede) return;
   if (sede.es_principal) { toast("No puedes borrar la sede principal", "error"); return; }
 
-  // Comprobar si tiene documentos asociados
+  // Comprobar si tiene documentos asociados (en TODAS las tablas con sede_id)
   const usage = await _contarUsoSede(id);
-  const total = usage.facturas + usage.albaranes + usage.presupuestos + usage.gastos;
+  const total = usage._total || 0;
+
+  // Construir resumen legible solo con las tablas que tienen > 0
+  const etiquetas = {
+    facturas: "facturas", albaranes: "albaranes", presupuestos: "presupuestos",
+    proformas: "proformas", gastos: "gastos", trabajos: "trabajos",
+    empleados: "empleados", nominas: "nóminas",
+    facturas_recurrentes: "facturas recurrentes", gastos_recurrentes: "gastos recurrentes"
+  };
+  const resumen = Object.entries(etiquetas)
+    .filter(([k]) => (usage[k] || 0) > 0)
+    .map(([k, lbl]) => `${usage[k]} ${lbl}`)
+    .join(", ");
 
   const confirmMsg = total > 0
-    ? `Esta sede tiene ${total} documentos asociados (${usage.facturas} facturas, ${usage.albaranes} albaranes, ${usage.presupuestos} presupuestos, ${usage.gastos} gastos).\n\n¿Desactivarla? Los documentos quedarán sin sede asignada pero no se perderán.`
-    : "¿Borrar esta sede definitivamente?";
+    ? `Esta sede tiene ${total} registro${total !== 1 ? "s" : ""} asociado${total !== 1 ? "s" : ""} (${resumen}).\n\n¿Desactivarla? Los registros quedarán sin sede asignada pero no se perderán.`
+    : "¿Borrar esta sede definitivamente?\n\nNo tiene ningún documento asociado.";
 
   if (!confirm(confirmMsg)) return;
 
@@ -514,21 +526,29 @@ async function _borrarSede(id) {
 }
 
 async function _contarUsoSede(id) {
+  // Cuenta registros de la sede en TODAS las tablas con sede_id.
+  // Si alguna tabla no existe en la BD aún (ej. "nominas"), el error
+  // se captura silenciosamente y ese conteo queda en 0.
+  const tablas = ["facturas","albaranes","presupuestos","proformas","gastos",
+                  "trabajos","empleados","nominas","facturas_recurrentes","gastos_recurrentes"];
   const head = (t) => supabase.from(t).select("id", { count: "exact", head: true })
     .eq("user_id", SESSION.user.id).eq("sede_id", id);
   try {
-    const [f, a, p, g] = await Promise.all([
-      head("facturas"), head("albaranes"), head("presupuestos"), head("gastos")
-    ]);
-    return {
-      facturas:     f.count || 0,
-      albaranes:    a.count || 0,
-      presupuestos: p.count || 0,
-      gastos:       g.count || 0
-    };
+    const results = await Promise.all(tablas.map(t =>
+      head(t).then(r => ({ t, count: r.count || 0, error: r.error }))
+             .catch(() => ({ t, count: 0, error: null }))
+    ));
+    const out = {};
+    let total = 0;
+    for (const r of results) {
+      out[r.t] = r.count;
+      total += r.count;
+    }
+    out._total = total;
+    return out;
   } catch (e) {
     console.error("[_contarUsoSede]", e);
-    return { facturas: 0, albaranes: 0, presupuestos: 0, gastos: 0 };
+    return { _total: 0 };
   }
 }
 
@@ -764,6 +784,27 @@ export function readSedeIdFromForm(inputId) {
   if (!el) return null;
   const v = el.value;
   return v && v !== "" ? v : null;
+}
+
+/**
+ * Devuelve el HTML de un chip visual compacto con el código de la sede,
+ * para mostrar en listados. Devuelve "" si:
+ *   - la feature está inactiva
+ *   - no se proporcionó sede_id
+ *   - hay una sede concreta seleccionada en el topbar (en ese caso todas
+ *     las filas son de esa sede, sería ruido visual)
+ *
+ * Pensado para pegarlo a continuación del concepto en una celda de tabla.
+ */
+export function renderSedeChip(sedeId) {
+  if (!_sedesActivo) return "";
+  if (!sedeId) return "";
+  // Si ya estamos filtrando por una sede concreta, no mostramos chip
+  // en cada fila (sería redundante).
+  if (getSedeActivaId()) return "";
+  const s = getSedePorId(sedeId);
+  if (!s) return "";
+  return `<span style="display:inline-block;margin-left:6px;padding:1px 7px;background:var(--ox-lt);color:var(--ox);border-radius:10px;font-size:10px;font-weight:700;font-family:var(--font-mono,monospace);vertical-align:middle" title="Sede: ${_esc(s.nombre)}">${_esc(s.codigo)}</span>`;
 }
 
 function _esc(str) {
