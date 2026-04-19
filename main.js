@@ -69,6 +69,7 @@ import { initNuevaProforma } from "./nueva-proforma.js";
 import { initNuevoAlbaran }  from "./nuevo-albaran.js";
 import { restaurarContextoSiExiste } from "./gestor-context.js";
 import { initTaxAsistente } from "./tax-asistente.js";
+import { initSedes } from "./sedes.js";
 
 
 
@@ -491,6 +492,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Restaurar contexto gestor si estaba activo (sessionStorage persiste la sesión)
   try { restaurarContextoSiExiste(); } catch(e) { console.error("[restaurarContextoSiExiste]", e); }
   try { initTaxAsistente(); } catch(e) { console.error("[initTaxAsistente]", e); }
+  try { await initSedes(); } catch(e) { console.error("[initSedes]", e); }
 
   const email = session.user.email;
   const initials = email[0].toUpperCase();
