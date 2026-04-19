@@ -7,7 +7,7 @@
 import { supabase } from "./supabase.js";
 import { SESSION, fmt, fmtDate, toast, openModal, closeModal, getYear, getTrim, getFechaRango } from "./utils.js";
 import { getNextDocumentNumber } from "./numeracion-docs.js";
-import { applySedeFilter } from "./sedes.js";
+import { applySedeFilter, renderSedeChip } from "./sedes.js";
 
 /* ══════════════════════════
    REFRESH ALBARANES
@@ -81,7 +81,7 @@ export async function refreshAlbaranes() {
     return `<tr>
       <td class="mono" style="font-size:12px">${fmtDate(a.albaran_fecha || a.fecha)}</td>
       <td><span class="badge b-ic mono" style="font-size:11px">${a.albaran_numero || a.numero || "S/N"}</span></td>
-      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${a.concepto || "—"}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${a.concepto || "—"}${renderSedeChip(a.sede_id)}</td>
       <td style="font-size:12px;color:var(--t3)">${a.cliente_nombre || "—"}</td>
       <td class="mono fw7">${fmt(total)}</td>
       <td style="font-size:12px;color:var(--t4)">${a.numero ? `Pres. ${a.numero}` : `<span class="badge" style="background:var(--indigo-lt,#eef2ff);color:var(--indigo,#4f46e5);font-size:10px;padding:1px 7px;border-radius:5px;font-weight:700">Directo</span>`}</td>
@@ -131,6 +131,7 @@ window._albaranToFactura = async (id) => {
 
     const { data: factura, error: fe } = await supabase.from("facturas").insert({
       user_id: SESSION.user.id,
+      sede_id: a.sede_id || null,
       concepto: a.concepto,
       base: a.base,
       iva: a.iva || 21,
