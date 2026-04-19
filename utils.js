@@ -573,6 +573,22 @@ export async function showPerfilModal() {
           <div class="modal-field"><label>Nº de registro mercantil</label><input autocomplete="off" id="pf_regmercantil" class="ff-input" value="${p?.registro_mercantil || ""}" placeholder="Tomo 0000, Folio 00..."/></div>
           <div class="modal-field"><label>Código LEI (si aplica)</label><input autocomplete="off" id="pf_lei" class="ff-input" value="${p?.lei || ""}" placeholder="Identificador Legal de Entidad"/></div>
         </div>
+
+        <!-- ── Gestión multi-sede (opcional) ── -->
+        <div style="margin-top:20px;padding:14px 16px;background:var(--bg2);border:1px solid var(--brd);border-radius:10px;display:flex;align-items:center;gap:14px">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" style="flex-shrink:0;color:var(--ox)">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:13.5px">Gestión multi-sede</div>
+            <div style="font-size:12px;color:var(--t3);line-height:1.5;margin-top:2px">
+              Organiza tu empresa por establecimientos (oficina, tienda, almacén…). Fiscalmente no cambia nada.
+            </div>
+          </div>
+          <button type="button" id="pf_btn_sedes" class="btn-outline" style="font-size:12.5px;padding:8px 14px;flex-shrink:0">
+            ${p?.sedes_activo ? "Gestionar sedes" : "Activar sedes"}
+          </button>
+        </div>
       </div>
 
 
@@ -603,6 +619,19 @@ export async function showPerfilModal() {
     _logoBase64 = "";
     logoPreview.innerHTML = `<span style="font-size:11px;color:var(--t4);text-align:center;padding:8px">Click para<br>subir logo</span>`;
     toast("Logo eliminado — guarda para confirmar", "info");
+  });
+
+  // Botón de gestión multi-sede
+  document.getElementById("pf_btn_sedes")?.addEventListener("click", async () => {
+    closeModal();
+    try {
+      const mod = await import("./sedes.js");
+      if (p?.sedes_activo) mod.openModalSedes();
+      else                 mod.activarSedesFlow();
+    } catch (e) {
+      console.error("[sedes import]", e);
+      toast("No se pudo cargar el módulo de sedes", "error");
+    }
   });
 
 
