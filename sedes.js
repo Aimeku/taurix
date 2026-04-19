@@ -223,16 +223,16 @@ export function openModalSedes() {
   const rows = _sedes.length
     ? _sedes.map(s => `
         <tr>
-          <td>
-            <span class="chip chip--sede" style="font-weight:700">${_esc(s.codigo)}</span>
-            ${s.es_principal ? `<span class="chip chip--principal" style="margin-left:6px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">★ Principal</span>` : ""}
+          <td style="padding:12px 10px;font-weight:700;font-family:monospace">
+            ${_esc(s.codigo)}
+            ${s.es_principal ? `<span style="margin-left:6px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">★ Principal</span>` : ""}
           </td>
-          <td><strong>${_esc(s.nombre)}</strong></td>
-          <td style="color:var(--t3);font-size:12.5px">${_esc([s.direccion, s.ciudad].filter(Boolean).join(", ") || "—")}</td>
-          <td style="text-align:right">
-            <button class="btn-sm btn-ghost" data-action="edit" data-id="${s.id}">Editar</button>
-            ${s.es_principal ? "" : `<button class="btn-sm btn-ghost" data-action="principal" data-id="${s.id}">Hacer principal</button>`}
-            ${s.es_principal ? "" : `<button class="btn-sm btn-ghost" data-action="delete" data-id="${s.id}" style="color:#b91c1c">Borrar</button>`}
+          <td style="padding:12px 10px"><strong>${_esc(s.nombre)}</strong></td>
+          <td style="padding:12px 10px;color:var(--t3);font-size:12.5px">${_esc([s.direccion, s.ciudad].filter(Boolean).join(", ") || "—")}</td>
+          <td style="padding:12px 10px;text-align:right;white-space:nowrap">
+            <button class="btn-outline" style="font-size:12px;padding:6px 12px" data-action="edit" data-id="${s.id}">Editar</button>
+            ${s.es_principal ? "" : `<button class="btn-outline" style="font-size:12px;padding:6px 12px;margin-left:4px" data-action="principal" data-id="${s.id}">Hacer principal</button>`}
+            ${s.es_principal ? "" : `<button class="btn-outline" style="font-size:12px;padding:6px 12px;margin-left:4px;color:#b91c1c;border-color:#fecaca" data-action="delete" data-id="${s.id}">Borrar</button>`}
           </td>
         </tr>
       `).join("")
@@ -243,33 +243,33 @@ export function openModalSedes() {
   openModal(`
     <div class="modal" style="max-width:820px">
       <div class="modal-hd">
-        <h3>Gestionar sedes</h3>
-        <button class="modal-close" onclick="window._cm()">×</button>
+        <span class="modal-title">Gestionar sedes</span>
+        <button class="modal-x" onclick="window._cm()">×</button>
       </div>
       <div class="modal-bd">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px">
           <p style="margin:0;color:var(--t3);font-size:13px">
             Las sedes son establecimientos internos de tu empresa. Fiscalmente todo se consolida en tu NIF.
           </p>
-          <button id="btnNuevaSede" class="btn-primary" style="flex-shrink:0">+ Nueva sede</button>
+          <button id="btnNuevaSede" class="btn-modal-save" style="flex-shrink:0">+ Nueva sede</button>
         </div>
-        <table class="tbl" style="width:100%">
+        <table style="width:100%;border-collapse:collapse">
           <thead>
-            <tr>
-              <th>Código</th>
-              <th>Nombre</th>
-              <th>Dirección</th>
-              <th style="text-align:right">Acciones</th>
+            <tr style="border-bottom:1px solid var(--brd)">
+              <th style="text-align:left;padding:10px;font-size:11.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.04em">Código</th>
+              <th style="text-align:left;padding:10px;font-size:11.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.04em">Nombre</th>
+              <th style="text-align:left;padding:10px;font-size:11.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.04em">Dirección</th>
+              <th style="text-align:right;padding:10px;font-size:11.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.04em">Acciones</th>
             </tr>
           </thead>
           <tbody id="tblSedesBody">${rows}</tbody>
         </table>
 
-        <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--brd)">
-          <button id="btnDesactivarSedes" class="btn-ghost" style="color:#b91c1c;font-size:12.5px">
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--brd);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <button id="btnDesactivarSedes" class="btn-outline" style="font-size:12.5px;padding:7px 14px;color:#b91c1c;border-color:#fecaca">
             Desactivar función de sedes
           </button>
-          <span style="margin-left:8px;font-size:11.5px;color:var(--t4)">
+          <span style="font-size:11.5px;color:var(--t4);flex:1;min-width:200px">
             No se pierde ningún dato. Tus sedes y asignaciones quedan guardadas para reactivar luego.
           </span>
         </div>
@@ -310,11 +310,11 @@ export function openModalNuevaSede(sedeEdit = null) {
   openModal(`
     <div class="modal" style="max-width:620px">
       <div class="modal-hd">
-        <h3>${editing ? "Editar sede" : "Nueva sede"}</h3>
-        <button class="modal-close" onclick="window._cm()">×</button>
+        <span class="modal-title">${editing ? "Editar sede" : "Nueva sede"}</span>
+        <button class="modal-x" onclick="window._cm()">×</button>
       </div>
       <div class="modal-bd">
-        <div style="display:grid;grid-template-columns:140px 1fr;gap:12px">
+        <div class="modal-grid2">
           <div class="modal-field">
             <label>Código *</label>
             <input id="sf_codigo" class="ff-input" maxlength="10" style="text-transform:uppercase"
@@ -332,14 +332,14 @@ export function openModalNuevaSede(sedeEdit = null) {
           <label>Dirección</label>
           <textarea id="sf_dir" class="ff-input" rows="2">${_esc(s.direccion || "")}</textarea>
         </div>
-        <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:12px">
+        <div class="modal-grid2">
           <div class="modal-field"><label>C.P.</label><input id="sf_cp" class="ff-input" value="${_esc(s.codigo_postal || "")}"/></div>
           <div class="modal-field"><label>Ciudad</label><input id="sf_ciudad" class="ff-input" value="${_esc(s.ciudad || "")}"/></div>
-          <div class="modal-field"><label>Provincia</label><input id="sf_prov" class="ff-input" value="${_esc(s.provincia || "")}"/></div>
         </div>
+        <div class="modal-field"><label>Provincia</label><input id="sf_prov" class="ff-input" value="${_esc(s.provincia || "")}"/></div>
 
         <h4 style="margin:20px 0 10px;font-size:12.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em">Contacto (opcional)</h4>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="modal-grid2">
           <div class="modal-field"><label>Teléfono</label><input id="sf_tel" class="ff-input" value="${_esc(s.telefono || "")}"/></div>
           <div class="modal-field"><label>Email</label><input id="sf_email" type="email" class="ff-input" value="${_esc(s.email || "")}"/></div>
         </div>
@@ -371,8 +371,8 @@ export function openModalNuevaSede(sedeEdit = null) {
       </div>
 
       <div class="modal-ft">
-        <button class="btn-ghost" onclick="window._cm()">Cancelar</button>
-        <button id="btnGuardarSede" class="btn-primary">${editing ? "Guardar cambios" : "Crear sede"}</button>
+        <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
+        <button id="btnGuardarSede" class="btn-modal-save">${editing ? "Guardar cambios" : "Crear sede"}</button>
       </div>
     </div>
   `);
@@ -580,8 +580,8 @@ export async function activarSedesFlow() {
   openModal(`
     <div class="modal" style="max-width:600px">
       <div class="modal-hd">
-        <h3>Activar gestión multi-sede</h3>
-        <button class="modal-close" onclick="window._cm()">×</button>
+        <span class="modal-title">Activar gestión multi-sede</span>
+        <button class="modal-x" onclick="window._cm()">×</button>
       </div>
       <div class="modal-bd">
         <p style="color:var(--t3);font-size:13.5px;line-height:1.6;margin-top:0">
@@ -620,8 +620,8 @@ export async function activarSedesFlow() {
         </label>
       </div>
       <div class="modal-ft">
-        <button class="btn-ghost" onclick="window._cm()">Cancelar</button>
-        <button id="btnConfActivarSedes" class="btn-primary">Activar sedes</button>
+        <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
+        <button id="btnConfActivarSedes" class="btn-modal-save">Activar sedes</button>
       </div>
     </div>
   `);
