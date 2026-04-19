@@ -413,9 +413,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // Modales legales
-  ["openPrivacidad", "openTerminos", "openCookies", "openAvisoLegal"].forEach(id => {
+  ["openPrivacidad", "openTerminos", "openCookies", "openCookiesFromBanner", "openAvisoLegal"].forEach(id => {
     const el = document.getElementById(id);
-    const targetMap = { openPrivacidad: "modalPrivacidad", openTerminos: "modalTerminos", openCookies: "modalCookies", openAvisoLegal: "modalAvisoLegal" };
+    const targetMap = { openPrivacidad: "modalPrivacidad", openTerminos: "modalTerminos", openCookies: "modalCookies", openCookiesFromBanner: "modalCookies", openAvisoLegal: "modalAvisoLegal" };
     el?.addEventListener("click", (e) => {
       e.preventDefault();
       const modal = document.getElementById(targetMap[id]);
