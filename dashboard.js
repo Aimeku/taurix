@@ -12,6 +12,7 @@ import {
   calcIVA, calcIRPF, TRIM_LABELS
 } from "./utils.js";
 import { getQueryContext } from "./query-context.js";
+import { applySedeFilter, getSedeActivaId, getSedePorId, isSedesActivo } from "./sedes.js";
 
 let _chartAnual = null;
 
@@ -20,6 +21,22 @@ export async function refreshDashboard() {
   // SIEMPRE user_id — las facturas se guardan con user_id, igual que getFacturasTrim/utils.js
   const uid = SESSION?.user?.id ?? null;
 
+  // Queries operativos con filtro de sede aplicado (si hay sede activa).
+  // NOTA: las liquidaciones fiscales (IVA, IRPF) se mantienen agregadas
+  // al NIF a través de getFacturasTrim/getFacturasYear — esto es correcto
+  // porque AEAT liquida por NIF, no por establecimiento.
+  let qPorCobrar = supabase.from("facturas").select("base,iva,irpf_retencion,fecha,fecha_vencimiento,cliente_nombre,concepto,sede_id")
+    .eq("user_id", uid).eq("tipo","emitida").eq("estado","emitida").eq("cobrada",false);
+  qPorCobrar = applySedeFilter(qPorCobrar);
+
+  let qRecurrentes = supabase.from("gastos_recurrentes").select("importe,proxima_fecha,nombre,sede_id")
+    .eq("user_id", uid).eq("activo",true);
+  qRecurrentes = applySedeFilter(qRecurrentes);
+
+  let qPipeline = supabase.from("pipeline_oportunidades").select("etapa,valor")
+    .eq("user_id", uid).neq("etapa","perdida");
+  // Pipeline no tiene sede_id en Fase 1 — no aplicamos filtro aquí.
+
   const [
     facturasTrim, facturasAnio, facturasAnioPrev,
     porCobrarRes, recurrentesRes, nominasRes, pipelineRes, bienesRes,
@@ -27,15 +44,12 @@ export async function refreshDashboard() {
     getFacturasTrim(year, trim),
     getFacturasYear(year),
     getFacturasYear(year - 1),
-    supabase.from("facturas").select("base,iva,irpf_retencion,fecha,fecha_vencimiento,cliente_nombre,concepto")
-      .eq("user_id", uid).eq("tipo","emitida").eq("estado","emitida").eq("cobrada",false),
-    supabase.from("gastos_recurrentes").select("importe,proxima_fecha,nombre")
-      .eq("user_id", uid).eq("activo",true),
+    qPorCobrar,
+    qRecurrentes,
     // NÓMINAS DESACTIVADAS — Taurix es fiscal, no laboral.
     // Mantenemos la forma del array para no romper el destructuring ni código downstream.
     Promise.resolve({ data: [], error: null }),
-    supabase.from("pipeline_oportunidades").select("etapa,valor")
-      .eq("user_id", uid).neq("etapa","perdida"),
+    qPipeline,
     supabase.from("bienes_inversion").select("valor_adquisicion,coeficiente,tipo_bien")
       .eq("user_id", uid),
   ]);
@@ -49,6 +63,36 @@ export async function refreshDashboard() {
   const recurrentes   = recurrentesRes.data || [];
   const pipeline      = pipelineRes.data    || [];
   const bienes        = bienesRes.data      || [];
+
+  // ── Banner informativo de sede activa ──
+  // Se inyecta cuando hay una sede concreta seleccionada (no "Todas").
+  // Aclara al usuario qué KPIs están filtrados y cuáles permanecen
+  // consolidados al NIF por obligación fiscal.
+  try {
+    const sedeId = isSedesActivo() ? getSedeActivaId() : null;
+    const sede = sedeId ? getSedePorId(sedeId) : null;
+    const existing = document.getElementById("dashSedeBanner");
+    if (sede) {
+      const html = `
+        <div id="dashSedeBanner" style="background:linear-gradient(135deg,#fef3c7,#fffbeb);border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:12.5px;color:#78350f">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>
+            Dashboard filtrado por sede <strong>${sede.codigo} · ${sede.nombre}</strong>.
+            Los KPIs operativos (cobros pendientes, gastos recurrentes) muestran solo esta sede.
+            Las liquidaciones fiscales (IVA, IRPF, IS) se mantienen consolidadas al NIF.
+          </span>
+        </div>`;
+      if (existing) {
+        existing.outerHTML = html;
+      } else {
+        const dashView = document.getElementById("view-dashboard");
+        const header = dashView?.querySelector(".view-header");
+        if (header && header.insertAdjacentHTML) header.insertAdjacentHTML("afterend", html);
+      }
+    } else if (existing) {
+      existing.remove();
+    }
+  } catch (e) { console.warn("[dashSedeBanner]", e); }
 
   // ── KPIs ──
   const s  = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=fmt(v); };
