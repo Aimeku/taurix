@@ -12,7 +12,7 @@ import {
 } from "./utils.js";
 import { totalFactura, desglosarIva } from "./factura-helpers.js";
 import { refreshClientes, populateClienteSelect } from "./clientes.js";
-import { renderSedeSelector, readSedeIdFromForm } from "./sedes.js";
+import { renderSedeSelector, readSedeIdFromForm, applySedeFilter } from "./sedes.js";
 
 let paginaActual = 1;
 const POR_PAGINA  = 30;
@@ -156,6 +156,7 @@ export async function refreshFacturas() {
   let q = supabase.from("facturas").select("*", {count:"exact"})
     .eq("user_id", SESSION.user.id).gte("fecha",ini).lte("fecha",fin)
     .order("numero_factura",{ascending:false,nullsFirst:false}).order("id",{ascending:false,nullsFirst:false}).range(desde, desde+POR_PAGINA-1);
+  q = applySedeFilter(q);
   if (tipof)  q = q.eq("tipo", tipof);
   if (estadof) q = q.eq("estado", estadof);
   if (opf)    q = q.eq("tipo_operacion", opf);
