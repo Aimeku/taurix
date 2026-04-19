@@ -102,6 +102,7 @@ async function generarFacturaDesdeRecurrente(recurrenteId) {
 
   const { data: factura, error } = await supabase.from("facturas").insert({
     user_id: SESSION.user.id,
+    sede_id: r.sede_id || null,
     concepto: r.concepto,
     base: r.base,
     iva: r.iva || 21,
