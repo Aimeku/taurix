@@ -12,6 +12,7 @@ import {
 } from "./utils.js";
 import { totalFactura, desglosarIva } from "./factura-helpers.js";
 import { refreshClientes, populateClienteSelect } from "./clientes.js";
+import { renderSedeSelector, readSedeIdFromForm } from "./sedes.js";
 
 let paginaActual = 1;
 const POR_PAGINA  = 30;
@@ -517,6 +518,7 @@ export function showGastoRapidoModal() {
             </select>
           </div>
         </div>
+        ${renderSedeSelector({ inputId: "gr_sede", wrapperClass: "modal-field" })}
         <div class="modal-field"><label>Proveedor (opcional)</label><input id="gr_proveedor" placeholder="Nombre del establecimiento"/></div>
       </div>
       <div class="modal-ft">
@@ -545,6 +547,7 @@ export function showGastoRapidoModal() {
 
     const { data: inserted, error } = await supabase.from("facturas").insert({
       user_id:        SESSION.user.id,
+      sede_id:        readSedeIdFromForm("gr_sede"),
       concepto:       `[${cat}] ${concepto}`,
       base,
       iva:            ivaPct,
