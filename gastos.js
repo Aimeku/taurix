@@ -7,6 +7,7 @@
 import { supabase } from "./supabase.js";
 import { SESSION, fmt, fmtDate, toast, openModal, closeModal, getYear, getTrim, getFechaRango } from "./utils.js";
 import { _nextTiqueNum } from "./facturas.js";
+import { renderSedeSelector, readSedeIdFromForm } from "./sedes.js";
 
 export let PROVEEDORES = [];
 export function setProveedores(p) { PROVEEDORES = p; }
@@ -234,6 +235,7 @@ export function showNuevoGastoRecModal(prefill = {}) {
           </div>
         </div>
         <div class="modal-field"><label>Notas</label><input autocomplete="off" id="mgr_notas" class="ff-input" value="${prefill.notas || ""}" placeholder="Referencia de contrato, detalles…"/></div>
+        ${renderSedeSelector({ inputId: "mgr_sede", selectedId: prefill.sede_id, wrapperClass: "modal-field" })}
       </div>
       <div class="modal-ft">
         <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
@@ -250,6 +252,7 @@ export function showNuevoGastoRecModal(prefill = {}) {
     const pNom = PROVEEDORES.find(p => p.id === pId)?.nombre || "";
     const payload = {
       user_id: SESSION.user.id, nombre, importe,
+      sede_id:       readSedeIdFromForm("mgr_sede"),
       iva:           parseInt(document.getElementById("mgr_iva").value),
       frecuencia:    document.getElementById("mgr_frec").value,
       proxima_fecha: document.getElementById("mgr_fecha").value,
