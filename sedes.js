@@ -352,6 +352,20 @@ export function openModalNuevaSede(sedeEdit = null) {
           <input id="sf_iae" class="ff-input" value="${_esc(s.epigrafe_iae || "")}" placeholder="Solo si declaras por establecimiento (modelo 840)"/>
         </div>
 
+        <h4 style="margin:20px 0 10px;font-size:12.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em">
+          Numeración de facturas (opcional)
+        </h4>
+        <div class="modal-field">
+          <label>Formato de serie</label>
+          <input id="sf_serie_formato" class="ff-input" value="${_esc(s.serie_factura || "")}"
+                 placeholder="Déjalo vacío para usar el formato general del perfil"/>
+          <span style="font-size:11px;color:var(--t4);line-height:1.5;display:block;margin-top:4px">
+            Si lo rellenas, las facturas emitidas desde esta sede usarán este formato y tendrán su propio contador independiente.<br>
+            Placeholders: <code>{YEAR}</code> · <code>{SEDE}</code> · <code>{NUM4}</code> · <code>{NUM3}</code> · <code>{NUM2}</code> · <code>{NUM}</code><br>
+            Ejemplo: <code>F-${s.codigo || "TDA1"}-{YEAR}-{NUM4}</code> → "F-${s.codigo || "TDA1"}-2026-0001"
+          </span>
+        </div>
+
         ${esPrimera ? `
           <label style="display:flex;align-items:flex-start;gap:10px;margin-top:20px;padding:14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;cursor:pointer">
             <input type="checkbox" id="sf_principal" checked style="margin-top:2px"/>
@@ -398,6 +412,11 @@ export function openModalNuevaSede(sedeEdit = null) {
       telefono:      document.getElementById("sf_tel").value.trim() || null,
       email:         document.getElementById("sf_email").value.trim() || null,
       epigrafe_iae:  document.getElementById("sf_iae").value.trim() || null,
+      // Formato de serie para facturas emitidas desde esta sede.
+      // Si se deja vacío, se hereda el formato global del perfil_fiscal.
+      // Reutilizamos la columna existente `serie_factura` en lugar de
+      // crear una nueva: el significado es el mismo y evita tocar el SQL.
+      serie_factura: document.getElementById("sf_serie_formato").value.trim() || null,
     };
 
     const principalEl = document.getElementById("sf_principal");
