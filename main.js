@@ -508,6 +508,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         "view-presupuestos": refreshPresupuestos,
         "view-albaranes":    refreshAlbaranes,
         "view-proforma":     refreshProforma,
+        "view-tesoreria":    refreshTesoreria,
+        "view-trabajos":     refreshTrabajos,
       };
       const fn = refreshMap[activeView];
       if (typeof fn === "function") {
@@ -523,6 +525,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         "view-presupuestos": refreshPresupuestos,
         "view-albaranes":    refreshAlbaranes,
         "view-proforma":     refreshProforma,
+        "view-tesoreria":    refreshTesoreria,
+        "view-trabajos":     refreshTrabajos,
       };
       const fn = refreshMap[activeView];
       if (typeof fn === "function") {
