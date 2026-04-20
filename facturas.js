@@ -12,7 +12,7 @@ import {
 } from "./utils.js";
 import { totalFactura, desglosarIva } from "./factura-helpers.js";
 import { refreshClientes, populateClienteSelect } from "./clientes.js";
-import { renderSedeSelector, readSedeIdFromForm, applySedeFilter, renderSedeChip } from "./sedes.js";
+import { renderSedeSelector, readSedeIdFromForm, applySedeFilter, renderSedeChip, getSedePorId, isSedesActivo } from "./sedes.js";
 
 let paginaActual = 1;
 const POR_PAGINA  = 30;
@@ -26,64 +26,91 @@ export async function emitirFacturaDB(facturaId) {
   const { data: f, error: fe } = await supabase.from("facturas").select("*").eq("id", facturaId).single();
   if (fe || !f) throw new Error(fe?.message || "Factura no encontrada");
 
+  // ═══════════════════════════════════════════════════════════════
+  // Determinar si esta factura usa serie por sede o global.
+  // Criterio:
+  //   - La feature sedes está activa Y la factura tiene sede_id → por sede.
+  //   - En cualquier otro caso → global (comportamiento clásico preservado).
+  // ═══════════════════════════════════════════════════════════════
+  const usaSede = isSedesActivo() && !!f.sede_id;
+  const sedeObj = usaSede ? getSedePorId(f.sede_id) : null;
+
+  // Formato: sede > perfil_fiscal > default "F-{YEAR}-{NUM4}"
+  // El campo de la sede es `serie_factura` (reutilizado de la tabla Fase 1).
   const { data: pfRaw } = await supabase.from("perfil_fiscal").select("serie_formato").eq("user_id", SESSION.user.id).single();
-  // Sanear: si el formato empieza directamente por {YEAR} o por un dígito (sin prefijo letra),
-  // forzar el prefijo "F-" para evitar números del tipo "2025-0001" sin identificador.
-  let formatoSerie = pfRaw?.serie_formato || "F-{YEAR}-{NUM4}";
+  let formatoSerie =
+    (sedeObj?.serie_factura && sedeObj.serie_factura.trim()) ||
+    pfRaw?.serie_formato ||
+    "F-{YEAR}-{NUM4}";
+  // Sanear: si empieza por {YEAR} o por un dígito, forzar prefijo "F-"
   if (/^\{YEAR\}/.test(formatoSerie) || /^\d/.test(formatoSerie)) {
     formatoSerie = "F-" + formatoSerie;
   }
 
   const serie = new Date(f.fecha).getFullYear().toString();
 
-  // RPC atómica — evita race condition con numeración duplicada
-  const { data: num, error: rpcErr } = await supabase.rpc("get_next_factura_number", {
-    p_user_id: SESSION.user.id,
-    p_serie: serie
-  });
+  // ═══════════════════════════════════════════════════════════════
+  // RPC atómica — evita race condition con numeración duplicada.
+  // Si la factura tiene sede_id, pasamos p_sede_id a la RPC de 3 args
+  // (contador independiente por sede). Si no, la RPC de 2 args
+  // (contador global del NIF, comportamiento clásico).
+  // ═══════════════════════════════════════════════════════════════
+  const rpcArgs = usaSede
+    ? { p_user_id: SESSION.user.id, p_serie: serie, p_sede_id: f.sede_id }
+    : { p_user_id: SESSION.user.id, p_serie: serie };
+  const { data: num, error: rpcErr } = await supabase.rpc("get_next_factura_number", rpcArgs);
 
   let finalNum = num;
 
   if (rpcErr || !finalNum) {
     console.warn("RPC fallback activado:", rpcErr?.message || "num vacío");
     try {
-      // Intentar obtener la serie existente
-      const { data: serieData } = await supabase.from("factura_series")
-        .select("*").eq("user_id", SESSION.user.id).eq("serie", serie)
-        .maybeSingle(); // maybeSingle no lanza error si no hay filas
+      // Fallback JS — replica la lógica de la RPC en cliente.
+      // Si usaSede, buscamos la fila con (user_id, sede_id, serie).
+      // Si no, (user_id, serie) con sede_id IS NULL.
+      let q = supabase.from("factura_series").select("*")
+        .eq("user_id", SESSION.user.id).eq("serie", serie);
+      q = usaSede ? q.eq("sede_id", f.sede_id) : q.is("sede_id", null);
+      const { data: serieData } = await q.maybeSingle();
 
       if (serieData) {
         finalNum = (serieData.ultimo_numero || 0) + 1;
         await supabase.from("factura_series")
           .update({ ultimo_numero: finalNum }).eq("id", serieData.id);
       } else {
-        // Crear la serie desde cero usando el numero_inicial configurado.
-        // Usamos upsert en lugar de insert para que dos tabs simultáneas
-        // no colisionen: si alguien se adelanta, el upsert actualiza
-        // solo si el valor actual sigue siendo 0 (ninguna factura emitida aún).
+        // Crear la fila desde cero con numero_inicial configurado
         let inicialNum = 1;
         try {
           const { getNumeroInicialFactura } = await import('./numeracion-docs.js');
           inicialNum = await getNumeroInicialFactura(serie);
         } catch (_) { /* tabla aún no existe — usar 1 */ }
 
+        const payloadSerie = {
+          user_id: SESSION.user.id,
+          serie,
+          ultimo_numero: inicialNum,
+          sede_id: usaSede ? f.sede_id : null
+        };
+        // onConflict distinto según si hay sede o no (usamos los índices
+        // parciales definidos en la migración: factura_series_uniq_con_sede
+        // para sede_id IS NOT NULL, y factura_series_uniq_global para NULL).
+        // Supabase no soporta "onConflict" condicional, pero al no haber
+        // colisión posible (acabamos de comprobar maybeSingle), el insert
+        // simple es seguro.
         const { data: nuevaSerie, error: insertErr } = await supabase
           .from("factura_series")
-          .upsert(
-            { user_id: SESSION.user.id, serie, ultimo_numero: inicialNum },
-            { onConflict: "user_id,serie", ignoreDuplicates: false }
-          )
+          .insert(payloadSerie)
           .select().maybeSingle();
         if (insertErr) {
-          // Fallback: releer la fila que el proceso concurrente ya creó
-          const { data: existing } = await supabase.from("factura_series")
-            .select("ultimo_numero").eq("user_id", SESSION.user.id)
-            .eq("serie", serie).maybeSingle();
+          // Carrera: otro emisor ya creó la fila. Releemos y sumamos.
+          let q2 = supabase.from("factura_series").select("ultimo_numero,id")
+            .eq("user_id", SESSION.user.id).eq("serie", serie);
+          q2 = usaSede ? q2.eq("sede_id", f.sede_id) : q2.is("sede_id", null);
+          const { data: existing } = await q2.maybeSingle();
           finalNum = existing ? (existing.ultimo_numero || 0) + 1 : inicialNum;
           if (existing) {
             await supabase.from("factura_series")
-              .update({ ultimo_numero: finalNum })
-              .eq("user_id", SESSION.user.id).eq("serie", serie);
+              .update({ ultimo_numero: finalNum }).eq("id", existing.id);
           }
         } else {
           finalNum = nuevaSerie?.ultimo_numero || inicialNum;
@@ -98,8 +125,10 @@ export async function emitirFacturaDB(facturaId) {
   // Garantía final: nunca guardar sin número
   if (!finalNum || isNaN(finalNum)) finalNum = 1;
 
+  // Aplicar formato con placeholders adicionales de sede
   const numero = formatoSerie
     .replace("{YEAR}", serie)
+    .replace("{SEDE}", sedeObj?.codigo || "")
     .replace("{NUM4}", String(finalNum).padStart(4,"0"))
     .replace("{NUM3}", String(finalNum).padStart(3,"0"))
     .replace("{NUM2}", String(finalNum).padStart(2,"0"))
