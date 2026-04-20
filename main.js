@@ -492,7 +492,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Restaurar contexto gestor si estaba activo (sessionStorage persiste la sesión)
   try { restaurarContextoSiExiste(); } catch(e) { console.error("[restaurarContextoSiExiste]", e); }
   try { initTaxAsistente(); } catch(e) { console.error("[initTaxAsistente]", e); }
-  try { await initSedes(); } catch(e) { console.error("[initSedes]", e); }
+
+  // Inicialización de sedes: lanzar en paralelo SIN await, para no
+  // bloquear la carga inicial. Cuando termine, el pill del topbar se
+  // pinta solo y los selectores renderSedeSelector() ya lo ven.
+  // El catch protege de que un error no rompa el arranque.
+  const _sedesPromise = initSedes().catch(e => console.error("[initSedes]", e));
 
   // Al cambiar la sede activa en el topbar, refrescar la vista visible.
   // Registro una sola vez por sesión; los listeners no se duplican porque
@@ -849,6 +854,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const proveedores = await loadProveedores();
   setProveedores(proveedores);
+
+  // Esperar a que termine la carga de sedes ANTES de fullRefresh para
+  // que las queries filtren correctamente por la sede activa. Como
+  // initSedes se lanzó en paralelo al inicio, aquí normalmente ya ha
+  // terminado y el await es instantáneo — lo cual es el objetivo:
+  // que corra mientras se cargan clientes/productos/proveedores.
+  await _sedesPromise;
 
   await fullRefresh();
   await refreshProductos();
