@@ -504,18 +504,14 @@ async function _getNextNumero(fecha = null) {
 /* ══════════════════════════════════════════════════════
    REDUCIR STOCK  (mismo patrón que nueva-proforma)
 ══════════════════════════════════════════════════════ */
-async function _descontarStockSiProcede() {
+async function _descontarStockSiProcede(docRef = null) {
   if (!document.getElementById('naReducirStock')?.checked) return;
-  const lineasConProducto = LINEAS.filter(l => l.producto_id && l.cantidad > 0);
-  for (const linea of lineasConProducto) {
-    const prod = PRODUCTOS.find(p => p.id === linea.producto_id);
-    if (!prod || prod.tipo === 'servicio' || prod.stock_actual == null) continue;
-    const nuevoStock = Math.max(0, prod.stock_actual - linea.cantidad);
-    const { error } = await supabase.from('productos')
-      .update({ stock_actual: nuevoStock })
-      .eq('id', linea.producto_id)
-      .eq('user_id', SESSION.user.id);
-    if (!error) prod.stock_actual = nuevoStock;
+  try {
+    const { descontarStockPorVenta } = await import("./stock-sedes.js");
+    const sedeId = document.getElementById("naSedeId")?.value || null;
+    await descontarStockPorVenta(LINEAS, sedeId, docRef, "albaran");
+  } catch (e) {
+    console.warn("[stock albaran]", e);
   }
   refreshProductos().catch(() => {});
 }
