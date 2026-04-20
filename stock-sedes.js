@@ -252,6 +252,25 @@ export async function sincronizarStockActual(productoId) {
   }
 }
 
+/**
+ * Devuelve el historial de movimientos para un producto, ordenado
+ * por fecha descendente (más reciente primero). Limitado para evitar
+ * cargas pesadas.
+ * @param {string} productoId
+ * @param {number} [limit=50]
+ * @returns {Promise<Array>}
+ */
+export async function getMovimientosProducto(productoId, limit = 50) {
+  if (!productoId) return [];
+  const { data, error } = await supabase.from("stock_movimientos")
+    .select("*")
+    .eq("producto_id", productoId)
+    .order("fecha", { ascending: false })
+    .limit(limit);
+  if (error) { console.warn("[getMovimientosProducto]", error); return []; }
+  return data || [];
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    PRIVADAS
 ═══════════════════════════════════════════════════════════════════ */
