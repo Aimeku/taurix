@@ -6,6 +6,7 @@
 
 import { supabase } from "./supabase.js";
 import { SESSION, fmt, fmtDate, toast, openModal, closeModal } from "./utils.js";
+import { applySedeFilter } from "./sedes.js";
 
 export let CUENTAS = [];
 
@@ -107,14 +108,18 @@ async function renderMovimientos() {
 ══════════════════════════ */
 async function renderCashflow() {
   const year = new Date().getFullYear();
-  const { data: facturas } = await supabase.from("facturas")
+  let qFacts = supabase.from("facturas")
     .select("tipo, base, iva, fecha, cobrada, fecha_cobro, estado")
     .eq("user_id", SESSION.user.id)
     .gte("fecha", `${year}-01-01`)
     .lte("fecha", `${year}-12-31`);
+  qFacts = applySedeFilter(qFacts);
+  const { data: facturas } = await qFacts;
 
-  const { data: recurrentes } = await supabase.from("gastos_recurrentes")
+  let qRec = supabase.from("gastos_recurrentes")
     .select("importe, proxima_fecha").eq("user_id", SESSION.user.id).eq("activo", true);
+  qRec = applySedeFilter(qRec);
+  const { data: recurrentes } = await qRec;
 
   const meses = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
   const datos = meses.map((mes, m) => {
@@ -178,7 +183,7 @@ async function renderCashflow() {
    PREVISIONES
 ══════════════════════════ */
 async function renderPrevisiones() {
-  const { data: facturas } = await supabase.from("facturas")
+  let q = supabase.from("facturas")
     .select("base, iva, fecha_vencimiento, cliente_nombre")
     .eq("user_id", SESSION.user.id)
     .eq("tipo", "emitida")
@@ -186,6 +191,8 @@ async function renderPrevisiones() {
     .eq("estado", "emitida")
     .order("fecha_vencimiento", { ascending: true })
     .limit(10);
+  q = applySedeFilter(q);
+  const { data: facturas } = await q;
 
   const tbody = document.getElementById("previsionesBody");
   if (!tbody || !facturas) return;
