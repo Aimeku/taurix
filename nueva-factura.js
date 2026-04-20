@@ -836,20 +836,14 @@ async function saveFactura() {
   }
 
   // ── Descontar stock automáticamente para facturas emitidas ──
+  // Usa el módulo stock-sedes: si sedes activo + sede asignada, descuenta
+  // de stock_sedes y deja auditoría. Si no, comportamiento clásico.
   if (!error && fData?.id && tipo === "emitida") {
-    const lineasConProducto = LINEAS.filter(l => l.producto_id && l.cantidad > 0);
-    for (const linea of lineasConProducto) {
-      const prod = PRODUCTOS.find(p => p.id === linea.producto_id);
-      if (!prod || prod.tipo === "servicio" || prod.stock_actual == null) continue;
-      const nuevoStock = Math.max(0, prod.stock_actual - linea.cantidad);
-      const { error: stockErr } = await supabase.from("productos")
-        .update({ stock_actual: nuevoStock })
-        .eq("id", linea.producto_id)
-        .eq("user_id", SESSION.user.id);
-      if (!stockErr) {
-        // Actualizar el array local para que el dropdown refleje el nuevo stock
-        prod.stock_actual = nuevoStock;
-      }
+    try {
+      const { descontarStockPorVenta } = await import("./stock-sedes.js");
+      await descontarStockPorVenta(LINEAS, fData.sede_id || null, fData.id, "factura");
+    } catch(e) {
+      console.warn("[stock factura]", e);
     }
     // Refrescar catálogo para que la vista de productos se actualice sin recargar
     refreshProductos().catch(() => {});
