@@ -413,17 +413,39 @@ export function openModalNuevaSede(sedeEdit = null) {
         }
         toast("Sede actualizada", "success");
       } else {
-        // Si marcamos principal, primero quitamos el flag de las demás
-        if (marcarPrincipal) {
-          await supabase.from("sedes")
-            .update({ es_principal: false })
-            .eq("user_id", SESSION.user.id)
-            .eq("es_principal", true);
+        // Antes de insertar: ¿hay una sede con ese código ya (aunque desactivada)?
+        // Si la hay y está desactivada, reactivarla con los nuevos datos.
+        // Si está activa, se produce el error 23505 habitual.
+        const { data: existente } = await supabase.from("sedes")
+          .select("id, activa").eq("user_id", SESSION.user.id)
+          .eq("codigo", payload.codigo).maybeSingle();
+
+        if (existente && !existente.activa) {
+          // Reactivar
+          if (marcarPrincipal) {
+            await supabase.from("sedes")
+              .update({ es_principal: false })
+              .eq("user_id", SESSION.user.id)
+              .eq("es_principal", true);
+          }
+          const { error } = await supabase.from("sedes")
+            .update({ ...payload, activa: true, es_principal: marcarPrincipal })
+            .eq("id", existente.id);
+          if (error) throw error;
+          toast("Sede reactivada", "success");
+        } else {
+          // Si marcamos principal, primero quitamos el flag de las demás
+          if (marcarPrincipal) {
+            await supabase.from("sedes")
+              .update({ es_principal: false })
+              .eq("user_id", SESSION.user.id)
+              .eq("es_principal", true);
+          }
+          const insert = { ...payload, user_id: SESSION.user.id, es_principal: marcarPrincipal };
+          const { error } = await supabase.from("sedes").insert(insert);
+          if (error) throw error;
+          toast("Sede creada", "success");
         }
-        const insert = { ...payload, user_id: SESSION.user.id, es_principal: marcarPrincipal };
-        const { error } = await supabase.from("sedes").insert(insert);
-        if (error) throw error;
-        toast("Sede creada", "success");
       }
       closeModal();
       await _loadSedes();
@@ -663,15 +685,47 @@ export async function activarSedesFlow() {
     btn.disabled = true; btn.textContent = "Activando…";
 
     try {
-      // 1) Crear la sede principal
-      const { data: sede, error: eIns } = await supabase.from("sedes")
-        .insert({
-          user_id: SESSION.user.id,
-          codigo, nombre, direccion,
-          es_principal: true
-        })
-        .select("*").single();
-      if (eIns) throw eIns;
+      // 1) Crear (o reactivar) la sede principal
+      //    Si ya existe una sede con ese código pero está desactivada
+      //    (caso: el usuario desactivó la feature antes y vuelve a activarla),
+      //    la reactivamos en vez de intentar crear una duplicada — que
+      //    chocaría con la UNIQUE (user_id, codigo).
+      let sede;
+      const { data: sedeExistente } = await supabase.from("sedes")
+        .select("*").eq("user_id", SESSION.user.id).eq("codigo", codigo).maybeSingle();
+
+      if (sedeExistente) {
+        if (sedeExistente.activa) {
+          throw { code: "23505", message: "Ya existe una sede activa con ese código" };
+        }
+        // Reactivar. Quitamos principal de las demás (por si hubiera alguna
+        // activa, cosa improbable al estar la feature desactivada, pero
+        // defensivo) y luego reactivamos esta marcándola principal.
+        await supabase.from("sedes")
+          .update({ es_principal: false })
+          .eq("user_id", SESSION.user.id)
+          .eq("es_principal", true);
+        const { data: sedeReact, error: eReact } = await supabase.from("sedes")
+          .update({
+            activa: true,
+            es_principal: true,
+            nombre, direccion
+          })
+          .eq("id", sedeExistente.id)
+          .select("*").single();
+        if (eReact) throw eReact;
+        sede = sedeReact;
+      } else {
+        const { data: sedeNueva, error: eIns } = await supabase.from("sedes")
+          .insert({
+            user_id: SESSION.user.id,
+            codigo, nombre, direccion,
+            es_principal: true
+          })
+          .select("*").single();
+        if (eIns) throw eIns;
+        sede = sedeNueva;
+      }
 
       // 2) Activar el flag en perfil_fiscal
       const { error: ePf } = await supabase.from("perfil_fiscal")
