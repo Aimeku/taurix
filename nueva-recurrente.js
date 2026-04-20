@@ -11,6 +11,7 @@ import {
 } from "./utils.js";
 import { PRODUCTOS, refreshProductos } from "./productos.js";
 import { refreshRecurrentes } from "./facturas-recurrentes.js";
+import { renderSedeSelector, readSedeIdFromForm } from "./sedes.js";
 
 /* ── Estado ── */
 let LINEAS       = [];
@@ -428,6 +429,7 @@ async function _save() {
 
   const payload = {
     user_id:             SESSION.user.id,
+    sede_id:             readSedeIdFromForm("nrSedeId"),
     concepto,
     base,
     iva:                 ivaMain,
@@ -496,6 +498,7 @@ export async function cargarRecurrenteParaEditar(id) {
   f("nrConcepto",   r.concepto);
   f("nrProxima",    r.proxima_generacion);
   f("nrFin",        r.fecha_fin||"");
+  f("nrSedeId",     r.sede_id||"");
   f("nrNotas",      r.notas||"");
   f("nrClienteNombre", r.cliente_nombre||"");
   f("nrClienteNif",    r.cliente_nif||"");
@@ -667,6 +670,15 @@ function initDtoGlobal(){
 export function initNuevaRecurrente() {
   const fe = document.getElementById("nrProxima");
   if (fe && !fe.value) fe.value = new Date().toISOString().slice(0,10);
+
+  // Inyectar selector de sede tras el campo "Fecha fin"
+  try {
+    const finField = document.getElementById("nrFin")?.closest(".ff-field");
+    const sedeHTML = renderSedeSelector({ inputId: "nrSedeId", wrapperClass: "ff-field" });
+    if (finField && sedeHTML && !document.getElementById("nrSedeId")) {
+      finField.insertAdjacentHTML("afterend", sedeHTML);
+    }
+  } catch (e) { console.warn("[nueva-recurrente sede]", e); }
 
   // Expose edit function globally so facturas-recurrentes.js can call it
   window._cargarRecurrenteParaEditar = cargarRecurrenteParaEditar;
