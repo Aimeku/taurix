@@ -455,8 +455,16 @@ export function openModalNuevaSede(sedeEdit = null) {
       if (document.querySelector(".modal") === null) openModalSedes();
     } catch (e) {
       console.error("[guardarSede]", e);
-      if (e.code === "23505") toast("Ya existe una sede con ese código", "error");
-      else toast("Error al guardar la sede", "error");
+      const msg = (e.message || "") + " " + (e.details || "");
+      if (e.code === "23505") {
+        if (msg.includes("principal")) {
+          toast("Ya hay otra sede principal. Recarga e intenta de nuevo.", "error");
+        } else {
+          toast("Ya existe una sede con ese código", "error");
+        }
+      } else {
+        toast("Error al guardar la sede", "error");
+      }
     }
   });
 }
@@ -716,6 +724,16 @@ export async function activarSedesFlow() {
         if (eReact) throw eReact;
         sede = sedeReact;
       } else {
+        // Antes de insertar: desmarcar cualquier sede con es_principal = true
+        // (incluyendo sedes desactivadas que hubieran quedado huérfanas de
+        // un ciclo anterior). Si no hacemos esto, el índice único parcial
+        // `sedes_una_principal_por_user` lanzará error 23505 aunque el código
+        // sea nuevo.
+        await supabase.from("sedes")
+          .update({ es_principal: false })
+          .eq("user_id", SESSION.user.id)
+          .eq("es_principal", true);
+
         const { data: sedeNueva, error: eIns } = await supabase.from("sedes")
           .insert({
             user_id: SESSION.user.id,
@@ -760,8 +778,20 @@ export async function activarSedesFlow() {
       document.dispatchEvent(new CustomEvent("sedes:changed"));
     } catch (e) {
       console.error("[activarSedesFlow]", e);
-      if (e.code === "23505") toast("Ya existe una sede con ese código", "error");
-      else toast("Error al activar: " + (e.message || "inténtalo de nuevo"), "error");
+      // Mensaje según constraint que falló (PostgreSQL incluye el nombre
+      // del índice/constraint en el `message` o `details`).
+      const msg = (e.message || "") + " " + (e.details || "");
+      if (e.code === "23505") {
+        if (msg.includes("codigo")) {
+          toast("Ya existe una sede con ese código", "error");
+        } else if (msg.includes("principal")) {
+          toast("Ya tienes otra sede marcada como principal. Recarga e intenta de nuevo.", "error");
+        } else {
+          toast("Ya existe una sede con esos datos", "error");
+        }
+      } else {
+        toast("Error al activar: " + (e.message || "inténtalo de nuevo"), "error");
+      }
       btn.disabled = false; btn.textContent = "Activar sedes";
     }
   });
