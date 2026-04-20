@@ -10,6 +10,7 @@ import {
   openModal, closeModal, switchView
 } from "./utils.js";
 import { PRODUCTOS } from "./productos.js";
+import { renderSedeSelector, readSedeIdFromForm } from "./sedes.js";
 
 let RECURRENTES = [];
 
@@ -232,6 +233,8 @@ function showRecurrenteModal(prefill = {}) {
           <textarea autocomplete="off" id="rec_notas" class="ff-input ff-textarea" style="min-height:60px" placeholder="Notas que se incluirán en cada factura generada">${prefill.notas || ""}</textarea>
         </div>
 
+        ${renderSedeSelector({ inputId: "rec_sede_id", selectedId: prefill.sede_id, wrapperClass: "modal-field" })}
+
         <!-- Preview -->
         <div style="background:var(--bg2);border-radius:10px;padding:14px;margin-top:8px;display:flex;gap:24px;font-size:13px;flex-wrap:wrap">
           <span>Base: <strong id="rec_pvBase">—</strong></span>
@@ -277,6 +280,7 @@ function showRecurrenteModal(prefill = {}) {
 
     const payload = {
       user_id: SESSION.user.id,
+      sede_id: readSedeIdFromForm("rec_sede_id"),
       concepto,
       base,
       iva: parseInt(document.getElementById("rec_iva").value) || 21,
