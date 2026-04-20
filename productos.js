@@ -8,6 +8,7 @@
 
 import { supabase } from "./supabase.js";
 import { SESSION, fmt, toast, openModal, closeModal } from "./utils.js";
+import { isSedesActivo, getSedesCache } from "./sedes.js";
 
 export let PRODUCTOS = [];
 export function setProductos(p) { PRODUCTOS = p; }
@@ -198,6 +199,17 @@ export function showNuevoProductoModal(prefill = {}) {
       </div>
     </div>
   `);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // PANEL STOCK POR SEDE (solo si sedes activo + es producto + edición)
+  // Inyectado post-render para no romper el modal base.
+  // ═══════════════════════════════════════════════════════════════════
+  if (isEdit && isSedesActivo() && prefill.tipo === "product") {
+    const stockSection = document.getElementById("mpd_stockSection");
+    if (stockSection) {
+      _inyectarPanelStockSedes(stockSection, prefill.id);
+    }
+  }
 
   document.getElementById("mpd_tipo")?.addEventListener("change", e => {
     const isP = e.target.value === "product";
@@ -815,4 +827,370 @@ function descargarPlantillaExcel() {
 
   window.XLSX.writeFile(wb, "plantilla_productos_taurix.xlsx");
   toast("Plantilla descargada ✅ — rellénala y súbela aquí", "success", 4000);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   STOCK MULTI-SEDE · UI en ficha del producto
+═══════════════════════════════════════════════════════════════════ */
+
+/**
+ * Inyecta el panel de stock por sede al final de la sección
+ * "Control de stock" del modal de producto. Carga el detalle
+ * asíncronamente y muestra una mini-tabla con total + desglose.
+ */
+async function _inyectarPanelStockSedes(stockSection, productoId) {
+  const sedes = getSedesCache();
+  if (sedes.length === 0) return;
+
+  // Placeholder mientras carga
+  const wrap = document.createElement("div");
+  wrap.id = "mpd_stockSedesPanel";
+  wrap.style.cssText = "margin-top:14px;padding:12px 14px;background:var(--bg2);border:1px solid var(--brd);border-radius:10px";
+  wrap.innerHTML = `<div style="font-size:12.5px;color:var(--t3)">Cargando stock por sede…</div>`;
+  stockSection.appendChild(wrap);
+
+  try {
+    const { getStockDetallePorProducto } = await import("./stock-sedes.js");
+    const detalle = await getStockDetallePorProducto(productoId);
+    // Mapa sedeId → {cantidad, stock_minimo, ubicacion}
+    const detalleBySede = {};
+    (detalle || []).forEach(d => { detalleBySede[d.sede_id] = d; });
+
+    const filas = sedes.map(s => {
+      const d = detalleBySede[s.id];
+      const cantidad = d?.cantidad ?? 0;
+      const bajo = d?.stock_minimo && cantidad <= Number(d.stock_minimo);
+      return `
+        <tr>
+          <td style="padding:7px 8px;font-weight:600;font-family:monospace;font-size:12px">
+            ${_esc(s.codigo)}${s.es_principal ? ` <span style="color:#92400e;font-size:10px">★</span>` : ""}
+          </td>
+          <td style="padding:7px 8px;font-size:12.5px;color:var(--t2)">${_esc(s.nombre)}</td>
+          <td style="padding:7px 8px;font-size:11.5px;color:var(--t4)">${_esc(d?.ubicacion || "—")}</td>
+          <td style="padding:7px 8px;text-align:right;font-weight:700;font-family:monospace;font-size:13px;${bajo ? "color:#b91c1c" : ""}">${Number(cantidad)}</td>
+        </tr>`;
+    }).join("");
+
+    const total = (detalle || []).reduce((a, r) => a + Number(r.cantidad || 0), 0);
+
+    wrap.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;flex-wrap:wrap">
+        <div style="font-size:12.5px;font-weight:700;color:var(--t2)">
+          📍 Stock por sede
+          <span style="margin-left:8px;font-weight:400;color:var(--t4);font-size:11.5px">
+            Total: <strong style="color:var(--t2)">${total}</strong>
+          </span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button type="button" class="btn-outline" id="mpd_stockEditBtn"
+                  style="font-size:11.5px;padding:5px 12px">Editar</button>
+          ${sedes.length >= 2
+            ? `<button type="button" class="btn-outline" id="mpd_traspasoBtn"
+                       style="font-size:11.5px;padding:5px 12px">Traspasar</button>`
+            : ""}
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="border-bottom:1px solid var(--brd)">
+              <th style="text-align:left;padding:6px 8px;font-weight:700;color:var(--t3);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Sede</th>
+              <th style="text-align:left;padding:6px 8px;font-weight:700;color:var(--t3);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Nombre</th>
+              <th style="text-align:left;padding:6px 8px;font-weight:700;color:var(--t3);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Ubicación</th>
+              <th style="text-align:right;padding:6px 8px;font-weight:700;color:var(--t3);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Stock</th>
+            </tr>
+          </thead>
+          <tbody>${filas}</tbody>
+        </table>
+      </div>
+      <p style="margin:8px 0 0;font-size:10.5px;color:var(--t4);line-height:1.4">
+        💡 El campo "Stock actual" arriba muestra la suma total. Para ajustar cantidades por sede,
+        usa el botón <strong>Editar</strong>. Para mover stock entre sedes, usa <strong>Traspasar</strong>.
+      </p>
+    `;
+
+    // Listeners
+    document.getElementById("mpd_stockEditBtn")?.addEventListener("click", () => {
+      _abrirModalEditarStockSedes(productoId, prefill_nombre_para_modal(productoId));
+    });
+    document.getElementById("mpd_traspasoBtn")?.addEventListener("click", () => {
+      _abrirModalTraspasoStock(productoId, prefill_nombre_para_modal(productoId));
+    });
+  } catch (e) {
+    console.error("[stock-sedes panel]", e);
+    wrap.innerHTML = `<div style="font-size:12px;color:#b91c1c">Error cargando stock por sede: ${_esc(e.message || "desconocido")}</div>`;
+  }
+}
+
+function prefill_nombre_para_modal(productoId) {
+  return PRODUCTOS.find(p => p.id === productoId)?.nombre || "producto";
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODAL · Editar stock por sede
+═══════════════════════════════════════════════════════════════════ */
+async function _abrirModalEditarStockSedes(productoId, nombreProducto) {
+  const sedes = getSedesCache();
+  if (sedes.length === 0) return;
+
+  const { getStockDetallePorProducto, ajustarStockSede } = await import("./stock-sedes.js");
+  const detalle = await getStockDetallePorProducto(productoId);
+  const byId = {};
+  (detalle || []).forEach(d => { byId[d.sede_id] = d; });
+
+  const filas = sedes.map(s => {
+    const d = byId[s.id] || {};
+    return `
+      <tr data-sede="${s.id}">
+        <td style="padding:8px 8px;font-weight:600;font-family:monospace;font-size:12.5px;white-space:nowrap">
+          ${_esc(s.codigo)}
+          <span style="display:block;font-weight:400;font-size:11px;color:var(--t4);font-family:inherit">${_esc(s.nombre)}</span>
+        </td>
+        <td style="padding:8px 8px">
+          <input type="number" class="ff-input _sedeStockInput" data-sede="${s.id}"
+                 value="${d.cantidad ?? 0}" step="0.001" style="width:100px;font-family:monospace;text-align:right"/>
+        </td>
+        <td style="padding:8px 8px">
+          <input type="number" class="ff-input _sedeStockMin" data-sede="${s.id}"
+                 value="${d.stock_minimo ?? ""}" step="0.001" placeholder="—" style="width:90px;font-family:monospace;text-align:right"/>
+        </td>
+        <td style="padding:8px 8px">
+          <input type="text" class="ff-input _sedeUbic" data-sede="${s.id}"
+                 value="${_esc(d.ubicacion || "")}" placeholder="Estante A-3" style="width:140px;font-size:12px"/>
+        </td>
+      </tr>`;
+  }).join("");
+
+  openModal(`
+    <div class="modal" style="max-width:720px">
+      <div class="modal-hd">
+        <span class="modal-title">📦 Stock por sede · ${_esc(nombreProducto)}</span>
+        <button class="modal-x" onclick="window._cm()">×</button>
+      </div>
+      <div class="modal-bd">
+        <p style="margin:0 0 14px;font-size:12.5px;color:var(--t3);line-height:1.5">
+          Ajusta el stock actual en cada sede. Se registrará un movimiento de tipo
+          <strong>ajuste</strong> por cada cambio para mantener trazabilidad.
+        </p>
+
+        <div class="modal-field" style="margin:0 0 12px">
+          <label>Motivo del ajuste <span style="font-weight:400;color:var(--t4)">(opcional)</span></label>
+          <input id="_sedeStockMotivo" class="ff-input" placeholder="Ej: Inventario físico trimestral"/>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="border-bottom:1px solid var(--brd)">
+                <th style="text-align:left;padding:8px 8px;font-weight:700;color:var(--t3);font-size:11px;text-transform:uppercase;letter-spacing:.04em">Sede</th>
+                <th style="text-align:right;padding:8px 8px;font-weight:700;color:var(--t3);font-size:11px;text-transform:uppercase;letter-spacing:.04em">Cantidad</th>
+                <th style="text-align:right;padding:8px 8px;font-weight:700;color:var(--t3);font-size:11px;text-transform:uppercase;letter-spacing:.04em">Mínimo</th>
+                <th style="text-align:left;padding:8px 8px;font-weight:700;color:var(--t3);font-size:11px;text-transform:uppercase;letter-spacing:.04em">Ubicación</th>
+              </tr>
+            </thead>
+            <tbody>${filas}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
+        <button class="btn-modal-save" id="_sedeStockGuardar">Guardar cambios</button>
+      </div>
+    </div>
+  `);
+
+  document.getElementById("_sedeStockGuardar").addEventListener("click", async () => {
+    const btn = document.getElementById("_sedeStockGuardar");
+    btn.disabled = true; btn.textContent = "Guardando…";
+    const motivo = document.getElementById("_sedeStockMotivo").value.trim() || null;
+
+    try {
+      const inputs = document.querySelectorAll("._sedeStockInput");
+      let cambios = 0;
+      for (const inp of inputs) {
+        const sedeId = inp.dataset.sede;
+        const nuevaCant = Number(inp.value);
+        if (isNaN(nuevaCant) || nuevaCant < 0) continue;
+
+        const actualFila = byId[sedeId];
+        const cantidadAnterior = Number(actualFila?.cantidad ?? 0);
+
+        // Solo aplicamos el ajuste si el valor cambia O si hay
+        // cambios en stock_minimo / ubicacion
+        const minInput  = document.querySelector(`._sedeStockMin[data-sede="${sedeId}"]`);
+        const ubicInput = document.querySelector(`._sedeUbic[data-sede="${sedeId}"]`);
+        const nuevoMin  = minInput.value === "" ? null : Number(minInput.value);
+        const nuevaUbic = ubicInput.value.trim() || null;
+
+        const cantidadCambio = nuevaCant !== cantidadAnterior;
+        const minCambio      = (nuevoMin ?? null)  !== (actualFila?.stock_minimo ?? null);
+        const ubicCambio     = (nuevaUbic ?? null) !== (actualFila?.ubicacion   ?? null);
+
+        if (cantidadCambio) {
+          await ajustarStockSede(productoId, sedeId, nuevaCant, motivo);
+          cambios++;
+        }
+        if ((minCambio || ubicCambio) && !cantidadCambio) {
+          // Solo actualizar metadatos sin crear movimiento
+          await supabase.from("stock_sedes").upsert(
+            {
+              user_id: SESSION.user.id,
+              producto_id: productoId,
+              sede_id: sedeId,
+              cantidad: nuevaCant,
+              stock_minimo: nuevoMin,
+              ubicacion: nuevaUbic
+            },
+            { onConflict: "producto_id,sede_id" }
+          );
+          cambios++;
+        } else if (minCambio || ubicCambio) {
+          // Si también cambió cantidad, ya se hizo upsert arriba pero sin
+          // min/ubic. Actualizamos ahora esos campos.
+          await supabase.from("stock_sedes").update({
+            stock_minimo: nuevoMin,
+            ubicacion: nuevaUbic
+          }).eq("producto_id", productoId).eq("sede_id", sedeId)
+            .eq("user_id", SESSION.user.id);
+        }
+      }
+
+      closeModal();
+      toast(cambios > 0 ? `Stock actualizado en ${cambios} sede${cambios !== 1 ? "s" : ""}` : "Sin cambios", "success");
+      await refreshProductos();
+      // Re-abrir el modal del producto para ver el stock actualizado
+      const prod = PRODUCTOS.find(p => p.id === productoId);
+      if (prod) showNuevoProductoModal(prod);
+    } catch (e) {
+      console.error("[editarStockSedes]", e);
+      toast("Error al guardar: " + (e.message || "desconocido"), "error");
+      btn.disabled = false; btn.textContent = "Guardar cambios";
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODAL · Traspasar stock entre sedes
+═══════════════════════════════════════════════════════════════════ */
+async function _abrirModalTraspasoStock(productoId, nombreProducto) {
+  const sedes = getSedesCache();
+  if (sedes.length < 2) {
+    toast("Necesitas al menos 2 sedes para hacer un traspaso", "warn");
+    return;
+  }
+
+  const { getStockDetallePorProducto, traspasarStock } = await import("./stock-sedes.js");
+  const detalle = await getStockDetallePorProducto(productoId);
+  const byId = {};
+  (detalle || []).forEach(d => { byId[d.sede_id] = d; });
+
+  const opciones = (exclude) => sedes
+    .filter(s => s.id !== exclude)
+    .map(s => `<option value="${s.id}">${_esc(s.codigo)} · ${_esc(s.nombre)} (stock: ${byId[s.id]?.cantidad ?? 0})</option>`)
+    .join("");
+
+  openModal(`
+    <div class="modal" style="max-width:540px">
+      <div class="modal-hd">
+        <span class="modal-title">🔄 Traspasar stock · ${_esc(nombreProducto)}</span>
+        <button class="modal-x" onclick="window._cm()">×</button>
+      </div>
+      <div class="modal-bd">
+        <p style="margin:0 0 16px;font-size:12.5px;color:var(--t3);line-height:1.5">
+          Mueve unidades de una sede a otra. Se registrará un movimiento tipo
+          <strong>traspaso</strong> en el historial. Fiscalmente no tiene impacto:
+          el producto sigue siendo tuyo.
+        </p>
+
+        <div class="modal-grid2">
+          <div class="modal-field">
+            <label>Sede origen *</label>
+            <select id="_trOrigen" class="ff-select">
+              ${sedes.map(s => `<option value="${s.id}">${_esc(s.codigo)} · ${_esc(s.nombre)} (stock: ${byId[s.id]?.cantidad ?? 0})</option>`).join("")}
+            </select>
+          </div>
+          <div class="modal-field">
+            <label>Sede destino *</label>
+            <select id="_trDestino" class="ff-select">
+              ${opciones(sedes[0].id)}
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-grid2">
+          <div class="modal-field">
+            <label>Cantidad a traspasar *</label>
+            <input type="number" id="_trCantidad" class="ff-input" step="0.001" min="0.001" placeholder="0"/>
+            <span id="_trDisponible" style="font-size:11px;color:var(--t4);margin-top:4px;display:block"></span>
+          </div>
+          <div class="modal-field">
+            <label>Motivo <span style="font-weight:400;color:var(--t4)">(opcional)</span></label>
+            <input type="text" id="_trMotivo" class="ff-input" placeholder="Reposición, traslado..."/>
+          </div>
+        </div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn-modal-cancel" onclick="window._cm()">Cancelar</button>
+        <button class="btn-modal-save" id="_trOk">Traspasar</button>
+      </div>
+    </div>
+  `);
+
+  const elOrigen   = document.getElementById("_trOrigen");
+  const elDestino  = document.getElementById("_trDestino");
+  const elDispon   = document.getElementById("_trDisponible");
+
+  const updateDisponible = () => {
+    const origenId = elOrigen.value;
+    const disp = byId[origenId]?.cantidad ?? 0;
+    elDispon.textContent = `Disponible en origen: ${disp}`;
+  };
+  const actualizarOpcionesDestino = () => {
+    const origenId = elOrigen.value;
+    elDestino.innerHTML = opciones(origenId);
+  };
+  elOrigen.addEventListener("change", () => {
+    actualizarOpcionesDestino();
+    updateDisponible();
+  });
+  updateDisponible();
+
+  document.getElementById("_trOk").addEventListener("click", async () => {
+    const origen  = elOrigen.value;
+    const destino = elDestino.value;
+    const cantidad = Number(document.getElementById("_trCantidad").value);
+    const motivo   = document.getElementById("_trMotivo").value.trim() || null;
+
+    if (!origen || !destino) { toast("Selecciona origen y destino", "error"); return; }
+    if (origen === destino)  { toast("Origen y destino deben ser distintos", "error"); return; }
+    if (isNaN(cantidad) || cantidad <= 0) { toast("Cantidad inválida", "error"); return; }
+
+    const btn = document.getElementById("_trOk");
+    btn.disabled = true; btn.textContent = "Traspasando…";
+
+    try {
+      await traspasarStock(productoId, origen, destino, cantidad, motivo);
+      closeModal();
+      toast("Traspaso registrado ✅", "success");
+      await refreshProductos();
+      // Volver a abrir el modal del producto
+      const prod = PRODUCTOS.find(p => p.id === productoId);
+      if (prod) showNuevoProductoModal(prod);
+    } catch (e) {
+      console.error("[traspaso]", e);
+      toast("Error: " + (e.message || "desconocido"), "error");
+      btn.disabled = false; btn.textContent = "Traspasar";
+    }
+  });
+}
+
+/* ── Escape HTML helper (privado) ─────────────────────────────────── */
+function _esc(str) {
+  if (str == null) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
