@@ -888,6 +888,8 @@ async function _inyectarPanelStockSedes(stockSection, productoId) {
             ? `<button type="button" class="btn-outline" id="mpd_traspasoBtn"
                        style="font-size:11.5px;padding:5px 12px">Traspasar</button>`
             : ""}
+          <button type="button" class="btn-outline" id="mpd_histBtn"
+                  style="font-size:11.5px;padding:5px 12px">Historial</button>
         </div>
       </div>
       <div style="overflow-x:auto">
@@ -915,6 +917,9 @@ async function _inyectarPanelStockSedes(stockSection, productoId) {
     });
     document.getElementById("mpd_traspasoBtn")?.addEventListener("click", () => {
       _abrirModalTraspasoStock(productoId, prefill_nombre_para_modal(productoId));
+    });
+    document.getElementById("mpd_histBtn")?.addEventListener("click", () => {
+      _abrirModalHistorialStock(productoId, prefill_nombre_para_modal(productoId));
     });
   } catch (e) {
     console.error("[stock-sedes panel]", e);
@@ -1182,6 +1187,123 @@ async function _abrirModalTraspasoStock(productoId, nombreProducto) {
       btn.disabled = false; btn.textContent = "Traspasar";
     }
   });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODAL · Historial de movimientos de stock
+═══════════════════════════════════════════════════════════════════ */
+async function _abrirModalHistorialStock(productoId, nombreProducto) {
+  const { getMovimientosProducto } = await import("./stock-sedes.js");
+  const sedes = getSedesCache();
+  const sedeMap = {};
+  sedes.forEach(s => { sedeMap[s.id] = s; });
+
+  openModal(`
+    <div class="modal" style="max-width:820px">
+      <div class="modal-hd">
+        <span class="modal-title">📜 Historial de stock · ${_esc(nombreProducto)}</span>
+        <button class="modal-x" onclick="window._cm()">×</button>
+      </div>
+      <div class="modal-bd">
+        <div id="_histContent" style="font-size:12.5px;color:var(--t3)">Cargando movimientos…</div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn-modal-cancel" onclick="window._cm()">Cerrar</button>
+      </div>
+    </div>
+  `);
+
+  try {
+    const movs = await getMovimientosProducto(productoId, 100);
+    const cont = document.getElementById("_histContent");
+    if (!cont) return;
+
+    if (movs.length === 0) {
+      cont.innerHTML = `
+        <div style="text-align:center;padding:40px 20px;color:var(--t4)">
+          <div style="font-size:36px;margin-bottom:8px">📦</div>
+          <div style="font-size:13px">Sin movimientos registrados todavía.</div>
+          <div style="font-size:11.5px;margin-top:6px;line-height:1.5">
+            Cada vez que vendas, ajustes o traspases este producto<br>se registrará aquí para trazabilidad.
+          </div>
+        </div>`;
+      return;
+    }
+
+    // Colores por tipo de movimiento
+    const colores = {
+      entrada:  { bg: "#dcfce7", color: "#166534", label: "Entrada",  icon: "⬇" },
+      compra:   { bg: "#dcfce7", color: "#166534", label: "Compra",   icon: "🛒" },
+      salida:   { bg: "#fee2e2", color: "#991b1b", label: "Salida",   icon: "⬆" },
+      venta:    { bg: "#fef3c7", color: "#92400e", label: "Venta",    icon: "💰" },
+      traspaso: { bg: "#e0f2fe", color: "#075985", label: "Traspaso", icon: "🔄" },
+      ajuste:   { bg: "#f3e8ff", color: "#6b21a8", label: "Ajuste",   icon: "📝" },
+    };
+
+    const filas = movs.map(m => {
+      const c = colores[m.tipo] || { bg: "#f3f4f6", color: "#374151", label: m.tipo, icon: "·" };
+      const origen = m.sede_origen ? (sedeMap[m.sede_origen]?.codigo || "¿?") : "";
+      const destino = m.sede_destino ? (sedeMap[m.sede_destino]?.codigo || "¿?") : "";
+
+      // Representación del movimiento entre sedes
+      let flecha = "";
+      if (m.tipo === "traspaso" && origen && destino) {
+        flecha = `<span style="font-family:monospace">${_esc(origen)} → ${_esc(destino)}</span>`;
+      } else if (origen) {
+        flecha = `<span style="font-family:monospace">${_esc(origen)}</span>`;
+      } else if (destino) {
+        flecha = `<span style="font-family:monospace">→ ${_esc(destino)}</span>`;
+      } else {
+        flecha = `<span style="color:var(--t4)">—</span>`;
+      }
+
+      const fecha = m.fecha ? new Date(m.fecha) : null;
+      const fechaStr = fecha
+        ? `${String(fecha.getDate()).padStart(2,"0")}/${String(fecha.getMonth()+1).padStart(2,"0")}/${fecha.getFullYear()} ${String(fecha.getHours()).padStart(2,"0")}:${String(fecha.getMinutes()).padStart(2,"0")}`
+        : "—";
+
+      const docRef = m.documento_ref
+        ? `<span style="font-size:10.5px;color:var(--t4);display:block;margin-top:2px">${_esc(m.documento_tipo || "doc")}: <code style="font-size:10px">${String(m.documento_ref).slice(0, 8)}…</code></span>`
+        : "";
+
+      return `
+        <tr>
+          <td style="padding:9px 8px;font-family:monospace;font-size:11.5px;color:var(--t3);white-space:nowrap">${fechaStr}</td>
+          <td style="padding:9px 8px">
+            <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:12px;background:${c.bg};color:${c.color};font-size:11px;font-weight:700">
+              <span>${c.icon}</span> ${c.label}
+            </span>
+          </td>
+          <td style="padding:9px 8px;font-size:12px">${flecha}</td>
+          <td style="padding:9px 8px;text-align:right;font-family:monospace;font-weight:700;font-size:13px">${Number(m.cantidad)}</td>
+          <td style="padding:9px 8px;font-size:11.5px;color:var(--t3)">${_esc(m.motivo || "")}${docRef}</td>
+        </tr>`;
+    }).join("");
+
+    cont.innerHTML = `
+      <p style="margin:0 0 12px;font-size:12px;color:var(--t3);line-height:1.5">
+        Últimos ${movs.length} movimientos. Los movimientos son <strong>inmutables</strong>:
+        si te equivocas, crea un ajuste contrario en lugar de editar uno existente.
+      </p>
+      <div style="overflow-x:auto;max-height:500px;overflow-y:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="border-bottom:1px solid var(--brd);position:sticky;top:0;background:var(--srf);z-index:1">
+              <th style="text-align:left;padding:8px;font-weight:700;color:var(--t3);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Fecha</th>
+              <th style="text-align:left;padding:8px;font-weight:700;color:var(--t3);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Tipo</th>
+              <th style="text-align:left;padding:8px;font-weight:700;color:var(--t3);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Sede</th>
+              <th style="text-align:right;padding:8px;font-weight:700;color:var(--t3);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Cantidad</th>
+              <th style="text-align:left;padding:8px;font-weight:700;color:var(--t3);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Motivo / Referencia</th>
+            </tr>
+          </thead>
+          <tbody>${filas}</tbody>
+        </table>
+      </div>`;
+  } catch (e) {
+    console.error("[historialStock]", e);
+    const cont = document.getElementById("_histContent");
+    if (cont) cont.innerHTML = `<div style="color:#b91c1c">Error al cargar historial: ${_esc(e.message || "desconocido")}</div>`;
+  }
 }
 
 /* ── Escape HTML helper (privado) ─────────────────────────────────── */
