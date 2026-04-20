@@ -10,6 +10,7 @@
 
 import { supabase } from "./supabase.js";
 import { SESSION, fmt, fmtDate, toast, getYear, getTrim, getFacturasTrim, calcIVA, calcIRPF } from "./utils.js";
+import { applySedeFilter } from "./sedes.js";
 
 /* ══════════════════════════
    CALENDARIO FISCAL 2025/2026
@@ -61,19 +62,23 @@ export async function refreshAlertas() {
   const irpfRes = Math.max(0, rendimiento * 0.20 - retenciones);
 
   // Facturas vencidas
-  const { data: vencidas } = await supabase.from("facturas")
+  let qVenc = supabase.from("facturas")
     .select("id,cliente_nombre,base,iva,fecha,numero_factura")
     .eq("user_id", SESSION.user.id).eq("tipo","emitida")
     .eq("estado","emitida").eq("cobrada",false);
+  qVenc = applySedeFilter(qVenc);
+  const { data: vencidas } = await qVenc;
   const vencidasReal = (vencidas||[]).filter(f => {
     const d = f.fecha_vencimiento || f.fecha;
     return d && Math.floor((hoy-new Date(d+"T12:00:00"))/86400000) > 30;
   });
 
   // Gastos recurrentes vencidos
-  const { data: recVenc } = await supabase.from("gastos_recurrentes")
+  let qRec = supabase.from("gastos_recurrentes")
     .select("nombre,importe,proxima_fecha").eq("user_id",SESSION.user.id)
     .eq("activo",true).lte("proxima_fecha",hoy.toISOString().slice(0,10));
+  qRec = applySedeFilter(qRec);
+  const { data: recVenc } = await qRec;
 
   // Construir alertas dinámicas
   const alertas = buildAlertas({
