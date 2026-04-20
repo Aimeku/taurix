@@ -405,6 +405,7 @@ window._editFact = async id => {
           <div class="modal-field"><label>Base imponible (€)</label><input type="number" id="_ef_base" value="${f.base}" step="0.01"/></div>
           <div class="modal-field"><label>Fecha</label><input type="date" id="_ef_fecha" value="${f.fecha}"/></div>
         </div>
+        ${renderSedeSelector({ inputId: "_ef_sede_id", selectedId: f.sede_id, wrapperClass: "modal-field" })}
         <div class="modal-field"><label>Notas</label><textarea id="_ef_notas">${f.notas||""}</textarea></div>
       </div>
       <div class="modal-ft">
@@ -414,12 +415,16 @@ window._editFact = async id => {
     </div>
   `);
   document.getElementById("_ef_save").onclick = async () => {
-    const { error: ue } = await supabase.from("facturas").update({
+    const update = {
       concepto: document.getElementById("_ef_concepto").value.trim(),
       base:     Number(document.getElementById("_ef_base").value),
       fecha:    document.getElementById("_ef_fecha").value,
       notas:    document.getElementById("_ef_notas").value.trim()
-    }).eq("id",id);
+    };
+    // Solo persistimos sede si el selector fue inyectado (feature activa)
+    const sedeEl = document.getElementById("_ef_sede_id");
+    if (sedeEl) update.sede_id = readSedeIdFromForm("_ef_sede_id");
+    const { error: ue } = await supabase.from("facturas").update(update).eq("id",id);
     if (ue) { toast("Error guardando: "+ue.message,"error"); return; }
     closeModal(); toast("Factura actualizada","success");
     const { refreshDashboard } = await import("./dashboard.js");
