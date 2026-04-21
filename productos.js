@@ -132,7 +132,7 @@ export function showNuevoProductoModal(prefill = {}) {
         </div>
 
         <!-- Impuestos separados -->
-        <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">🏛️ Impuestos</div>
+        <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">Impuestos</div>
         <div class="modal-grid2">
           <div class="modal-field"><label>IVA aplicable</label>
             <select id="mpd_iva" class="ff-select">
