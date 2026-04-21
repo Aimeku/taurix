@@ -89,7 +89,7 @@ export function showNuevoProductoModal(prefill = {}) {
   openModal(`
     <div class="modal" style="max-width:700px">
       <div class="modal-hd">
-        <span class="modal-title">📦 ${isEdit ? "Editar" : "Nuevo"} producto / servicio</span>
+        <span class="modal-title">${isEdit ? "Editar" : "Nuevo"} producto / servicio</span>
         <button class="modal-x" onclick="window._cm()">×</button>
       </div>
       <div class="modal-bd">
@@ -111,9 +111,9 @@ export function showNuevoProductoModal(prefill = {}) {
           </div>
           <div class="modal-field"><label>Tipo</label>
             <select id="mpd_tipo" class="ff-select">
-              <option value="product"      ${tipoInit === "product"      ? "selected" : ""}>📦 Producto físico</option>
+              <option value="product"      ${tipoInit === "product"      ? "selected" : ""}>Producto físico</option>
               <option value="service"      ${tipoInit === "service"      ? "selected" : ""}>🔧 Servicio</option>
-              <option value="subscription" ${tipoInit === "subscription" ? "selected" : ""}>🔄 Suscripción</option>
+              <option value="subscription" ${tipoInit === "subscription" ? "selected" : ""}>Suscripción</option>
             </select>
           </div>
         </div>
@@ -123,7 +123,7 @@ export function showNuevoProductoModal(prefill = {}) {
         </div>
 
         <!-- Precios separados -->
-        <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">💰 Precios</div>
+        <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">Precios</div>
         <div class="modal-grid2">
           <div class="modal-field"><label>Precio de venta (€) * <span style="font-weight:400;color:var(--t4)">sin IVA</span></label>
             <input autocomplete="off" type="number" id="mpd_precio" class="ff-input" value="${prefill.precio_venta ?? ""}" step="0.01" placeholder="0.00"/></div>
@@ -153,7 +153,7 @@ export function showNuevoProductoModal(prefill = {}) {
         </div>
 
         <div id="mpd_stockSection" style="${tipoInit === "product" ? "" : "display:none"}">
-          <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">📦 Control de stock</div>
+          <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">Control de stock</div>
           <div class="modal-grid3">
             <div class="modal-field"><label>Stock actual</label>
               <input autocomplete="off" type="number" id="mpd_stock" class="ff-input" value="${prefill.stock_actual ?? ""}" step="1" min="0" placeholder="0"/></div>
@@ -394,7 +394,7 @@ export function showImportarProductosModal() {
             <div style="font-size:12px;color:var(--t3)">Rellena tus productos en la plantilla y vuelve a subirla. Las columnas marcadas con * son obligatorias.</div>
           </div>
           <button class="btn-outline" id="descPlantillaBtn" style="white-space:nowrap;font-size:12px">
-            ⬇️ Descargar plantilla
+            Descargar plantilla
           </button>
         </div>
 
@@ -876,7 +876,7 @@ async function _inyectarPanelStockSedes(stockSection, productoId) {
     wrap.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;flex-wrap:wrap">
         <div style="font-size:12.5px;font-weight:700;color:var(--t2)">
-          📍 Stock por sede
+          Stock por sede
           <span style="margin-left:8px;font-weight:400;color:var(--t4);font-size:11.5px">
             Total: <strong style="color:var(--t2)">${total}</strong>
           </span>
@@ -906,7 +906,7 @@ async function _inyectarPanelStockSedes(stockSection, productoId) {
         </table>
       </div>
       <p style="margin:8px 0 0;font-size:10.5px;color:var(--t4);line-height:1.4">
-        💡 El campo "Stock actual" arriba muestra la suma total. Para ajustar cantidades por sede,
+        El campo "Stock actual" arriba muestra la suma total. Para ajustar cantidades por sede,
         usa el botón <strong>Editar</strong>. Para mover stock entre sedes, usa <strong>Traspasar</strong>.
       </p>
     `;
@@ -947,21 +947,24 @@ async function _abrirModalEditarStockSedes(productoId, nombreProducto) {
     const d = byId[s.id] || {};
     return `
       <tr data-sede="${s.id}">
-        <td style="padding:8px 8px;font-weight:600;font-family:monospace;font-size:12.5px;white-space:nowrap">
-          ${_esc(s.codigo)}
-          <span style="display:block;font-weight:400;font-size:11px;color:var(--t4);font-family:inherit">${_esc(s.nombre)}</span>
+        <td style="padding:10px 8px;vertical-align:middle">
+          <div style="font-weight:700;font-family:monospace;font-size:13px;line-height:1.2">${_esc(s.codigo)}</div>
+          <div style="font-weight:400;font-size:11px;color:var(--t4);line-height:1.3;margin-top:2px">${_esc(s.nombre)}</div>
         </td>
-        <td style="padding:8px 8px">
+        <td style="padding:10px 8px;vertical-align:middle">
           <input type="number" class="ff-input _sedeStockInput" data-sede="${s.id}"
-                 value="${d.cantidad ?? 0}" step="0.001" style="width:100px;font-family:monospace;text-align:right"/>
+                 value="${d.cantidad ?? 0}" step="0.001"
+                 style="width:100%;font-family:monospace;text-align:right;box-sizing:border-box"/>
         </td>
-        <td style="padding:8px 8px">
+        <td style="padding:10px 8px;vertical-align:middle">
           <input type="number" class="ff-input _sedeStockMin" data-sede="${s.id}"
-                 value="${d.stock_minimo ?? ""}" step="0.001" placeholder="—" style="width:90px;font-family:monospace;text-align:right"/>
+                 value="${d.stock_minimo ?? ""}" step="0.001" placeholder="—"
+                 style="width:100%;font-family:monospace;text-align:right;box-sizing:border-box"/>
         </td>
-        <td style="padding:8px 8px">
+        <td style="padding:10px 8px;vertical-align:middle">
           <input type="text" class="ff-input _sedeUbic" data-sede="${s.id}"
-                 value="${_esc(d.ubicacion || "")}" placeholder="Estante A-3" style="width:140px;font-size:12px"/>
+                 value="${_esc(d.ubicacion || "")}" placeholder="Estante A-3"
+                 style="width:100%;font-size:12.5px;box-sizing:border-box"/>
         </td>
       </tr>`;
   }).join("");
@@ -969,7 +972,7 @@ async function _abrirModalEditarStockSedes(productoId, nombreProducto) {
   openModal(`
     <div class="modal" style="max-width:720px">
       <div class="modal-hd">
-        <span class="modal-title">📦 Stock por sede · ${_esc(nombreProducto)}</span>
+        <span class="modal-title">Stock por sede · ${_esc(nombreProducto)}</span>
         <button class="modal-x" onclick="window._cm()">×</button>
       </div>
       <div class="modal-bd">
@@ -978,19 +981,25 @@ async function _abrirModalEditarStockSedes(productoId, nombreProducto) {
           <strong>ajuste</strong> por cada cambio para mantener trazabilidad.
         </p>
 
-        <div class="modal-field" style="margin:0 0 12px">
+        <div class="modal-field" style="margin:0 0 16px">
           <label>Motivo del ajuste <span style="font-weight:400;color:var(--t4)">(opcional)</span></label>
           <input id="_sedeStockMotivo" class="ff-input" placeholder="Ej: Inventario físico trimestral"/>
         </div>
 
         <div style="overflow-x:auto">
-          <table style="width:100%;border-collapse:collapse">
+          <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+            <colgroup>
+              <col style="width:30%"/>
+              <col style="width:22%"/>
+              <col style="width:18%"/>
+              <col style="width:30%"/>
+            </colgroup>
             <thead>
               <tr style="border-bottom:1px solid var(--brd)">
-                <th style="text-align:left;padding:8px 8px;font-weight:700;color:var(--t3);font-size:11px;text-transform:uppercase;letter-spacing:.04em">Sede</th>
-                <th style="text-align:right;padding:8px 8px;font-weight:700;color:var(--t3);font-size:11px;text-transform:uppercase;letter-spacing:.04em">Cantidad</th>
-                <th style="text-align:right;padding:8px 8px;font-weight:700;color:var(--t3);font-size:11px;text-transform:uppercase;letter-spacing:.04em">Mínimo</th>
-                <th style="text-align:left;padding:8px 8px;font-weight:700;color:var(--t3);font-size:11px;text-transform:uppercase;letter-spacing:.04em">Ubicación</th>
+                <th style="text-align:left;padding:8px;font-weight:700;color:var(--t3);font-size:11px;text-transform:uppercase;letter-spacing:.04em">Sede</th>
+                <th style="text-align:right;padding:8px;font-weight:700;color:var(--t3);font-size:11px;text-transform:uppercase;letter-spacing:.04em">Cantidad</th>
+                <th style="text-align:right;padding:8px;font-weight:700;color:var(--t3);font-size:11px;text-transform:uppercase;letter-spacing:.04em">Mínimo</th>
+                <th style="text-align:left;padding:8px;font-weight:700;color:var(--t3);font-size:11px;text-transform:uppercase;letter-spacing:.04em">Ubicación</th>
               </tr>
             </thead>
             <tbody>${filas}</tbody>
@@ -1097,7 +1106,7 @@ async function _abrirModalTraspasoStock(productoId, nombreProducto) {
   openModal(`
     <div class="modal" style="max-width:540px">
       <div class="modal-hd">
-        <span class="modal-title">🔄 Traspasar stock · ${_esc(nombreProducto)}</span>
+        <span class="modal-title">Traspasar stock · ${_esc(nombreProducto)}</span>
         <button class="modal-x" onclick="window._cm()">×</button>
       </div>
       <div class="modal-bd">
@@ -1201,7 +1210,7 @@ async function _abrirModalHistorialStock(productoId, nombreProducto) {
   openModal(`
     <div class="modal" style="max-width:820px">
       <div class="modal-hd">
-        <span class="modal-title">📜 Historial de stock · ${_esc(nombreProducto)}</span>
+        <span class="modal-title">Historial de stock · ${_esc(nombreProducto)}</span>
         <button class="modal-x" onclick="window._cm()">×</button>
       </div>
       <div class="modal-bd">
@@ -1221,7 +1230,10 @@ async function _abrirModalHistorialStock(productoId, nombreProducto) {
     if (movs.length === 0) {
       cont.innerHTML = `
         <div style="text-align:center;padding:40px 20px;color:var(--t4)">
-          <div style="font-size:36px;margin-bottom:8px">📦</div>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 10px;opacity:.5">
+            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
           <div style="font-size:13px">Sin movimientos registrados todavía.</div>
           <div style="font-size:11.5px;margin-top:6px;line-height:1.5">
             Cada vez que vendas, ajustes o traspases este producto<br>se registrará aquí para trazabilidad.
@@ -1232,16 +1244,16 @@ async function _abrirModalHistorialStock(productoId, nombreProducto) {
 
     // Colores por tipo de movimiento
     const colores = {
-      entrada:  { bg: "#dcfce7", color: "#166534", label: "Entrada",  icon: "⬇" },
-      compra:   { bg: "#dcfce7", color: "#166534", label: "Compra",   icon: "🛒" },
-      salida:   { bg: "#fee2e2", color: "#991b1b", label: "Salida",   icon: "⬆" },
-      venta:    { bg: "#fef3c7", color: "#92400e", label: "Venta",    icon: "💰" },
-      traspaso: { bg: "#e0f2fe", color: "#075985", label: "Traspaso", icon: "🔄" },
-      ajuste:   { bg: "#f3e8ff", color: "#6b21a8", label: "Ajuste",   icon: "📝" },
+      entrada:  { bg: "#dcfce7", color: "#166534", label: "Entrada"  },
+      compra:   { bg: "#dcfce7", color: "#166534", label: "Compra"   },
+      salida:   { bg: "#fee2e2", color: "#991b1b", label: "Salida"   },
+      venta:    { bg: "#fef3c7", color: "#92400e", label: "Venta"    },
+      traspaso: { bg: "#e0f2fe", color: "#075985", label: "Traspaso" },
+      ajuste:   { bg: "#f3e8ff", color: "#6b21a8", label: "Ajuste"   },
     };
 
     const filas = movs.map(m => {
-      const c = colores[m.tipo] || { bg: "#f3f4f6", color: "#374151", label: m.tipo, icon: "·" };
+      const c = colores[m.tipo] || { bg: "#f3f4f6", color: "#374151", label: m.tipo };
       const origen = m.sede_origen ? (sedeMap[m.sede_origen]?.codigo || "¿?") : "";
       const destino = m.sede_destino ? (sedeMap[m.sede_destino]?.codigo || "¿?") : "";
 
@@ -1270,8 +1282,8 @@ async function _abrirModalHistorialStock(productoId, nombreProducto) {
         <tr>
           <td style="padding:9px 8px;font-family:monospace;font-size:11.5px;color:var(--t3);white-space:nowrap">${fechaStr}</td>
           <td style="padding:9px 8px">
-            <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:12px;background:${c.bg};color:${c.color};font-size:11px;font-weight:700">
-              <span>${c.icon}</span> ${c.label}
+            <span style="display:inline-block;padding:3px 10px;border-radius:12px;background:${c.bg};color:${c.color};font-size:11px;font-weight:700">
+              ${c.label}
             </span>
           </td>
           <td style="padding:9px 8px;font-size:12px">${flecha}</td>
