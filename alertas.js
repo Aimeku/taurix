@@ -120,10 +120,22 @@ function buildAlertas({ year, trim, hoy, ivaRes, irpfRes, vencidasReal, recVenc,
   const diasIVA  = addDias(p.iva);
   const diasIRPF = addDias(p.irpf);
 
+  // SVGs profesionales por nivel. El color lo aporta el CSS de `.af-icon`
+  // según la clase padre (.alerta-fiscal--urgente/aviso/info), así que usamos
+  // currentColor para que herede. Esto sustituye los emojis anteriores.
+  const svgIconos = {
+    urgente: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+    reloj:   `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+    aviso:   `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+    info:    `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+    recurr:  `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>`,
+    dinero:  `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>`,
+  };
+
   if (diasIVA >= 0 && diasIVA <= 30) {
     alertas.push({
       nivel: diasIVA <= 7 ? "urgente" : "aviso",
-      icono: diasIVA <= 7 ? "🚨" : "⏰",
+      icono: diasIVA <= 7 ? svgIconos.urgente : svgIconos.reloj,
       titulo: `Modelo 303 — IVA ${trim} vence en ${diasIVA} días`,
       desc: `Resultado estimado: ${ivaRes >= 0 ? fmt(ivaRes) + " a ingresar" : fmt(Math.abs(ivaRes)) + " a compensar"}. Plazo: ${new Date(p.iva).toLocaleDateString("es-ES",{day:"numeric",month:"long"})}.`,
       acciones: [
@@ -136,7 +148,7 @@ function buildAlertas({ year, trim, hoy, ivaRes, irpfRes, vencidasReal, recVenc,
   if (diasIRPF >= 0 && diasIRPF <= 30) {
     alertas.push({
       nivel: diasIRPF <= 7 ? "urgente" : "aviso",
-      icono: diasIRPF <= 7 ? "🚨" : "⏰",
+      icono: diasIRPF <= 7 ? svgIconos.urgente : svgIconos.reloj,
       titulo: `Modelo 130 — IRPF ${trim} vence en ${diasIRPF} días`,
       desc: `Resultado estimado: ${fmt(irpfRes)} a ingresar. Plazo: ${new Date(p.irpf).toLocaleDateString("es-ES",{day:"numeric",month:"long"})}.`,
       acciones: [{ label: "Ver IRPF 130", vista: "irpf" }]
@@ -148,7 +160,7 @@ function buildAlertas({ year, trim, hoy, ivaRes, irpfRes, vencidasReal, recVenc,
     const totalVenc = vencidasReal.reduce((a,f)=>a+f.base+f.base*(f.iva||0)/100, 0);
     alertas.push({
       nivel: vencidasReal.length >= 3 ? "urgente" : "aviso",
-      icono: "⚠️",
+      icono: svgIconos.aviso,
       titulo: `${vencidasReal.length} factura${vencidasReal.length>1?"s":""} vencida${vencidasReal.length>1?"s":""}`,
       desc: `Total pendiente de cobro vencido: ${fmt(totalVenc)}. Las facturas con más de 30 días sin cobrar pueden provisionar como gasto de difícil cobro.`,
       acciones: [{ label: "Ver cobros", vista: "cobros" }]
@@ -160,7 +172,7 @@ function buildAlertas({ year, trim, hoy, ivaRes, irpfRes, vencidasReal, recVenc,
     const totalRec = recVenc.reduce((a,g)=>a+g.importe, 0);
     alertas.push({
       nivel: "aviso",
-      icono: "🔁",
+      icono: svgIconos.recurr,
       titulo: `${recVenc.length} gasto${recVenc.length>1?"s":""} recurrente${recVenc.length>1?"s":""} pendiente${recVenc.length>1?"s":""}`,
       desc: `Total: ${fmt(totalRec)}. Incluye: ${recVenc.slice(0,3).map(g=>g.nombre).join(", ")}${recVenc.length>3?"…":""}.`,
       acciones: [{ label: "Ver gastos recurrentes", vista: "gastos" }]
@@ -172,7 +184,7 @@ function buildAlertas({ year, trim, hoy, ivaRes, irpfRes, vencidasReal, recVenc,
   if (!facturasTrim.length) {
     alertas.push({
       nivel: "info",
-      icono: "💡",
+      icono: svgIconos.info,
       titulo: "Sin facturas en este periodo",
       desc: "Si no tienes actividad en este trimestre, el Modelo 303 y 130 se presentan igualmente con resultado cero (modelo negativo). No presentar puede implicar sanción de 200€.",
       acciones: []
@@ -185,7 +197,7 @@ function buildAlertas({ year, trim, hoy, ivaRes, irpfRes, vencidasReal, recVenc,
     const reserva = ingTotal * 0.30;
     alertas.push({
       nivel: "info",
-      icono: "💰",
+      icono: svgIconos.dinero,
       titulo: `Reserva fiscal recomendada: ${fmt(reserva)}`,
       desc: `Con ${fmt(ingTotal)} facturados este periodo, deberías tener ${fmt(reserva)} (30%) reservados para IVA e IRPF. Esta es una estimación orientativa.`,
       acciones: []
@@ -207,7 +219,10 @@ function renderAlertasActivas(alertas) {
   if (!alertas.length) {
     wrap.innerHTML = `
       <div style="text-align:center;padding:40px 20px">
-        <div style="font-size:48px;margin-bottom:12px">✅</div>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 12px;display:block">
+          <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
         <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:6px">Todo al día</div>
         <div style="font-size:13px;color:var(--t3)">No hay alertas fiscales urgentes en este momento.</div>
       </div>`;
@@ -268,7 +283,7 @@ function renderCalendarioFiscal(year, hoy) {
       <div style="margin-bottom:16px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
           <div style="font-size:13px;font-weight:800;color:${hayUrgente?"#dc2626":"var(--t1)"}">${mNom[parseInt(m)]} ${y}</div>
-          ${hayUrgente?`<span class="badge" style="background:#fee2e2;color:#dc2626;font-size:10px">⚡ Próximo</span>`:""}
+          ${hayUrgente?`<span class="badge" style="background:#fee2e2;color:#dc2626;font-size:10px">Próximo</span>`:""}
           <div style="flex:1;height:1px;background:var(--brd)"></div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px">
@@ -288,8 +303,8 @@ function renderCalendarioFiscal(year, hoy) {
                   <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
                     <span style="background:${color}22;color:${color};font-size:10px;font-weight:700;padding:1px 7px;border-radius:6px">Mod. ${e.modelo}</span>
                     <span style="background:var(--bg2);color:var(--t3);font-size:10px;padding:1px 6px;border-radius:6px">${tipoLabel[e.tipo]||e.tipo}</span>
-                    ${urgente?`<span style="background:#fee2e2;color:#dc2626;font-size:10px;font-weight:700;padding:1px 6px;border-radius:6px">⚡ URGENTE</span>`:""}
-                    ${pasado?`<span style="background:#f3f4f6;color:#6b7280;font-size:10px;padding:1px 6px;border-radius:6px">✓ Periodo pasado</span>`:""}
+                    ${urgente?`<span style="background:#fee2e2;color:#dc2626;font-size:10px;font-weight:700;padding:1px 6px;border-radius:6px">URGENTE</span>`:""}
+                    ${pasado?`<span style="background:#f3f4f6;color:#6b7280;font-size:10px;padding:1px 6px;border-radius:6px">Periodo pasado</span>`:""}
                   </div>
                   <div style="font-size:12px;color:var(--t2)">${e.desc}</div>
                 </div>
