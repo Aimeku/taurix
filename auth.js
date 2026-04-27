@@ -1,4 +1,5 @@
 import { supabase } from "./supabase.js";
+import { renderPlanTab, initPlanTab } from "./stripe-suscripcion.js";
 
 /* ══════════════════════════════════════════════════════════
    ENDPOINT — Supabase Edge Function
@@ -719,7 +720,14 @@ export function showAjustesModal() {
         style="flex:1;padding:12px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:700;color:var(--t3);cursor:pointer;transition:all .15s;font-family:var(--font)">
         🗑️ Eliminar cuenta
       </button>
+      <button class="aj-tab" id="ajTabPlan" data-tab="plan"
+        style="flex:1;padding:12px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:700;color:var(--t3);cursor:pointer;transition:all .15s;font-family:var(--font)">
+        Plan
+      </button>
     </div>
+
+    <!-- Panel Plan (oculto inicialmente) -->
+    <div id="ajPanelPlan" style="display:none"></div>
 
     <!-- Panel Email -->
     <div id="ajPanelEmail" style="padding:24px 28px 28px">
@@ -847,6 +855,17 @@ export function showAjustesModal() {
       document.getElementById("ajPanelEmail").style.display = target === "email" ? "" : "none";
       document.getElementById("ajPanelPw").style.display    = target === "pw"    ? "" : "none";
       document.getElementById("ajPanelDel").style.display   = target === "del"   ? "" : "none";
+      document.getElementById("ajPanelPlan").style.display  = target === "plan"  ? "" : "none";
+      // Inicializar el tab de plan al abrirlo
+      if (target === "plan") {
+        const planPanel = document.getElementById("ajPanelPlan");
+        if (planPanel && !planPanel.dataset.initialized) {
+          planPanel.dataset.initialized = "1";
+          const subData = window.__TAURIX_SUB_DATA__ || null;
+          planPanel.innerHTML = renderPlanTab(subData);
+          initPlanTab(subData);
+        }
+      }
     });
   });
 
