@@ -745,6 +745,8 @@ async function saveFactura() {
   if (tipoCliente==="empresa"&&!clienteDir&&!clienteSeleccionadoId)
                                                       { toast("La dirección fiscal es obligatoria para empresas","error"); return; }
 
+  if ((document.getElementById("nfPlantillaSel")?.value || "none") === "none") { toast("Debes seleccionar una plantilla antes de guardar. Crea una desde Ajustes → Plantillas.","error"); return; }
+
   const fobj = new Date(fecha);
   const year = fobj.getFullYear();
   const trim = "T"+(Math.floor(fobj.getMonth()/3)+1);
