@@ -462,7 +462,7 @@ async function savePresupuesto() {
   const titularCuenta    = document.getElementById("npTitularCuenta")?.value.trim() || null;
   if (!concepto || !fecha) { toast("Concepto y fecha son obligatorios", "error"); return; }
   if (!LINEAS.length || LINEAS.every(l => !l.precio || l.precio <= 0)) { toast("Añade al menos una línea con precio", "error"); return; }
-  if ((document.getElementById("npPlantillaSel")?.value || "none") === "none") { toast("Debes seleccionar una plantilla antes de guardar. Crea una desde Ajustes → Plantillas.", "error"); return; }
+  if ((document.getElementById("npPlantillaSel")?.value || "none") === "none") { toast("Debes seleccionar una plantilla antes de guardar. Crea una desde la sección Plantillas.", "error"); return; }
 
   const { baseTotal, ivaMap } = getLineasTotales();
   const ivaEntry = Object.entries(ivaMap).sort(([, a], [, b]) => b - a)[0];
