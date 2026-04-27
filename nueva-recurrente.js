@@ -368,7 +368,7 @@ async function _save() {
   const proxima  = document.getElementById("nrProxima")?.value;
   if (!concepto || !proxima) { toast("Concepto y fecha de primera generación son obligatorios", "error"); return; }
   if (!LINEAS.length || LINEAS.every(l => !l.precio || l.precio <= 0)) { toast("Añade al menos una línea con precio", "error"); return; }
-  if ((document.getElementById("nrPlantillaSel")?.value || "none") === "none") { toast("Debes seleccionar una plantilla antes de guardar. Crea una desde Ajustes → Plantillas.", "error"); return; }
+  if ((document.getElementById("nrPlantillaSel")?.value || "none") === "none") { toast("Debes seleccionar una plantilla antes de guardar. Crea una desde la sección Plantillas.", "error"); return; }
 
   const btn = document.getElementById("nrGuardarBtn");
   if (btn) { btn.disabled=true; btn.innerHTML=`<span class="spin"></span> Guardando…`; }
