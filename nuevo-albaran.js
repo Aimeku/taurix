@@ -527,6 +527,7 @@ async function _save() {
     toast('Añade al menos una línea con precio', 'error');
     return;
   }
+  if ((document.getElementById('naPlantillaSel')?.value || 'none') === 'none') { toast('Debes seleccionar una plantilla antes de guardar. Crea una desde Ajustes → Plantillas.', 'error'); return; }
 
   const btn = document.getElementById('naGuardarBtn');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Guardando...'; }
