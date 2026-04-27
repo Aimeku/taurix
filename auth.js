@@ -710,15 +710,15 @@ export function showAjustesModal() {
     <div style="display:flex;gap:0;border-top:1px solid var(--brd);border-bottom:1px solid var(--brd)">
       <button class="aj-tab aj-tab--active" id="ajTabEmail" data-tab="email"
         style="flex:1;padding:12px;background:none;border:none;border-bottom:2px solid var(--ox);font-size:13px;font-weight:700;color:var(--ox);cursor:pointer;transition:all .15s;font-family:var(--font)">
-        ✉️ Cambiar email
+        Cambiar email
       </button>
       <button class="aj-tab" id="ajTabPw" data-tab="pw"
         style="flex:1;padding:12px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:700;color:var(--t3);cursor:pointer;transition:all .15s;font-family:var(--font)">
-        🔑 Cambiar contraseña
+        Cambiar contraseña
       </button>
       <button class="aj-tab" id="ajTabDel" data-tab="del"
         style="flex:1;padding:12px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:700;color:var(--t3);cursor:pointer;transition:all .15s;font-family:var(--font)">
-        🗑️ Eliminar cuenta
+        Eliminar cuenta
       </button>
       <button class="aj-tab" id="ajTabPlan" data-tab="plan"
         style="flex:1;padding:12px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:700;color:var(--t3);cursor:pointer;transition:all .15s;font-family:var(--font)">
