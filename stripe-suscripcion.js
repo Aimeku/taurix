@@ -208,8 +208,8 @@ export function showPlanSelector(subData = null) {
   // ── Cargar precios desde Stripe (si los tienes publicados en metadata) ──
   // Por ahora se muestran "—" hasta que los configures en Stripe Products.
   // Si quieres mostrar precios fijos, cámbialos aquí:
-  // document.getElementById("planPrecioAutonomo").textContent = "9,90€";
-  // document.getElementById("planPrecioSociedad").textContent = "19,90€";
+  document.getElementById("planPrecioAutonomo").textContent = "19€";
+  document.getElementById("planPrecioSociedad").textContent = "29€";
 
   // ── Eventos de los botones ────────────────────────────────────
   overlay.querySelectorAll(".plan-select-btn").forEach(btn => {
