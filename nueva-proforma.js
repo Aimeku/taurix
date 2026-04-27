@@ -406,7 +406,7 @@ async function _save(){
   const fecha=document.getElementById("npfFecha")?.value;
   if(!concepto||!fecha){toast("Concepto y fecha son obligatorios","error");return;}
   if(!LINEAS.length||LINEAS.every(l=>!l.precio||l.precio<=0)){toast("Añade al menos una línea con precio","error");return;}
-  if((document.getElementById("npfPlantillaSel")?.value||"none")==="none"){toast("Debes seleccionar una plantilla antes de guardar. Crea una desde Ajustes → Plantillas.","error");return;}
+  if((document.getElementById("npfPlantillaSel")?.value||"none")==="none"){toast("Debes seleccionar una plantilla antes de guardar. Crea una desde la sección Plantillas.","error");return;}
 
   const btn=document.getElementById("npfGuardarBtn");
   if(btn){btn.disabled=true;btn.innerHTML=`<span class="spin"></span> Guardando...`;}
