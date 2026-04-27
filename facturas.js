@@ -642,11 +642,10 @@ export async function showSerieConfigModal() {
     const ini   = cfg?.numero_inicial || 1;
     const ult   = cfg?.ultimo_numero  || 0;
     const prv   = previewNumero(fmt, ini);
-    const emoji = { factura:'🧾', presupuesto:'📋', albaran:'📦', proforma:'📄' }[tipo] || '📄';
+    const emoji = { factura:'', presupuesto:'', albaran:'', proforma:'' }[tipo] || '📄';
     return `
     <div class="sn-tipo-block" id="sntb_${tipo}" style="border:1.5px solid var(--brd);border-radius:12px;padding:16px;margin-bottom:12px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-        <span style="font-size:16px">${emoji}</span>
         <span style="font-size:14px;font-weight:700;color:var(--t1)">${def.label || tipo}</span>
         ${cfg?._sinGuardar ? '<span style="font-size:10px;padding:2px 7px;border-radius:5px;background:var(--amber-lt);color:var(--amber);font-weight:700">Sin configurar</span>' : ''}
       </div>
@@ -688,7 +687,7 @@ export async function showSerieConfigModal() {
   openModal(`
     <div class="modal" style="max-width:640px">
       <div class="modal-hd">
-        <span class="modal-title">🔢 Numeración de documentos</span>
+        <span class="modal-title">Numeración de documentos</span>
         <button class="modal-x" onclick="window._cm()">×</button>
       </div>
       <div class="modal-bd" style="max-height:70vh;overflow-y:auto">
@@ -703,7 +702,7 @@ export async function showSerieConfigModal() {
         </p>
         ${Object.entries(configs).map(([tipo, cfg]) => renderTipo(tipo, cfg)).join('')}
         <p style="font-size:11px;color:var(--t4);margin-top:4px;line-height:1.5">
-          ⚠️ El número inicial no puede ser inferior al último ya emitido. Los cambios aplican al siguiente documento creado.
+          El número inicial no puede ser inferior al último ya emitido. Los cambios aplican al siguiente documento creado.
         </p>
       </div>
       <div class="modal-ft">
@@ -747,8 +746,8 @@ export async function showSerieConfigModal() {
     if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
     try {
       await updateCounter(tipo, { numero_inicial, formato });
-      toast(`${TIPO_CONFIG[tipo]?.label || tipo}: numeración guardada ✅`, 'success');
-      if (btn) { btn.disabled = false; btn.textContent = `Guardado ✅`; btn.style.background = 'var(--green)'; }
+      toast(`${TIPO_CONFIG[tipo]?.label || tipo}: numeración guardada`, 'success');
+      if (btn) { btn.disabled = false; btn.textContent = `Guardado`; btn.style.background = 'var(--green)'; }
     } catch (e) {
       toast('Error: ' + e.message, 'error');
       if (btn) { btn.disabled = false; btn.textContent = `Guardar ${TIPO_CONFIG[tipo]?.label || tipo}`; }
