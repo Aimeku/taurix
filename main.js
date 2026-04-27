@@ -6,6 +6,7 @@
    ═══════════════════════════════════════════════════════ */
 
 import { login, logout, getSession, handleRememberSession, showAuthModal, showResetPasswordModal, showAjustesModal, checkPendingDeletion, _showPendingDeletionBanner } from "./auth.js";
+import { checkSubscription, showPlanSelector } from "./stripe-suscripcion.js";
 import { supabase } from "./supabase.js";
 
 import {
@@ -463,6 +464,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
+  /* ── Checkout de Stripe: vuelta desde Stripe ── */
+  const _checkoutParam = new URLSearchParams(window.location.search).get("checkout");
+  if (_checkoutParam) {
+    window.history.replaceState({}, document.title, window.location.pathname);
+    if (_checkoutParam === "cancel") {
+      // Se limpia la URL y se muestra la landing normalmente
+    }
+    // "success" se maneja abajo con un toast, después de cargar la sesión
+  }
+
   /* ── Sesión ── */
   // Si ya se activó el recovery flow, no continuar con la app
   if (_isRecoveryFlow) return;
@@ -555,6 +566,31 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Si está en periodo de gracia: muestra el banner y continúa.
   const _deletionExecuted = await checkPendingDeletion(session.user.id);
   if (_deletionExecuted) return; // cuenta eliminada — no continuar
+
+  /* ── Guard de suscripción ─────────────────────────────────────
+     Comprueba si el usuario tiene suscripción activa (o es admin).
+     Si no, oculta la app y muestra el selector de plan.
+  ─────────────────────────────────────────────────────────────── */
+  const { canAccess, subData } = await checkSubscription(session.user.id);
+
+  // Guardar globalmente para el tab "Plan" de Ajustes
+  window.__TAURIX_SUB_DATA__ = subData;
+
+  if (!canAccess) {
+    // Ocultar app y mostrar selector de plan
+    document.getElementById("appShell")?.classList.add("hidden");
+    document.getElementById("landingPage")?.classList.add("hidden");
+    showPlanSelector(subData);
+    return;
+  }
+
+  // Si viene de un checkout exitoso, mostrar toast de bienvenida
+  if (_checkoutParam === "success") {
+    setTimeout(() => {
+      const planLabel = subData?.plan === "sociedad" ? "Sociedad" : "Autónomo";
+      toast(`Suscripción activada — Plan ${planLabel}. Tienes 7 días de prueba gratuita.`, "success", 6000);
+    }, 800);
+  }
 
   // Guardar regime globalmente — modos.js lo lee para construir el sidebar correcto
   window.__TAURIX_REGIME__ = pf?.regime ?? "autonomo_ed";
