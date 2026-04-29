@@ -12,17 +12,22 @@ import { supabase } from "./supabase.js";
 import { toast }    from "./utils.js";
 
 const PROJECT_ID   = "biiyzjzdvuahajndltap";
-const ANON_KEY     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpaXl6anpkdnVhaGFqbmRsdGFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4NjI5MzEsImV4cCI6MjA4NTQzODkzMX0.sm_0aKM08sduk3E0elmMaLRCuqlxgWulTp7Kx3WHc_4";
+const ANON_KEY     = "sb_publishable_0N1Nv7SkjpynYh10lieang_uUoHRHOf";
 const EDGE_BASE    = `https://${PROJECT_ID}.supabase.co/functions/v1`;
 
 /* ── Estados válidos para acceder a la app ── */
 const VALID_STATUSES = ["trialing", "active", "past_due"];
 
+/* ── Quita el appCover (pantalla de carga inicial) ── */
+export function removeAppCover() {
+  const cover = document.getElementById("appCover");
+  if (!cover) return;
+  cover.style.opacity = "0";
+  setTimeout(() => cover.remove(), 280);
+}
+
 /* ─────────────────────────────────────────────────────────────────
    checkSubscription
-   Carga los datos de suscripción del usuario y decide si puede
-   entrar a la app.
-   Devuelve: { canAccess: boolean, subData: object | null }
 ───────────────────────────────────────────────────────────────── */
 export async function checkSubscription(userId) {
   const { data: sub, error } = await supabase
@@ -33,10 +38,8 @@ export async function checkSubscription(userId) {
 
   if (error) console.warn("[stripe-suscripcion] Error cargando sub:", error.message);
 
-  // Admin siempre entra
   if (sub?.is_admin) return { canAccess: true, subData: sub };
 
-  // Sin registro o sin status válido → paywall
   if (!sub || !VALID_STATUSES.includes(sub.status)) {
     return { canAccess: false, subData: sub };
   }
@@ -46,12 +49,9 @@ export async function checkSubscription(userId) {
 
 /* ─────────────────────────────────────────────────────────────────
    showPlanSelector
-   Muestra el overlay de selección de plan (Autónomo / Sociedad).
-   Se llama cuando el usuario no tiene suscripción activa.
-   onSelect(plan) se ejecuta después de redirigir a Stripe.
 ───────────────────────────────────────────────────────────────── */
 export function showPlanSelector(subData = null) {
-  // Eliminar overlay previo si existe
+  removeAppCover();
   document.getElementById("planSelectorOverlay")?.remove();
 
   const esCancelado = subData?.status === "canceled";
@@ -61,170 +61,190 @@ export function showPlanSelector(subData = null) {
   overlay.id = "planSelectorOverlay";
   overlay.style.cssText = `
     position:fixed;inset:0;z-index:99999;
-    background:var(--bg1,#f2f3f7);
+    background:#f2f3f7;
     display:flex;flex-direction:column;align-items:center;
-    justify-content:flex-start;padding:40px 16px 32px;
+    justify-content:flex-start;padding:48px 16px 48px;
     overflow-y:auto;font-family:var(--font,system-ui,sans-serif);
+    opacity:0;transition:opacity .3s ease;
   `;
 
   overlay.innerHTML = `
-    <!-- Logo -->
-    <img src="Logo_Sin_Texto_transparent.png"
-      style="width:52px;height:52px;border-radius:14px;margin-bottom:24px" alt="Taurix"/>
+    <style>
+      @keyframes ps-spin { to { transform:rotate(360deg); } }
+      @keyframes ps-fadeup { from { opacity:0;transform:translateY(18px); } to { opacity:1;transform:translateY(0); } }
 
-    <!-- Título -->
-    ${esCancelado ? `
-      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:12px 20px;margin-bottom:24px;text-align:center">
-        <p style="font-size:13px;font-weight:700;color:#991b1b;margin:0 0 4px">Tu suscripción está cancelada</p>
-        <p style="font-size:12.5px;color:#7f1d1d;margin:0">Elige un plan para volver a tener acceso</p>
-      </div>
-    ` : esPastDue ? `
-      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px 20px;margin-bottom:24px;text-align:center">
-        <p style="font-size:13px;font-weight:700;color:#92400e;margin:0 0 4px">Hay un problema con tu pago</p>
-        <p style="font-size:12.5px;color:#78350f;margin:0">Actualiza tu método de pago para continuar</p>
-      </div>
-    ` : `
-      <h1 style="font-size:22px;font-weight:800;color:var(--t1,#0d0f16);margin:0 0 8px;text-align:center">
-        Elige tu plan
-      </h1>
-      <p style="font-size:14px;color:var(--t3,#6b7280);margin:0 0 32px;text-align:center;max-width:360px;line-height:1.5">
-        7 días de prueba gratuita. Sin cargo hasta que termine el periodo de prueba.
-        Cancela cuando quieras.
-      </p>
-    `}
+      .ps-card {
+        flex:1;min-width:260px;max-width:310px;
+        border-radius:20px;padding:32px 28px;
+        background:#fff;
+        border:2px solid #e5e7eb;
+        box-shadow:0 2px 12px rgba(0,0,0,.06);
+        transition:border-color .2s,box-shadow .2s,transform .2s;
+        position:relative;cursor:pointer;
+        animation:ps-fadeup .4s ease both;
+      }
+      .ps-card:hover {
+        border-color:#f97316;
+        box-shadow:0 8px 32px rgba(249,115,22,.14);
+        transform:translateY(-3px);
+      }
+      .ps-card--featured {
+        border-color:#f97316;
+        box-shadow:0 8px 32px rgba(249,115,22,.18);
+      }
+      .ps-btn {
+        width:100%;padding:13px;
+        background:linear-gradient(135deg,#f97316,#fb923c);
+        color:#fff;border:none;border-radius:12px;
+        font-size:14px;font-weight:700;cursor:pointer;
+        font-family:inherit;transition:opacity .15s,transform .15s;
+        letter-spacing:.01em;
+      }
+      .ps-btn:hover { opacity:.92;transform:translateY(-1px); }
+      .ps-btn:active { transform:translateY(0); }
+      .ps-check {
+        display:flex;align-items:flex-start;gap:10px;
+        font-size:13px;color:#374151;margin-bottom:10px;line-height:1.45;
+      }
+      .ps-check-icon {
+        width:18px;height:18px;border-radius:50%;
+        background:linear-gradient(135deg,#f97316,#fb923c);
+        color:#fff;font-size:10px;font-weight:800;
+        display:flex;align-items:center;justify-content:center;
+        flex-shrink:0;margin-top:1px;
+      }
+      .ps-badge-popular {
+        position:absolute;top:-13px;left:50%;transform:translateX(-50%);
+        background:linear-gradient(135deg,#f97316,#fb923c);
+        color:#fff;font-size:11px;font-weight:700;
+        padding:4px 14px;border-radius:20px;white-space:nowrap;
+        box-shadow:0 2px 8px rgba(249,115,22,.35);letter-spacing:.03em;
+      }
+      .ps-divider {
+        height:1px;background:#f3f4f6;margin:18px 0;
+      }
+    </style>
 
-    <!-- Tarjetas de planes -->
-    <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;width:100%;max-width:640px;margin-bottom:32px">
+    <!-- Logo + título -->
+    <div style="text-align:center;margin-bottom:36px;animation:ps-fadeup .35s ease both">
+      <img src="Logo_Sin_Texto_transparent.png"
+        style="width:60px;height:60px;border-radius:16px;margin-bottom:20px;
+               box-shadow:0 4px 16px rgba(249,115,22,.2)" alt="Taurix"/>
+
+      ${esCancelado ? `
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:14px 22px;max-width:360px;margin:0 auto">
+          <p style="font-size:14px;font-weight:700;color:#991b1b;margin:0 0 4px">Tu suscripción está cancelada</p>
+          <p style="font-size:13px;color:#b91c1c;margin:0">Elige un plan para volver a tener acceso</p>
+        </div>
+      ` : esPastDue ? `
+        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:14px 22px;max-width:360px;margin:0 auto">
+          <p style="font-size:14px;font-weight:700;color:#92400e;margin:0 0 4px">Hay un problema con tu pago</p>
+          <p style="font-size:13px;color:#78350f;margin:0">Actualiza tu método de pago para continuar</p>
+        </div>
+      ` : `
+        <h1 style="font-size:26px;font-weight:800;color:#0d0f16;margin:0 0 10px;letter-spacing:-.02em">
+          Elige tu plan
+        </h1>
+        <p style="font-size:14px;color:#6b7280;margin:0;line-height:1.6;max-width:340px">
+          7 días de prueba gratuita · Sin permanencia · Cancela cuando quieras
+        </p>
+      `}
+    </div>
+
+    <!-- Tarjetas -->
+    <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;width:100%;max-width:680px;margin-bottom:32px">
 
       <!-- Plan Autónomo -->
-      <div class="plan-card" id="planCardAutonomo" data-plan="autonomo"
-        style="flex:1;min-width:240px;max-width:290px;border:2px solid var(--brd,#e5e7eb);
-               border-radius:16px;padding:28px 24px;cursor:pointer;background:var(--srf,#fff);
-               transition:border-color .15s,box-shadow .15s;position:relative">
-        <div style="font-size:13px;font-weight:700;color:var(--ox,#f97316);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">
+      <div class="ps-card" id="psCardAutonomo" data-plan="autonomo" style="animation-delay:.05s">
+        <div style="font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">
           Autónomo
         </div>
-        <div style="font-size:28px;font-weight:800;color:var(--t1,#0d0f16);margin-bottom:4px" id="planPrecioAutonomo">
-          —
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px">
+          <span style="font-size:36px;font-weight:800;color:#0d0f16;letter-spacing:-.02em">19€</span>
+          <span style="font-size:13px;color:#9ca3af;font-weight:500">/mes + IVA</span>
         </div>
-        <div style="font-size:12px;color:var(--t3,#6b7280);margin-bottom:20px">por mes + IVA</div>
-        <ul style="list-style:none;padding:0;margin:0 0 24px;display:flex;flex-direction:column;gap:10px">
-          <li style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--t2,#374151)">
-            <span style="color:var(--ox,#f97316);font-weight:700;flex-shrink:0">✓</span>
-            Facturas, presupuestos y albaranes
-          </li>
-          <li style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--t2,#374151)">
-            <span style="color:var(--ox,#f97316);font-weight:700;flex-shrink:0">✓</span>
-            Modelos 130, 303 y 390
-          </li>
-          <li style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--t2,#374151)">
-            <span style="color:var(--ox,#f97316);font-weight:700;flex-shrink:0">✓</span>
-            IRPF y gastos deducibles
-          </li>
-          <li style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--t2,#374151)">
-            <span style="color:var(--ox,#f97316);font-weight:700;flex-shrink:0">✓</span>
-            Régimen de autónomos
-          </li>
-        </ul>
-        <button class="plan-select-btn" data-plan="autonomo"
-          style="width:100%;padding:12px;background:var(--ox,#f97316);color:#fff;
-                 border:none;border-radius:10px;font-size:14px;font-weight:700;
-                 cursor:pointer;font-family:inherit;transition:opacity .15s">
-          Empezar 7 días gratis
-        </button>
+        <p style="font-size:12.5px;color:#6b7280;margin:0 0 20px;line-height:1.5">
+          Para freelances y trabajadores por cuenta propia
+        </p>
+        <div class="ps-divider"></div>
+        <div style="margin-bottom:22px">
+          <div class="ps-check"><span class="ps-check-icon">✓</span><span>Facturas, presupuestos y albaranes</span></div>
+          <div class="ps-check"><span class="ps-check-icon">✓</span><span>Modelos 130, 303 y 390</span></div>
+          <div class="ps-check"><span class="ps-check-icon">✓</span><span>IRPF y gastos deducibles</span></div>
+          <div class="ps-check"><span class="ps-check-icon">✓</span><span>Régimen de autónomos</span></div>
+          <div class="ps-check"><span class="ps-check-icon">✓</span><span>Gestor IA 24h</span></div>
+        </div>
+        <button class="ps-btn" data-plan="autonomo">Empezar 7 días gratis</button>
       </div>
 
       <!-- Plan Sociedad -->
-      <div class="plan-card" id="planCardSociedad" data-plan="sociedad"
-        style="flex:1;min-width:240px;max-width:290px;border:2px solid var(--brd,#e5e7eb);
-               border-radius:16px;padding:28px 24px;cursor:pointer;background:var(--srf,#fff);
-               transition:border-color .15s,box-shadow .15s;position:relative">
-        <div style="font-size:13px;font-weight:700;color:var(--ox,#f97316);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">
+      <div class="ps-card ps-card--featured" id="psCardSociedad" data-plan="sociedad" style="animation-delay:.12s">
+        <div class="ps-badge-popular">⭐ Más popular</div>
+        <div style="font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">
           Sociedad
         </div>
-        <div style="font-size:28px;font-weight:800;color:var(--t1,#0d0f16);margin-bottom:4px" id="planPrecioSociedad">
-          —
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px">
+          <span style="font-size:36px;font-weight:800;color:#0d0f16;letter-spacing:-.02em">29€</span>
+          <span style="font-size:13px;color:#9ca3af;font-weight:500">/mes + IVA</span>
         </div>
-        <div style="font-size:12px;color:var(--t3,#6b7280);margin-bottom:20px">por mes + IVA</div>
-        <ul style="list-style:none;padding:0;margin:0 0 24px;display:flex;flex-direction:column;gap:10px">
-          <li style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--t2,#374151)">
-            <span style="color:var(--ox,#f97316);font-weight:700;flex-shrink:0">✓</span>
-            Todo lo del plan Autónomo
-          </li>
-          <li style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--t2,#374151)">
-            <span style="color:var(--ox,#f97316);font-weight:700;flex-shrink:0">✓</span>
-            Contabilidad y libro diario
-          </li>
-          <li style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--t2,#374151)">
-            <span style="color:var(--ox,#f97316);font-weight:700;flex-shrink:0">✓</span>
-            Impuesto de Sociedades
-          </li>
-          <li style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--t2,#374151)">
-            <span style="color:var(--ox,#f97316);font-weight:700;flex-shrink:0">✓</span>
-            SL, SA y otras formas jurídicas
-          </li>
-        </ul>
-        <button class="plan-select-btn" data-plan="sociedad"
-          style="width:100%;padding:12px;background:var(--ox,#f97316);color:#fff;
-                 border:none;border-radius:10px;font-size:14px;font-weight:700;
-                 cursor:pointer;font-family:inherit;transition:opacity .15s">
-          Empezar 7 días gratis
-        </button>
+        <p style="font-size:12.5px;color:#6b7280;margin:0 0 20px;line-height:1.5">
+          Para SL, SA y pymes con trabajadores
+        </p>
+        <div class="ps-divider"></div>
+        <div style="margin-bottom:22px">
+          <div class="ps-check"><span class="ps-check-icon">✓</span><span>Todo lo del plan Autónomo</span></div>
+          <div class="ps-check"><span class="ps-check-icon">✓</span><span>Contabilidad y libro diario</span></div>
+          <div class="ps-check"><span class="ps-check-icon">✓</span><span>Impuesto de Sociedades</span></div>
+          <div class="ps-check"><span class="ps-check-icon">✓</span><span>SL, SA y otras formas jurídicas</span></div>
+          <div class="ps-check"><span class="ps-check-icon">✓</span><span>Múltiples sedes</span></div>
+        </div>
+        <button class="ps-btn" data-plan="sociedad">Empezar 7 días gratis</button>
       </div>
 
     </div>
 
     <!-- Nota legal -->
-    <p style="font-size:11px;color:var(--t4,#9ca3af);text-align:center;max-width:400px;line-height:1.6;margin:0">
-      Al continuar aceptas los <a href="#" onclick="document.getElementById('openTerminos')?.click();return false"
-      style="color:var(--ox,#f97316);text-decoration:none">Términos de servicio</a>.
-      No se realizará ningún cargo hasta el día 8. Cancela en cualquier momento desde Ajustes.
+    <p style="font-size:11.5px;color:#9ca3af;text-align:center;max-width:400px;line-height:1.7;margin:0;animation:ps-fadeup .4s ease .2s both">
+      Al continuar aceptas los
+      <a href="#" onclick="document.getElementById('openTerminos')?.click();return false"
+        style="color:#f97316;text-decoration:none;font-weight:600">Términos de servicio</a>.
+      No se realizará ningún cargo hasta el día 8.
+      Cancela en cualquier momento desde Ajustes.
     </p>
 
-    <!-- Spinner de carga (oculto) -->
-    <div id="planSelectorSpinner" style="display:none;margin-top:24px;text-align:center">
-      <div style="width:32px;height:32px;border:3px solid var(--brd);border-top-color:var(--ox,#f97316);
-                  border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
-      <p style="font-size:13px;color:var(--t3)">Redirigiendo a la pasarela de pago…</p>
+    <!-- Spinner -->
+    <div id="planSelectorSpinner" style="display:none;margin-top:28px;text-align:center">
+      <div style="width:34px;height:34px;border:3px solid #e5e7eb;border-top-color:#f97316;
+                  border-radius:50%;animation:ps-spin .7s linear infinite;margin:0 auto 12px"></div>
+      <p style="font-size:13px;color:#6b7280;margin:0">Redirigiendo a la pasarela de pago…</p>
     </div>
 
     <!-- Error -->
     <div id="planSelectorError" style="display:none;margin-top:16px;background:#fef2f2;
-      border:1px solid #fecaca;border-radius:10px;padding:10px 16px;font-size:13px;color:#991b1b;text-align:center;max-width:400px">
+      border:1px solid #fecaca;border-radius:12px;padding:12px 18px;
+      font-size:13px;color:#991b1b;text-align:center;max-width:420px">
     </div>
-
-    <style>
-      @keyframes spin { to { transform: rotate(360deg); } }
-      .plan-card:hover {
-        border-color: var(--ox, #f97316) !important;
-        box-shadow: 0 4px 20px rgba(249,115,22,.12);
-      }
-      .plan-select-btn:hover { opacity: .88; }
-    </style>
   `;
 
   document.body.appendChild(overlay);
 
-  // ── Cargar precios desde Stripe (si los tienes publicados en metadata) ──
-  // Por ahora se muestran "—" hasta que los configures en Stripe Products.
-  // Si quieres mostrar precios fijos, cámbialos aquí:
-  document.getElementById("planPrecioAutonomo").textContent = "19€";
-  document.getElementById("planPrecioSociedad").textContent = "29€";
+  // Animación de entrada
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { overlay.style.opacity = "1"; });
+  });
 
-  // ── Eventos de los botones ────────────────────────────────────
-  overlay.querySelectorAll(".plan-select-btn").forEach(btn => {
+  // Eventos botones
+  overlay.querySelectorAll(".ps-btn").forEach(btn => {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      const plan = btn.dataset.plan;
-      await _iniciarCheckout(plan);
+      await _iniciarCheckout(btn.dataset.plan);
     });
   });
 
-  // Click en la tarjeta también activa
-  overlay.querySelectorAll(".plan-card").forEach(card => {
+  // Click en tarjeta
+  overlay.querySelectorAll(".ps-card").forEach(card => {
     card.addEventListener("click", async () => {
-      const plan = card.dataset.plan;
-      await _iniciarCheckout(plan);
+      await _iniciarCheckout(card.dataset.plan);
     });
   });
 }
@@ -233,7 +253,7 @@ export function showPlanSelector(subData = null) {
    _iniciarCheckout  (privado)
 ───────────────────────────────────────────────────────────────── */
 async function _iniciarCheckout(plan) {
-  const btns    = document.querySelectorAll(".plan-select-btn");
+  const btns    = document.querySelectorAll(".ps-btn");
   const spinner = document.getElementById("planSelectorSpinner");
   const errEl   = document.getElementById("planSelectorError");
 
@@ -242,8 +262,8 @@ async function _iniciarCheckout(plan) {
   if (errEl)   errEl.style.display   = "none";
 
   try {
-    const session  = await supabase.auth.getSession();
-    const token    = session.data.session?.access_token;
+    const session = await supabase.auth.getSession();
+    const token   = session.data.session?.access_token;
 
     const resp = await fetch(`${EDGE_BASE}/create-checkout-session`, {
       method:  "POST",
@@ -258,7 +278,6 @@ async function _iniciarCheckout(plan) {
     const data = await resp.json();
     if (!resp.ok || !data.url) throw new Error(data.error || "Error creando sesión de pago");
 
-    // Redirigir a Stripe Checkout
     window.location.href = data.url;
 
   } catch (err) {
@@ -274,7 +293,6 @@ async function _iniciarCheckout(plan) {
 
 /* ─────────────────────────────────────────────────────────────────
    abrirPortalStripe
-   Llama a la Edge Function y redirige al portal de cliente de Stripe.
 ───────────────────────────────────────────────────────────────── */
 export async function abrirPortalStripe() {
   try {
@@ -302,29 +320,23 @@ export async function abrirPortalStripe() {
 
 /* ─────────────────────────────────────────────────────────────────
    renderPlanTab
-   Devuelve el HTML del panel "Plan" en el modal de Ajustes.
-   subData: objeto de la tabla subscriptions (o null)
 ───────────────────────────────────────────────────────────────── */
 export function renderPlanTab(subData) {
   const status   = subData?.status  ?? "sin_plan";
   const plan     = subData?.plan    ?? null;
   const isAdmin  = subData?.is_admin ?? false;
 
-  // ── Etiqueta y color del estado ──
   const statusConfig = {
-    trialing:   { label: "Periodo de prueba",  color: "#0284c7", bg: "#e0f2fe" },
-    active:     { label: "Activo",             color: "#15803d", bg: "#dcfce7" },
-    past_due:   { label: "Pago pendiente",     color: "#b45309", bg: "#fef9c3" },
-    canceled:   { label: "Cancelado",          color: "#dc2626", bg: "#fee2e2" },
+    trialing:   { label: "Periodo de prueba",    color: "#0284c7", bg: "#e0f2fe" },
+    active:     { label: "Activo",               color: "#15803d", bg: "#dcfce7" },
+    past_due:   { label: "Pago pendiente",       color: "#b45309", bg: "#fef9c3" },
+    canceled:   { label: "Cancelado",            color: "#dc2626", bg: "#fee2e2" },
     incomplete: { label: "Pendiente de activar", color: "#6b7280", bg: "#f3f4f6" },
-    sin_plan:   { label: "Sin suscripción",    color: "#6b7280", bg: "#f3f4f6" },
+    sin_plan:   { label: "Sin suscripción",      color: "#6b7280", bg: "#f3f4f6" },
   };
   const sc = statusConfig[status] || statusConfig["sin_plan"];
-
-  // ── Nombre del plan ──
   const planLabel = plan === "sociedad" ? "Sociedad" : plan === "autonomo" ? "Autónomo" : "—";
 
-  // ── Fecha relevante ──
   let fechaInfo = "";
   if (status === "trialing" && subData?.trial_ends_at) {
     const trialEnd = new Date(subData.trial_ends_at);
@@ -359,8 +371,6 @@ export function renderPlanTab(subData) {
 
   return `
     <div style="padding:24px 28px 28px">
-
-      <!-- Estado actual -->
       <div style="background:var(--bg2,#f8f9fc);border:1px solid var(--brd);border-radius:12px;padding:16px 18px;margin-bottom:20px">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
           <div>
@@ -375,7 +385,6 @@ export function renderPlanTab(subData) {
         </div>
       </div>
 
-      <!-- Aviso past_due -->
       ${status === "past_due" ? `
         <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 14px;margin-bottom:16px">
           <p style="font-size:13px;font-weight:700;color:#92400e;margin:0 0 4px">Problema con el pago</p>
@@ -384,10 +393,9 @@ export function renderPlanTab(subData) {
           </p>
         </div>` : ""}
 
-      <!-- Botón gestionar suscripción -->
       ${(status === "trialing" || status === "active" || status === "past_due") ? `
         <button id="ajPlanPortalBtn"
-          style="width:100%;padding:12px;background:var(--ox,#f97316);color:#fff;
+          style="width:100%;padding:12px;background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;
                  border:none;border-radius:10px;font-size:14px;font-weight:700;
                  cursor:pointer;font-family:inherit;margin-bottom:10px;transition:opacity .15s">
           Gestionar suscripción
@@ -397,22 +405,19 @@ export function renderPlanTab(subData) {
         </p>
       ` : `
         <button id="ajPlanReactivarBtn"
-          style="width:100%;padding:12px;background:var(--ox,#f97316);color:#fff;
+          style="width:100%;padding:12px;background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;
                  border:none;border-radius:10px;font-size:14px;font-weight:700;
                  cursor:pointer;font-family:inherit;transition:opacity .15s">
           Activar suscripción
         </button>
       `}
-
     </div>`;
 }
 
 /* ─────────────────────────────────────────────────────────────────
    initPlanTab
-   Adjunta los listeners del tab de plan en el modal de Ajustes.
 ───────────────────────────────────────────────────────────────── */
 export function initPlanTab(subData) {
-  // Botón portal Stripe
   document.getElementById("ajPlanPortalBtn")?.addEventListener("click", async (e) => {
     const btn = e.currentTarget;
     btn.disabled = true;
@@ -422,7 +427,6 @@ export function initPlanTab(subData) {
     btn.textContent = "Gestionar suscripción";
   });
 
-  // Botón reactivar (usuario cancelado o sin plan)
   document.getElementById("ajPlanReactivarBtn")?.addEventListener("click", () => {
     document.getElementById("ajustesModal")?.remove();
     showPlanSelector(subData);
