@@ -93,7 +93,7 @@ table{border-collapse:collapse}
 .lp-precios{max-width:940px;margin:0 auto;padding:88px 32px;text-align:center}
 .lp-planes{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:700px;margin:0 auto}
 .lp-plan{background:var(--srf);border:1.5px solid var(--brd);border-radius:24px;padding:34px 30px;text-align:left;position:relative;transition:box-shadow .2s,transform .15s}
-.lp-plan:hover{box-shadow:var(--sh);transform:translateY(-2px)}
+.lp-plan:hover{box-shadow:var(--sh)}
 .lp-plan--pro{border-color:var(--ox);background:linear-gradient(155deg,#FFF7ED 0%,#FFFFFF 45%);box-shadow:0 4px 36px rgba(249,115,22,.14)}
 .lp-plan-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--ox) 0%,#FBBF24 100%);color:#fff;font-size:11px;font-weight:900;padding:4px 18px;border-radius:100px;letter-spacing:.3px;white-space:nowrap;box-shadow:var(--sh-ox)}
 .lp-plan-name{font-family:var(--font-hd);font-size:22px;font-weight:900;color:var(--t1);letter-spacing:-.04em;margin-bottom:10px}
@@ -112,7 +112,7 @@ table{border-collapse:collapse}
 .lp-plan-btn--outline{background:none;border:1.5px solid var(--brd);color:var(--t1)}
 .lp-plan-btn--outline:hover{background:var(--bg);border-color:var(--brd2)}
 .lp-plan-btn--pro{background:linear-gradient(135deg,var(--ox) 0%,#FB923C 100%);border:none;color:#fff;box-shadow:var(--sh-ox)}
-.lp-plan-btn--pro:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(249,115,22,.45)}
+.lp-plan-btn--pro:hover{box-shadow:0 8px 28px rgba(249,115,22,.45)}
 .lp-plan-note{font-size:11.5px;color:var(--t4);text-align:center;margin-top:12px}
 .lp-precios-nota{font-size:14px;color:var(--t3);margin-top:36px}
 .lp-precios-nota a{color:var(--ox);font-weight:700}
@@ -1407,7 +1407,6 @@ html.dark #onboardingModoOverlay {
   border: 2px solid #f97316 !important;
   background: linear-gradient(160deg, #fff7ed 0%, #ffffff 50%) !important;
   box-shadow: 0 8px 40px rgba(249,115,22,.18) !important;
-  transform: translateY(-8px);
   position: relative;
 }
 html.dark .lp-plan--featured {
@@ -1440,7 +1439,6 @@ html.dark .lp-plan--featured {
   font-family: var(--font);
 }
 .lp-plan-btn--pro:hover {
-  transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(249,115,22,.45);
 }
 
@@ -1963,7 +1961,6 @@ html.dark #facturasTable tbody tr:hover td {
   box-shadow: 0 4px 16px rgba(26,86,219,.32);
 }
 .lp-plan-btn--autonomo:hover {
-  transform: translateY(-2px);
   box-shadow: 0 8px 28px rgba(26,86,219,.45);
 }
 .lp-plan-promo {
