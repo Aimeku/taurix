@@ -129,10 +129,13 @@
 <div id="planesPage" style="display:none">
 
   <nav class="pl-nav pl-fade pl-d1">
-    <a href="index.html" class="pl-logo">
+    <div class="pl-logo">
       <img src="Logo_Sin_Texto_transparent.png" alt="Taurix"/>
       <span>Taurix</span>
-    </a>
+    </div>
+    <button id="plLogoutBtn" style="background:none;border:1px solid var(--brd);border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;color:var(--t3);cursor:pointer;font-family:var(--font);transition:all .15s;">
+      ← Volver al inicio
+    </button>
   </nav>
 
   <div id="plAlert" class="pl-alert" style="display:none"></div>
@@ -382,6 +385,11 @@
   );
   document.getElementById("plCardAutonomo").addEventListener("click", () => iniciarCheckout("autonomo"));
   document.getElementById("plCardSociedad").addEventListener("click", () => iniciarCheckout("sociedad"));
+
+  document.getElementById("plLogoutBtn").addEventListener("click", async () => {
+    await supabase.auth.signOut();
+    window.location.href = "index.html";
+  });
 
   init();
 </script>
