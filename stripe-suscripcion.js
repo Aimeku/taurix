@@ -22,8 +22,9 @@ const VALID_STATUSES = ["trialing", "active", "past_due"];
 export function removeAppCover() {
   const cover = document.getElementById("appCover");
   if (!cover) return;
+  cover.style.transition = "opacity .25s ease";
   cover.style.opacity = "0";
-  setTimeout(() => cover.remove(), 280);
+  setTimeout(() => cover.remove(), 260);
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -51,7 +52,6 @@ export async function checkSubscription(userId) {
    showPlanSelector
 ───────────────────────────────────────────────────────────────── */
 export function showPlanSelector(subData = null) {
-  removeAppCover();
   document.getElementById("planSelectorOverlay")?.remove();
 
   const esCancelado = subData?.status === "canceled";
@@ -65,12 +65,15 @@ export function showPlanSelector(subData = null) {
     display:flex;flex-direction:column;align-items:center;
     justify-content:flex-start;padding:48px 16px 48px;
     overflow-y:auto;font-family:var(--font,system-ui,sans-serif);
-    opacity:0;transition:opacity .3s ease;
+    opacity:1;
   `;
 
   overlay.innerHTML = `
     <style>
       @keyframes ps-spin { to { transform:rotate(360deg); } }
+      #planSelectorOverlay .lp-plan:hover { transform: none !important; }
+      #planSelectorOverlay .lp-plan-btn--autonomo:hover,
+      #planSelectorOverlay .lp-plan-btn--pro:hover { transform: none !important; }
     </style>
 
     <!-- Logo -->
@@ -197,10 +200,8 @@ export function showPlanSelector(subData = null) {
 
   document.body.appendChild(overlay);
 
-  // Animación de entrada
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => { overlay.style.opacity = "1"; });
-  });
+  // removeAppCover fade out (overlay ya visible debajo)
+  removeAppCover();
 
   // Eventos botones
   overlay.querySelectorAll(".plan-select-btn").forEach(btn => {
