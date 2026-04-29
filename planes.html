@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Taurix · Elige tu plan</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <link rel="icon" type="image/png" href="Logo_Sin_Texto_transparent.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    /* ── Reset mínimo para esta página ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100vh;
+      background: var(--bg);
+      font-family: var(--font);
+      color: var(--t1);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Fondo con gradiente igual que la landing ── */
+    #planesPage {
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse 75% 60% at 85% 5%,  rgba(249,115,22,.07) 0%, transparent 55%),
+        radial-gradient(ellipse 55% 45% at 10% 95%, rgba(249,115,22,.05) 0%, transparent 50%),
+        var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 16px 64px;
+    }
+
+    /* ── Navbar ── */
+    .pl-nav {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 0 0;
+      margin-bottom: 56px;
+    }
+    .pl-nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .pl-nav-logo img {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+    }
+    .pl-nav-logo span {
+      font-family: var(--font-hd);
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--t1);
+      letter-spacing: -.04em;
+    }
+    .pl-nav-back {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--t3);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color .15s;
+    }
+    .pl-nav-back:hover { color: var(--t1); }
+
+    /* ── Cabecera ── */
+    .pl-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .pl-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 18px;
+      background: rgba(249,115,22,.08);
+      border: 1px solid rgba(249,115,22,.22);
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ox-dd);
+      letter-spacing: .2px;
+      margin-bottom: 24px;
+    }
+    .pl-badge-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: badge-pulse 2.4s infinite;
+    }
+    .pl-title {
+      font-family: var(--font-hd);
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 900;
+      letter-spacing: -2.5px;
+      line-height: 1.05;
+      color: var(--t1);
+      margin-bottom: 14px;
+    }
+    .pl-title em {
+      font-style: normal;
+      background: linear-gradient(120deg, var(--ox) 0%, #FBBF24 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .pl-subtitle {
+      font-size: 16px;
+      color: var(--t3);
+      line-height: 1.65;
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    /* ── Aviso cancelado / past_due ── */
+    .pl-alert {
+      max-width: 440px;
+      border-radius: 14px;
+      padding: 16px 22px;
+      margin-bottom: 36px;
+      text-align: center;
+    }
+    .pl-alert--canceled {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+    }
+    .pl-alert--past_due {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+    }
+    .pl-alert-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .pl-alert--canceled .pl-alert-title { color: #991b1b; }
+    .pl-alert--past_due .pl-alert-title { color: #92400e; }
+    .pl-alert-sub { font-size: 13px; line-height: 1.5; }
+    .pl-alert--canceled .pl-alert-sub { color: #b91c1c; }
+    .pl-alert--past_due .pl-alert-sub { color: #78350f; }
+
+    /* ── Trust bar ── */
+    .pl-trust {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      margin-bottom: 44px;
+    }
+    .pl-trust-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      color: var(--t3);
+      font-weight: 500;
+    }
+    .pl-trust-icon {
+      font-size: 16px;
+    }
+
+    /* ── Planes ── */
+    .pl-planes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 780px;
+      width: 100%;
+      margin-bottom: 36px;
+    }
+    @media (max-width: 680px) {
+      .pl-planes { grid-template-columns: 1fr; max-width: 400px; }
+    }
+
+    /* ── Nota legal ── */
+    .pl-nota {
+      font-size: 12px;
+      color: var(--t4);
+      text-align: center;
+      max-width: 440px;
+      line-height: 1.75;
+    }
+    .pl-nota a { color: var(--ox); font-weight: 600; }
+
+    /* ── Spinner de redirección ── */
+    #planesSpinner {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      margin-top: 28px;
+    }
+    .pl-spinner-ring {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--brd);
+      border-top-color: var(--ox);
+      border-radius: 50%;
+      animation: pl-spin .7s linear infinite;
+    }
+    .pl-spinner-txt {
+      font-size: 13.5px;
+      color: var(--t3);
+      font-weight: 500;
+    }
+
+    /* ── Error ── */
+    #planesError {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 13px;
+      color: #991b1b;
+      text-align: center;
+      max-width: 440px;
+      margin-top: 16px;
+    }
+
+    /* ── Loader inicial (mientras verifica sesión) ── */
+    #planesLoader {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity .25s ease;
+    }
+    .pl-loader-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+    .pl-loader-inner img {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      opacity: .9;
+    }
+
+    /* ── Animaciones ── */
+    @keyframes pl-spin    { to { transform: rotate(360deg); } }
+    @keyframes badge-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .6; transform: scale(.85); }
+    }
+    @keyframes pl-fadein {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .pl-animate { animation: pl-fadein .45s ease both; }
+    .pl-animate-d1 { animation-delay: .05s; }
+    .pl-animate-d2 { animation-delay: .12s; }
+    .pl-animate-d3 { animation-delay: .18s; }
+    .pl-animate-d4 { animation-delay: .25s; }
+
+    /* ── Override: sin transform en hover de los planes ── */
+    .lp-plan:hover               { transform: none !important; }
+    .lp-plan-btn--pro:hover      { transform: none !important; }
+    .lp-plan-btn--autonomo:hover { transform: none !important; }
+    .lp-plan--featured           { transform: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- Loader inicial: tapa todo mientras se verifica sesión -->
+<div id="planesLoader">
+  <div class="pl-loader-inner">
+    <img src="Logo_Sin_Texto_transparent.png" alt="Taurix"/>
+    <div class="pl-spinner-ring"></div>
+  </div>
+</div>
+
+<!-- Página principal (oculta hasta que se verifica sesión) -->
+<div id="planesPage" style="display:none">
+
+  <!-- Nav -->
+  <nav class="pl-nav pl-animate">
+    <a href="index.html" class="pl-nav-logo">
+      <img src="Logo_Sin_Texto_transparent.png" alt="Taurix"/>
+      <span>Taurix</span>
+    </a>
+    <a href="index.html" class="pl-nav-back" id="plBackBtn">
+      ← Volver al inicio
+    </a>
+  </nav>
+
+  <!-- Aviso cancelado / past_due (se muestra según status) -->
+  <div id="plAlert" class="pl-alert" style="display:none"></div>
+
+  <!-- Cabecera -->
+  <div class="pl-header pl-animate pl-animate-d1" id="plHeader">
+    <div class="pl-badge">
+      <span class="pl-badge-dot"></span>
+      7 días de prueba gratuita
+    </div>
+    <h1 class="pl-title">Elige tu <em>plan</em></h1>
+    <p class="pl-subtitle">
+      Sin permanencia · Sin tarjeta hasta el día 8 · Cancela cuando quieras
+    </p>
+  </div>
+
+  <!-- Trust bar -->
+  <div class="pl-trust pl-animate pl-animate-d2">
+    <div class="pl-trust-item"><span class="pl-trust-icon">🔒</span> Pago seguro con Stripe</div>
+    <div class="pl-trust-item"><span class="pl-trust-icon">✓</span> Sin permanencia</div>
+    <div class="pl-trust-item"><span class="pl-trust-icon">📄</span> Factura incluida</div>
+    <div class="pl-trust-item"><span class="pl-trust-icon">🇪🇸</span> Hecho para España</div>
+  </div>
+
+  <!-- Tarjetas de planes -->
+  <div class="pl-planes pl-animate pl-animate-d3">
+
+    <!-- Plan Autónomo -->
+    <div class="lp-plan lp-plan--autonomo" id="plCardAutonomo" style="cursor:pointer">
+      <div class="lp-plan-badge lp-plan-badge--autonomo">⏳ Oferta por tiempo limitado</div>
+      <div class="lp-plan-tier-label">AUTÓNOMOS</div>
+      <div class="lp-plan-name">Plan Autónomo</div>
+      <div class="lp-plan-tagline">Para freelances y trabajadores por cuenta propia</div>
+      <div class="lp-plan-price-wrap">
+        <span class="lp-plan-eur-tachado">29€</span>
+        <div class="lp-plan-price">
+          <span class="lp-plan-eur">19€</span>
+          <span class="lp-plan-per">/mes IVA inc.</span>
+        </div>
+      </div>
+      <div class="lp-plan-promo">Precio bloqueado de por vida</div>
+      <div class="lp-plan-promo" style="background:linear-gradient(135deg,#0284c7,#0ea5e9);margin-top:4px">7 días de prueba gratuita</div>
+      <ul class="lp-plan-features" style="margin-top:18px">
+        <li><span class="lp-check lp-check--autonomo">✓</span> <strong>Facturas, presupuestos y albaranes sin límite</strong></li>
+        <li><span class="lp-check lp-check--autonomo">✓</span> <strong>IVA (Modelo 303) e IRPF (Modelo 130)</strong></li>
+        <li><span class="lp-check lp-check--autonomo">✓</span> <strong>Control de stock y catálogo de productos</strong></li>
+        <li><span class="lp-check lp-check--autonomo">✓</span> <strong>Gestión de clientes y gastos deducibles</strong></li>
+        <li><span class="lp-check lp-check--autonomo">✓</span> <strong>Gestor IA — tu asesor 24h</strong></li>
+        <li><span class="lp-check lp-check--autonomo">✓</span> <strong>Dashboard fiscal en tiempo real</strong></li>
+        <li><span class="lp-check lp-check--autonomo">✓</span> <strong>Tesorería y control de cobros</strong></li>
+        <li><span class="lp-check lp-check--autonomo">✓</span> <strong>Libros oficiales AEAT en PDF</strong></li>
+        <li><span class="lp-check lp-check--autonomo">✓</span> <strong>Agenda, trabajos y pipeline CRM</strong></li>
+        <li><span class="lp-check lp-check--autonomo">✓</span> <strong>Exportación PDF y Excel</strong></li>
+      </ul>
+      <button class="lp-plan-btn lp-plan-btn--autonomo pl-plan-btn" data-plan="autonomo" style="margin-top:8px">
+        Empezar 7 días gratis →
+      </button>
+      <div class="lp-plan-note">Sin permanencia · Cancela cuando quieras</div>
+    </div>
+
+    <!-- Plan Sociedad -->
+    <div class="lp-plan lp-plan--sociedad lp-plan--featured" id="plCardSociedad" style="cursor:pointer">
+      <div class="lp-plan-badge lp-plan-badge--star">⏳ Oferta por tiempo limitado</div>
+      <div class="lp-plan-tier-label lp-plan-tier-label--sociedad">SOCIEDADES</div>
+      <div class="lp-plan-name">Plan Sociedades</div>
+      <div class="lp-plan-tagline">Para SL, SA y pymes con trabajadores</div>
+      <div class="lp-plan-price-wrap">
+        <span class="lp-plan-eur-tachado">59€</span>
+        <div class="lp-plan-price">
+          <span class="lp-plan-eur lp-plan-eur--sociedad">29€</span>
+          <span class="lp-plan-per">/mes IVA inc.</span>
+        </div>
+      </div>
+      <div class="lp-plan-promo lp-plan-promo--sociedad">Precio bloqueado de por vida</div>
+      <div class="lp-plan-promo lp-plan-promo--sociedad" style="background:linear-gradient(135deg,#0284c7,#0ea5e9);margin-top:4px">7 días de prueba gratuita</div>
+      <ul class="lp-plan-features" style="margin-top:18px">
+        <li><span class="lp-check lp-check--pro">✓</span> <strong>Todo lo del plan Autónomo</strong></li>
+        <li><span class="lp-check lp-check--pro">✓</span> <strong>IVA (Modelo 303) e Impuesto de Sociedades</strong></li>
+        <li><span class="lp-check lp-check--pro">✓</span> <strong>Contabilidad y libro diario</strong></li>
+        <li><span class="lp-check lp-check--pro">✓</span> <strong>Gestión de clientes y gastos deducibles</strong></li>
+        <li><span class="lp-check lp-check--pro">✓</span> <strong>Gestor IA — tu asesor 24h</strong></li>
+        <li><span class="lp-check lp-check--pro">✓</span> <strong>Dashboard fiscal en tiempo real</strong></li>
+        <li><span class="lp-check lp-check--pro">✓</span> <strong>SL, SA y otras formas jurídicas</strong></li>
+        <li><span class="lp-check lp-check--pro">✓</span> <strong>Nóminas y colaboradores con roles</strong></li>
+        <li><span class="lp-check lp-check--pro">✓</span> <strong>Múltiples sedes</strong></li>
+      </ul>
+      <button class="lp-plan-btn lp-plan-btn--pro pl-plan-btn" data-plan="sociedad" style="margin-top:8px">
+        Empezar 7 días gratis →
+      </button>
+      <div class="lp-plan-note">Sin permanencia · Cancela cuando quieras</div>
+    </div>
+
+  </div><!-- /.pl-planes -->
+
+  <!-- Spinner de redirección a Stripe -->
+  <div id="planesSpinner" style="display:none;flex-direction:column;align-items:center;gap:14px;margin-top:8px">
+    <div class="pl-spinner-ring"></div>
+    <p class="pl-spinner-txt">Redirigiendo a la pasarela de pago…</p>
+  </div>
+
+  <!-- Error -->
+  <div id="planesError"></div>
+
+  <!-- Nota legal -->
+  <p class="pl-nota pl-animate pl-animate-d4">
+    Al continuar aceptas los <a href="index.html#terminos">Términos de servicio</a>.
+    No se realizará ningún cargo hasta el día 8.
+    Cancela en cualquier momento desde Ajustes.
+  </p>
+
+</div><!-- /#planesPage -->
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  /* ── Supabase ── */
+  const SUPABASE_URL      = "https://biiyzjzdvuahajndltap.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_0N1Nv7SkjpynYh10lieang_uUoHRHOf";
+  const EDGE_BASE         = `${SUPABASE_URL}/functions/v1`;
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession:    true,
+      autoRefreshToken:  true,
+      detectSessionInUrl: true,
+      flowType:          "pkce",
+      storage:           window.localStorage,
+    },
+  });
+
+  /* ── DOM refs ── */
+  const loader   = document.getElementById("planesLoader");
+  const page     = document.getElementById("planesPage");
+  const alertEl  = document.getElementById("plAlert");
+  const spinner  = document.getElementById("planesSpinner");
+  const errorEl  = document.getElementById("planesError");
+  const btns     = document.querySelectorAll(".pl-plan-btn");
+  const cards    = document.querySelectorAll("#plCardAutonomo, #plCardSociedad");
+
+  /* ── Ocultar loader con fade ── */
+  function hideLoader() {
+    loader.style.opacity = "0";
+    setTimeout(() => {
+      loader.style.display = "none";
+      page.style.display = "flex";
+    }, 260);
+  }
+
+  /* ── Mostrar aviso según status ── */
+  function showAlert(status) {
+    if (status === "canceled") {
+      alertEl.className = "pl-alert pl-alert--canceled";
+      alertEl.innerHTML = `
+        <p class="pl-alert-title">Tu suscripción está cancelada</p>
+        <p class="pl-alert-sub">Elige un plan para volver a tener acceso completo.</p>
+      `;
+      alertEl.style.display = "block";
+      // Ocultar el header normal y poner uno más compacto
+      document.getElementById("plHeader").style.marginBottom = "0";
+    } else if (status === "past_due") {
+      alertEl.className = "pl-alert pl-alert--past_due";
+      alertEl.innerHTML = `
+        <p class="pl-alert-title">Hay un problema con tu pago</p>
+        <p class="pl-alert-sub">Actualiza tu método de pago para continuar usando Taurix.</p>
+      `;
+      alertEl.style.display = "block";
+    }
+  }
+
+  /* ── Init ── */
+  async function init() {
+    // Leer status de la URL (pasado desde main.js)
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get("status"); // "canceled" | "past_due" | null
+
+    // Verificar que hay sesión activa
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      // Sin sesión → volver al inicio (que mostrará el login)
+      window.location.href = "index.html";
+      return;
+    }
+
+    // Verificar que realmente no tiene acceso (por si llega aquí por error)
+    const VALID_STATUSES = ["trialing", "active", "past_due"];
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("status, is_admin")
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+
+    if (sub?.is_admin || (sub && VALID_STATUSES.includes(sub.status) && status !== "past_due")) {
+      // Ya tiene acceso → mandarlo a la app
+      window.location.href = "index.html";
+      return;
+    }
+
+    // Mostrar aviso si procede
+    if (status) showAlert(status);
+
+    // Todo OK → mostrar la página
+    hideLoader();
+  }
+
+  /* ── Checkout ── */
+  async function iniciarCheckout(plan) {
+    // Deshabilitar todo
+    btns.forEach(b  => { b.disabled = true; b.style.opacity = ".5"; });
+    cards.forEach(c => { c.style.pointerEvents = "none"; });
+    spinner.style.display = "flex";
+    errorEl.style.display = "none";
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Sesión expirada. Por favor, inicia sesión de nuevo.");
+
+      const resp = await fetch(`${EDGE_BASE}/create-checkout-session`, {
+        method:  "POST",
+        headers: {
+          "Content-Type":  "application/json",
+          "Authorization": `Bearer ${token}`,
+          "apikey":        SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ plan }),
+      });
+
+      const data = await resp.json();
+      if (!resp.ok || !data.url) throw new Error(data.error || "Error creando sesión de pago.");
+
+      window.location.href = data.url;
+
+    } catch (err) {
+      console.error("[planes] checkout error:", err);
+      btns.forEach(b  => { b.disabled = false; b.style.opacity = "1"; });
+      cards.forEach(c => { c.style.pointerEvents = ""; });
+      spinner.style.display = "none";
+      errorEl.textContent   = err.message || "Error al conectar con el servidor. Inténtalo de nuevo.";
+      errorEl.style.display = "block";
+    }
+  }
+
+  /* ── Eventos ── */
+  btns.forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      iniciarCheckout(btn.dataset.plan);
+    });
+  });
+
+  document.getElementById("plCardAutonomo")
+    .addEventListener("click", () => iniciarCheckout("autonomo"));
+  document.getElementById("plCardSociedad")
+    .addEventListener("click", () => iniciarCheckout("sociedad"));
+
+  /* ── Arrancar ── */
+  init();
+</script>
+</body>
+</html>
