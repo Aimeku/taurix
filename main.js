@@ -6,7 +6,7 @@
    ═══════════════════════════════════════════════════════ */
 
 import { login, logout, getSession, handleRememberSession, showAuthModal, showResetPasswordModal, showAjustesModal, checkPendingDeletion, _showPendingDeletionBanner } from "./auth.js";
-import { checkSubscription, showPlanSelector } from "./stripe-suscripcion.js";
+import { checkSubscription, showPlanSelector, removeAppCover } from "./stripe-suscripcion.js";
 import { supabase } from "./supabase.js";
 
 import {
@@ -404,6 +404,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (sessionStorage.getItem("taurix_recovery_signout") === "1") return;
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.remove("hidden");
+      removeAppCover();
     }
   });
 
@@ -453,6 +454,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (localStorage.getItem("taurix_email_verified") === "1") {
     localStorage.removeItem("taurix_email_verified");
     document.getElementById("landingPage")?.classList.remove("hidden");
+    removeAppCover();
     showAuthModal();
     setTimeout(() => {
       const successEl = document.getElementById("authSuccess");
@@ -482,12 +484,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const session = await getSession();
   if (!session) {
     document.getElementById("landingPage")?.classList.remove("hidden");
+    removeAppCover();
     return;
   }
   // Bloquear acceso si el email no está verificado — por si Supabase crea sesión sin confirmación
   if (session.user && !session.user.email_confirmed_at) {
     await supabase.auth.signOut();
     document.getElementById("landingPage")?.classList.remove("hidden");
+    removeAppCover();
     return;
   }
   setSession(session);
@@ -499,6 +503,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Si algo falla después, al menos la UI de la app ya está visible.
   document.getElementById("landingPage")?.classList.add("hidden");
   document.getElementById("appShell")?.classList.remove("hidden");
+  removeAppCover();
 
   // Restaurar contexto gestor si estaba activo (sessionStorage persiste la sesión)
   try { restaurarContextoSiExiste(); } catch(e) { console.error("[restaurarContextoSiExiste]", e); }
