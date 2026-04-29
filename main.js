@@ -6,7 +6,7 @@
    ═══════════════════════════════════════════════════════ */
 
 import { login, logout, getSession, handleRememberSession, showAuthModal, showResetPasswordModal, showAjustesModal, checkPendingDeletion, _showPendingDeletionBanner } from "./auth.js";
-import { checkSubscription, showPlanSelector, removeAppCover } from "./stripe-suscripcion.js";
+import { checkSubscription, showPlanSelector } from "./stripe-suscripcion.js";
 import { supabase } from "./supabase.js";
 
 import {
@@ -404,7 +404,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (sessionStorage.getItem("taurix_recovery_signout") === "1") return;
       document.getElementById("appShell")?.classList.add("hidden");
       document.getElementById("landingPage")?.classList.remove("hidden");
-      removeAppCover();
     }
   });
 
@@ -454,7 +453,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (localStorage.getItem("taurix_email_verified") === "1") {
     localStorage.removeItem("taurix_email_verified");
     document.getElementById("landingPage")?.classList.remove("hidden");
-    removeAppCover();
     showAuthModal();
     setTimeout(() => {
       const successEl = document.getElementById("authSuccess");
@@ -484,14 +482,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const session = await getSession();
   if (!session) {
     document.getElementById("landingPage")?.classList.remove("hidden");
-    removeAppCover();
     return;
   }
   // Bloquear acceso si el email no está verificado — por si Supabase crea sesión sin confirmación
   if (session.user && !session.user.email_confirmed_at) {
     await supabase.auth.signOut();
     document.getElementById("landingPage")?.classList.remove("hidden");
-    removeAppCover();
     return;
   }
   setSession(session);
@@ -499,11 +495,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Exponer sesión globalmente — necesario para query-context.js y gestor/store.js
   window.__TAURIX_SESSION__ = session;
 
-  // Cambiar de landing a app ANTES de inicializar nada más.
-  // Si algo falla después, al menos la UI de la app ya está visible.
+  // landingPage se oculta ya — appShell se muestra solo si canAccess (después del subscription check)
   document.getElementById("landingPage")?.classList.add("hidden");
-  document.getElementById("appShell")?.classList.remove("hidden");
-  removeAppCover();
 
   // Restaurar contexto gestor si estaba activo (sessionStorage persiste la sesión)
   try { restaurarContextoSiExiste(); } catch(e) { console.error("[restaurarContextoSiExiste]", e); }
@@ -582,12 +575,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.__TAURIX_SUB_DATA__ = subData;
 
   if (!canAccess) {
-    // Ocultar app y mostrar selector de plan
-    document.getElementById("appShell")?.classList.add("hidden");
-    document.getElementById("landingPage")?.classList.add("hidden");
-    showPlanSelector(subData);
+    // Redirigir a la página de planes (sin overlay, sin flash)
+    const st = subData?.status ? `?status=${subData.status}` : "";
+    window.location.href = `planes.html${st}`;
     return;
   }
+
+  // Solo aquí, cuando sabemos que el usuario tiene acceso, mostramos la app
+  document.getElementById("appShell")?.classList.remove("hidden");
 
   // Si viene de un checkout exitoso, mostrar toast de bienvenida
   if (_checkoutParam === "success") {
