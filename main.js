@@ -495,8 +495,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Exponer sesión globalmente — necesario para query-context.js y gestor/store.js
   window.__TAURIX_SESSION__ = session;
 
-  // landingPage se oculta ya — appShell se muestra solo si canAccess (después del subscription check)
+  // Cambiar de landing a app
   document.getElementById("landingPage")?.classList.add("hidden");
+  document.getElementById("appShell")?.classList.remove("hidden");
 
   // Restaurar contexto gestor si estaba activo (sessionStorage persiste la sesión)
   try { restaurarContextoSiExiste(); } catch(e) { console.error("[restaurarContextoSiExiste]", e); }
@@ -581,8 +582,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  // Solo aquí, cuando sabemos que el usuario tiene acceso, mostramos la app
-  document.getElementById("appShell")?.classList.remove("hidden");
 
   // Si viene de un checkout exitoso, mostrar toast de bienvenida
   if (_checkoutParam === "success") {
