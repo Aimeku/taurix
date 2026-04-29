@@ -61,7 +61,7 @@ export function showPlanSelector(subData = null) {
   overlay.id = "planSelectorOverlay";
   overlay.style.cssText = `
     position:fixed;inset:0;z-index:99999;
-    background:#f2f3f7;
+    background:var(--bg1,#f2f3f7);
     display:flex;flex-direction:column;align-items:center;
     justify-content:flex-start;padding:48px 16px 48px;
     overflow-y:auto;font-family:var(--font,system-ui,sans-serif);
@@ -71,152 +71,121 @@ export function showPlanSelector(subData = null) {
   overlay.innerHTML = `
     <style>
       @keyframes ps-spin { to { transform:rotate(360deg); } }
-      @keyframes ps-fadeup { from { opacity:0;transform:translateY(18px); } to { opacity:1;transform:translateY(0); } }
-
-      .ps-card {
-        flex:1;min-width:260px;max-width:310px;
-        border-radius:20px;padding:32px 28px;
-        background:#fff;
-        border:2px solid #e5e7eb;
-        box-shadow:0 2px 12px rgba(0,0,0,.06);
-        transition:border-color .2s,box-shadow .2s,transform .2s;
-        position:relative;cursor:pointer;
-        animation:ps-fadeup .4s ease both;
-      }
-      .ps-card:hover {
-        border-color:#f97316;
-        box-shadow:0 8px 32px rgba(249,115,22,.14);
-        transform:translateY(-3px);
-      }
-      .ps-card--featured {
-        border-color:#f97316;
-        box-shadow:0 8px 32px rgba(249,115,22,.18);
-      }
-      .ps-btn {
-        width:100%;padding:13px;
-        background:linear-gradient(135deg,#f97316,#fb923c);
-        color:#fff;border:none;border-radius:12px;
-        font-size:14px;font-weight:700;cursor:pointer;
-        font-family:inherit;transition:opacity .15s,transform .15s;
-        letter-spacing:.01em;
-      }
-      .ps-btn:hover { opacity:.92;transform:translateY(-1px); }
-      .ps-btn:active { transform:translateY(0); }
-      .ps-check {
-        display:flex;align-items:flex-start;gap:10px;
-        font-size:13px;color:#374151;margin-bottom:10px;line-height:1.45;
-      }
-      .ps-check-icon {
-        width:18px;height:18px;border-radius:50%;
-        background:linear-gradient(135deg,#f97316,#fb923c);
-        color:#fff;font-size:10px;font-weight:800;
-        display:flex;align-items:center;justify-content:center;
-        flex-shrink:0;margin-top:1px;
-      }
-      .ps-badge-popular {
-        position:absolute;top:-13px;left:50%;transform:translateX(-50%);
-        background:linear-gradient(135deg,#f97316,#fb923c);
-        color:#fff;font-size:11px;font-weight:700;
-        padding:4px 14px;border-radius:20px;white-space:nowrap;
-        box-shadow:0 2px 8px rgba(249,115,22,.35);letter-spacing:.03em;
-      }
-      .ps-divider {
-        height:1px;background:#f3f4f6;margin:18px 0;
-      }
     </style>
 
-    <!-- Logo + título -->
-    <div style="text-align:center;margin-bottom:36px;animation:ps-fadeup .35s ease both">
-      <img src="Logo_Sin_Texto_transparent.png"
-        style="width:60px;height:60px;border-radius:16px;margin-bottom:20px;
-               box-shadow:0 4px 16px rgba(249,115,22,.2)" alt="Taurix"/>
+    <!-- Logo -->
+    <img src="Logo_Sin_Texto_transparent.png"
+      style="width:56px;height:56px;border-radius:14px;margin-bottom:24px;
+             box-shadow:0 4px 16px rgba(249,115,22,.2)" alt="Taurix"/>
 
-      ${esCancelado ? `
-        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:14px 22px;max-width:360px;margin:0 auto">
-          <p style="font-size:14px;font-weight:700;color:#991b1b;margin:0 0 4px">Tu suscripción está cancelada</p>
-          <p style="font-size:13px;color:#b91c1c;margin:0">Elige un plan para volver a tener acceso</p>
-        </div>
-      ` : esPastDue ? `
-        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:14px 22px;max-width:360px;margin:0 auto">
-          <p style="font-size:14px;font-weight:700;color:#92400e;margin:0 0 4px">Hay un problema con tu pago</p>
-          <p style="font-size:13px;color:#78350f;margin:0">Actualiza tu método de pago para continuar</p>
-        </div>
-      ` : `
-        <h1 style="font-size:26px;font-weight:800;color:#0d0f16;margin:0 0 10px;letter-spacing:-.02em">
-          Elige tu plan
-        </h1>
-        <p style="font-size:14px;color:#6b7280;margin:0;line-height:1.6;max-width:340px">
-          7 días de prueba gratuita · Sin permanencia · Cancela cuando quieras
-        </p>
-      `}
-    </div>
+    <!-- Título / aviso -->
+    ${esCancelado ? `
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:14px;
+                  padding:14px 22px;max-width:400px;margin:0 0 28px;text-align:center">
+        <p style="font-size:14px;font-weight:700;color:#991b1b;margin:0 0 4px">Tu suscripción está cancelada</p>
+        <p style="font-size:13px;color:#b91c1c;margin:0">Elige un plan para volver a tener acceso</p>
+      </div>
+    ` : esPastDue ? `
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;
+                  padding:14px 22px;max-width:400px;margin:0 0 28px;text-align:center">
+        <p style="font-size:14px;font-weight:700;color:#92400e;margin:0 0 4px">Hay un problema con tu pago</p>
+        <p style="font-size:13px;color:#78350f;margin:0">Actualiza tu método de pago para continuar</p>
+      </div>
+    ` : `
+      <h1 style="font-family:var(--font-hd,'Plus Jakarta Sans',system-ui);
+                 font-size:clamp(24px,4vw,36px);font-weight:900;
+                 color:var(--t1,#0d0f16);margin:0 0 10px;
+                 letter-spacing:-1.5px;text-align:center">
+        Elige tu plan
+      </h1>
+      <p class="lp-section-sub" style="text-align:center;margin-bottom:40px;font-size:15px">
+        Elige el plan que se adapta a tu actividad · Sin permanencia · Cancela cuando quieras
+      </p>
+    `}
 
-    <!-- Tarjetas -->
-    <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;width:100%;max-width:680px;margin-bottom:32px">
+    <!-- Tarjetas — reutiliza exactamente las clases de la landing -->
+    <div class="lp-planes lp-planes--2col" style="width:100%;margin-bottom:28px">
 
       <!-- Plan Autónomo -->
-      <div class="ps-card" id="psCardAutonomo" data-plan="autonomo" style="animation-delay:.05s">
-        <div style="font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">
-          Autónomo
+      <div class="lp-plan lp-plan--autonomo plan-select-card" data-plan="autonomo" style="cursor:pointer">
+        <div class="lp-plan-badge lp-plan-badge--autonomo">⏳ Oferta por tiempo limitado</div>
+        <div class="lp-plan-tier-label">AUTÓNOMOS</div>
+        <div class="lp-plan-name">Plan Autónomo</div>
+        <div class="lp-plan-tagline">Para freelances y trabajadores por cuenta propia</div>
+        <div class="lp-plan-price-wrap">
+          <span class="lp-plan-eur-tachado">29€</span>
+          <div class="lp-plan-price">
+            <span class="lp-plan-eur">19€</span>
+            <span class="lp-plan-per">/mes IVA inc.</span>
+          </div>
         </div>
-        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px">
-          <span style="font-size:36px;font-weight:800;color:#0d0f16;letter-spacing:-.02em">19€</span>
-          <span style="font-size:13px;color:#9ca3af;font-weight:500">/mes + IVA</span>
-        </div>
-        <p style="font-size:12.5px;color:#6b7280;margin:0 0 20px;line-height:1.5">
-          Para freelances y trabajadores por cuenta propia
-        </p>
-        <div class="ps-divider"></div>
-        <div style="margin-bottom:22px">
-          <div class="ps-check"><span class="ps-check-icon">✓</span><span>Facturas, presupuestos y albaranes</span></div>
-          <div class="ps-check"><span class="ps-check-icon">✓</span><span>Modelos 130, 303 y 390</span></div>
-          <div class="ps-check"><span class="ps-check-icon">✓</span><span>IRPF y gastos deducibles</span></div>
-          <div class="ps-check"><span class="ps-check-icon">✓</span><span>Régimen de autónomos</span></div>
-          <div class="ps-check"><span class="ps-check-icon">✓</span><span>Gestor IA 24h</span></div>
-        </div>
-        <button class="ps-btn" data-plan="autonomo">Empezar 7 días gratis</button>
+        <div class="lp-plan-promo">Precio bloqueado de por vida</div>
+        <div class="lp-plan-promo" style="background:linear-gradient(135deg,#0284c7,#0ea5e9);color:#fff;padding:4px 10px;border-radius:20px;font-size:12px;margin-top:4px;display:inline-block">7 días de prueba gratuita</div>
+        <ul class="lp-plan-features" style="margin-top:18px">
+          <li><span class="lp-check lp-check--autonomo">✓</span> <strong>Facturas, presupuestos y albaranes sin límite</strong></li>
+          <li><span class="lp-check lp-check--autonomo">✓</span> <strong>IVA (Modelo 303) e IRPF (Modelo 130)</strong></li>
+          <li><span class="lp-check lp-check--autonomo">✓</span> <strong>IRPF y gastos deducibles</strong></li>
+          <li><span class="lp-check lp-check--autonomo">✓</span> <strong>Régimen de autónomos</strong></li>
+          <li><span class="lp-check lp-check--autonomo">✓</span> <strong>Gestor IA — tu asesor 24h</strong></li>
+          <li><span class="lp-check lp-check--autonomo">✓</span> <strong>Dashboard fiscal en tiempo real</strong></li>
+          <li><span class="lp-check lp-check--autonomo">✓</span> <strong>Tesorería y control de cobros</strong></li>
+          <li><span class="lp-check lp-check--autonomo">✓</span> <strong>Libros oficiales AEAT en PDF</strong></li>
+        </ul>
+        <button class="lp-plan-btn lp-plan-btn--autonomo plan-select-btn" data-plan="autonomo">
+          Empezar 7 días gratis →
+        </button>
+        <div class="lp-plan-note">Sin permanencia · Cancela cuando quieras</div>
       </div>
 
       <!-- Plan Sociedad -->
-      <div class="ps-card ps-card--featured" id="psCardSociedad" data-plan="sociedad" style="animation-delay:.12s">
-        <div class="ps-badge-popular">⭐ Más popular</div>
-        <div style="font-size:11px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">
-          Sociedad
+      <div class="lp-plan lp-plan--sociedad lp-plan--featured plan-select-card" data-plan="sociedad" style="cursor:pointer">
+        <div class="lp-plan-badge lp-plan-badge--star">⏳ Oferta por tiempo limitado</div>
+        <div class="lp-plan-tier-label lp-plan-tier-label--sociedad">SOCIEDADES</div>
+        <div class="lp-plan-name">Plan Sociedades</div>
+        <div class="lp-plan-tagline">Para SL, SA y pymes con trabajadores</div>
+        <div class="lp-plan-price-wrap">
+          <span class="lp-plan-eur-tachado">59€</span>
+          <div class="lp-plan-price">
+            <span class="lp-plan-eur lp-plan-eur--sociedad">29€</span>
+            <span class="lp-plan-per">/mes IVA inc.</span>
+          </div>
         </div>
-        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px">
-          <span style="font-size:36px;font-weight:800;color:#0d0f16;letter-spacing:-.02em">29€</span>
-          <span style="font-size:13px;color:#9ca3af;font-weight:500">/mes + IVA</span>
-        </div>
-        <p style="font-size:12.5px;color:#6b7280;margin:0 0 20px;line-height:1.5">
-          Para SL, SA y pymes con trabajadores
-        </p>
-        <div class="ps-divider"></div>
-        <div style="margin-bottom:22px">
-          <div class="ps-check"><span class="ps-check-icon">✓</span><span>Todo lo del plan Autónomo</span></div>
-          <div class="ps-check"><span class="ps-check-icon">✓</span><span>Contabilidad y libro diario</span></div>
-          <div class="ps-check"><span class="ps-check-icon">✓</span><span>Impuesto de Sociedades</span></div>
-          <div class="ps-check"><span class="ps-check-icon">✓</span><span>SL, SA y otras formas jurídicas</span></div>
-          <div class="ps-check"><span class="ps-check-icon">✓</span><span>Múltiples sedes</span></div>
-        </div>
-        <button class="ps-btn" data-plan="sociedad">Empezar 7 días gratis</button>
+        <div class="lp-plan-promo lp-plan-promo--sociedad">Precio bloqueado de por vida</div>
+        <div class="lp-plan-promo lp-plan-promo--sociedad" style="background:linear-gradient(135deg,#0284c7,#0ea5e9);color:#fff;padding:4px 10px;border-radius:20px;font-size:12px;margin-top:4px;display:inline-block">7 días de prueba gratuita</div>
+        <ul class="lp-plan-features" style="margin-top:18px">
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>Todo lo del plan Autónomo</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>IVA (Modelo 303) e Impuesto de Sociedades</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>Contabilidad y libro diario</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>Gestión de clientes y gastos deducibles</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>Gestor IA — tu asesor 24h</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>Dashboard fiscal en tiempo real</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>SL, SA y otras formas jurídicas</strong></li>
+          <li><span class="lp-check lp-check--pro">✓</span> <strong>Múltiples sedes</strong></li>
+        </ul>
+        <button class="lp-plan-btn lp-plan-btn--pro plan-select-btn" data-plan="sociedad">
+          Empezar 7 días gratis →
+        </button>
+        <div class="lp-plan-note">Sin permanencia · Cancela cuando quieras</div>
       </div>
 
     </div>
 
     <!-- Nota legal -->
-    <p style="font-size:11.5px;color:#9ca3af;text-align:center;max-width:400px;line-height:1.7;margin:0;animation:ps-fadeup .4s ease .2s both">
+    <p style="font-size:12px;color:var(--t4,#9ca3af);text-align:center;
+              max-width:420px;line-height:1.7;margin:0">
       Al continuar aceptas los
       <a href="#" onclick="document.getElementById('openTerminos')?.click();return false"
-        style="color:#f97316;text-decoration:none;font-weight:600">Términos de servicio</a>.
+        style="color:var(--ox,#f97316);text-decoration:none;font-weight:600">Términos de servicio</a>.
       No se realizará ningún cargo hasta el día 8.
       Cancela en cualquier momento desde Ajustes.
     </p>
 
     <!-- Spinner -->
     <div id="planSelectorSpinner" style="display:none;margin-top:28px;text-align:center">
-      <div style="width:34px;height:34px;border:3px solid #e5e7eb;border-top-color:#f97316;
-                  border-radius:50%;animation:ps-spin .7s linear infinite;margin:0 auto 12px"></div>
-      <p style="font-size:13px;color:#6b7280;margin:0">Redirigiendo a la pasarela de pago…</p>
+      <div style="width:32px;height:32px;border:3px solid var(--brd,#e5e7eb);
+                  border-top-color:var(--ox,#f97316);border-radius:50%;
+                  animation:ps-spin .7s linear infinite;margin:0 auto 12px"></div>
+      <p style="font-size:13px;color:var(--t3,#6b7280);margin:0">Redirigiendo a la pasarela de pago…</p>
     </div>
 
     <!-- Error -->
@@ -234,15 +203,15 @@ export function showPlanSelector(subData = null) {
   });
 
   // Eventos botones
-  overlay.querySelectorAll(".ps-btn").forEach(btn => {
+  overlay.querySelectorAll(".plan-select-btn").forEach(btn => {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
       await _iniciarCheckout(btn.dataset.plan);
     });
   });
 
-  // Click en tarjeta
-  overlay.querySelectorAll(".ps-card").forEach(card => {
+  // Click en tarjeta también activa
+  overlay.querySelectorAll(".plan-select-card").forEach(card => {
     card.addEventListener("click", async () => {
       await _iniciarCheckout(card.dataset.plan);
     });
@@ -253,7 +222,7 @@ export function showPlanSelector(subData = null) {
    _iniciarCheckout  (privado)
 ───────────────────────────────────────────────────────────────── */
 async function _iniciarCheckout(plan) {
-  const btns    = document.querySelectorAll(".ps-btn");
+  const btns    = document.querySelectorAll(".plan-select-btn");
   const spinner = document.getElementById("planSelectorSpinner");
   const errEl   = document.getElementById("planSelectorError");
 
