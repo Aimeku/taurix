@@ -398,7 +398,7 @@ export function initPlanTab(subData) {
   });
 
   document.getElementById("ajPlanReactivarBtn")?.addEventListener("click", () => {
-    document.getElementById("ajustesModal")?.remove();
-    showPlanSelector(subData);
+    const st = subData?.status ? `?status=${subData.status}` : "";
+    window.location.href = `planes.html${st}`;
   });
 }
