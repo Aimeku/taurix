@@ -570,16 +570,18 @@ document.addEventListener("DOMContentLoaded", async () => {
      Comprueba si el usuario tiene suscripción activa (o es admin).
      Si no, oculta la app y muestra el selector de plan.
   ─────────────────────────────────────────────────────────────── */
-  const { canAccess, subData } = await checkSubscription(session.user.id);
-
-  // Guardar globalmente para el tab "Plan" de Ajustes
-  window.__TAURIX_SUB_DATA__ = subData;
-
-  if (!canAccess) {
-    // Redirigir a la página de planes (sin overlay, sin flash)
-    const st = subData?.status ? `?status=${subData.status}` : "";
-    window.location.href = `planes.html${st}`;
-    return;
+  // Si viene de checkout=success el webhook puede tardar — reintentamos hasta 8 veces
+  let canAccess, subData;
+  if (_checkoutParam === "success") {
+    const MAX_TRIES = 8;
+    const DELAY_MS  = 1500;
+    for (let i = 0; i < MAX_TRIES; i++) {
+      ({ canAccess, subData } = await checkSubscription(session.user.id));
+      if (canAccess) break;
+      if (i < MAX_TRIES - 1) await new Promise(r => setTimeout(r, DELAY_MS));
+    }
+  } else {
+    ({ canAccess, subData } = await checkSubscription(session.user.id));
   }
 
 
