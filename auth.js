@@ -859,8 +859,7 @@ export function showAjustesModal() {
       // Inicializar el tab de plan al abrirlo
       if (target === "plan") {
         const planPanel = document.getElementById("ajPanelPlan");
-        if (planPanel && !planPanel.dataset.initialized) {
-          planPanel.dataset.initialized = "1";
+        if (planPanel) {
           const subData = window.__TAURIX_SUB_DATA__ || null;
           planPanel.innerHTML = renderPlanTab(subData);
           initPlanTab(subData);
