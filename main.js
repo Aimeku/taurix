@@ -584,6 +584,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     ({ canAccess, subData } = await checkSubscription(session.user.id));
   }
 
+  // Guardar globalmente para el tab "Plan" de Ajustes
+  window.__TAURIX_SUB_DATA__ = subData;
 
   // Si viene de un checkout exitoso, mostrar toast de bienvenida
   if (_checkoutParam === "success") {
